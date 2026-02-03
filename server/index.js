@@ -1132,7 +1132,7 @@ app.get('/api/auth/me', async (req, res) => {
     // Get fresh user data
     const userPath = path.join(USERS_DIR, `${session.userId}.json`);
     const data = await fs.readFile(userPath, 'utf-8');
-    const user = JSON.parse(data);
+    let user = JSON.parse(data);
     
     // Check if still approved
     if (user.status !== 'approved') {
@@ -1322,17 +1322,23 @@ app.post('/api/stripe/create-checkout', async (req, res) => {
 
 // Handle successful Stripe checkout (redirect endpoint)
 app.get('/api/stripe/success', async (req, res) => {
+  console.log('📦 Stripe success callback received');
   try {
     const { session_id } = req.query;
+    console.log('📦 Session ID:', session_id);
     
     if (!stripe || !session_id) {
+      console.log('❌ Missing stripe or session_id');
       return res.redirect('/?error=payment_failed');
     }
     
     // Retrieve the session to get metadata
     const session = await stripe.checkout.sessions.retrieve(session_id);
+    console.log('📦 Payment status:', session.payment_status);
+    console.log('📦 Metadata:', JSON.stringify(session.metadata));
     
     if (session.payment_status !== 'paid') {
+      console.log('❌ Payment not completed');
       return res.redirect('/?error=payment_incomplete');
     }
     
@@ -1341,14 +1347,18 @@ app.get('/api/stripe/success', async (req, res) => {
     // Create the user account
     const userId = `user_${username}`;
     const userPath = path.join(USERS_DIR, `${userId}.json`);
+    console.log('📦 Creating user:', userId);
+    console.log('📦 User path:', userPath);
     
     // Check if already created (in case of refresh)
     try {
       await fs.access(userPath);
       // User already exists, just redirect to login
+      console.log('📦 User already exists, redirecting');
       return res.redirect('/?signup=success&message=Account already exists, please log in');
     } catch {
       // Create new user
+      console.log('📦 User does not exist, creating new account');
     }
     
     const now = new Date();
@@ -1381,12 +1391,13 @@ app.get('/api/stripe/success', async (req, res) => {
     };
     
     await fs.writeFile(userPath, JSON.stringify(user, null, 2));
+    console.log('✅ User account created successfully:', userId);
     
     // Redirect to login with success message
     res.redirect('/?signup=success&tier=' + tier);
     
   } catch (error) {
-    console.error('Stripe success handler error:', error);
+    console.error('❌ Stripe success handler error:', error);
     res.redirect('/?error=account_creation_failed');
   }
 });
