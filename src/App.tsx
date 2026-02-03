@@ -7,7 +7,7 @@ import ShareModal from './components/ShareModal'
 import AuthModal from './components/AuthModal'
 import UpgradeModal from './components/UpgradeModal'
 import LandingPage from './components/LandingPage'
-import { Message, Project, MembershipUsage, TierInfo } from './types'
+import { Message, Project, MembershipUsage, TierInfo, UserProject } from './types'
 import './App.css'
 
 interface User {
@@ -86,6 +86,62 @@ function App() {
     createdAt: new Date(),
     updatedAt: new Date()
   })
+  const [userProjects, setUserProjects] = useState<UserProject[]>([])
+  const [isLoadingProjects, setIsLoadingProjects] = useState(false)
+
+  // Fetch user's projects
+  const fetchUserProjects = useCallback(async (token: string) => {
+    setIsLoadingProjects(true)
+    try {
+      const response = await fetch('/api/auth/my-projects', {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (response.ok) {
+        const projects = await response.json()
+        setUserProjects(projects)
+      }
+    } catch (error) {
+      console.error('Failed to fetch projects:', error)
+    } finally {
+      setIsLoadingProjects(false)
+    }
+  }, [])
+
+  // Load a project by ID
+  const handleLoadProject = useCallback(async (projectId: string) => {
+    if (!authToken) return
+    
+    try {
+      const response = await fetch(`/api/projects/${projectId}`)
+      if (response.ok) {
+        const project = await response.json()
+        setCode(project.code)
+        setCurrentProject({
+          id: project.id,
+          name: project.title,
+          code: project.code,
+          createdAt: new Date(project.createdAt),
+          updatedAt: new Date()
+        })
+        setMessages([]) // Clear chat for the loaded project
+      }
+    } catch (error) {
+      console.error('Failed to load project:', error)
+    }
+  }, [authToken])
+
+  // Create a new project (reset to default)
+  const handleNewProject = useCallback(() => {
+    setCode(DEFAULT_HTML)
+    setMessages([])
+    setCurrentProject({
+      id: 'new',
+      name: 'My Awesome Project',
+      code: DEFAULT_HTML,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    })
+  }, [])
 
   // Check for existing session on mount
   useEffect(() => {
@@ -103,6 +159,8 @@ function App() {
             if (data.membership) {
               setMembership(data.membership)
             }
+            // Fetch user's projects
+            fetchUserProjects(token)
           } else {
             // Invalid token, clear it
             localStorage.removeItem('authToken')
@@ -127,7 +185,7 @@ function App() {
         }
       })
       .catch(() => {})
-  }, [])
+  }, [fetchUserProjects])
 
   const handleLogin = (loggedInUser: User, token: string, loginData?: { membership?: MembershipUsage, showUpgradePrompt?: boolean, tiers?: Record<string, TierInfo> }) => {
     setUser(loggedInUser)
@@ -143,6 +201,9 @@ function App() {
     if (loginData?.tiers) {
       setTiers(loginData.tiers)
     }
+    
+    // Fetch user's projects
+    fetchUserProjects(token)
     
     // Show upgrade prompt for new/free users (the sale opportunity!)
     if (loginData?.showUpgradePrompt) {
@@ -163,6 +224,7 @@ function App() {
     setUser(null)
     setAuthToken(null)
     setMembership(null)
+    setUserProjects([])
     localStorage.removeItem('authToken')
   }
 
@@ -361,6 +423,7 @@ function App() {
       
       <Header 
         projectName={currentProject.name}
+        currentProjectId={currentProject.id}
         onStartOver={handleStartOver}
         onShare={() => setShowShareModal(true)}
         showCode={showCode}
@@ -370,6 +433,10 @@ function App() {
         onLoginClick={() => setShowAuthModal(true)}
         onLogout={handleLogout}
         onUpgradeClick={handleUpgradeClick}
+        userProjects={userProjects}
+        isLoadingProjects={isLoadingProjects}
+        onLoadProject={handleLoadProject}
+        onNewProject={handleNewProject}
       />
       
       <main className={`main-content ${showCode ? 'with-code' : ''}`}>

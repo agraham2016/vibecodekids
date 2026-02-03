@@ -14,6 +14,17 @@ export interface Project {
   updatedAt: Date
 }
 
+// Project from API (my-projects endpoint)
+export interface UserProject {
+  id: string
+  title: string
+  category: string
+  isPublic: boolean
+  createdAt: string
+  views: number
+  likes: number
+}
+
 export type MembershipTier = 'free' | 'creator' | 'pro'
 
 export interface MembershipUsage {
