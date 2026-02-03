@@ -13,12 +13,14 @@ export default function UpgradeModal({
   isOpen, 
   onClose, 
   currentTier, 
-  tiers,
+  tiers: _tiers, // Reserved for dynamic tier display
   isWelcomePrompt = false
 }: UpgradeModalProps) {
+  void _tiers // Suppress unused variable warning
   if (!isOpen) return null
 
-  const handleUpgrade = async (tier: string) => {
+  const handleUpgrade = async (selectedTier: string) => {
+    void selectedTier // Will be used for Stripe integration
     // TODO: Integrate with Stripe
     alert(`Payment coming soon! For now, enjoy the free tier. 🚀`)
     onClose()

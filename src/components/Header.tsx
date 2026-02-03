@@ -30,7 +30,7 @@ const TIER_STYLES = {
 }
 
 export default function Header({ 
-  projectName, 
+  projectName: _projectName, // Reserved for future use
   onStartOver, 
   onShare, 
   showCode, 
@@ -41,6 +41,7 @@ export default function Header({
   onLogout,
   onUpgradeClick
 }: HeaderProps) {
+  void _projectName // Suppress unused variable warning
   const tier = user?.membershipTier || 'free'
   const tierStyle = TIER_STYLES[tier]
   
