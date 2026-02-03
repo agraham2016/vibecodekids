@@ -222,4 +222,10 @@ input, textarea {
   justify-content: center;
   z-index: 1000;
   padding: 20px;
+  overflow-y: auto;
+}
+
+/* Ensure modals don't get clipped */
+.modal-overlay > * {
+  margin: auto;
 }
