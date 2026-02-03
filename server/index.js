@@ -25,6 +25,11 @@ const STRIPE_PRICES = {
   pro: process.env.STRIPE_PRO_PRICE_ID || 'price_1Swp2cFORYWq7U9VF15M6NY8'
 };
 
+// Base URL for redirects (trim whitespace and remove trailing slash)
+const BASE_URL = (process.env.BASE_URL || 'https://vibecodekidz.org').trim().replace(/\/+$/, '');
+console.log('📍 BASE_URL configured as:', JSON.stringify(BASE_URL));
+console.log('📍 Stripe initialized:', stripe ? 'YES' : 'NO');
+
 // Simple password hashing (for production, use bcrypt)
 function hashPassword(password) {
   return createHash('sha256').update(password).digest('hex');
@@ -1283,7 +1288,7 @@ app.post('/api/stripe/create-checkout', async (req, res) => {
     }
     
     const priceId = MEMBERSHIP_TIERS[tier].stripePriceId;
-    const baseUrl = process.env.BASE_URL || 'https://vibecodekidz.org';
+    const baseUrl = BASE_URL;
     
     // Create Stripe checkout session
     const session = await stripe.checkout.sessions.create({
@@ -1464,7 +1469,7 @@ app.post('/api/membership/upgrade', async (req, res) => {
     }
     
     const priceId = MEMBERSHIP_TIERS[tier].stripePriceId;
-    const baseUrl = process.env.BASE_URL || 'https://vibecodekidz.org';
+    const baseUrl = BASE_URL;
     
     // Get user info
     const userPath = path.join(USERS_DIR, `${session.userId}.json`);
