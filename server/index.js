@@ -163,7 +163,9 @@ const anthropic = new Anthropic({
 });
 
 app.use(cors());
-app.use(express.json());
+// Increase body size limit to allow image uploads (base64 images can be large)
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
 // Check if running in production (built frontend exists)
 const distPath = path.join(__dirname, '..', 'dist');
