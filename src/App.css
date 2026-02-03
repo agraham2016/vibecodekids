@@ -5,6 +5,11 @@
   overflow: hidden;
 }
 
+/* Allow scrolling on landing page */
+.app:has(.landing-page) {
+  overflow: auto;
+}
+
 /* Loading Screen */
 .app.loading-screen {
   justify-content: center;
