@@ -5,6 +5,33 @@
   overflow: hidden;
 }
 
+/* Loading Screen */
+.app.loading-screen {
+  justify-content: center;
+  align-items: center;
+}
+
+.loading-content {
+  text-align: center;
+  color: white;
+}
+
+.loading-icon {
+  font-size: 4rem;
+  animation: loadingBounce 1s ease-in-out infinite;
+}
+
+@keyframes loadingBounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-15px); }
+}
+
+.loading-content p {
+  font-size: 1.2rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin-top: 16px;
+}
+
 .main-content {
   flex: 1;
   display: grid;

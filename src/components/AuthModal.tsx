@@ -10,12 +10,13 @@ interface LoginData {
 interface AuthModalProps {
   onClose: () => void
   onLogin: (user: any, token: string, loginData?: LoginData) => void
+  initialMode?: 'login' | 'signup'
 }
 
 type AuthMode = 'login' | 'signup'
 
-export default function AuthModal({ onClose, onLogin }: AuthModalProps) {
-  const [mode, setMode] = useState<AuthMode>('login')
+export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: AuthModalProps) {
+  const [mode, setMode] = useState<AuthMode>(initialMode)
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [displayName, setDisplayName] = useState('')

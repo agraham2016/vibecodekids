@@ -6,6 +6,7 @@ import PreviewPanel from './components/PreviewPanel'
 import ShareModal from './components/ShareModal'
 import AuthModal from './components/AuthModal'
 import UpgradeModal from './components/UpgradeModal'
+import LandingPage from './components/LandingPage'
 import { Message, Project, MembershipUsage, TierInfo } from './types'
 import './App.css'
 
@@ -76,6 +77,8 @@ function App() {
   const [tiers, setTiers] = useState<Record<string, TierInfo>>({})
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   const [isWelcomeUpgrade, setIsWelcomeUpgrade] = useState(false)
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true) // Check session on load
+  const [authMode, setAuthMode] = useState<'login' | 'signup'>('login')
   const [currentProject, setCurrentProject] = useState<Project>({
     id: 'new',
     name: 'My Awesome Project',
@@ -108,6 +111,11 @@ function App() {
         .catch(() => {
           localStorage.removeItem('authToken')
         })
+        .finally(() => {
+          setIsCheckingAuth(false)
+        })
+    } else {
+      setIsCheckingAuth(false)
     }
     
     // Fetch tier info (public endpoint)
@@ -282,6 +290,44 @@ function App() {
     })
   }, [])
 
+  // Show loading while checking auth
+  if (isCheckingAuth) {
+    return (
+      <div className="app loading-screen">
+        <div className="loading-content">
+          <div className="loading-icon">🚀</div>
+          <p>Loading Vibe Code Kidz...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Show landing page if not logged in
+  if (!user) {
+    return (
+      <div className="app">
+        {showAuthModal && (
+          <AuthModal
+            onClose={() => setShowAuthModal(false)}
+            onLogin={handleLogin}
+            initialMode={authMode}
+          />
+        )}
+        <LandingPage 
+          onLoginClick={() => {
+            setAuthMode('login')
+            setShowAuthModal(true)
+          }}
+          onSignupClick={() => {
+            setAuthMode('signup')
+            setShowAuthModal(true)
+          }}
+        />
+      </div>
+    )
+  }
+
+  // Show main app for logged-in users
   return (
     <div className="app">
       {showShareModal && (
