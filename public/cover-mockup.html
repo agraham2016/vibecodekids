@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cover Art Mockup - Auto-Generated Covers</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Orbitron', sans-serif;
+      min-height: 100vh;
+      background: linear-gradient(180deg, #0d0221 0%, #1a0a3e 50%, #2d1b69 100%);
+      padding: 40px;
+      color: white;
+    }
+
+    h1 {
+      text-align: center;
+      font-family: 'Press Start 2P', cursive;
+      font-size: 1.2rem;
+      margin-bottom: 10px;
+      background: linear-gradient(180deg, #fff, #05d9e8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: rgba(255,255,255,0.6);
+      margin-bottom: 40px;
+      font-size: 0.9rem;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .cover-card {
+      position: relative;
+      height: 200px;
+      border-radius: 20px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+    }
+
+    .cover-card:hover {
+      transform: translateY(-8px) scale(1.02);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    }
+
+    .cover-bg {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+    }
+
+    .cover-particles {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      overflow: hidden;
+    }
+
+    .cover-content {
+      position: absolute;
+      inset: 0;
+      z-index: 3;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .cover-icon {
+      font-size: 4rem;
+      margin-bottom: 16px;
+      filter: drop-shadow(0 4px 20px rgba(0,0,0,0.5));
+      animation: float 3s ease-in-out infinite;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+
+    .cover-title {
+      font-family: 'Press Start 2P', cursive;
+      font-size: 0.9rem;
+      text-align: center;
+      color: white;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.8), 0 0 30px rgba(255,255,255,0.3);
+      line-height: 1.4;
+    }
+
+    .cover-creator {
+      font-size: 0.7rem;
+      color: rgba(255,255,255,0.7);
+      margin-top: 8px;
+    }
+
+    .cover-border {
+      position: absolute;
+      inset: 0;
+      border-radius: 20px;
+      z-index: 4;
+      pointer-events: none;
+    }
+
+    .category-label {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      font-size: 0.6rem;
+      padding: 6px 12px;
+      background: rgba(0,0,0,0.5);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      z-index: 5;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    /* ARCADE STYLE */
+    .arcade .cover-bg {
+      background: linear-gradient(135deg, #7c3aed 0%, #2563eb 50%, #0891b2 100%);
+    }
+    .arcade .cover-border {
+      border: 2px solid rgba(124, 58, 237, 0.5);
+      box-shadow: inset 0 0 30px rgba(124, 58, 237, 0.3), 0 0 20px rgba(124, 58, 237, 0.2);
+    }
+    .arcade .cover-particles::before {
+      content: '✦ ✧ ★ ✦ ✧ ★ ✦ ✧';
+      position: absolute;
+      font-size: 1.5rem;
+      color: rgba(255,255,255,0.15);
+      top: 20%;
+      left: -10%;
+      animation: scroll 15s linear infinite;
+      white-space: nowrap;
+    }
+    @keyframes scroll {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(100%); }
+    }
+
+    /* PUZZLE STYLE */
+    .puzzle .cover-bg {
+      background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 50%, #6366f1 100%);
+    }
+    .puzzle .cover-border {
+      border: 2px solid rgba(236, 72, 153, 0.5);
+      box-shadow: inset 0 0 30px rgba(236, 72, 153, 0.3), 0 0 20px rgba(236, 72, 153, 0.2);
+    }
+    .puzzle .cover-particles::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: 
+        linear-gradient(45deg, transparent 40%, rgba(255,255,255,0.05) 50%, transparent 60%),
+        linear-gradient(-45deg, transparent 40%, rgba(255,255,255,0.05) 50%, transparent 60%);
+      background-size: 60px 60px;
+    }
+
+    /* ADVENTURE STYLE */
+    .adventure .cover-bg {
+      background: linear-gradient(135deg, #059669 0%, #0d9488 50%, #0891b2 100%);
+    }
+    .adventure .cover-border {
+      border: 2px solid rgba(5, 150, 105, 0.5);
+      box-shadow: inset 0 0 30px rgba(5, 150, 105, 0.3), 0 0 20px rgba(5, 150, 105, 0.2);
+    }
+    .adventure .cover-particles::before {
+      content: '🌿 🌲 🗻 🌿 🌲 🗻';
+      position: absolute;
+      font-size: 2rem;
+      opacity: 0.15;
+      bottom: 10%;
+      left: 0;
+      right: 0;
+      text-align: center;
+    }
+
+    /* RPG STYLE */
+    .rpg .cover-bg {
+      background: linear-gradient(135deg, #dc2626 0%, #ea580c 50%, #d97706 100%);
+    }
+    .rpg .cover-border {
+      border: 2px solid rgba(220, 38, 38, 0.5);
+      box-shadow: inset 0 0 30px rgba(220, 38, 38, 0.3), 0 0 20px rgba(220, 38, 38, 0.2);
+    }
+    .rpg .cover-particles::before {
+      content: '🔥';
+      position: absolute;
+      font-size: 3rem;
+      opacity: 0.2;
+      bottom: 5%;
+      left: 10%;
+      animation: flicker 0.5s ease-in-out infinite alternate;
+    }
+    .rpg .cover-particles::after {
+      content: '🔥';
+      position: absolute;
+      font-size: 2rem;
+      opacity: 0.15;
+      bottom: 10%;
+      right: 15%;
+      animation: flicker 0.7s ease-in-out infinite alternate;
+    }
+    @keyframes flicker {
+      0% { opacity: 0.1; transform: scale(1); }
+      100% { opacity: 0.25; transform: scale(1.1); }
+    }
+
+    /* RACING STYLE */
+    .racing .cover-bg {
+      background: linear-gradient(135deg, #0ea5e9 0%, #3b82f6 50%, #6366f1 100%);
+    }
+    .racing .cover-border {
+      border: 2px solid rgba(14, 165, 233, 0.5);
+      box-shadow: inset 0 0 30px rgba(14, 165, 233, 0.3), 0 0 20px rgba(14, 165, 233, 0.2);
+    }
+    .racing .cover-particles::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 30%;
+      width: 4px;
+      background: linear-gradient(180deg, transparent, rgba(255,255,255,0.3), transparent);
+      animation: speedline 0.8s linear infinite;
+    }
+    .racing .cover-particles::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      right: 25%;
+      width: 3px;
+      background: linear-gradient(180deg, transparent, rgba(255,255,255,0.2), transparent);
+      animation: speedline 0.6s linear infinite;
+    }
+    @keyframes speedline {
+      0% { transform: translateY(-100%); }
+      100% { transform: translateY(100%); }
+    }
+
+    /* CLASSIC STYLE */
+    .classic .cover-bg {
+      background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 50%, #d97706 100%);
+    }
+    .classic .cover-border {
+      border: 2px solid rgba(251, 191, 36, 0.5);
+      box-shadow: inset 0 0 30px rgba(251, 191, 36, 0.3), 0 0 20px rgba(251, 191, 36, 0.2);
+    }
+    .classic .cover-particles::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0,0,0,0.03) 2px,
+        rgba(0,0,0,0.03) 4px
+      );
+    }
+
+    .note {
+      text-align: center;
+      margin-top: 40px;
+      padding: 20px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 12px;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .note h3 {
+      color: #34d399;
+      margin-bottom: 10px;
+    }
+
+    .note p {
+      color: rgba(255,255,255,0.7);
+      font-size: 0.85rem;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+  <h1>AUTO-GENERATED COVERS</h1>
+  <p class="subtitle">No AI image API needed - generated with CSS/Canvas based on game category</p>
+
+  <div class="grid">
+    <!-- Arcade -->
+    <div class="cover-card arcade">
+      <div class="cover-bg"></div>
+      <div class="cover-particles"></div>
+      <div class="cover-content">
+        <span class="cover-icon">🚀</span>
+        <h3 class="cover-title">SPACE BLASTER</h3>
+        <p class="cover-creator">by Alex</p>
+      </div>
+      <div class="cover-border"></div>
+      <span class="category-label">👾 Arcade</span>
+    </div>
+
+    <!-- Puzzle -->
+    <div class="cover-card puzzle">
+      <div class="cover-bg"></div>
+      <div class="cover-particles"></div>
+      <div class="cover-content">
+        <span class="cover-icon">🍪</span>
+        <h3 class="cover-title">COOKIE CLICKER</h3>
+        <p class="cover-creator">by Test Bot</p>
+      </div>
+      <div class="cover-border"></div>
+      <span class="category-label">🧩 Puzzle</span>
+    </div>
+
+    <!-- Adventure -->
+    <div class="cover-card adventure">
+      <div class="cover-bg"></div>
+      <div class="cover-particles"></div>
+      <div class="cover-content">
+        <span class="cover-icon">🗺️</span>
+        <h3 class="cover-title">MAZE RUNNER</h3>
+        <p class="cover-creator">by Emma</p>
+      </div>
+      <div class="cover-border"></div>
+      <span class="category-label">🗺️ Adventure</span>
+    </div>
+
+    <!-- RPG -->
+    <div class="cover-card rpg">
+      <div class="cover-bg"></div>
+      <div class="cover-particles"></div>
+      <div class="cover-content">
+        <span class="cover-icon">⚔️</span>
+        <h3 class="cover-title">DRAGON QUEST</h3>
+        <p class="cover-creator">by Jake</p>
+      </div>
+      <div class="cover-border"></div>
+      <span class="category-label">⚔️ RPG</span>
+    </div>
+
+    <!-- Racing -->
+    <div class="cover-card racing">
+      <div class="cover-bg"></div>
+      <div class="cover-particles"></div>
+      <div class="cover-content">
+        <span class="cover-icon">🏎️</span>
+        <h3 class="cover-title">SPEED RACER</h3>
+        <p class="cover-creator">by Mia</p>
+      </div>
+      <div class="cover-border"></div>
+      <span class="category-label">🏎️ Racing</span>
+    </div>
+
+    <!-- Classic -->
+    <div class="cover-card classic">
+      <div class="cover-bg"></div>
+      <div class="cover-particles"></div>
+      <div class="cover-content">
+        <span class="cover-icon">🕹️</span>
+        <h3 class="cover-title">RETRO PONG</h3>
+        <p class="cover-creator">by Noah</p>
+      </div>
+      <div class="cover-border"></div>
+      <span class="category-label">🕹️ Classic</span>
+    </div>
+  </div>
+
+  <div class="note">
+    <h3>💰 Cost: $0/month</h3>
+    <p>
+      These covers are generated automatically using CSS gradients, animations, and the game's category + title. 
+      No external API calls needed! Each category has its own color scheme and particle effects.
+      Kids can still pick a custom icon/emoji if they want to personalize it further.
+    </p>
+  </div>
+</body>
+</html>

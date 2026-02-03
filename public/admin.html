@@ -1,0 +1,1232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard - Vibe Code Studio</title>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #6366f1;
+      --primary-light: #818cf8;
+      --primary-dark: #4f46e5;
+      --secondary: #f472b6;
+      --accent: #34d399;
+      --warning: #fbbf24;
+      --text-primary: #ffffff;
+      --text-secondary: rgba(255, 255, 255, 0.7);
+      --success: #22c55e;
+      --error: #ef4444;
+      --glass-bg: rgba(255, 255, 255, 0.1);
+      --glass-bg-light: rgba(255, 255, 255, 0.15);
+      --glass-border: rgba(255, 255, 255, 0.2);
+      --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      --radius-sm: 8px;
+      --radius: 16px;
+      --radius-lg: 24px;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      color: var(--text-primary);
+      line-height: 1.6;
+      min-height: 100vh;
+      background: linear-gradient(180deg, 
+        #0d0221 0%,
+        #1a0a3e 30%,
+        #2d1b69 60%,
+        #1a0a3e 100%
+      );
+      background-attachment: fixed;
+    }
+
+    /* Starfield background */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-image: 
+        radial-gradient(2px 2px at 20px 30px, white, transparent),
+        radial-gradient(2px 2px at 40px 70px, rgba(255,255,255,0.8), transparent),
+        radial-gradient(1px 1px at 90px 40px, white, transparent),
+        radial-gradient(2px 2px at 130px 80px, rgba(255,255,255,0.6), transparent),
+        radial-gradient(1px 1px at 160px 120px, white, transparent),
+        radial-gradient(2px 2px at 200px 50px, rgba(255,255,255,0.7), transparent),
+        radial-gradient(1px 1px at 250px 160px, white, transparent),
+        radial-gradient(2px 2px at 300px 100px, rgba(255,255,255,0.5), transparent),
+        radial-gradient(1px 1px at 350px 200px, white, transparent),
+        radial-gradient(2px 2px at 400px 60px, rgba(255,255,255,0.8), transparent),
+        radial-gradient(1px 1px at 450px 180px, white, transparent),
+        radial-gradient(2px 2px at 500px 90px, rgba(255,255,255,0.6), transparent),
+        radial-gradient(1px 1px at 550px 140px, white, transparent),
+        radial-gradient(2px 2px at 600px 220px, rgba(255,255,255,0.7), transparent),
+        radial-gradient(1px 1px at 650px 40px, white, transparent),
+        radial-gradient(2px 2px at 700px 170px, rgba(255,255,255,0.5), transparent),
+        radial-gradient(1px 1px at 750px 80px, white, transparent),
+        radial-gradient(2px 2px at 800px 250px, rgba(255,255,255,0.8), transparent);
+      background-size: 800px 300px;
+      animation: twinkle 4s ease-in-out infinite;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Grid line */
+    body::after {
+      content: '';
+      position: fixed;
+      top: 50%;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, 
+        transparent 0%,
+        rgba(5, 217, 232, 0.3) 10%,
+        rgba(5, 217, 232, 0.8) 50%,
+        rgba(5, 217, 232, 0.3) 90%,
+        transparent 100%
+      );
+      box-shadow: 0 0 20px rgba(5, 217, 232, 0.5), 0 0 40px rgba(5, 217, 232, 0.3);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    @keyframes twinkle {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+
+    /* Glow orbs */
+    .glow-orb {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(80px);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .orb-1 {
+      width: 400px;
+      height: 400px;
+      background: rgba(120, 119, 198, 0.4);
+      top: -100px;
+      left: -100px;
+      animation: float 8s ease-in-out infinite;
+    }
+
+    .orb-2 {
+      width: 300px;
+      height: 300px;
+      background: rgba(236, 72, 153, 0.3);
+      bottom: -50px;
+      right: -50px;
+      animation: float 8s ease-in-out infinite;
+      animation-delay: -4s;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translate(0, 0); }
+      25% { transform: translate(30px, -30px); }
+      50% { transform: translate(-20px, 20px); }
+      75% { transform: translate(20px, 30px); }
+    }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    /* Login Page */
+    .login-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+
+    .login-box {
+      background: var(--glass-bg);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--glass-shadow);
+      padding: 40px;
+      width: 100%;
+      max-width: 400px;
+      text-align: center;
+    }
+
+    .login-box h1 {
+      font-size: 1.75rem;
+      font-weight: 800;
+      margin-bottom: 8px;
+      background: linear-gradient(135deg, #fff 0%, #a5b4fc 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .login-box .subtitle {
+      color: var(--text-secondary);
+      margin-bottom: 30px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+      text-align: left;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 14px 16px;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-sm);
+      color: white;
+      font-size: 1rem;
+      transition: all 0.2s;
+    }
+
+    .form-group input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3);
+    }
+
+    .btn {
+      padding: 14px 28px;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+      color: white;
+      width: 100%;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 20px rgba(99, 102, 241, 0.4);
+    }
+
+    .btn-success {
+      background: linear-gradient(135deg, var(--success) 0%, #16a34a 100%);
+      color: white;
+    }
+
+    .btn-success:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 15px rgba(34, 197, 94, 0.4);
+    }
+
+    .btn-danger {
+      background: linear-gradient(135deg, var(--error) 0%, #dc2626 100%);
+      color: white;
+    }
+
+    .btn-danger:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
+    }
+
+    .btn-sm {
+      padding: 8px 16px;
+      font-size: 0.875rem;
+    }
+
+    .error-message {
+      color: var(--error);
+      margin-top: 15px;
+      font-weight: 600;
+    }
+
+    /* Dashboard */
+    .dashboard {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .dashboard-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+      flex-wrap: wrap;
+      gap: 15px;
+    }
+
+    .dashboard-header h1 {
+      font-size: 1.75rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, #fff 0%, #a5b4fc 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .btn-logout {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid var(--glass-border);
+      color: white;
+    }
+
+    .btn-logout:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .btn-nav {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid var(--glass-border);
+      color: white;
+      text-decoration: none;
+    }
+
+    .btn-nav:hover {
+      background: rgba(255, 255, 255, 0.2);
+      transform: translateY(-2px);
+    }
+
+    /* Stats Cards */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+
+    .stat-card {
+      background: var(--glass-bg);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius);
+      padding: 24px;
+      text-align: center;
+    }
+
+    .stat-card .icon {
+      font-size: 2.5rem;
+      margin-bottom: 10px;
+    }
+
+    .stat-card .value {
+      font-size: 2.5rem;
+      font-weight: 800;
+      color: white;
+    }
+
+    .stat-card .label {
+      color: var(--text-secondary);
+      font-weight: 600;
+    }
+
+    .stat-card.warning {
+      border-color: var(--warning);
+      box-shadow: 0 0 20px rgba(251, 191, 36, 0.2);
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .tab-btn {
+      padding: 12px 24px;
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-sm);
+      color: var(--text-secondary);
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .tab-btn:hover {
+      background: var(--glass-bg-light);
+      color: white;
+    }
+
+    .tab-btn.active {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: white;
+    }
+
+    /* Panel */
+    .panel {
+      background: var(--glass-bg);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--glass-shadow);
+      overflow: hidden;
+    }
+
+    .panel-header {
+      padding: 20px 24px;
+      background: rgba(255, 255, 255, 0.05);
+      border-bottom: 1px solid var(--glass-border);
+      font-weight: 700;
+      font-size: 1.1rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .panel-content {
+      padding: 20px;
+      max-height: 500px;
+      overflow-y: auto;
+    }
+
+    /* Table Styles */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .data-table th,
+    .data-table td {
+      padding: 14px 16px;
+      text-align: left;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .data-table th {
+      font-weight: 700;
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .data-table tr:hover {
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .data-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    /* Status Badges */
+    .badge {
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .badge-pending {
+      background: rgba(251, 191, 36, 0.2);
+      color: var(--warning);
+    }
+
+    .badge-approved {
+      background: rgba(34, 197, 94, 0.2);
+      color: var(--success);
+    }
+
+    .badge-denied {
+      background: rgba(239, 68, 68, 0.2);
+      color: var(--error);
+    }
+
+    /* Action Buttons */
+    .actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    /* Empty State */
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-secondary);
+    }
+
+    .empty-state .icon {
+      font-size: 3rem;
+      margin-bottom: 15px;
+      opacity: 0.5;
+    }
+
+    /* Tab Content */
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.3);
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.5);
+    }
+
+    /* Loading */
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: var(--text-secondary);
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 40px;
+      height: 40px;
+      border: 3px solid rgba(255, 255, 255, 0.1);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .data-table {
+        display: block;
+        overflow-x: auto;
+      }
+
+      .dashboard-header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    /* Hidden */
+    .hidden {
+      display: none !important;
+    }
+
+    /* Toast notifications */
+    .toast-container {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .toast {
+      background: var(--glass-bg);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-sm);
+      padding: 14px 20px;
+      color: white;
+      font-weight: 600;
+      animation: slideIn 0.3s ease;
+      max-width: 350px;
+    }
+
+    .toast.success {
+      border-color: var(--success);
+      background: rgba(34, 197, 94, 0.2);
+    }
+
+    .toast.error {
+      border-color: var(--error);
+      background: rgba(239, 68, 68, 0.2);
+    }
+
+    @keyframes slideIn {
+      from {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    /* Confirm Modal */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 20px;
+    }
+
+    .modal {
+      background: var(--glass-bg);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-lg);
+      padding: 30px;
+      max-width: 400px;
+      width: 100%;
+      text-align: center;
+    }
+
+    .modal h3 {
+      margin-bottom: 15px;
+      font-size: 1.25rem;
+    }
+
+    .modal p {
+      color: var(--text-secondary);
+      margin-bottom: 25px;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid var(--glass-border);
+      color: white;
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+  </style>
+</head>
+<body>
+  <!-- Glow Orbs -->
+  <div class="glow-orb orb-1"></div>
+  <div class="glow-orb orb-2"></div>
+  
+  <div class="container">
+    <!-- Login Page -->
+    <div id="loginPage" class="login-container">
+      <div class="login-box">
+        <h1>🔐 Admin Portal</h1>
+        <p class="subtitle">Vibe Code Studio Management</p>
+        
+        <form id="loginForm">
+          <div class="form-group">
+            <label for="username">Username</label>
+            <input type="text" id="username" name="username" required autocomplete="username">
+          </div>
+          
+          <div class="form-group">
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" required autocomplete="current-password">
+          </div>
+          
+          <button type="submit" class="btn btn-primary">
+            Sign In
+          </button>
+          
+          <div id="loginError" class="error-message hidden"></div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Dashboard -->
+    <div id="dashboardPage" class="dashboard hidden">
+      <div class="dashboard-header">
+        <h1>🎮 Vibe Code Studio Admin</h1>
+        <div class="nav-links">
+          <a href="/" class="btn btn-nav">🚀 Studio</a>
+          <a href="/gallery" class="btn btn-nav">🕹️ Arcade</a>
+          <button class="btn btn-logout" onclick="logout()">
+            Logout
+          </button>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="icon">👥</div>
+          <div class="value" id="statTotalUsers">-</div>
+          <div class="label">Total Users</div>
+        </div>
+        <div class="stat-card warning" id="pendingCard">
+          <div class="icon">⏳</div>
+          <div class="value" id="statPendingUsers">-</div>
+          <div class="label">Pending Approval</div>
+        </div>
+        <div class="stat-card">
+          <div class="icon">✅</div>
+          <div class="value" id="statApprovedUsers">-</div>
+          <div class="label">Approved Users</div>
+        </div>
+        <div class="stat-card">
+          <div class="icon">🎨</div>
+          <div class="value" id="statTotalProjects">-</div>
+          <div class="label">Total Projects</div>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('pending')">
+          ⏳ Pending Users
+        </button>
+        <button class="tab-btn" onclick="switchTab('users')">
+          👥 All Users
+        </button>
+        <button class="tab-btn" onclick="switchTab('projects')">
+          🎨 Projects
+        </button>
+      </div>
+
+      <!-- Tab Content: Pending Users -->
+      <div id="tab-pending" class="tab-content active">
+        <div class="panel">
+          <div class="panel-header">
+            ⏳ Pending User Registrations
+          </div>
+          <div class="panel-content">
+            <div id="pendingUsersLoading" class="loading">
+              <div class="spinner"></div>
+              <p>Loading pending users...</p>
+            </div>
+            <div id="pendingUsersEmpty" class="empty-state hidden">
+              <div class="icon">🎉</div>
+              <p>No pending registrations!</p>
+            </div>
+            <table id="pendingUsersTable" class="data-table hidden">
+              <thead>
+                <tr>
+                  <th>Username</th>
+                  <th>Display Name</th>
+                  <th>Registered</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="pendingUsersBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab Content: All Users -->
+      <div id="tab-users" class="tab-content">
+        <div class="panel">
+          <div class="panel-header">
+            👥 All Users
+          </div>
+          <div class="panel-content">
+            <div id="usersLoading" class="loading">
+              <div class="spinner"></div>
+              <p>Loading users...</p>
+            </div>
+            <div id="usersEmpty" class="empty-state hidden">
+              <div class="icon">👤</div>
+              <p>No users registered yet.</p>
+            </div>
+            <table id="usersTable" class="data-table hidden">
+              <thead>
+                <tr>
+                  <th>Username</th>
+                  <th>Display Name</th>
+                  <th>Status</th>
+                  <th>Registered</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="usersBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab Content: Projects -->
+      <div id="tab-projects" class="tab-content">
+        <div class="panel">
+          <div class="panel-header">
+            🎨 All Projects
+          </div>
+          <div class="panel-content">
+            <div id="projectsLoading" class="loading">
+              <div class="spinner"></div>
+              <p>Loading projects...</p>
+            </div>
+            <div id="projectsEmpty" class="empty-state hidden">
+              <div class="icon">🎨</div>
+              <p>No projects created yet.</p>
+            </div>
+            <table id="projectsTable" class="data-table hidden">
+              <thead>
+                <tr>
+                  <th>Title</th>
+                  <th>Creator</th>
+                  <th>Category</th>
+                  <th>Public</th>
+                  <th>Views</th>
+                  <th>Created</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="projectsBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- Confirm Modal -->
+  <div id="confirmModal" class="modal-overlay hidden">
+    <div class="modal">
+      <h3 id="confirmTitle">Confirm Action</h3>
+      <p id="confirmMessage">Are you sure you want to proceed?</p>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeConfirmModal()">Cancel</button>
+        <button id="confirmBtn" class="btn btn-danger">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Admin credentials (hardcoded for now)
+    const ADMIN_CREDENTIALS = {
+      username: 'a.graham2016',
+      password: 'Learning123!'
+    };
+
+    // Session token (simple implementation)
+    let adminToken = localStorage.getItem('adminToken');
+
+    // DOM Elements
+    const loginPage = document.getElementById('loginPage');
+    const dashboardPage = document.getElementById('dashboardPage');
+    const loginForm = document.getElementById('loginForm');
+    const loginError = document.getElementById('loginError');
+
+    // Check if already logged in
+    function checkAuth() {
+      if (adminToken === 'authenticated') {
+        showDashboard();
+      }
+    }
+
+    // Login handler
+    loginForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+      
+      if (username === ADMIN_CREDENTIALS.username && password === ADMIN_CREDENTIALS.password) {
+        adminToken = 'authenticated';
+        localStorage.setItem('adminToken', adminToken);
+        loginError.classList.add('hidden');
+        showDashboard();
+      } else {
+        loginError.textContent = 'Invalid credentials. Please try again.';
+        loginError.classList.remove('hidden');
+      }
+    });
+
+    // Logout
+    function logout() {
+      adminToken = null;
+      localStorage.removeItem('adminToken');
+      dashboardPage.classList.add('hidden');
+      loginPage.classList.remove('hidden');
+      document.getElementById('username').value = '';
+      document.getElementById('password').value = '';
+    }
+
+    // Show dashboard
+    function showDashboard() {
+      loginPage.classList.add('hidden');
+      dashboardPage.classList.remove('hidden');
+      loadStats();
+      loadPendingUsers();
+      loadAllUsers();
+      loadProjects();
+    }
+
+    // Tab switching
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+      
+      event.target.classList.add('active');
+      document.getElementById(`tab-${tabId}`).classList.add('active');
+    }
+
+    // Toast notifications
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.textContent = message;
+      container.appendChild(toast);
+      
+      setTimeout(() => {
+        toast.remove();
+      }, 3000);
+    }
+
+    // Confirm modal
+    let confirmCallback = null;
+    
+    function showConfirmModal(title, message, callback, btnClass = 'btn-danger') {
+      document.getElementById('confirmTitle').textContent = title;
+      document.getElementById('confirmMessage').textContent = message;
+      document.getElementById('confirmBtn').className = `btn ${btnClass}`;
+      confirmCallback = callback;
+      document.getElementById('confirmModal').classList.remove('hidden');
+    }
+    
+    function closeConfirmModal() {
+      document.getElementById('confirmModal').classList.add('hidden');
+      confirmCallback = null;
+    }
+    
+    document.getElementById('confirmBtn').addEventListener('click', () => {
+      if (confirmCallback) {
+        confirmCallback();
+      }
+      closeConfirmModal();
+    });
+
+    // Format date
+    function formatDate(dateString) {
+      if (!dateString) return 'N/A';
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    }
+
+    // Load stats
+    async function loadStats() {
+      try {
+        const response = await fetch('/api/admin/stats');
+        const stats = await response.json();
+        
+        document.getElementById('statTotalUsers').textContent = stats.totalUsers;
+        document.getElementById('statPendingUsers').textContent = stats.pendingUsers;
+        document.getElementById('statApprovedUsers').textContent = stats.approvedUsers;
+        document.getElementById('statTotalProjects').textContent = stats.totalProjects;
+        
+        // Highlight pending card if there are pending users
+        const pendingCard = document.getElementById('pendingCard');
+        if (stats.pendingUsers > 0) {
+          pendingCard.classList.add('warning');
+        } else {
+          pendingCard.classList.remove('warning');
+        }
+      } catch (error) {
+        console.error('Failed to load stats:', error);
+      }
+    }
+
+    // Load pending users
+    async function loadPendingUsers() {
+      const loading = document.getElementById('pendingUsersLoading');
+      const empty = document.getElementById('pendingUsersEmpty');
+      const table = document.getElementById('pendingUsersTable');
+      const tbody = document.getElementById('pendingUsersBody');
+      
+      loading.classList.remove('hidden');
+      empty.classList.add('hidden');
+      table.classList.add('hidden');
+      
+      try {
+        const response = await fetch('/api/admin/users');
+        const users = await response.json();
+        const pendingUsers = users.filter(u => u.status === 'pending');
+        
+        loading.classList.add('hidden');
+        
+        if (pendingUsers.length === 0) {
+          empty.classList.remove('hidden');
+        } else {
+          table.classList.remove('hidden');
+          tbody.innerHTML = pendingUsers.map(user => `
+            <tr>
+              <td><strong>${escapeHtml(user.username)}</strong></td>
+              <td>${escapeHtml(user.displayName || 'N/A')}</td>
+              <td>${formatDate(user.createdAt)}</td>
+              <td class="actions">
+                <button class="btn btn-success btn-sm" onclick="approveUser('${user.id}')">
+                  ✓ Approve
+                </button>
+                <button class="btn btn-danger btn-sm" onclick="denyUser('${user.id}')">
+                  ✗ Deny
+                </button>
+              </td>
+            </tr>
+          `).join('');
+        }
+      } catch (error) {
+        console.error('Failed to load pending users:', error);
+        loading.classList.add('hidden');
+        empty.classList.remove('hidden');
+        empty.innerHTML = '<div class="icon">⚠️</div><p>Failed to load users</p>';
+      }
+    }
+
+    // Load all users
+    async function loadAllUsers() {
+      const loading = document.getElementById('usersLoading');
+      const empty = document.getElementById('usersEmpty');
+      const table = document.getElementById('usersTable');
+      const tbody = document.getElementById('usersBody');
+      
+      loading.classList.remove('hidden');
+      empty.classList.add('hidden');
+      table.classList.add('hidden');
+      
+      try {
+        const response = await fetch('/api/admin/users');
+        const users = await response.json();
+        
+        loading.classList.add('hidden');
+        
+        if (users.length === 0) {
+          empty.classList.remove('hidden');
+        } else {
+          table.classList.remove('hidden');
+          tbody.innerHTML = users.map(user => {
+            const statusBadge = {
+              pending: '<span class="badge badge-pending">Pending</span>',
+              approved: '<span class="badge badge-approved">Approved</span>',
+              denied: '<span class="badge badge-denied">Denied</span>'
+            }[user.status] || user.status;
+            
+            let actions = '';
+            if (user.status === 'pending') {
+              actions = `
+                <button class="btn btn-success btn-sm" onclick="approveUser('${user.id}')">✓ Approve</button>
+                <button class="btn btn-danger btn-sm" onclick="denyUser('${user.id}')">✗ Deny</button>
+              `;
+            } else if (user.status === 'denied') {
+              actions = `<button class="btn btn-success btn-sm" onclick="approveUser('${user.id}')">✓ Approve</button>`;
+            } else if (user.status === 'approved') {
+              actions = `<button class="btn btn-danger btn-sm" onclick="denyUser('${user.id}')">✗ Revoke</button>`;
+            }
+            
+            return `
+              <tr>
+                <td><strong>${escapeHtml(user.username)}</strong></td>
+                <td>${escapeHtml(user.displayName || 'N/A')}</td>
+                <td>${statusBadge}</td>
+                <td>${formatDate(user.createdAt)}</td>
+                <td class="actions">${actions}</td>
+              </tr>
+            `;
+          }).join('');
+        }
+      } catch (error) {
+        console.error('Failed to load users:', error);
+        loading.classList.add('hidden');
+        empty.classList.remove('hidden');
+        empty.innerHTML = '<div class="icon">⚠️</div><p>Failed to load users</p>';
+      }
+    }
+
+    // Load projects
+    async function loadProjects() {
+      const loading = document.getElementById('projectsLoading');
+      const empty = document.getElementById('projectsEmpty');
+      const table = document.getElementById('projectsTable');
+      const tbody = document.getElementById('projectsBody');
+      
+      loading.classList.remove('hidden');
+      empty.classList.add('hidden');
+      table.classList.add('hidden');
+      
+      try {
+        const response = await fetch('/api/admin/projects');
+        const projects = await response.json();
+        
+        loading.classList.add('hidden');
+        
+        if (projects.length === 0) {
+          empty.classList.remove('hidden');
+        } else {
+          table.classList.remove('hidden');
+          tbody.innerHTML = projects.map(project => `
+            <tr>
+              <td>
+                <strong>${escapeHtml(project.title)}</strong>
+                <br><small style="color: var(--text-secondary)">ID: ${project.id}</small>
+              </td>
+              <td>${escapeHtml(project.creatorName || 'Anonymous')}</td>
+              <td>${escapeHtml(project.category || 'other')}</td>
+              <td>${project.isPublic ? '✅ Yes' : '🔒 No'}</td>
+              <td>${project.views || 0}</td>
+              <td>${formatDate(project.createdAt)}</td>
+              <td class="actions">
+                <a href="/play/${project.id}" target="_blank" class="btn btn-primary btn-sm">👁️ View</a>
+                <button class="btn btn-danger btn-sm" onclick="deleteProject('${project.id}', '${escapeHtml(project.title)}')">
+                  🗑️ Delete
+                </button>
+              </td>
+            </tr>
+          `).join('');
+        }
+      } catch (error) {
+        console.error('Failed to load projects:', error);
+        loading.classList.add('hidden');
+        empty.classList.remove('hidden');
+        empty.innerHTML = '<div class="icon">⚠️</div><p>Failed to load projects</p>';
+      }
+    }
+
+    // Approve user
+    async function approveUser(userId) {
+      try {
+        const response = await fetch(`/api/admin/users/${userId}/approve`, {
+          method: 'POST'
+        });
+        
+        if (response.ok) {
+          showToast('User approved successfully!', 'success');
+          loadStats();
+          loadPendingUsers();
+          loadAllUsers();
+        } else {
+          throw new Error('Failed to approve user');
+        }
+      } catch (error) {
+        showToast('Failed to approve user', 'error');
+      }
+    }
+
+    // Deny user
+    async function denyUser(userId) {
+      showConfirmModal(
+        'Deny User',
+        'Are you sure you want to deny this user?',
+        async () => {
+          try {
+            const response = await fetch(`/api/admin/users/${userId}/deny`, {
+              method: 'POST'
+            });
+            
+            if (response.ok) {
+              showToast('User denied successfully!', 'success');
+              loadStats();
+              loadPendingUsers();
+              loadAllUsers();
+            } else {
+              throw new Error('Failed to deny user');
+            }
+          } catch (error) {
+            showToast('Failed to deny user', 'error');
+          }
+        }
+      );
+    }
+
+    // Delete project
+    async function deleteProject(projectId, title) {
+      showConfirmModal(
+        'Delete Project',
+        `Are you sure you want to delete "${title}"? This cannot be undone.`,
+        async () => {
+          try {
+            const response = await fetch(`/api/admin/projects/${projectId}`, {
+              method: 'DELETE'
+            });
+            
+            if (response.ok) {
+              showToast('Project deleted successfully!', 'success');
+              loadStats();
+              loadProjects();
+            } else {
+              throw new Error('Failed to delete project');
+            }
+          } catch (error) {
+            showToast('Failed to delete project', 'error');
+          }
+        }
+      );
+    }
+
+    // Escape HTML to prevent XSS
+    function escapeHtml(text) {
+      if (!text) return '';
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // Initialize
+    checkAuth();
+  </script>
+</body>
+</html>

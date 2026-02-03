@@ -1,0 +1,1305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Loading... - Kid Vibe Code</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Orbitron:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Nunito', sans-serif;
+      min-height: 100vh;
+      color: white;
+      background: linear-gradient(135deg, 
+        #1a1a2e 0%, 
+        #16213e 25%, 
+        #0f3460 50%, 
+        #1a1a2e 75%,
+        #16213e 100%
+      );
+      background-attachment: fixed;
+    }
+    
+    /* Background orbs */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: 
+        radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(236, 72, 153, 0.2) 0%, transparent 50%),
+        radial-gradient(circle at 40% 40%, rgba(52, 211, 153, 0.15) 0%, transparent 40%);
+      pointer-events: none;
+      z-index: 0;
+    }
+    
+    /* Loading State */
+    .loading-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+      position: relative;
+      z-index: 1;
+    }
+    
+    .loading-spinner {
+      width: 60px;
+      height: 60px;
+      border: 4px solid rgba(255, 255, 255, 0.2);
+      border-top-color: #a78bfa;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 20px;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    .loading-text {
+      font-size: 1.25rem;
+      opacity: 0.9;
+    }
+    
+    /* Error State */
+    .error-container {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+      text-align: center;
+      position: relative;
+      z-index: 1;
+    }
+    
+    .error-emoji {
+      font-size: 4rem;
+      margin-bottom: 20px;
+    }
+    
+    .error-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 2rem;
+      margin-bottom: 12px;
+    }
+    
+    .error-message {
+      font-size: 1.1rem;
+      opacity: 0.8;
+      margin-bottom: 24px;
+    }
+    
+    .glass-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 16px 32px;
+      background: linear-gradient(135deg, rgba(139, 92, 246, 0.6) 0%, rgba(236, 72, 153, 0.6) 100%);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: white;
+      border-radius: 50px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.3s ease;
+    }
+    
+    .glass-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(139, 92, 246, 0.4);
+    }
+    
+    /* Play Mode */
+    .play-container {
+      display: none;
+      flex-direction: column;
+      min-height: 100vh;
+      position: relative;
+      z-index: 1;
+    }
+    
+    .play-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 24px;
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    
+    .project-info {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+    
+    .project-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1.25rem;
+      font-weight: 700;
+    }
+    
+    .project-creator {
+      font-size: 0.9rem;
+      color: rgba(255, 255, 255, 0.7);
+    }
+    
+    .project-creator span {
+      color: #38bdf8;
+    }
+    
+    .project-stats {
+      display: flex;
+      gap: 16px;
+      font-size: 0.9rem;
+      color: rgba(255, 255, 255, 0.7);
+    }
+    
+    .header-actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    
+    .action-btn {
+      padding: 12px 20px;
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: white;
+      border-radius: 50px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-decoration: none;
+    }
+    
+    .action-btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+      transform: translateY(-2px);
+    }
+    
+    .action-btn.primary {
+      background: linear-gradient(135deg, rgba(139, 92, 246, 0.6) 0%, rgba(236, 72, 153, 0.6) 100%);
+      border-color: rgba(255, 255, 255, 0.25);
+    }
+    
+    .action-btn.primary:hover {
+      box-shadow: 0 4px 20px rgba(139, 92, 246, 0.3);
+    }
+    
+    .action-btn.like {
+      background: linear-gradient(135deg, rgba(239, 68, 68, 0.6) 0%, rgba(249, 115, 22, 0.6) 100%);
+      border-color: rgba(255, 255, 255, 0.25);
+    }
+    
+    .action-btn.like:hover {
+      box-shadow: 0 4px 20px rgba(239, 68, 68, 0.3);
+    }
+    
+    .play-content {
+      flex: 1;
+      padding: 24px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    
+    .project-iframe {
+      width: 100%;
+      height: 100%;
+      max-width: 1200px;
+      min-height: 500px;
+      border: none;
+      border-radius: 20px;
+      background: white;
+      box-shadow: 0 25px 80px rgba(0, 0, 0, 0.5);
+    }
+    
+    .play-footer {
+      padding: 16px 24px;
+      text-align: center;
+      background: rgba(0, 0, 0, 0.2);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .play-footer a {
+      color: #a78bfa;
+      text-decoration: none;
+      font-weight: 600;
+    }
+    
+    .play-footer a:hover {
+      text-decoration: underline;
+    }
+    
+    /* Fullscreen mode */
+    .fullscreen .play-header,
+    .fullscreen .play-footer {
+      display: none;
+    }
+    
+    .fullscreen .play-content {
+      padding: 0;
+    }
+    
+    .fullscreen .project-iframe {
+      max-width: 100%;
+      min-height: 100vh;
+      border-radius: 0;
+    }
+    
+    .fullscreen-exit {
+      display: none;
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 1000;
+      padding: 14px 28px;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: white;
+      border-radius: 50px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    
+    .fullscreen .fullscreen-exit {
+      display: block;
+    }
+    
+    /* Multiplayer Panel */
+    .multiplayer-panel {
+      position: fixed;
+      top: 80px;
+      right: 20px;
+      width: 320px;
+      max-height: calc(100vh - 120px);
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(30px);
+      -webkit-backdrop-filter: blur(30px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 20px;
+      padding: 20px;
+      z-index: 100;
+      overflow-y: auto;
+      box-shadow: 0 25px 80px rgba(0, 0, 0, 0.4);
+    }
+    
+    .mp-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    
+    .mp-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1.1rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .mp-close {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: white;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 1rem;
+      transition: all 0.2s ease;
+    }
+    
+    .mp-close:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+    
+    .mp-section {
+      margin-bottom: 16px;
+    }
+    
+    .mp-section-title {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: rgba(255, 255, 255, 0.7);
+      margin-bottom: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    
+    .mp-btn {
+      width: 100%;
+      padding: 14px 18px;
+      background: linear-gradient(135deg, rgba(139, 92, 246, 0.6) 0%, rgba(236, 72, 153, 0.6) 100%);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: white;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+    
+    .mp-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(139, 92, 246, 0.3);
+    }
+    
+    .mp-btn.secondary {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .mp-btn.leave {
+      background: linear-gradient(135deg, rgba(239, 68, 68, 0.6) 0%, rgba(249, 115, 22, 0.6) 100%);
+    }
+    
+    .mp-input {
+      width: 100%;
+      padding: 14px 18px;
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 12px;
+      font-size: 1rem;
+      color: white;
+      text-align: center;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      font-family: 'Orbitron', monospace;
+    }
+    
+    .mp-input::placeholder {
+      color: rgba(255, 255, 255, 0.4);
+      text-transform: none;
+      letter-spacing: normal;
+    }
+    
+    .mp-input:focus {
+      outline: none;
+      border-color: rgba(139, 92, 246, 0.6);
+      box-shadow: 0 0 20px rgba(139, 92, 246, 0.2);
+    }
+    
+    .room-code-display {
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(6, 182, 212, 0.2) 100%);
+      border: 2px solid rgba(16, 185, 129, 0.5);
+      padding: 16px;
+      border-radius: 12px;
+      text-align: center;
+      margin-bottom: 16px;
+    }
+    
+    .room-code-label {
+      font-size: 0.8rem;
+      color: rgba(255, 255, 255, 0.7);
+      margin-bottom: 6px;
+    }
+    
+    .room-code {
+      font-family: 'Orbitron', monospace;
+      font-size: 2rem;
+      font-weight: 700;
+      color: #34d399;
+      letter-spacing: 8px;
+    }
+    
+    .room-code-hint {
+      font-size: 0.8rem;
+      color: rgba(255, 255, 255, 0.6);
+      margin-top: 8px;
+    }
+    
+    .player-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    
+    .player-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .player-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.9rem;
+    }
+    
+    .player-info {
+      flex: 1;
+    }
+    
+    .player-name {
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+    
+    .player-badge {
+      font-size: 0.7rem;
+      padding: 3px 8px;
+      background: rgba(251, 191, 36, 0.3);
+      border: 1px solid rgba(251, 191, 36, 0.5);
+      border-radius: 20px;
+      color: #fde68a;
+      font-weight: 700;
+    }
+    
+    .player-badge.you {
+      background: rgba(139, 92, 246, 0.3);
+      border-color: rgba(139, 92, 246, 0.5);
+      color: #c4b5fd;
+    }
+    
+    .connection-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 10px;
+      font-size: 0.85rem;
+      margin-bottom: 16px;
+    }
+    
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #ef4444;
+    }
+    
+    .status-dot.connected {
+      background: #22c55e;
+      box-shadow: 0 0 10px rgba(34, 197, 94, 0.5);
+    }
+    
+    .status-dot.connecting {
+      background: #f59e0b;
+      animation: pulse 1s infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    
+    .mp-error {
+      background: rgba(239, 68, 68, 0.2);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      color: #fca5a5;
+      padding: 12px 14px;
+      border-radius: 10px;
+      text-align: center;
+      font-size: 0.9rem;
+      margin-bottom: 12px;
+    }
+    
+    .mp-toggle-btn {
+      position: fixed;
+      top: 80px;
+      right: 20px;
+      padding: 14px 20px;
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.6) 0%, rgba(6, 182, 212, 0.6) 100%);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: white;
+      border-radius: 50px;
+      font-weight: 700;
+      cursor: pointer;
+      z-index: 99;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .mp-toggle-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(16, 185, 129, 0.3);
+    }
+    
+    .mp-badge {
+      background: rgba(255, 255, 255, 0.2);
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+    }
+    
+    /* Chat in multiplayer */
+    .mp-chat {
+      max-height: 200px;
+      overflow-y: auto;
+      margin-bottom: 12px;
+    }
+    
+    .mp-chat-message {
+      padding: 8px 12px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 8px;
+      margin-bottom: 6px;
+      font-size: 0.85rem;
+    }
+    
+    .mp-chat-message .sender {
+      font-weight: 700;
+      color: #a78bfa;
+    }
+    
+    .mp-chat-input {
+      display: flex;
+      gap: 8px;
+    }
+    
+    .mp-chat-input input {
+      flex: 1;
+      padding: 10px 14px;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 8px;
+      color: white;
+      font-size: 0.9rem;
+    }
+    
+    .mp-chat-input input:focus {
+      outline: none;
+      border-color: rgba(139, 92, 246, 0.5);
+    }
+    
+    .mp-chat-input button {
+      padding: 10px 16px;
+      background: rgba(139, 92, 246, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: white;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    
+    @media (max-width: 768px) {
+      .play-header {
+        flex-direction: column;
+        gap: 16px;
+        padding: 16px;
+      }
+      
+      .project-info {
+        flex-direction: column;
+        text-align: center;
+        gap: 8px;
+      }
+      
+      .header-actions {
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+      
+      .multiplayer-panel {
+        top: auto;
+        bottom: 0;
+        right: 0;
+        left: 0;
+        width: 100%;
+        max-height: 60vh;
+        border-radius: 20px 20px 0 0;
+      }
+      
+      .mp-toggle-btn {
+        top: auto;
+        bottom: 20px;
+        right: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Loading State -->
+  <div id="loading" class="loading-container">
+    <div class="loading-spinner"></div>
+    <p class="loading-text">Loading creation...</p>
+  </div>
+  
+  <!-- Error State -->
+  <div id="error" class="error-container">
+    <div class="error-emoji">😢</div>
+    <h1 class="error-title">Oops! Project Not Found</h1>
+    <p class="error-message">This creation might have been moved or deleted.</p>
+    <a href="/" class="glass-btn">🚀 Open Studio</a>
+  </div>
+  
+  <!-- Play State -->
+  <div id="play" class="play-container">
+    <header class="play-header">
+      <div class="project-info">
+        <span class="project-title" id="projectTitle">Loading...</span>
+        <span class="project-creator">by <span id="creatorName">...</span></span>
+        <div class="project-stats">
+          <span>👁️ <span id="viewCount">0</span> views</span>
+          <span>❤️ <span id="likeCount">0</span> likes</span>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button class="action-btn like" onclick="likeProject()">
+          ❤️ Like
+        </button>
+        <button class="action-btn" onclick="toggleFullscreen()">
+          🖥️ Fullscreen
+        </button>
+        <a href="/gallery" class="action-btn">
+          🎮 More Games
+        </a>
+        <a href="/" class="action-btn primary">
+          🚀 Open Studio
+        </a>
+      </div>
+    </header>
+    
+    <main class="play-content">
+      <iframe id="projectIframe" class="project-iframe" sandbox="allow-scripts allow-same-origin"></iframe>
+    </main>
+    
+    <footer class="play-footer">
+      Made with <a href="/">Vibe Code Studio</a> - Where kids learn to build awesome stuff! 🚀
+    </footer>
+    
+    <button class="fullscreen-exit" onclick="toggleFullscreen()">✕ Exit Fullscreen</button>
+  </div>
+  
+  <!-- Multiplayer Toggle Button -->
+  <button id="mpToggle" class="mp-toggle-btn" style="display: none;" onclick="toggleMultiplayerPanel()">
+    🎮 Multiplayer <span id="mpBadge" class="mp-badge">0</span>
+  </button>
+  
+  <!-- Multiplayer Panel -->
+  <div id="mpPanel" class="multiplayer-panel" style="display: none;">
+    <div class="mp-header">
+      <span class="mp-title">🎮 Multiplayer</span>
+      <button class="mp-close" onclick="toggleMultiplayerPanel()">✕</button>
+    </div>
+    
+    <div class="connection-status">
+      <span id="statusDot" class="status-dot"></span>
+      <span id="statusText">Disconnected</span>
+    </div>
+    
+    <div id="mpError" class="mp-error" style="display: none;"></div>
+    
+    <!-- Join/Create View -->
+    <div id="mpLobby">
+      <div class="mp-section">
+        <div class="mp-section-title">Your Name</div>
+        <input type="text" id="playerName" class="mp-input" placeholder="Enter your name" maxlength="20" style="text-transform: none; letter-spacing: normal;">
+      </div>
+      
+      <div class="mp-section">
+        <div class="mp-section-title">Create a Room</div>
+        <button class="mp-btn" onclick="createRoom()">🚀 Start New Game</button>
+      </div>
+      
+      <div class="mp-section">
+        <div class="mp-section-title">Or Join a Room</div>
+        <input type="text" id="roomCode" class="mp-input" placeholder="ABCD" maxlength="4">
+        <button class="mp-btn secondary" onclick="joinRoom()">🎯 Join Game</button>
+      </div>
+    </div>
+    
+    <!-- In-Room View -->
+    <div id="mpRoom" style="display: none;">
+      <div class="room-code-display">
+        <div class="room-code-label">ROOM CODE</div>
+        <div class="room-code" id="displayRoomCode">----</div>
+        <div class="room-code-hint">Share this code with friends!</div>
+      </div>
+      
+      <div class="mp-section">
+        <div class="mp-section-title">Players (<span id="playerCount">0</span>)</div>
+        <div class="player-list" id="playerList"></div>
+      </div>
+      
+      <div class="mp-section">
+        <div class="mp-section-title">Chat</div>
+        <div class="mp-chat" id="mpChat"></div>
+        <div class="mp-chat-input">
+          <input type="text" id="chatInput" placeholder="Say something..." onkeypress="handleChatKeypress(event)">
+          <button onclick="sendChat()">Send</button>
+        </div>
+      </div>
+      
+      <button class="mp-btn leave" onclick="leaveRoom()">🚪 Leave Room</button>
+    </div>
+  </div>
+  
+  <script>
+    let currentProject = null;
+    let ws = null;
+    let myPlayerId = null;
+    let currentRoomCode = null;
+    let players = [];
+    let mpPanelOpen = false;
+    
+    // WebSocket connection status
+    const WS_STATUS = {
+      DISCONNECTED: 'disconnected',
+      CONNECTING: 'connecting',
+      CONNECTED: 'connected'
+    };
+    let wsStatus = WS_STATUS.DISCONNECTED;
+    
+    // Get project ID from URL
+    function getProjectId() {
+      const path = window.location.pathname;
+      const match = path.match(/\/play\/([a-z0-9]+)/);
+      return match ? match[1] : null;
+    }
+    
+    // Load project
+    async function loadProject() {
+      const projectId = getProjectId();
+      
+      if (!projectId) {
+        showError();
+        return;
+      }
+      
+      try {
+        const response = await fetch(`/api/projects/${projectId}`);
+        
+        if (!response.ok) {
+          showError();
+          return;
+        }
+        
+        const project = await response.json();
+        currentProject = project;
+        displayProject(project);
+      } catch (err) {
+        console.error('Error loading project:', err);
+        showError();
+      }
+    }
+    
+    // Display project
+    function displayProject(project) {
+      // Update page title
+      document.title = `${project.title} - Vibe Code Arcade`;
+      
+      // Update UI
+      document.getElementById('projectTitle').textContent = project.title;
+      document.getElementById('creatorName').textContent = project.creatorName;
+      document.getElementById('viewCount').textContent = project.views || 0;
+      document.getElementById('likeCount').textContent = project.likes || 0;
+      
+      // Load code into iframe
+      const iframe = document.getElementById('projectIframe');
+      const doc = iframe.contentDocument || iframe.contentWindow.document;
+      doc.open();
+      doc.write(project.code);
+      doc.close();
+      
+      // Show play container
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('play').style.display = 'flex';
+      
+      // Initialize multiplayer if enabled
+      initMultiplayer();
+    }
+    
+    // Show error
+    function showError() {
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('error').style.display = 'flex';
+    }
+    
+    // Like project
+    async function likeProject() {
+      if (!currentProject) return;
+      
+      try {
+        const response = await fetch(`/api/projects/${currentProject.id}/like`, {
+          method: 'POST'
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          document.getElementById('likeCount').textContent = data.likes;
+          
+          // Fun feedback
+          const btn = event.target.closest('.action-btn');
+          btn.textContent = '❤️ Liked!';
+          btn.disabled = true;
+        }
+      } catch (err) {
+        console.error('Error liking project:', err);
+      }
+    }
+    
+    // Toggle fullscreen
+    function toggleFullscreen() {
+      const container = document.getElementById('play');
+      container.classList.toggle('fullscreen');
+    }
+    
+    // Handle escape key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        document.getElementById('play').classList.remove('fullscreen');
+      }
+    });
+    
+    // Load on page load
+    loadProject();
+    
+    // ========== MULTIPLAYER FUNCTIONS ==========
+    
+    // Initialize multiplayer if project supports it
+    function initMultiplayer() {
+      if (currentProject && currentProject.multiplayer) {
+        document.getElementById('mpToggle').style.display = 'flex';
+        // Auto-load saved name
+        const savedName = localStorage.getItem('playerName');
+        if (savedName) {
+          document.getElementById('playerName').value = savedName;
+        }
+      }
+    }
+    
+    // Toggle multiplayer panel
+    function toggleMultiplayerPanel() {
+      mpPanelOpen = !mpPanelOpen;
+      document.getElementById('mpPanel').style.display = mpPanelOpen ? 'block' : 'none';
+      
+      if (mpPanelOpen && !ws) {
+        connectWebSocket();
+      }
+    }
+    
+    // Connect to WebSocket server
+    function connectWebSocket() {
+      if (ws && ws.readyState === WebSocket.OPEN) return;
+      
+      updateStatus(WS_STATUS.CONNECTING);
+      
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${protocol}//${window.location.host}/ws/multiplayer`;
+      
+      ws = new WebSocket(wsUrl);
+      
+      ws.onopen = () => {
+        updateStatus(WS_STATUS.CONNECTED);
+        hideError();
+      };
+      
+      ws.onmessage = (event) => {
+        const message = JSON.parse(event.data);
+        handleWebSocketMessage(message);
+      };
+      
+      ws.onclose = () => {
+        updateStatus(WS_STATUS.DISCONNECTED);
+        ws = null;
+        
+        // Reset room state
+        if (currentRoomCode) {
+          showLobby();
+          currentRoomCode = null;
+        }
+      };
+      
+      ws.onerror = (error) => {
+        console.error('WebSocket error:', error);
+        showError('Connection error. Please try again.');
+        updateStatus(WS_STATUS.DISCONNECTED);
+      };
+    }
+    
+    // Handle incoming WebSocket messages
+    function handleWebSocketMessage(message) {
+      switch (message.type) {
+        case 'welcome':
+          myPlayerId = message.playerId;
+          break;
+          
+        case 'room_created':
+          currentRoomCode = message.roomCode;
+          players = message.players;
+          showRoom();
+          updatePlayerList();
+          addChatMessage('System', `Room created! Share code: ${message.roomCode}`);
+          break;
+          
+        case 'room_joined':
+          currentRoomCode = message.roomCode;
+          players = message.players;
+          showRoom();
+          updatePlayerList();
+          addChatMessage('System', `Joined room ${message.roomCode}`);
+          // Inject multiplayer helper into the game iframe
+          injectMultiplayerHelper();
+          break;
+          
+        case 'player_joined':
+          players = message.players;
+          updatePlayerList();
+          addChatMessage('System', `${message.playerName} joined the game!`);
+          break;
+          
+        case 'player_left':
+          players = message.players;
+          updatePlayerList();
+          addChatMessage('System', `${message.playerName} left the game.`);
+          break;
+          
+        case 'host_changed':
+          addChatMessage('System', `${message.newHostName} is now the host.`);
+          updatePlayerList();
+          break;
+          
+        case 'room_left':
+          currentRoomCode = null;
+          players = [];
+          showLobby();
+          break;
+          
+        case 'chat':
+          addChatMessage(message.fromPlayerName, message.message);
+          break;
+          
+        case 'game_state':
+          // Forward game state to iframe
+          sendToGame({
+            type: 'multiplayer_state',
+            state: message.state,
+            fromPlayerId: message.fromPlayerId
+          });
+          break;
+          
+        case 'player_input':
+          // Forward player input to iframe
+          sendToGame({
+            type: 'multiplayer_input',
+            input: message.input,
+            fromPlayerId: message.fromPlayerId,
+            fromPlayerName: message.fromPlayerName
+          });
+          break;
+          
+        case 'error':
+          showError(message.message);
+          break;
+          
+        case 'pong':
+          // Keep-alive response
+          break;
+      }
+    }
+    
+    // Create a new room
+    function createRoom() {
+      const name = getPlayerName();
+      if (!name) return;
+      
+      if (!ws || ws.readyState !== WebSocket.OPEN) {
+        showError('Not connected. Please try again.');
+        connectWebSocket();
+        return;
+      }
+      
+      ws.send(JSON.stringify({
+        type: 'create_room',
+        projectId: currentProject.id,
+        playerName: name
+      }));
+    }
+    
+    // Join an existing room
+    function joinRoom() {
+      const name = getPlayerName();
+      if (!name) return;
+      
+      const code = document.getElementById('roomCode').value.trim().toUpperCase();
+      if (!code || code.length !== 4) {
+        showError('Please enter a 4-character room code.');
+        return;
+      }
+      
+      if (!ws || ws.readyState !== WebSocket.OPEN) {
+        showError('Not connected. Please try again.');
+        connectWebSocket();
+        return;
+      }
+      
+      ws.send(JSON.stringify({
+        type: 'join_room',
+        roomCode: code,
+        playerName: name
+      }));
+    }
+    
+    // Leave the current room
+    function leaveRoom() {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'leave_room' }));
+      }
+      currentRoomCode = null;
+      players = [];
+      showLobby();
+    }
+    
+    // Get and validate player name
+    function getPlayerName() {
+      const name = document.getElementById('playerName').value.trim();
+      if (!name) {
+        showError('Please enter your name first!');
+        return null;
+      }
+      localStorage.setItem('playerName', name);
+      hideError();
+      return name;
+    }
+    
+    // Show lobby view
+    function showLobby() {
+      document.getElementById('mpLobby').style.display = 'block';
+      document.getElementById('mpRoom').style.display = 'none';
+      updateBadge(0);
+    }
+    
+    // Show room view
+    function showRoom() {
+      document.getElementById('mpLobby').style.display = 'none';
+      document.getElementById('mpRoom').style.display = 'block';
+      document.getElementById('displayRoomCode').textContent = currentRoomCode;
+      updateBadge(players.length);
+    }
+    
+    // Update player list UI
+    function updatePlayerList() {
+      const list = document.getElementById('playerList');
+      list.innerHTML = '';
+      
+      players.forEach(player => {
+        const isMe = player.id === myPlayerId;
+        const initials = player.name.slice(0, 2).toUpperCase();
+        
+        const div = document.createElement('div');
+        div.className = 'player-item';
+        div.innerHTML = `
+          <div class="player-avatar">${initials}</div>
+          <div class="player-info">
+            <span class="player-name">${player.name}</span>
+          </div>
+          ${player.isHost ? '<span class="player-badge">HOST</span>' : ''}
+          ${isMe ? '<span class="player-badge you">YOU</span>' : ''}
+        `;
+        list.appendChild(div);
+      });
+      
+      document.getElementById('playerCount').textContent = players.length;
+      updateBadge(players.length);
+    }
+    
+    // Update badge count
+    function updateBadge(count) {
+      document.getElementById('mpBadge').textContent = count;
+    }
+    
+    // Update connection status
+    function updateStatus(status) {
+      wsStatus = status;
+      const dot = document.getElementById('statusDot');
+      const text = document.getElementById('statusText');
+      
+      dot.className = 'status-dot';
+      
+      switch (status) {
+        case WS_STATUS.CONNECTED:
+          dot.classList.add('connected');
+          text.textContent = 'Connected';
+          break;
+        case WS_STATUS.CONNECTING:
+          dot.classList.add('connecting');
+          text.textContent = 'Connecting...';
+          break;
+        default:
+          text.textContent = 'Disconnected';
+      }
+    }
+    
+    // Show error message
+    function showError(msg) {
+      const el = document.getElementById('mpError');
+      el.textContent = msg;
+      el.style.display = 'block';
+    }
+    
+    // Hide error message
+    function hideError() {
+      document.getElementById('mpError').style.display = 'none';
+    }
+    
+    // Chat functions
+    function sendChat() {
+      const input = document.getElementById('chatInput');
+      const text = input.value.trim();
+      if (!text || !ws || ws.readyState !== WebSocket.OPEN) return;
+      
+      ws.send(JSON.stringify({
+        type: 'chat',
+        text: text
+      }));
+      
+      input.value = '';
+    }
+    
+    function handleChatKeypress(event) {
+      if (event.key === 'Enter') {
+        sendChat();
+      }
+    }
+    
+    function addChatMessage(sender, message) {
+      const chat = document.getElementById('mpChat');
+      const div = document.createElement('div');
+      div.className = 'mp-chat-message';
+      div.innerHTML = `<span class="sender">${sender}:</span> ${message}`;
+      chat.appendChild(div);
+      chat.scrollTop = chat.scrollHeight;
+    }
+    
+    // Inject multiplayer helper into iframe
+    function injectMultiplayerHelper() {
+      const iframe = document.getElementById('projectIframe');
+      if (!iframe || !iframe.contentWindow) return;
+      
+      try {
+        // Inject the multiplayer API into the game
+        const script = iframe.contentDocument.createElement('script');
+        script.textContent = `
+          // Vibe Code Multiplayer API
+          window.VibeMultiplayer = {
+            // Send game state to other players
+            sendState: function(state) {
+              window.parent.postMessage({ type: 'mp_state', state: state }, '*');
+            },
+            
+            // Send player input to other players
+            sendInput: function(input) {
+              window.parent.postMessage({ type: 'mp_input', input: input }, '*');
+            },
+            
+            // Event handlers (set these in your game)
+            onStateReceived: null,
+            onInputReceived: null,
+            onPlayerJoined: null,
+            onPlayerLeft: null,
+            
+            // Player info
+            playerId: '${myPlayerId}',
+            players: ${JSON.stringify(players)}
+          };
+          
+          // Listen for messages from parent
+          window.addEventListener('message', function(event) {
+            if (event.data.type === 'multiplayer_state' && window.VibeMultiplayer.onStateReceived) {
+              window.VibeMultiplayer.onStateReceived(event.data.state, event.data.fromPlayerId);
+            }
+            if (event.data.type === 'multiplayer_input' && window.VibeMultiplayer.onInputReceived) {
+              window.VibeMultiplayer.onInputReceived(event.data.input, event.data.fromPlayerId, event.data.fromPlayerName);
+            }
+          });
+          
+          console.log('🎮 Vibe Multiplayer API ready!');
+        `;
+        iframe.contentDocument.body.appendChild(script);
+      } catch (e) {
+        console.error('Could not inject multiplayer helper:', e);
+      }
+    }
+    
+    // Send message to game iframe
+    function sendToGame(message) {
+      const iframe = document.getElementById('projectIframe');
+      if (iframe && iframe.contentWindow) {
+        iframe.contentWindow.postMessage(message, '*');
+      }
+    }
+    
+    // Listen for messages from game iframe
+    window.addEventListener('message', function(event) {
+      if (!ws || ws.readyState !== WebSocket.OPEN) return;
+      
+      if (event.data.type === 'mp_state') {
+        ws.send(JSON.stringify({
+          type: 'game_state',
+          state: event.data.state
+        }));
+      }
+      
+      if (event.data.type === 'mp_input') {
+        ws.send(JSON.stringify({
+          type: 'player_input',
+          input: event.data.input
+        }));
+      }
+    });
+    
+    // Keep WebSocket alive with ping
+    setInterval(() => {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'ping' }));
+      }
+    }, 30000);
+  </script>
+</body>
+</html>
