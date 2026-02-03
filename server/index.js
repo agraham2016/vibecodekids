@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import Anthropic from '@anthropic-ai/sdk';
+import Stripe from 'stripe';
 import dotenv from 'dotenv';
 import { randomBytes, createHash } from 'crypto';
 import { promises as fs } from 'fs';
@@ -9,6 +10,20 @@ import { fileURLToPath } from 'url';
 import { createServer } from 'http';
 import { getSystemPrompt, getContentFilter, sanitizeOutput } from './prompts.js';
 import { initMultiplayer, getRoomInfo, getActiveRooms } from './multiplayer.js';
+
+// Load environment variables
+dotenv.config();
+
+// Initialize Stripe
+const stripe = process.env.STRIPE_SECRET_KEY 
+  ? new Stripe(process.env.STRIPE_SECRET_KEY)
+  : null;
+
+// Stripe Price IDs
+const STRIPE_PRICES = {
+  creator: process.env.STRIPE_CREATOR_PRICE_ID || 'price_1Swp0yFORYWq7U9VvV0bCabA',
+  pro: process.env.STRIPE_PRO_PRICE_ID || 'price_1Swp2cFORYWq7U9VF15M6NY8'
+};
 
 // Simple password hashing (for production, use bcrypt)
 function hashPassword(password) {
@@ -30,23 +45,25 @@ const MEMBERSHIP_TIERS = {
   },
   creator: {
     name: "Creator",
-    price: 5,
+    price: 7,
     gamesPerMonth: 25,
     promptsPerDay: 150,
     playsPerDay: Infinity,
     aiCoversPerMonth: 5,
     aiSpritesPerMonth: 0,
-    canAccessPremiumAssets: true
+    canAccessPremiumAssets: true,
+    stripePriceId: STRIPE_PRICES.creator
   },
   pro: {
     name: "Pro",
-    price: 10,
+    price: 14,
     gamesPerMonth: 50,
     promptsPerDay: 300,
     playsPerDay: Infinity,
     aiCoversPerMonth: 20,
     aiSpritesPerMonth: 10,
-    canAccessPremiumAssets: true
+    canAccessPremiumAssets: true,
+    stripePriceId: STRIPE_PRICES.pro
   }
 };
 
@@ -112,9 +129,6 @@ function generateToken() {
 
 // In-memory session store (for production, use Redis or database)
 const sessions = new Map();
-
-// Load environment variables from .env file
-dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -1240,7 +1254,193 @@ app.get('/api/membership/tiers', (req, res) => {
   res.json({ tiers: MEMBERSHIP_TIERS });
 });
 
-// Upgrade membership (placeholder for Stripe integration)
+// Create Stripe checkout session for signup with paid plan
+app.post('/api/stripe/create-checkout', async (req, res) => {
+  try {
+    const { tier, username, displayName, password } = req.body;
+    
+    if (!stripe) {
+      return res.status(500).json({ error: 'Payment system not configured' });
+    }
+    
+    if (!['creator', 'pro'].includes(tier)) {
+      return res.status(400).json({ error: 'Invalid tier' });
+    }
+    
+    if (!username || !password || !displayName) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+    
+    // Check if username already exists
+    const userId = `user_${username.toLowerCase()}`;
+    const userPath = path.join(USERS_DIR, `${userId}.json`);
+    
+    try {
+      await fs.access(userPath);
+      return res.status(400).json({ error: 'Username already taken' });
+    } catch {
+      // User doesn't exist, good to proceed
+    }
+    
+    const priceId = MEMBERSHIP_TIERS[tier].stripePriceId;
+    const baseUrl = process.env.BASE_URL || 'https://vibecodekidz.org';
+    
+    // Create Stripe checkout session
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      line_items: [{
+        price: priceId,
+        quantity: 1,
+      }],
+      mode: 'subscription',
+      success_url: `${baseUrl}/api/stripe/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${baseUrl}/?cancelled=true`,
+      metadata: {
+        username: username.toLowerCase(),
+        displayName: displayName.trim(),
+        passwordHash: hashPassword(password),
+        tier: tier
+      }
+    });
+    
+    res.json({ 
+      success: true, 
+      checkoutUrl: session.url,
+      sessionId: session.id
+    });
+    
+  } catch (error) {
+    console.error('Stripe checkout error:', error);
+    res.status(500).json({ error: 'Could not create checkout session' });
+  }
+});
+
+// Handle successful Stripe checkout (redirect endpoint)
+app.get('/api/stripe/success', async (req, res) => {
+  try {
+    const { session_id } = req.query;
+    
+    if (!stripe || !session_id) {
+      return res.redirect('/?error=payment_failed');
+    }
+    
+    // Retrieve the session to get metadata
+    const session = await stripe.checkout.sessions.retrieve(session_id);
+    
+    if (session.payment_status !== 'paid') {
+      return res.redirect('/?error=payment_incomplete');
+    }
+    
+    const { username, displayName, passwordHash, tier } = session.metadata;
+    
+    // Create the user account
+    const userId = `user_${username}`;
+    const userPath = path.join(USERS_DIR, `${userId}.json`);
+    
+    // Check if already created (in case of refresh)
+    try {
+      await fs.access(userPath);
+      // User already exists, just redirect to login
+      return res.redirect('/?signup=success&message=Account already exists, please log in');
+    } catch {
+      // Create new user
+    }
+    
+    const now = new Date();
+    const expireDate = new Date();
+    expireDate.setMonth(expireDate.getMonth() + 1);
+    
+    const user = {
+      id: userId,
+      username: username,
+      displayName: displayName,
+      passwordHash: passwordHash,
+      status: 'approved', // Auto-approve paid users!
+      createdAt: now.toISOString(),
+      projectCount: 0,
+      membershipTier: tier,
+      membershipExpires: expireDate.toISOString(),
+      stripeCustomerId: session.customer,
+      stripeSubscriptionId: session.subscription,
+      gamesCreatedThisMonth: 0,
+      aiCoversUsedThisMonth: 0,
+      aiSpritesUsedThisMonth: 0,
+      monthlyResetDate: now.toISOString(),
+      promptsToday: 0,
+      playsToday: 0,
+      dailyResetDate: now.toISOString(),
+      recentRequests: [],
+      rateLimitedUntil: null,
+      hasSeenUpgradePrompt: true, // They already paid!
+      lastLoginAt: null
+    };
+    
+    await fs.writeFile(userPath, JSON.stringify(user, null, 2));
+    
+    // Redirect to login with success message
+    res.redirect('/?signup=success&tier=' + tier);
+    
+  } catch (error) {
+    console.error('Stripe success handler error:', error);
+    res.redirect('/?error=account_creation_failed');
+  }
+});
+
+// Stripe webhook for subscription events
+app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+  const sig = req.headers['stripe-signature'];
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  
+  if (!stripe || !webhookSecret) {
+    return res.status(400).json({ error: 'Webhook not configured' });
+  }
+  
+  let event;
+  
+  try {
+    event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
+  } catch (err) {
+    console.error('Webhook signature verification failed:', err.message);
+    return res.status(400).send(`Webhook Error: ${err.message}`);
+  }
+  
+  // Handle subscription events
+  switch (event.type) {
+    case 'customer.subscription.updated':
+    case 'customer.subscription.deleted': {
+      const subscription = event.data.object;
+      // Find user by stripeSubscriptionId and update their status
+      try {
+        const files = await fs.readdir(USERS_DIR);
+        for (const file of files) {
+          if (!file.endsWith('.json')) continue;
+          const data = await fs.readFile(path.join(USERS_DIR, file), 'utf-8');
+          const user = JSON.parse(data);
+          if (user.stripeSubscriptionId === subscription.id) {
+            if (subscription.status === 'active') {
+              // Subscription renewed
+              const expireDate = new Date(subscription.current_period_end * 1000);
+              user.membershipExpires = expireDate.toISOString();
+            } else if (['canceled', 'unpaid', 'past_due'].includes(subscription.status)) {
+              // Subscription ended - downgrade to free
+              user.membershipTier = 'free';
+              user.membershipExpires = null;
+            }
+            await fs.writeFile(path.join(USERS_DIR, file), JSON.stringify(user, null, 2));
+            break;
+          }
+        }
+      } catch (err) {
+        console.error('Error updating user subscription:', err);
+      }
+      break;
+    }
+  }
+  
+  res.json({ received: true });
+});
+
+// Upgrade membership (for existing users)
 app.post('/api/membership/upgrade', async (req, res) => {
   try {
     const token = req.headers.authorization?.replace('Bearer ', '');
@@ -1259,18 +1459,82 @@ app.post('/api/membership/upgrade', async (req, res) => {
       return res.status(400).json({ error: 'Invalid tier' });
     }
     
-    // TODO: Integrate with Stripe for actual payment
-    // For now, return a message about coming soon
+    if (!stripe) {
+      return res.status(500).json({ error: 'Payment system not configured' });
+    }
+    
+    const priceId = MEMBERSHIP_TIERS[tier].stripePriceId;
+    const baseUrl = process.env.BASE_URL || 'https://vibecodekidz.org';
+    
+    // Get user info
+    const userPath = path.join(USERS_DIR, `${session.userId}.json`);
+    const userData = await fs.readFile(userPath, 'utf-8');
+    const user = JSON.parse(userData);
+    
+    // Create Stripe checkout session for upgrade
+    const checkoutSession = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      line_items: [{
+        price: priceId,
+        quantity: 1,
+      }],
+      mode: 'subscription',
+      success_url: `${baseUrl}/api/stripe/upgrade-success?session_id={CHECKOUT_SESSION_ID}&user_id=${session.userId}`,
+      cancel_url: `${baseUrl}/?upgrade_cancelled=true`,
+      customer_email: user.email || undefined,
+      metadata: {
+        userId: session.userId,
+        tier: tier
+      }
+    });
     
     res.json({
-      success: false,
-      message: 'Payment integration coming soon! 🚀 For now, enjoy the free tier.',
-      stripeUrl: null // Will be checkout URL when Stripe is integrated
+      success: true,
+      checkoutUrl: checkoutSession.url
     });
     
   } catch (error) {
     console.error('Upgrade error:', error);
     res.status(500).json({ error: 'Could not process upgrade' });
+  }
+});
+
+// Handle successful upgrade
+app.get('/api/stripe/upgrade-success', async (req, res) => {
+  try {
+    const { session_id, user_id } = req.query;
+    
+    if (!stripe || !session_id || !user_id) {
+      return res.redirect('/?error=upgrade_failed');
+    }
+    
+    const session = await stripe.checkout.sessions.retrieve(session_id);
+    
+    if (session.payment_status !== 'paid') {
+      return res.redirect('/?error=payment_incomplete');
+    }
+    
+    const { tier } = session.metadata;
+    const userPath = path.join(USERS_DIR, `${user_id}.json`);
+    
+    const userData = await fs.readFile(userPath, 'utf-8');
+    const user = JSON.parse(userData);
+    
+    const expireDate = new Date();
+    expireDate.setMonth(expireDate.getMonth() + 1);
+    
+    user.membershipTier = tier;
+    user.membershipExpires = expireDate.toISOString();
+    user.stripeCustomerId = session.customer;
+    user.stripeSubscriptionId = session.subscription;
+    
+    await fs.writeFile(userPath, JSON.stringify(user, null, 2));
+    
+    res.redirect('/?upgrade=success&tier=' + tier);
+    
+  } catch (error) {
+    console.error('Upgrade success handler error:', error);
+    res.redirect('/?error=upgrade_failed');
   }
 });
 

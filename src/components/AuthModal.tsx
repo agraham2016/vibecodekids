@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import PlanSelector from './PlanSelector'
 import './AuthModal.css'
 
 interface LoginData {
@@ -14,9 +15,12 @@ interface AuthModalProps {
 }
 
 type AuthMode = 'login' | 'signup'
+type SignupStep = 'plan' | 'details'
 
 export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: AuthModalProps) {
   const [mode, setMode] = useState<AuthMode>(initialMode)
+  const [signupStep, setSignupStep] = useState<SignupStep>('plan')
+  const [selectedPlan, setSelectedPlan] = useState<'free' | 'creator' | 'pro'>('free')
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [displayName, setDisplayName] = useState('')
@@ -32,29 +36,51 @@ export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: A
 
     try {
       if (mode === 'signup') {
-        // Register
-        const response = await fetch('/api/auth/register', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, password, displayName })
-        })
+        if (selectedPlan === 'free') {
+          // Free plan: Regular signup
+          const response = await fetch('/api/auth/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password, displayName })
+          })
 
-        const data = await response.json()
+          const data = await response.json()
 
-        if (!response.ok) {
-          throw new Error(data.error || 'Could not create account')
+          if (!response.ok) {
+            throw new Error(data.error || 'Could not create account')
+          }
+
+          setSuccess(data.message)
+          setUsername('')
+          setPassword('')
+          setDisplayName('')
+          setTimeout(() => {
+            setMode('login')
+            setSignupStep('plan')
+            setSuccess('')
+          }, 3000)
+        } else {
+          // Paid plan: Create Stripe checkout
+          const response = await fetch('/api/stripe/create-checkout', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              tier: selectedPlan,
+              username, 
+              password, 
+              displayName 
+            })
+          })
+
+          const data = await response.json()
+
+          if (!response.ok) {
+            throw new Error(data.error || 'Could not start checkout')
+          }
+
+          // Redirect to Stripe Checkout
+          window.location.href = data.checkoutUrl
         }
-
-        setSuccess(data.message)
-        // Clear form and switch to login
-        setUsername('')
-        setPassword('')
-        setDisplayName('')
-        setTimeout(() => {
-          setMode('login')
-          setSuccess('')
-        }, 3000)
-
       } else {
         // Login
         const response = await fetch('/api/auth/login', {
@@ -69,7 +95,6 @@ export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: A
           throw new Error(data.error || 'Could not log in')
         }
 
-        // Store token and notify parent
         localStorage.setItem('authToken', data.token)
         onLogin(data.user, data.token, {
           membership: data.membership,
@@ -85,17 +110,44 @@ export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: A
     }
   }
 
+  const handleModeSwitch = (newMode: AuthMode) => {
+    setMode(newMode)
+    setSignupStep('plan')
+    setError('')
+    setSuccess('')
+  }
+
+  // Show plan selector for signup
+  if (mode === 'signup' && signupStep === 'plan') {
+    return (
+      <div className="modal-overlay" onClick={onClose}>
+        <div className="auth-modal auth-modal-wide" onClick={e => e.stopPropagation()}>
+          <button className="close-btn" onClick={onClose}>✕</button>
+          
+          <PlanSelector
+            selectedPlan={selectedPlan}
+            onSelectPlan={setSelectedPlan}
+            onContinue={() => setSignupStep('details')}
+            onBack={() => handleModeSwitch('login')}
+          />
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="auth-modal" onClick={e => e.stopPropagation()}>
         <button className="close-btn" onClick={onClose}>✕</button>
 
         <div className="auth-header">
-          <h2>{mode === 'login' ? '👋 Welcome Back!' : '🚀 Join Vibe Code Studio'}</h2>
+          <h2>{mode === 'login' ? '👋 Welcome Back!' : '🚀 Create Your Account'}</h2>
           <p>
             {mode === 'login' 
               ? 'Log in to save and share your creations' 
-              : 'Create an account to start building'
+              : selectedPlan === 'free'
+                ? 'Sign up for free to get started'
+                : `Sign up for the ${selectedPlan.charAt(0).toUpperCase() + selectedPlan.slice(1)} plan`
             }
           </p>
         </div>
@@ -103,17 +155,31 @@ export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: A
         <div className="auth-tabs">
           <button 
             className={`auth-tab ${mode === 'login' ? 'active' : ''}`}
-            onClick={() => { setMode('login'); setError(''); setSuccess(''); }}
+            onClick={() => handleModeSwitch('login')}
           >
             Log In
           </button>
           <button 
             className={`auth-tab ${mode === 'signup' ? 'active' : ''}`}
-            onClick={() => { setMode('signup'); setError(''); setSuccess(''); }}
+            onClick={() => handleModeSwitch('signup')}
           >
             Sign Up
           </button>
         </div>
+
+        {mode === 'signup' && (
+          <div className="selected-plan-badge">
+            {selectedPlan === 'free' && '⭐ Free Plan'}
+            {selectedPlan === 'creator' && '🚀 Creator Plan - $7/mo'}
+            {selectedPlan === 'pro' && '👑 Pro Plan - $14/mo'}
+            <button 
+              className="change-plan-btn"
+              onClick={() => setSignupStep('plan')}
+            >
+              Change
+            </button>
+          </div>
+        )}
 
         <form className="auth-form" onSubmit={handleSubmit}>
           {mode === 'signup' && (
@@ -172,15 +238,24 @@ export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: A
               ? '⏳ Please wait...' 
               : mode === 'login' 
                 ? '🚀 Log In' 
-                : '✨ Create Account'
+                : selectedPlan === 'free'
+                  ? '✨ Create Free Account'
+                  : '💳 Continue to Payment'
             }
           </button>
         </form>
 
-        {mode === 'signup' && (
+        {mode === 'signup' && selectedPlan === 'free' && (
           <div className="auth-note">
             <span className="note-icon">ℹ️</span>
-            <span>New accounts need admin approval before you can log in.</span>
+            <span>Free accounts need admin approval before you can log in.</span>
+          </div>
+        )}
+
+        {mode === 'signup' && selectedPlan !== 'free' && (
+          <div className="auth-note auth-note-payment">
+            <span className="note-icon">🔒</span>
+            <span>Secure payment powered by Stripe. Cancel anytime.</span>
           </div>
         )}
       </div>
