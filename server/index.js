@@ -509,7 +509,19 @@ app.post('/api/generate', async (req, res) => {
     // In plan mode, code stays null - no preview updates
 
     // Sanitize the output message
-    const cleanMessage = sanitizeOutput(assistantMessage);
+    let cleanMessage = sanitizeOutput(assistantMessage);
+    
+    // If in plan mode and user seemed to want to build something, add a reminder
+    if (mode === 'plan') {
+      const buildWords = ['make', 'build', 'create', 'code', 'add', 'put', 'show', 'give'];
+      const lowerMessage = message.toLowerCase();
+      const seemsLikeBuildRequest = buildWords.some(word => lowerMessage.includes(word));
+      
+      // If the AI didn't mention switching modes, add a gentle reminder
+      if (seemsLikeBuildRequest && !cleanMessage.toLowerCase().includes('build mode') && !cleanMessage.toLowerCase().includes('rocket')) {
+        cleanMessage += " 💡 (Psst! I'm in Planning Mode so nothing shows up yet. Hit the 🚀 rocket button to switch to Build Mode!)";
+      }
+    }
 
     // Include usage info in response
     const usage = userId ? calculateUsageRemaining(tierCheck.user) : null;

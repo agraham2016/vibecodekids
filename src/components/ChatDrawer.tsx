@@ -124,8 +124,24 @@ export default function ChatDrawer({
   return (
     <div 
       ref={drawerRef}
-      className={`chat-drawer drawer-${drawerState}`}
+      className={`chat-drawer drawer-${drawerState} ${mode === 'plan' ? 'plan-mode-active' : ''}`}
     >
+      {/* Plan Mode Warning Banner */}
+      {mode === 'plan' && drawerState !== 'minimized' && (
+        <div className="plan-mode-banner">
+          <span className="banner-icon">📝</span>
+          <span className="banner-text">
+            <strong>Planning Mode</strong> - I'm helping you brainstorm! Nothing will be built yet.
+          </span>
+          <button 
+            className="switch-to-vibe-btn"
+            onClick={() => onModeChange('vibe')}
+          >
+            Switch to Build Mode 🚀
+          </button>
+        </div>
+      )}
+      
       {/* Drag Handle */}
       <div 
         className="drawer-handle"
@@ -135,18 +151,24 @@ export default function ChatDrawer({
       >
         <div className="handle-pill"></div>
         <div className="handle-label">
-          {drawerState === 'minimized' ? '💬 Chat with AI' : mode === 'plan' ? '📝 Planning' : '🚀 Vibing'}
+          {drawerState === 'minimized' 
+            ? (mode === 'plan' ? '📝 Planning Mode (not building)' : '💬 Chat with AI') 
+            : mode === 'plan' 
+              ? '📝 Planning (not building yet)' 
+              : '🚀 Building Mode'}
         </div>
         <div className="handle-buttons">
           <button 
             className={`mode-toggle-btn ${mode === 'plan' ? 'active' : ''}`}
             onClick={(e) => { e.stopPropagation(); onModeChange('plan'); }}
+            title="Plan Mode - Brainstorm ideas without building"
           >
             📝
           </button>
           <button 
             className={`mode-toggle-btn ${mode === 'vibe' ? 'active' : ''}`}
             onClick={(e) => { e.stopPropagation(); onModeChange('vibe'); }}
+            title="Vibe Mode - Build your game!"
           >
             🚀
           </button>

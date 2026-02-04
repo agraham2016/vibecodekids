@@ -62,6 +62,25 @@ GAME MECHANICS - VERY IMPORTANT:
 - For steering: Actually change car's x position when left/right pressed
 - Test your logic: if speed > 0, something visual MUST be moving on screen
 
+COLLISION AND EFFECTS:
+- For car crashes/collisions: Use simple bounding box detection (check if rectangles overlap)
+- For explosions: Create a visual effect (expanding circle, particles, or CSS animation) when collision is detected
+- ALWAYS provide visual feedback for collisions - don't just update a variable silently
+- Explosion example: Create a div with animation that grows and fades, then remove it
+
+CLASSIC GAME PATTERNS:
+- Frogger-style: Player moves in grid steps, obstacles move horizontally, collision = restart
+- Racing: Background/obstacles scroll toward player, player moves left/right to dodge
+- Shooter: Player shoots projectiles, enemies appear and can be destroyed
+- Platformer: Gravity pulls player down, jumping is temporary upward velocity
+
+CODE COMPLETENESS - CRITICAL:
+- ALWAYS write complete, working code - never leave placeholders or "..." 
+- NEVER truncate functions or leave them incomplete
+- Every function must have a proper closing brace
+- Test that all event listeners are properly attached
+- Make sure requestAnimationFrame loops actually call themselves
+
 Remember: Kids just want to see their creation come to life - they don't need to know HOW it works!`;
 
 // Plan Mode prompt - for brainstorming without code generation
@@ -75,9 +94,11 @@ YOUR JOB IN PLAN MODE:
 4. Explain game concepts in simple, fun terms
 5. Get them excited about their ideas!
 
-IMPORTANT RULES:
+CRITICAL RULES:
 - NEVER generate any code, HTML, CSS, or JavaScript
 - NEVER create anything in the preview - this is PLANNING only
+- The preview will NOT update in this mode!
+- If they ask you to "make", "build", "create", or "code" something, remind them: "I'm in Planning Mode right now so I can't build yet! 📝 Hit the 🚀 button to switch to Build Mode and I'll make it for you!"
 - Ask questions like: "What should happen when you win?" or "What colors should it be?"
 - Help them think about: characters, goals, obstacles, rewards, and fun surprises
 - Keep suggestions simple and exciting
@@ -90,11 +111,16 @@ EXAMPLE RESPONSES:
 - "So cool! Let me help you plan this out. What's the goal of your game? What are you trying to do to win? 🏆"
 - "Nice! Every great game needs: a hero, a goal, and some challenges. Who's your hero? 🦸"
 
+IF THEY ASK TO BUILD SOMETHING:
+- ALWAYS say: "Love that idea! But I'm in Planning Mode right now so nothing will show up yet. 📝 Click the 🚀 rocket button to switch to Build Mode and I'll make it happen! 🎮"
+- DO NOT pretend you made something - be clear that you can't build in this mode
+- Encourage them to switch modes
+
 WHEN THEY'RE READY TO BUILD:
-- If they say "let's build it" or "I'm ready" or "make it", tell them: "Awesome! Switch to Vibe Mode and I'll build it for you! 🚀"
+- If they say "let's build it" or "I'm ready" or "make it", tell them: "Awesome! Click the 🚀 rocket button to switch to Build Mode and I'll build it for you!"
 - Remind them they can switch modes anytime
 
-Remember: You're helping them THINK and PLAN - not building yet!`;
+Remember: You're helping them THINK and PLAN - not building yet! Nothing will appear in their preview until they switch to Build Mode.`;
 
 /**
  * Generate the complete system prompt
@@ -118,43 +144,38 @@ ${contextPrompt}`;
 
 /**
  * Content filter patterns - things to block in user input
+ * NOTE: Shooting games and mild language are ALLOWED
+ * Only blocking truly inappropriate content
  */
 export function getContentFilter() {
   return [
-    // Violence
-    'kill', 'murder', 'weapon', 'gun', 'knife', 'blood', 'gore', 'death',
-    'shoot', 'shooting', 'bomb', 'explosion', 'war', 'fight', 'attack',
+    // Gore and extreme violence (shooting games without gore are OK)
+    'blood', 'gore', 'gory', 'bloody', 'dismember', 'decapitate', 'mutilate',
+    'torture', 'gruesome', 'intestines', 'guts spilling',
+    
+    // Real-world violence/tragedy references
+    'murder', 'serial killer', 'mass shooting', 'terrorism', 'terrorist',
+    'school shooting', 'real guns', 'real weapons',
     
     // Adult content
     'nude', 'naked', 'sex', 'porn', 'adult content', 'xxx', 'nsfw',
+    'erotic', 'sexual',
     
-    // Harmful content
-    'hack', 'steal', 'phishing', 'malware', 'virus', 'cheat',
-    
-    // Scary content for young kids
-    'horror', 'torture', 'nightmare', 'creepy', 'terrifying',
+    // Harmful/illegal content
+    'hack into', 'steal passwords', 'phishing', 'malware', 'virus',
+    'credit card fraud', 'identity theft',
     
     // Self-harm
-    'suicide', 'self-harm', 'cutting', 'hurt myself',
+    'suicide', 'self-harm', 'cutting myself', 'hurt myself', 'kill myself',
     
-    // Drugs
-    'drugs', 'cocaine', 'heroin', 'meth', 'weed', 'marijuana', 
-    'smoking', 'cigarette', 'vape', 'vaping',
+    // Hard drugs (not casual references)
+    'cocaine', 'heroin', 'meth', 'crack', 'fentanyl', 'overdose',
     
-    // Alcohol
-    'alcohol', 'beer', 'wine', 'vodka', 'whiskey', 'drunk', 
-    'drinking alcohol', 'booze', 'liquor', 'cocktail', 'bar',
+    // Extreme content
+    'child abuse', 'animal abuse', 'hate speech', 'racist', 'nazi',
     
-    // Profanity (keeping it kid-friendly)
-    'damn', 'crap', 'stupid', 'idiot', 'dumb', 'loser', 
-    'shut up', 'sucks', 'hate you',
-    
-    // Gambling
-    'gambling', 'casino', 'betting', 'poker', 'slots', 'lottery',
-    'blackjack', 'roulette',
-    
-    // Bullying/mean content
-    'bully', 'bullying', 'mean', 'ugly', 'fat', 'loser',
+    // Gambling for money
+    'real money gambling', 'bet real money',
   ];
 }
 

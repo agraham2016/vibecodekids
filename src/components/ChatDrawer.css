@@ -109,6 +109,76 @@
   box-shadow: 0 0 15px rgba(139, 92, 246, 0.4);
 }
 
+/* ========== PLAN MODE STYLES ========== */
+
+.chat-drawer.plan-mode-active {
+  border-top-color: rgba(251, 191, 36, 0.6);
+}
+
+.chat-drawer.plan-mode-active::before {
+  background: linear-gradient(90deg, 
+    transparent, 
+    rgba(251, 191, 36, 0.8), 
+    rgba(245, 158, 11, 0.8), 
+    rgba(251, 191, 36, 0.8),
+    transparent
+  );
+}
+
+/* Plan Mode Warning Banner */
+.plan-mode-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 10px 16px;
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.2), rgba(245, 158, 11, 0.15));
+  border-bottom: 1px solid rgba(251, 191, 36, 0.3);
+  flex-shrink: 0;
+  animation: planBannerPulse 2s ease-in-out infinite;
+}
+
+@keyframes planBannerPulse {
+  0%, 100% { 
+    background: linear-gradient(135deg, rgba(251, 191, 36, 0.2), rgba(245, 158, 11, 0.15));
+  }
+  50% { 
+    background: linear-gradient(135deg, rgba(251, 191, 36, 0.3), rgba(245, 158, 11, 0.25));
+  }
+}
+
+.plan-mode-banner .banner-icon {
+  font-size: 1.3rem;
+}
+
+.plan-mode-banner .banner-text {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.plan-mode-banner .banner-text strong {
+  color: #fbbf24;
+  font-weight: 700;
+}
+
+.switch-to-vibe-btn {
+  padding: 6px 14px;
+  background: linear-gradient(135deg, #8b5cf6, #ec4899);
+  border: none;
+  border-radius: 20px;
+  color: white;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.switch-to-vibe-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
+}
+
 /* Drawer Content */
 .drawer-content {
   flex: 1;
@@ -210,5 +280,28 @@
     width: 28px;
     height: 28px;
     font-size: 0.8rem;
+  }
+  
+  .plan-mode-banner {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px 12px;
+  }
+  
+  .plan-mode-banner .banner-text {
+    font-size: 0.75rem;
+    text-align: center;
+    flex: 1 1 100%;
+    order: 2;
+  }
+  
+  .plan-mode-banner .banner-icon {
+    order: 1;
+  }
+  
+  .switch-to-vibe-btn {
+    order: 1;
+    font-size: 0.75rem;
+    padding: 5px 10px;
   }
 }
