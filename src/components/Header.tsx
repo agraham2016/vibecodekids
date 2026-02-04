@@ -23,13 +23,6 @@ interface HeaderProps {
   onNewProject: () => void
 }
 
-// Tier badge colors and icons
-const TIER_STYLES = {
-  free: { icon: '⭐', color: '#94a3b8', label: 'Free' },
-  creator: { icon: '🚀', color: '#8b5cf6', label: 'Creator' },
-  pro: { icon: '👑', color: '#fbbf24', label: 'Pro' }
-}
-
 // Category icons
 const CATEGORY_ICONS: Record<string, string> = {
   game: '🎮',
@@ -45,7 +38,7 @@ export default function Header({
   projectName,
   currentProjectId,
   user,
-  membership,
+  membership: _membership,
   onLogout,
   onUpgradeClick,
   userProjects,
@@ -53,11 +46,11 @@ export default function Header({
   onLoadProject,
   onNewProject
 }: HeaderProps) {
+  void _membership // Prop passed but not displayed in minimal header
   const [showProjectsDropdown, setShowProjectsDropdown] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
   
   const tier = user?.membershipTier || 'free'
-  const tierStyle = TIER_STYLES[tier]
   
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -158,21 +151,10 @@ export default function Header({
       <div className="header-right">
         {user ? (
           <div className="user-section">
-            {/* Membership Badge */}
-            <div className="membership-badge" style={{ borderColor: tierStyle.color }}>
-              <span className="tier-icon">{tierStyle.icon}</span>
-              <span className="tier-name" style={{ color: tierStyle.color }}>{tierStyle.label}</span>
-              {membership && tier === 'free' && (
-                <span className="usage-indicator">
-                  {membership.gamesRemaining}/{membership.gamesLimit}
-                </span>
-              )}
-            </div>
-            
             {/* Upgrade Button for Free Users */}
             {tier === 'free' && (
               <button className="btn-upgrade" onClick={onUpgradeClick}>
-                <span>✨</span> Upgrade
+                ✨ Upgrade
               </button>
             )}
             
@@ -186,7 +168,7 @@ export default function Header({
             </div>
           </div>
         ) : (
-          <div className="guest-badge">Guest Mode</div>
+          <div className="guest-badge">Guest</div>
         )}
       </div>
     </header>
