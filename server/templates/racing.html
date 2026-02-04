@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    
+    .game-container {
+      position: relative;
+      width: 400px;
+      height: 600px;
+      background: #333;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 0 30px rgba(0,0,0,0.5);
+    }
+    
+    .road {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, #228B22 0%, #228B22 15%, #444 15%, #444 85%, #228B22 85%, #228B22 100%);
+    }
+    
+    .road-line {
+      position: absolute;
+      width: 8px;
+      height: 60px;
+      background: white;
+      left: 50%;
+      transform: translateX(-50%);
+      animation: roadMove 0.3s linear infinite;
+    }
+    
+    @keyframes roadMove {
+      0% { transform: translateX(-50%) translateY(0); }
+      100% { transform: translateX(-50%) translateY(100px); }
+    }
+    
+    .player-car {
+      position: absolute;
+      bottom: 80px;
+      width: 50px;
+      height: 80px;
+      background: linear-gradient(180deg, #ff4444 0%, #cc0000 100%);
+      border-radius: 10px 10px 5px 5px;
+      left: 50%;
+      transform: translateX(-50%);
+      transition: left 0.1s ease;
+      z-index: 10;
+    }
+    
+    .player-car::before {
+      content: '';
+      position: absolute;
+      top: 15px;
+      left: 5px;
+      right: 5px;
+      height: 25px;
+      background: #87CEEB;
+      border-radius: 5px;
+    }
+    
+    .player-car::after {
+      content: '';
+      position: absolute;
+      bottom: 5px;
+      left: 5px;
+      right: 5px;
+      height: 10px;
+      background: #222;
+      border-radius: 3px;
+    }
+    
+    .enemy-car {
+      position: absolute;
+      width: 50px;
+      height: 80px;
+      background: linear-gradient(180deg, #4444ff 0%, #0000cc 100%);
+      border-radius: 5px 5px 10px 10px;
+      z-index: 5;
+    }
+    
+    .enemy-car::before {
+      content: '';
+      position: absolute;
+      bottom: 15px;
+      left: 5px;
+      right: 5px;
+      height: 25px;
+      background: #87CEEB;
+      border-radius: 5px;
+    }
+    
+    .score-display {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      color: white;
+      font-size: 24px;
+      font-weight: bold;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+      z-index: 100;
+    }
+    
+    .speed-display {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      color: #00ff00;
+      font-size: 18px;
+      font-weight: bold;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+      z-index: 100;
+    }
+    
+    .game-over {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0,0,0,0.9);
+      padding: 40px;
+      border-radius: 20px;
+      text-align: center;
+      z-index: 200;
+      display: none;
+    }
+    
+    .game-over h2 {
+      color: #ff4444;
+      font-size: 36px;
+      margin-bottom: 20px;
+    }
+    
+    .game-over p {
+      color: white;
+      font-size: 24px;
+      margin-bottom: 30px;
+    }
+    
+    .restart-btn {
+      background: linear-gradient(135deg, #00ff88 0%, #00cc66 100%);
+      border: none;
+      padding: 15px 40px;
+      font-size: 20px;
+      font-weight: bold;
+      color: #1a1a2e;
+      border-radius: 30px;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .restart-btn:hover {
+      transform: scale(1.1);
+      box-shadow: 0 0 20px rgba(0,255,136,0.5);
+    }
+    
+    .controls-hint {
+      margin-top: 20px;
+      color: rgba(255,255,255,0.7);
+      font-size: 14px;
+    }
+    
+    .explosion {
+      position: absolute;
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #ffff00 0%, #ff8800 50%, #ff0000 100%);
+      animation: explode 0.5s ease-out forwards;
+      z-index: 150;
+      pointer-events: none;
+    }
+    
+    @keyframes explode {
+      0% { transform: translate(-50%, -50%) scale(0); opacity: 1; }
+      100% { transform: translate(-50%, -50%) scale(2); opacity: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="game-container" id="gameContainer">
+    <div class="road">
+      <div class="road-line" style="top: 0px;"></div>
+      <div class="road-line" style="top: 100px;"></div>
+      <div class="road-line" style="top: 200px;"></div>
+      <div class="road-line" style="top: 300px;"></div>
+      <div class="road-line" style="top: 400px;"></div>
+      <div class="road-line" style="top: 500px;"></div>
+    </div>
+    <div class="score-display">Score: <span id="score">0</span></div>
+    <div class="speed-display">Speed: <span id="speed">1</span>x</div>
+    <div class="player-car" id="playerCar"></div>
+    <div class="game-over" id="gameOver">
+      <h2>CRASH!</h2>
+      <p>Final Score: <span id="finalScore">0</span></p>
+      <button class="restart-btn" onclick="restartGame()">Play Again</button>
+    </div>
+  </div>
+  <div class="controls-hint">Use LEFT and RIGHT arrow keys to dodge cars!</div>
+  
+  <script>
+    const gameContainer = document.getElementById('gameContainer');
+    const playerCar = document.getElementById('playerCar');
+    const scoreDisplay = document.getElementById('score');
+    const speedDisplay = document.getElementById('speed');
+    const gameOverScreen = document.getElementById('gameOver');
+    const finalScoreDisplay = document.getElementById('finalScore');
+    
+    let playerX = 175; // Center position
+    let score = 0;
+    let speed = 1;
+    let gameRunning = true;
+    let enemyCars = [];
+    let lastSpawn = 0;
+    
+    const lanes = [85, 175, 265]; // Left, center, right lane positions
+    
+    function updatePlayerPosition() {
+      playerCar.style.left = playerX + 'px';
+      playerCar.style.transform = 'translateX(0)';
+    }
+    
+    function spawnEnemyCar() {
+      const enemy = document.createElement('div');
+      enemy.className = 'enemy-car';
+      const lane = lanes[Math.floor(Math.random() * lanes.length)];
+      enemy.style.left = lane + 'px';
+      enemy.style.top = '-80px';
+      
+      // Random car colors
+      const colors = ['#4444ff', '#ff44ff', '#44ffff', '#ffff44', '#ff8844'];
+      const color = colors[Math.floor(Math.random() * colors.length)];
+      enemy.style.background = `linear-gradient(180deg, ${color} 0%, ${color}88 100%)`;
+      
+      gameContainer.appendChild(enemy);
+      enemyCars.push({ element: enemy, x: lane, y: -80 });
+    }
+    
+    function createExplosion(x, y) {
+      const explosion = document.createElement('div');
+      explosion.className = 'explosion';
+      explosion.style.left = x + 'px';
+      explosion.style.top = y + 'px';
+      gameContainer.appendChild(explosion);
+      setTimeout(() => explosion.remove(), 500);
+    }
+    
+    function checkCollision(enemy) {
+      const playerLeft = playerX;
+      const playerRight = playerX + 50;
+      const playerTop = 520;
+      const playerBottom = 600;
+      
+      const enemyLeft = enemy.x;
+      const enemyRight = enemy.x + 50;
+      const enemyTop = enemy.y;
+      const enemyBottom = enemy.y + 80;
+      
+      return !(playerRight < enemyLeft || 
+               playerLeft > enemyRight || 
+               playerBottom < enemyTop || 
+               playerTop > enemyBottom);
+    }
+    
+    function gameLoop(timestamp) {
+      if (!gameRunning) return;
+      
+      // Spawn enemies
+      if (timestamp - lastSpawn > 1500 / speed) {
+        spawnEnemyCar();
+        lastSpawn = timestamp;
+      }
+      
+      // Move enemies
+      enemyCars.forEach((enemy, index) => {
+        enemy.y += 5 * speed;
+        enemy.element.style.top = enemy.y + 'px';
+        
+        // Check collision
+        if (checkCollision(enemy)) {
+          gameRunning = false;
+          createExplosion(playerX + 25, 550);
+          gameOverScreen.style.display = 'block';
+          finalScoreDisplay.textContent = score;
+          return;
+        }
+        
+        // Remove if off screen and add score
+        if (enemy.y > 600) {
+          enemy.element.remove();
+          enemyCars.splice(index, 1);
+          score += 10;
+          scoreDisplay.textContent = score;
+          
+          // Increase speed every 100 points
+          if (score % 100 === 0) {
+            speed = Math.min(speed + 0.5, 5);
+            speedDisplay.textContent = speed.toFixed(1);
+          }
+        }
+      });
+      
+      requestAnimationFrame(gameLoop);
+    }
+    
+    function restartGame() {
+      // Remove all enemy cars
+      enemyCars.forEach(enemy => enemy.element.remove());
+      enemyCars = [];
+      
+      // Reset game state
+      playerX = 175;
+      score = 0;
+      speed = 1;
+      gameRunning = true;
+      lastSpawn = 0;
+      
+      // Update displays
+      scoreDisplay.textContent = '0';
+      speedDisplay.textContent = '1';
+      updatePlayerPosition();
+      gameOverScreen.style.display = 'none';
+      
+      requestAnimationFrame(gameLoop);
+    }
+    
+    // Keyboard controls
+    document.addEventListener('keydown', (e) => {
+      if (!gameRunning) return;
+      
+      if (e.key === 'ArrowLeft') {
+        playerX = Math.max(60, playerX - 90);
+        updatePlayerPosition();
+      } else if (e.key === 'ArrowRight') {
+        playerX = Math.min(290, playerX + 90);
+        updatePlayerPosition();
+      }
+    });
+    
+    // Touch controls for mobile
+    let touchStartX = 0;
+    gameContainer.addEventListener('touchstart', (e) => {
+      touchStartX = e.touches[0].clientX;
+    });
+    
+    gameContainer.addEventListener('touchmove', (e) => {
+      if (!gameRunning) return;
+      const touchX = e.touches[0].clientX;
+      const diff = touchX - touchStartX;
+      
+      if (Math.abs(diff) > 30) {
+        if (diff < 0) {
+          playerX = Math.max(60, playerX - 90);
+        } else {
+          playerX = Math.min(290, playerX + 90);
+        }
+        updatePlayerPosition();
+        touchStartX = touchX;
+      }
+    });
+    
+    // Start the game
+    updatePlayerPosition();
+    requestAnimationFrame(gameLoop);
+  </script>
+</body>
+</html>

@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      color: white;
+    }
+    
+    .game-container {
+      display: flex;
+      gap: 30px;
+      align-items: flex-start;
+    }
+    
+    .main-area {
+      text-align: center;
+    }
+    
+    .score-display {
+      font-size: 48px;
+      font-weight: bold;
+      margin-bottom: 10px;
+      text-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+    }
+    
+    .score-display span {
+      color: #FFD700;
+    }
+    
+    .per-second {
+      font-size: 18px;
+      color: #88ff88;
+      margin-bottom: 30px;
+    }
+    
+    .click-area {
+      position: relative;
+      width: 200px;
+      height: 200px;
+      margin: 0 auto 30px;
+    }
+    
+    .main-button {
+      width: 200px;
+      height: 200px;
+      border-radius: 50%;
+      background: linear-gradient(145deg, #FFD700 0%, #FFA500 50%, #FF8C00 100%);
+      border: 8px solid #FFD700;
+      cursor: pointer;
+      transition: all 0.1s;
+      box-shadow: 
+        0 10px 30px rgba(255, 215, 0, 0.4),
+        inset 0 -10px 20px rgba(0,0,0,0.2);
+      font-size: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .main-button:hover {
+      transform: scale(1.05);
+      box-shadow: 
+        0 15px 40px rgba(255, 215, 0, 0.6),
+        inset 0 -10px 20px rgba(0,0,0,0.2);
+    }
+    
+    .main-button:active {
+      transform: scale(0.95);
+      box-shadow: 
+        0 5px 20px rgba(255, 215, 0, 0.4),
+        inset 0 5px 20px rgba(0,0,0,0.3);
+    }
+    
+    .click-effect {
+      position: absolute;
+      font-size: 24px;
+      font-weight: bold;
+      color: #FFD700;
+      text-shadow: 0 0 10px rgba(255, 215, 0, 0.8);
+      animation: clickFloat 0.8s ease-out forwards;
+      pointer-events: none;
+    }
+    
+    @keyframes clickFloat {
+      0% { opacity: 1; transform: translateY(0) scale(1); }
+      100% { opacity: 0; transform: translateY(-60px) scale(1.5); }
+    }
+    
+    .upgrades-panel {
+      background: rgba(255,255,255,0.1);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      padding: 20px;
+      width: 280px;
+    }
+    
+    .upgrades-title {
+      font-size: 24px;
+      font-weight: bold;
+      margin-bottom: 15px;
+      text-align: center;
+      color: #FFD700;
+    }
+    
+    .upgrade {
+      background: rgba(255,255,255,0.1);
+      border-radius: 12px;
+      padding: 15px;
+      margin-bottom: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: 2px solid transparent;
+    }
+    
+    .upgrade:hover:not(.locked) {
+      background: rgba(255,255,255,0.2);
+      border-color: #FFD700;
+      transform: translateX(5px);
+    }
+    
+    .upgrade.locked {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    .upgrade-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    
+    .upgrade-name {
+      font-size: 16px;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .upgrade-count {
+      background: rgba(255,215,0,0.3);
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 14px;
+    }
+    
+    .upgrade-cost {
+      color: #FFD700;
+      font-weight: bold;
+    }
+    
+    .upgrade-desc {
+      font-size: 13px;
+      color: rgba(255,255,255,0.7);
+    }
+    
+    .upgrade-effect {
+      font-size: 12px;
+      color: #88ff88;
+      margin-top: 5px;
+    }
+    
+    .achievements {
+      margin-top: 20px;
+      text-align: center;
+    }
+    
+    .achievements-title {
+      font-size: 16px;
+      margin-bottom: 10px;
+      color: #88ff88;
+    }
+    
+    .achievement-badges {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    
+    .badge {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      opacity: 0.3;
+      transition: all 0.3s;
+    }
+    
+    .badge.unlocked {
+      opacity: 1;
+      background: linear-gradient(145deg, #FFD700 0%, #FFA500 100%);
+      box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+      animation: badgeUnlock 0.5s ease;
+    }
+    
+    @keyframes badgeUnlock {
+      0% { transform: scale(0); }
+      50% { transform: scale(1.3); }
+      100% { transform: scale(1); }
+    }
+    
+    .stats {
+      margin-top: 20px;
+      font-size: 12px;
+      color: rgba(255,255,255,0.6);
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="game-container">
+    <div class="main-area">
+      <div class="score-display"><span id="score">0</span> coins</div>
+      <div class="per-second">+<span id="perSecond">0</span> per second</div>
+      
+      <div class="click-area" id="clickArea">
+        <button class="main-button" id="mainButton">💰</button>
+      </div>
+      
+      <div class="achievements">
+        <div class="achievements-title">Achievements</div>
+        <div class="achievement-badges">
+          <div class="badge" id="badge1" title="First Click">👆</div>
+          <div class="badge" id="badge2" title="100 Coins">💯</div>
+          <div class="badge" id="badge3" title="1,000 Coins">🎯</div>
+          <div class="badge" id="badge4" title="First Upgrade">⬆️</div>
+          <div class="badge" id="badge5" title="10,000 Coins">🏆</div>
+          <div class="badge" id="badge6" title="All Upgrades">👑</div>
+        </div>
+      </div>
+      
+      <div class="stats">
+        Total Clicks: <span id="totalClicks">0</span> | Total Earned: <span id="totalEarned">0</span>
+      </div>
+    </div>
+    
+    <div class="upgrades-panel">
+      <div class="upgrades-title">Upgrades</div>
+      <div id="upgradesContainer"></div>
+    </div>
+  </div>
+  
+  <script>
+    const scoreDisplay = document.getElementById('score');
+    const perSecondDisplay = document.getElementById('perSecond');
+    const mainButton = document.getElementById('mainButton');
+    const clickArea = document.getElementById('clickArea');
+    const upgradesContainer = document.getElementById('upgradesContainer');
+    const totalClicksDisplay = document.getElementById('totalClicks');
+    const totalEarnedDisplay = document.getElementById('totalEarned');
+    
+    let coins = 0;
+    let coinsPerClick = 1;
+    let coinsPerSecond = 0;
+    let totalClicks = 0;
+    let totalEarned = 0;
+    
+    const upgrades = [
+      { 
+        id: 'cursor', 
+        name: 'Auto Clicker', 
+        icon: '🖱️',
+        baseCost: 15, 
+        cps: 0.1, 
+        count: 0,
+        desc: 'Clicks automatically for you'
+      },
+      { 
+        id: 'grandma', 
+        name: 'Grandma', 
+        icon: '👵',
+        baseCost: 100, 
+        cps: 1, 
+        count: 0,
+        desc: 'A nice grandma to help you'
+      },
+      { 
+        id: 'farm', 
+        name: 'Coin Farm', 
+        icon: '🌾',
+        baseCost: 500, 
+        cps: 5, 
+        count: 0,
+        desc: 'Grows coins like crops'
+      },
+      { 
+        id: 'mine', 
+        name: 'Gold Mine', 
+        icon: '⛏️',
+        baseCost: 2000, 
+        cps: 20, 
+        count: 0,
+        desc: 'Mines precious gold coins'
+      },
+      { 
+        id: 'factory', 
+        name: 'Coin Factory', 
+        icon: '🏭',
+        baseCost: 10000, 
+        cps: 100, 
+        count: 0,
+        desc: 'Mass produces coins'
+      },
+      { 
+        id: 'clickPower', 
+        name: 'Click Power', 
+        icon: '💪',
+        baseCost: 50, 
+        clickBonus: 1, 
+        count: 0,
+        desc: '+1 coin per click'
+      },
+    ];
+    
+    const achievements = [
+      { id: 'badge1', condition: () => totalClicks >= 1, unlocked: false },
+      { id: 'badge2', condition: () => totalEarned >= 100, unlocked: false },
+      { id: 'badge3', condition: () => totalEarned >= 1000, unlocked: false },
+      { id: 'badge4', condition: () => upgrades.some(u => u.count > 0), unlocked: false },
+      { id: 'badge5', condition: () => totalEarned >= 10000, unlocked: false },
+      { id: 'badge6', condition: () => upgrades.every(u => u.count > 0), unlocked: false },
+    ];
+    
+    function formatNumber(num) {
+      if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+      if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+      return Math.floor(num).toString();
+    }
+    
+    function updateDisplay() {
+      scoreDisplay.textContent = formatNumber(coins);
+      perSecondDisplay.textContent = coinsPerSecond.toFixed(1);
+      totalClicksDisplay.textContent = formatNumber(totalClicks);
+      totalEarnedDisplay.textContent = formatNumber(totalEarned);
+    }
+    
+    function getCost(upgrade) {
+      return Math.floor(upgrade.baseCost * Math.pow(1.15, upgrade.count));
+    }
+    
+    function renderUpgrades() {
+      upgradesContainer.innerHTML = '';
+      
+      upgrades.forEach(upgrade => {
+        const cost = getCost(upgrade);
+        const canAfford = coins >= cost;
+        
+        const div = document.createElement('div');
+        div.className = `upgrade ${canAfford ? '' : 'locked'}`;
+        
+        let effectText = '';
+        if (upgrade.cps) effectText = `+${upgrade.cps} coins/sec`;
+        if (upgrade.clickBonus) effectText = `+${upgrade.clickBonus} per click`;
+        
+        div.innerHTML = `
+          <div class="upgrade-header">
+            <div class="upgrade-name">
+              <span>${upgrade.icon}</span>
+              <span>${upgrade.name}</span>
+              <span class="upgrade-count">${upgrade.count}</span>
+            </div>
+            <div class="upgrade-cost">${formatNumber(cost)}</div>
+          </div>
+          <div class="upgrade-desc">${upgrade.desc}</div>
+          <div class="upgrade-effect">${effectText}</div>
+        `;
+        
+        div.addEventListener('click', () => buyUpgrade(upgrade));
+        upgradesContainer.appendChild(div);
+      });
+    }
+    
+    function buyUpgrade(upgrade) {
+      const cost = getCost(upgrade);
+      if (coins < cost) return;
+      
+      coins -= cost;
+      upgrade.count++;
+      
+      if (upgrade.cps) {
+        coinsPerSecond += upgrade.cps;
+      }
+      if (upgrade.clickBonus) {
+        coinsPerClick += upgrade.clickBonus;
+      }
+      
+      updateDisplay();
+      renderUpgrades();
+      checkAchievements();
+    }
+    
+    function createClickEffect(x, y, amount) {
+      const effect = document.createElement('div');
+      effect.className = 'click-effect';
+      effect.textContent = '+' + amount;
+      effect.style.left = x + 'px';
+      effect.style.top = y + 'px';
+      clickArea.appendChild(effect);
+      setTimeout(() => effect.remove(), 800);
+    }
+    
+    function handleClick(e) {
+      coins += coinsPerClick;
+      totalClicks++;
+      totalEarned += coinsPerClick;
+      
+      // Create floating effect
+      const rect = clickArea.getBoundingClientRect();
+      const x = e.clientX - rect.left - 20;
+      const y = e.clientY - rect.top - 10;
+      createClickEffect(x, y, coinsPerClick);
+      
+      updateDisplay();
+      renderUpgrades();
+      checkAchievements();
+    }
+    
+    function checkAchievements() {
+      achievements.forEach(achievement => {
+        if (!achievement.unlocked && achievement.condition()) {
+          achievement.unlocked = true;
+          document.getElementById(achievement.id).classList.add('unlocked');
+        }
+      });
+    }
+    
+    // Auto coins per second
+    setInterval(() => {
+      if (coinsPerSecond > 0) {
+        coins += coinsPerSecond / 10; // Runs 10 times per second
+        totalEarned += coinsPerSecond / 10;
+        updateDisplay();
+        renderUpgrades();
+        checkAchievements();
+      }
+    }, 100);
+    
+    // Event listeners
+    mainButton.addEventListener('click', handleClick);
+    
+    // Initialize
+    updateDisplay();
+    renderUpgrades();
+  </script>
+</body>
+</html>

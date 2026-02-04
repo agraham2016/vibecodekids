@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #1a1a2e;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    
+    .game-container {
+      position: relative;
+      width: 640px;
+      height: 480px;
+      background: #2d2d44;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 0 30px rgba(0,0,0,0.5);
+      border: 4px solid #4a4a6a;
+    }
+    
+    .game-world {
+      position: relative;
+      width: 100%;
+      height: 400px;
+      background: linear-gradient(180deg, #87CEEB 0%, #98D8C8 100%);
+      overflow: hidden;
+    }
+    
+    /* Tile-based map */
+    .tile {
+      position: absolute;
+      width: 40px;
+      height: 40px;
+    }
+    
+    .grass { background: #4CAF50; }
+    .path { background: #D2B48C; }
+    .water { background: #4169E1; }
+    .tree { background: #228B22; font-size: 28px; text-align: center; line-height: 40px; }
+    .house { background: #8B4513; font-size: 28px; text-align: center; line-height: 40px; }
+    .chest { font-size: 28px; text-align: center; line-height: 40px; background: #4CAF50; }
+    
+    .player {
+      position: absolute;
+      width: 36px;
+      height: 36px;
+      font-size: 30px;
+      text-align: center;
+      line-height: 36px;
+      z-index: 50;
+      transition: left 0.15s, top 0.15s;
+    }
+    
+    .npc {
+      position: absolute;
+      width: 36px;
+      height: 36px;
+      font-size: 28px;
+      text-align: center;
+      line-height: 36px;
+      z-index: 40;
+      animation: npcBounce 1s ease-in-out infinite;
+    }
+    
+    @keyframes npcBounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-3px); }
+    }
+    
+    .hud {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      right: 10px;
+      display: flex;
+      justify-content: space-between;
+      z-index: 100;
+    }
+    
+    .health-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .health-label {
+      color: white;
+      font-weight: bold;
+      text-shadow: 1px 1px 2px black;
+    }
+    
+    .health-track {
+      width: 120px;
+      height: 20px;
+      background: #333;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 2px solid #666;
+    }
+    
+    .health-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #ff4444 0%, #ff6666 100%);
+      transition: width 0.3s;
+    }
+    
+    .stats {
+      display: flex;
+      gap: 15px;
+    }
+    
+    .stat {
+      color: white;
+      font-weight: bold;
+      text-shadow: 1px 1px 2px black;
+    }
+    
+    .gold { color: #FFD700; }
+    .level { color: #88ff88; }
+    
+    .dialog-box {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 80px;
+      background: rgba(0,0,0,0.9);
+      padding: 15px 20px;
+      display: none;
+      z-index: 200;
+    }
+    
+    .dialog-speaker {
+      color: #FFD700;
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+    
+    .dialog-text {
+      color: white;
+      font-size: 14px;
+      line-height: 1.4;
+    }
+    
+    .dialog-hint {
+      position: absolute;
+      bottom: 10px;
+      right: 20px;
+      color: #888;
+      font-size: 12px;
+    }
+    
+    .inventory-bar {
+      height: 80px;
+      background: linear-gradient(180deg, #2d2d44 0%, #1a1a2e 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 10px;
+    }
+    
+    .inventory-slot {
+      width: 50px;
+      height: 50px;
+      background: rgba(255,255,255,0.1);
+      border: 2px solid #4a4a6a;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+    }
+    
+    .inventory-slot.filled {
+      background: rgba(255,215,0,0.2);
+      border-color: #FFD700;
+    }
+    
+    .quest-popup {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0,0,0,0.95);
+      padding: 30px;
+      border-radius: 15px;
+      text-align: center;
+      z-index: 300;
+      display: none;
+      border: 3px solid #FFD700;
+    }
+    
+    .quest-popup h3 {
+      color: #FFD700;
+      font-size: 24px;
+      margin-bottom: 15px;
+    }
+    
+    .quest-popup p {
+      color: white;
+      margin-bottom: 20px;
+    }
+    
+    .quest-btn {
+      background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+      border: none;
+      padding: 10px 30px;
+      font-size: 16px;
+      font-weight: bold;
+      color: white;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .quest-btn:hover {
+      transform: scale(1.1);
+    }
+    
+    .controls-hint {
+      margin-top: 15px;
+      color: rgba(255,255,255,0.7);
+      font-size: 14px;
+    }
+    
+    .collect-effect {
+      position: absolute;
+      font-size: 18px;
+      font-weight: bold;
+      color: #FFD700;
+      text-shadow: 0 0 10px rgba(255, 215, 0, 0.8);
+      animation: collectFloat 0.8s ease-out forwards;
+      pointer-events: none;
+      z-index: 150;
+    }
+    
+    @keyframes collectFloat {
+      0% { opacity: 1; transform: translateY(0); }
+      100% { opacity: 0; transform: translateY(-40px); }
+    }
+  </style>
+</head>
+<body>
+  <div class="game-container">
+    <div class="game-world" id="gameWorld">
+      <div class="hud">
+        <div class="health-bar">
+          <span class="health-label">HP</span>
+          <div class="health-track">
+            <div class="health-fill" id="healthFill" style="width: 100%"></div>
+          </div>
+        </div>
+        <div class="stats">
+          <div class="stat gold">Gold: <span id="gold">0</span></div>
+          <div class="stat level">Level: <span id="level">1</span></div>
+        </div>
+      </div>
+      
+      <div class="player" id="player">🧙</div>
+      
+      <div class="dialog-box" id="dialogBox">
+        <div class="dialog-speaker" id="dialogSpeaker">NPC</div>
+        <div class="dialog-text" id="dialogText">Hello there!</div>
+        <div class="dialog-hint">Press SPACE to continue</div>
+      </div>
+    </div>
+    
+    <div class="inventory-bar">
+      <div class="inventory-slot" id="slot1"></div>
+      <div class="inventory-slot" id="slot2"></div>
+      <div class="inventory-slot" id="slot3"></div>
+      <div class="inventory-slot" id="slot4"></div>
+      <div class="inventory-slot" id="slot5"></div>
+      <div class="inventory-slot" id="slot6"></div>
+    </div>
+    
+    <div class="quest-popup" id="questPopup">
+      <h3>Quest Complete!</h3>
+      <p id="questReward">You found all the treasures!</p>
+      <button class="quest-btn" onclick="closeQuest()">Continue</button>
+    </div>
+  </div>
+  <div class="controls-hint">Use ARROW KEYS to move, SPACE to interact</div>
+  
+  <script>
+    const gameWorld = document.getElementById('gameWorld');
+    const playerEl = document.getElementById('player');
+    const healthFill = document.getElementById('healthFill');
+    const goldDisplay = document.getElementById('gold');
+    const levelDisplay = document.getElementById('level');
+    const dialogBox = document.getElementById('dialogBox');
+    const dialogSpeaker = document.getElementById('dialogSpeaker');
+    const dialogText = document.getElementById('dialogText');
+    const questPopup = document.getElementById('questPopup');
+    
+    // Game state
+    let player = { x: 80, y: 200, health: 100, gold: 0, level: 1 };
+    let inventory = [];
+    let dialogActive = false;
+    let currentDialog = null;
+    let dialogIndex = 0;
+    
+    // Map data (16x10 grid, 40px tiles)
+    const mapData = [
+      [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+      [1,0,0,0,2,2,0,0,0,3,3,0,0,0,0,1],
+      [1,0,4,0,2,2,2,0,3,3,3,3,0,4,0,1],
+      [1,0,0,0,0,2,2,0,0,3,3,0,0,0,0,1],
+      [1,2,2,2,0,0,2,2,0,0,0,0,2,2,2,1],
+      [1,0,0,2,2,0,0,2,2,0,0,2,2,0,0,1],
+      [1,0,0,0,2,2,0,0,2,2,2,2,0,0,0,1],
+      [1,0,4,0,0,2,2,0,0,0,0,0,0,4,0,1],
+      [1,0,0,0,0,0,2,2,2,2,0,0,0,0,0,1],
+      [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+    ];
+    
+    // 0=grass, 1=tree, 2=path, 3=water, 4=chest
+    const tileTypes = {
+      0: { class: 'grass', solid: false },
+      1: { class: 'tree', solid: true, icon: '🌲' },
+      2: { class: 'path', solid: false },
+      3: { class: 'water', solid: true },
+      4: { class: 'chest', solid: false, icon: '📦', collectible: true },
+    };
+    
+    // NPCs
+    const npcs = [
+      { x: 200, y: 120, icon: '👴', name: 'Old Wizard', dialog: [
+        "Welcome, young adventurer!",
+        "I sense great potential in you.",
+        "Collect all the treasure chests to prove your worth!",
+        "Good luck on your journey!"
+      ]},
+      { x: 400, y: 280, icon: '🧝', name: 'Elf Guide', dialog: [
+        "Hello traveler!",
+        "Watch out for the water - you can't swim!",
+        "Use the paths to navigate safely."
+      ]},
+    ];
+    
+    let chests = [];
+    let npcElements = [];
+    
+    function createMap() {
+      for (let y = 0; y < mapData.length; y++) {
+        for (let x = 0; x < mapData[y].length; x++) {
+          const tileValue = mapData[y][x];
+          const tileInfo = tileTypes[tileValue];
+          
+          const tile = document.createElement('div');
+          tile.className = `tile ${tileInfo.class}`;
+          tile.style.left = (x * 40) + 'px';
+          tile.style.top = (y * 40) + 'px';
+          
+          if (tileInfo.icon) {
+            tile.textContent = tileInfo.icon;
+          }
+          
+          if (tileInfo.collectible) {
+            tile.dataset.x = x;
+            tile.dataset.y = y;
+            chests.push({ x: x * 40, y: y * 40, element: tile, collected: false });
+          }
+          
+          gameWorld.appendChild(tile);
+        }
+      }
+      
+      // Create NPCs
+      npcs.forEach(npc => {
+        const npcEl = document.createElement('div');
+        npcEl.className = 'npc';
+        npcEl.style.left = npc.x + 'px';
+        npcEl.style.top = npc.y + 'px';
+        npcEl.textContent = npc.icon;
+        npcEl.dataset.name = npc.name;
+        gameWorld.appendChild(npcEl);
+        npcElements.push({ ...npc, element: npcEl });
+      });
+    }
+    
+    function updatePlayer() {
+      playerEl.style.left = player.x + 'px';
+      playerEl.style.top = player.y + 'px';
+    }
+    
+    function canMove(newX, newY) {
+      // Check bounds
+      if (newX < 0 || newX > 600 || newY < 40 || newY > 360) return false;
+      
+      // Check tile collision
+      const tileX = Math.floor((newX + 18) / 40);
+      const tileY = Math.floor((newY + 18) / 40);
+      
+      if (tileX >= 0 && tileX < 16 && tileY >= 0 && tileY < 10) {
+        const tileValue = mapData[tileY][tileX];
+        return !tileTypes[tileValue].solid;
+      }
+      
+      return false;
+    }
+    
+    function checkChestCollision() {
+      chests.forEach(chest => {
+        if (chest.collected) return;
+        
+        const dx = Math.abs(player.x - chest.x);
+        const dy = Math.abs(player.y - chest.y);
+        
+        if (dx < 35 && dy < 35) {
+          chest.collected = true;
+          chest.element.textContent = '';
+          chest.element.style.background = '#4CAF50';
+          
+          // Reward
+          const goldReward = 10 + Math.floor(Math.random() * 20);
+          player.gold += goldReward;
+          goldDisplay.textContent = player.gold;
+          
+          // Create effect
+          createCollectEffect(chest.x, chest.y, `+${goldReward} gold`);
+          
+          // Add to inventory
+          addToInventory('💎');
+          
+          // Check if all collected
+          if (chests.every(c => c.collected)) {
+            setTimeout(() => {
+              questPopup.style.display = 'block';
+            }, 500);
+          }
+        }
+      });
+    }
+    
+    function createCollectEffect(x, y, text) {
+      const effect = document.createElement('div');
+      effect.className = 'collect-effect';
+      effect.textContent = text;
+      effect.style.left = x + 'px';
+      effect.style.top = y + 'px';
+      gameWorld.appendChild(effect);
+      setTimeout(() => effect.remove(), 800);
+    }
+    
+    function addToInventory(item) {
+      if (inventory.length < 6) {
+        inventory.push(item);
+        const slot = document.getElementById('slot' + inventory.length);
+        slot.textContent = item;
+        slot.classList.add('filled');
+      }
+    }
+    
+    function checkNPCInteraction() {
+      npcElements.forEach(npc => {
+        const dx = Math.abs(player.x - npc.x);
+        const dy = Math.abs(player.y - npc.y);
+        
+        if (dx < 50 && dy < 50) {
+          showDialog(npc.name, npc.dialog);
+        }
+      });
+    }
+    
+    function showDialog(speaker, dialog) {
+      if (dialogActive) return;
+      
+      dialogActive = true;
+      currentDialog = dialog;
+      dialogIndex = 0;
+      
+      dialogSpeaker.textContent = speaker;
+      dialogText.textContent = dialog[0];
+      dialogBox.style.display = 'block';
+    }
+    
+    function advanceDialog() {
+      if (!dialogActive) return;
+      
+      dialogIndex++;
+      if (dialogIndex >= currentDialog.length) {
+        dialogBox.style.display = 'none';
+        dialogActive = false;
+        currentDialog = null;
+        dialogIndex = 0;
+      } else {
+        dialogText.textContent = currentDialog[dialogIndex];
+      }
+    }
+    
+    function closeQuest() {
+      questPopup.style.display = 'none';
+      player.level++;
+      levelDisplay.textContent = player.level;
+      
+      // Reset chests for next level
+      chests.forEach(chest => {
+        chest.collected = false;
+        chest.element.textContent = '📦';
+      });
+    }
+    
+    // Controls
+    document.addEventListener('keydown', (e) => {
+      if (dialogActive) {
+        if (e.key === ' ') {
+          e.preventDefault();
+          advanceDialog();
+        }
+        return;
+      }
+      
+      const speed = 8;
+      let newX = player.x;
+      let newY = player.y;
+      
+      if (e.key === 'ArrowUp') newY -= speed;
+      if (e.key === 'ArrowDown') newY += speed;
+      if (e.key === 'ArrowLeft') newX -= speed;
+      if (e.key === 'ArrowRight') newX += speed;
+      
+      if (e.key === ' ') {
+        e.preventDefault();
+        checkNPCInteraction();
+        return;
+      }
+      
+      if (canMove(newX, newY)) {
+        player.x = newX;
+        player.y = newY;
+        updatePlayer();
+        checkChestCollision();
+      }
+    });
+    
+    // Initialize
+    createMap();
+    updatePlayer();
+  </script>
+</body>
+</html>

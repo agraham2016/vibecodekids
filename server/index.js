@@ -8,7 +8,7 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { createServer } from 'http';
-import { getSystemPrompt, getContentFilter, sanitizeOutput } from './prompts.js';
+import { getSystemPrompt, getContentFilter, sanitizeOutput, detectTemplate, getTemplateInfo } from './prompts.js';
 import { initMultiplayer, getRoomInfo, getActiveRooms } from './multiplayer.js';
 
 // Load environment variables
@@ -160,6 +160,38 @@ async function ensureDataDirs() {
   }
 }
 ensureDataDirs();
+
+// ========== GAME TEMPLATES ==========
+const TEMPLATES_DIR = path.join(__dirname, 'templates');
+
+/**
+ * Load a game template by type
+ * @param {string} type - Template type (racing, shooter, platformer, etc.)
+ * @returns {string|null} - Template HTML or null if not found
+ */
+async function loadTemplate(type) {
+  const templatePath = path.join(TEMPLATES_DIR, `${type}.html`);
+  try {
+    const template = await fs.readFile(templatePath, 'utf-8');
+    // Add marker so we know a template was used
+    return template.replace('</html>', `<!-- TEMPLATE:${type} --></html>`);
+  } catch (err) {
+    console.error('Template not found:', type, err.message);
+    return null;
+  }
+}
+
+/**
+ * Check if the current code is the default/empty state
+ * (meaning user hasn't started building yet)
+ */
+function isDefaultCode(code) {
+  if (!code) return true;
+  // Check for default welcome screen markers
+  return code.includes('Vibe Code Studio') && 
+         code.includes('Tell me what you want to create') &&
+         !code.includes('<!-- TEMPLATE:');
+}
 
 // Initialize Anthropic client
 const anthropic = new Anthropic({
@@ -463,8 +495,27 @@ app.post('/api/generate', async (req, res) => {
       });
     }
 
-    // Build conversation with system prompt (pass mode for plan vs vibe)
-    const systemPrompt = getSystemPrompt(currentCode, mode);
+    // ========== TEMPLATE DETECTION ==========
+    // Check if we should use a template (only if code is default and in vibe mode)
+    let templateType = null;
+    let codeToUse = currentCode;
+    
+    if (mode === 'vibe' && isDefaultCode(currentCode)) {
+      // Detect if user is asking for a specific game type
+      templateType = detectTemplate(message);
+      
+      if (templateType) {
+        // Load the template
+        const templateCode = await loadTemplate(templateType);
+        if (templateCode) {
+          codeToUse = templateCode;
+          console.log(`📦 Using ${templateType} template for this request`);
+        }
+      }
+    }
+
+    // Build conversation with system prompt (pass mode and template type)
+    const systemPrompt = getSystemPrompt(codeToUse, mode, templateType);
     
     // Format conversation history for Claude (with image support)
     const messages = [
@@ -504,6 +555,12 @@ app.post('/api/generate', async (req, res) => {
         if (htmlMatch) {
           code = htmlMatch[0];
         }
+      }
+      
+      // If we used a template and AI didn't generate new code, use the template
+      if (!code && templateType && codeToUse) {
+        code = codeToUse;
+        console.log(`📦 Returning ${templateType} template as starting point`);
       }
     }
     // In plan mode, code stays null - no preview updates
@@ -546,6 +603,40 @@ app.post('/api/generate', async (req, res) => {
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Vibe Code Studio server is running! 🚀' });
+});
+
+// ========== TEMPLATES API ==========
+
+// Get list of available templates
+app.get('/api/templates', (req, res) => {
+  const templates = getTemplateInfo();
+  res.json({ templates });
+});
+
+// Get a specific template by type
+app.get('/api/templates/:type', async (req, res) => {
+  const { type } = req.params;
+  const validTypes = ['racing', 'shooter', 'platformer', 'frogger', 'puzzle', 'clicker', 'rpg'];
+  
+  if (!validTypes.includes(type)) {
+    return res.status(400).json({ error: 'Invalid template type' });
+  }
+  
+  const templateCode = await loadTemplate(type);
+  
+  if (!templateCode) {
+    return res.status(404).json({ error: 'Template not found' });
+  }
+  
+  const templateInfo = getTemplateInfo()[type];
+  
+  res.json({
+    type,
+    name: templateInfo.name,
+    icon: templateInfo.icon,
+    description: templateInfo.description,
+    code: templateCode
+  });
 });
 
 // ========== PROJECT SHARING API ==========

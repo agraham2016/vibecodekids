@@ -82,6 +82,120 @@
   color: #a78bfa;
 }
 
+/* ========== GAME TEMPLATE BUTTONS ========== */
+.template-section {
+  width: 100%;
+  margin-bottom: 24px;
+}
+
+.template-label {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.8);
+  margin-bottom: 12px;
+  font-weight: 600;
+}
+
+.template-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.template-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px 12px;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  border-radius: 16px;
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.template-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.3) 0%, rgba(236, 72, 153, 0.3) 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.template-btn:hover:not(:disabled)::before {
+  opacity: 1;
+}
+
+.template-btn:hover:not(:disabled) {
+  transform: translateY(-4px) scale(1.02);
+  border-color: rgba(139, 92, 246, 0.6);
+  box-shadow: 
+    0 8px 25px rgba(139, 92, 246, 0.3),
+    0 0 40px rgba(139, 92, 246, 0.1);
+}
+
+.template-btn:active:not(:disabled) {
+  transform: translateY(-2px) scale(0.98);
+}
+
+.template-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.template-icon {
+  font-size: 2rem;
+  z-index: 1;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+.template-name {
+  font-size: 0.8rem;
+  font-weight: 700;
+  z-index: 1;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.template-hint {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
+  font-style: italic;
+}
+
+/* Responsive template grid */
+@media (max-width: 600px) {
+  .template-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  
+  .template-btn {
+    padding: 12px 8px;
+  }
+  
+  .template-icon {
+    font-size: 1.5rem;
+  }
+  
+  .template-name {
+    font-size: 0.7rem;
+  }
+}
+
+@media (max-width: 400px) {
+  .template-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 .chat-welcome {
   display: flex;
   flex-direction: column;

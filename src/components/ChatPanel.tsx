@@ -56,6 +56,17 @@ interface ChatPanelProps {
   isInDrawer?: boolean // When true, mode toggle is handled by drawer
 }
 
+// Game template categories - pre-built starter games
+const GAME_TEMPLATES = [
+  { id: 'racing', icon: '🏎️', label: 'Racing Game', prompt: 'Make a racing game where I dodge cars' },
+  { id: 'shooter', icon: '🔫', label: 'Shooter Game', prompt: 'Make a space shooter game' },
+  { id: 'platformer', icon: '🦘', label: 'Platformer', prompt: 'Make a platformer jumping game' },
+  { id: 'frogger', icon: '🐸', label: 'Frogger Style', prompt: 'Make a frogger game crossing the road' },
+  { id: 'puzzle', icon: '🧩', label: 'Puzzle Game', prompt: 'Make a memory matching puzzle game' },
+  { id: 'clicker', icon: '👆', label: 'Clicker Game', prompt: 'Make a clicker idle game' },
+  { id: 'rpg', icon: '⚔️', label: 'Adventure/RPG', prompt: 'Make an RPG adventure game' }
+]
+
 // Vibe Mode suggestions - for building
 const VIBE_SUGGESTIONS = [
   "Make a game like Snake",
@@ -248,23 +259,44 @@ export default function ChatPanel({ messages, onSendMessage, isLoading, mode, on
       <div className="panel-content chat-messages">
         {messages.length === 0 ? (
           <div className="chat-welcome">
-            <div className="welcome-icon">{mode === 'plan' ? '📝' : '🤖'}</div>
-            <h3>{mode === 'plan' ? "Let's Plan Your Game!" : "Welcome to Vibe Code Studio!"}</h3>
+            <div className="welcome-icon">{mode === 'plan' ? '📝' : '🎮'}</div>
+            <h3>{mode === 'plan' ? "Let's Plan Your Game!" : "What do you want to build?"}</h3>
             <p>{mode === 'plan' 
               ? "I'll help you brainstorm and plan before we build. What kind of game are you thinking?"
-              : "Tell me what you want to create, and I'll help you build it!"
+              : "Pick a game type to start with a working template, or describe your idea!"
             }</p>
             
             <div className="mode-indicator">
               {mode === 'plan' ? (
                 <span className="mode-badge plan">Planning Mode - No code yet, just ideas!</span>
               ) : (
-                <span className="mode-badge vibe">Vibe Mode - Let's build!</span>
+                <span className="mode-badge vibe">Build Mode - Let's create!</span>
               )}
             </div>
             
+            {/* Template Buttons - Only in Vibe Mode */}
+            {mode === 'vibe' && (
+              <div className="template-section">
+                <p className="template-label">Start with a working game:</p>
+                <div className="template-grid">
+                  {GAME_TEMPLATES.map((template) => (
+                    <button
+                      key={template.id}
+                      className="template-btn"
+                      onClick={() => handleSuggestionClick(template.prompt)}
+                      disabled={isLoading}
+                    >
+                      <span className="template-icon">{template.icon}</span>
+                      <span className="template-name">{template.label}</span>
+                    </button>
+                  ))}
+                </div>
+                <p className="template-hint">These templates come with working game mechanics!</p>
+              </div>
+            )}
+            
             <div className="suggestions">
-              <p className="suggestions-label">{mode === 'plan' ? "Let's brainstorm:" : "Try one of these ideas:"}</p>
+              <p className="suggestions-label">{mode === 'plan' ? "Let's brainstorm:" : "Or try something custom:"}</p>
               <div className="suggestion-buttons">
                 {(mode === 'plan' ? PLAN_SUGGESTIONS : VIBE_SUGGESTIONS).map((suggestion, i) => (
                   <button

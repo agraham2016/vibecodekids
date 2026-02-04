@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    
+    .game-container {
+      position: relative;
+      width: 500px;
+      height: 550px;
+      background: #333;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 0 30px rgba(0,0,0,0.5);
+    }
+    
+    .hud {
+      position: absolute;
+      top: 5px;
+      left: 10px;
+      right: 10px;
+      display: flex;
+      justify-content: space-between;
+      z-index: 100;
+    }
+    
+    .score, .lives, .level {
+      font-size: 16px;
+      font-weight: bold;
+      color: white;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+    }
+    
+    .lives { color: #ff6b6b; }
+    .level { color: #4ecdc4; }
+    
+    /* Game rows */
+    .row {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 50px;
+    }
+    
+    .safe-zone {
+      background: linear-gradient(180deg, #228B22 0%, #1a6b1a 100%);
+    }
+    
+    .goal-zone {
+      background: linear-gradient(180deg, #4169E1 0%, #2850a0 100%);
+    }
+    
+    .road {
+      background: linear-gradient(180deg, #444 0%, #333 100%);
+      border-top: 3px dashed #FFD700;
+      border-bottom: 3px dashed #FFD700;
+    }
+    
+    .water {
+      background: linear-gradient(180deg, #1E90FF 0%, #0066cc 100%);
+    }
+    
+    .player {
+      position: absolute;
+      width: 40px;
+      height: 40px;
+      font-size: 32px;
+      text-align: center;
+      line-height: 40px;
+      z-index: 50;
+      transition: left 0.1s, top 0.1s;
+    }
+    
+    .car {
+      position: absolute;
+      height: 35px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+    
+    .car-left {
+      background: linear-gradient(90deg, #ff4444 0%, #cc0000 100%);
+    }
+    
+    .car-right {
+      background: linear-gradient(90deg, #4444ff 0%, #0000cc 100%);
+    }
+    
+    .truck {
+      width: 80px;
+      background: linear-gradient(90deg, #888 0%, #666 100%);
+    }
+    
+    .log {
+      position: absolute;
+      height: 40px;
+      background: linear-gradient(180deg, #8B4513 0%, #654321 100%);
+      border-radius: 20px;
+      z-index: 30;
+    }
+    
+    .lily-pad {
+      position: absolute;
+      width: 50px;
+      height: 40px;
+      font-size: 30px;
+      text-align: center;
+      line-height: 40px;
+      z-index: 30;
+    }
+    
+    .goal-spot {
+      position: absolute;
+      width: 50px;
+      height: 50px;
+      background: rgba(0,255,0,0.3);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+    }
+    
+    .goal-spot.reached {
+      background: rgba(0,255,0,0.6);
+    }
+    
+    .game-over, .game-win {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0,0,0,0.95);
+      padding: 40px;
+      border-radius: 20px;
+      text-align: center;
+      z-index: 200;
+      display: none;
+    }
+    
+    .game-over h2 { color: #ff6b6b; font-size: 32px; margin-bottom: 15px; }
+    .game-win h2 { color: #4ecdc4; font-size: 32px; margin-bottom: 15px; }
+    
+    .game-over p, .game-win p {
+      color: white;
+      font-size: 18px;
+      margin-bottom: 20px;
+    }
+    
+    .restart-btn {
+      background: linear-gradient(135deg, #4ecdc4 0%, #3db8b0 100%);
+      border: none;
+      padding: 12px 35px;
+      font-size: 18px;
+      font-weight: bold;
+      color: #1a1a2e;
+      border-radius: 25px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .restart-btn:hover {
+      transform: scale(1.1);
+      box-shadow: 0 0 20px rgba(78, 205, 196, 0.5);
+    }
+    
+    .controls-hint {
+      margin-top: 15px;
+      color: rgba(255,255,255,0.7);
+      font-size: 14px;
+    }
+    
+    .splash {
+      position: absolute;
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(30,144,255,0.8) 0%, rgba(0,100,200,0.4) 70%, transparent 100%);
+      animation: splash 0.5s ease-out forwards;
+      z-index: 100;
+      pointer-events: none;
+    }
+    
+    @keyframes splash {
+      0% { transform: translate(-50%, -50%) scale(0.5); opacity: 1; }
+      100% { transform: translate(-50%, -50%) scale(2); opacity: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="game-container" id="gameContainer">
+    <div class="hud">
+      <div class="score">Score: <span id="score">0</span></div>
+      <div class="level">Level: <span id="level">1</span></div>
+      <div class="lives">Lives: <span id="lives">3</span></div>
+    </div>
+    
+    <!-- Goal zone -->
+    <div class="row goal-zone" style="top: 0px;">
+      <div class="goal-spot" style="left: 25px;" id="goal1"></div>
+      <div class="goal-spot" style="left: 125px;" id="goal2"></div>
+      <div class="goal-spot" style="left: 225px;" id="goal3"></div>
+      <div class="goal-spot" style="left: 325px;" id="goal4"></div>
+      <div class="goal-spot" style="left: 425px;" id="goal5"></div>
+    </div>
+    
+    <!-- Water rows -->
+    <div class="row water" style="top: 50px;" id="water1"></div>
+    <div class="row water" style="top: 100px;" id="water2"></div>
+    <div class="row water" style="top: 150px;" id="water3"></div>
+    <div class="row water" style="top: 200px;" id="water4"></div>
+    
+    <!-- Safe zone (middle) -->
+    <div class="row safe-zone" style="top: 250px;"></div>
+    
+    <!-- Road rows -->
+    <div class="row road" style="top: 300px;" id="road1"></div>
+    <div class="row road" style="top: 350px;" id="road2"></div>
+    <div class="row road" style="top: 400px;" id="road3"></div>
+    <div class="row road" style="top: 450px;" id="road4"></div>
+    
+    <!-- Start zone -->
+    <div class="row safe-zone" style="top: 500px;"></div>
+    
+    <div class="player" id="player">🐸</div>
+    
+    <div class="game-over" id="gameOver">
+      <h2>Game Over!</h2>
+      <p>Final Score: <span id="finalScore">0</span></p>
+      <button class="restart-btn" onclick="restartGame()">Try Again</button>
+    </div>
+    
+    <div class="game-win" id="gameWin">
+      <h2>Level Complete!</h2>
+      <p>Score: <span id="winScore">0</span></p>
+      <button class="restart-btn" onclick="nextLevel()">Next Level</button>
+    </div>
+  </div>
+  <div class="controls-hint">Use ARROW KEYS to hop across!</div>
+  
+  <script>
+    const gameContainer = document.getElementById('gameContainer');
+    const playerEl = document.getElementById('player');
+    const scoreDisplay = document.getElementById('score');
+    const levelDisplay = document.getElementById('level');
+    const livesDisplay = document.getElementById('lives');
+    const gameOverScreen = document.getElementById('gameOver');
+    const gameWinScreen = document.getElementById('gameWin');
+    
+    let player = { x: 230, y: 505 };
+    let score = 0;
+    let lives = 3;
+    let level = 1;
+    let gameRunning = true;
+    let goalsReached = 0;
+    let onLog = null;
+    
+    let cars = [];
+    let logs = [];
+    
+    const goalSpots = [
+      { id: 'goal1', reached: false },
+      { id: 'goal2', reached: false },
+      { id: 'goal3', reached: false },
+      { id: 'goal4', reached: false },
+      { id: 'goal5', reached: false },
+    ];
+    
+    function updatePlayer() {
+      playerEl.style.left = player.x + 'px';
+      playerEl.style.top = player.y + 'px';
+    }
+    
+    function createCar(row, direction, speed, width, isTraffic) {
+      const car = document.createElement('div');
+      car.className = `car ${direction === 1 ? 'car-right' : 'car-left'}`;
+      if (width > 60) car.classList.add('truck');
+      car.style.width = width + 'px';
+      car.style.top = '7px';
+      car.innerHTML = direction === 1 ? '🚗' : '🚙';
+      if (width > 60) car.innerHTML = '🚚';
+      
+      const startX = direction === 1 ? -width : 500;
+      car.style.left = startX + 'px';
+      
+      document.getElementById(row).appendChild(car);
+      cars.push({ element: car, x: startX, direction, speed: speed * (1 + level * 0.2), width, row });
+    }
+    
+    function createLog(row, direction, speed, width) {
+      const log = document.createElement('div');
+      log.className = 'log';
+      log.style.width = width + 'px';
+      log.style.top = '5px';
+      
+      const startX = direction === 1 ? -width : 500;
+      log.style.left = startX + 'px';
+      
+      document.getElementById(row).appendChild(log);
+      logs.push({ element: log, x: startX, direction, speed: speed * (1 + level * 0.1), width, row });
+    }
+    
+    function createSplash(x, y) {
+      const splash = document.createElement('div');
+      splash.className = 'splash';
+      splash.style.left = x + 'px';
+      splash.style.top = y + 'px';
+      gameContainer.appendChild(splash);
+      setTimeout(() => splash.remove(), 500);
+    }
+    
+    function spawnTraffic() {
+      // Cars on roads
+      if (Math.random() < 0.02) createCar('road1', 1, 2, 50, true);
+      if (Math.random() < 0.015) createCar('road2', -1, 3, 50, true);
+      if (Math.random() < 0.02) createCar('road3', 1, 2.5, 80, true);
+      if (Math.random() < 0.015) createCar('road4', -1, 2, 50, true);
+      
+      // Logs on water
+      if (Math.random() < 0.02) createLog('water1', 1, 1.5, 100);
+      if (Math.random() < 0.015) createLog('water2', -1, 1, 120);
+      if (Math.random() < 0.02) createLog('water3', 1, 2, 80);
+      if (Math.random() < 0.015) createLog('water4', -1, 1.5, 100);
+    }
+    
+    function checkCarCollision() {
+      for (const car of cars) {
+        const rowTop = car.row === 'road1' ? 300 : car.row === 'road2' ? 350 : car.row === 'road3' ? 400 : 450;
+        
+        if (player.y >= rowTop && player.y < rowTop + 50) {
+          if (player.x + 35 > car.x && player.x + 5 < car.x + car.width) {
+            return true;
+          }
+        }
+      }
+      return false;
+    }
+    
+    function checkLogCollision() {
+      const waterRows = { water1: 50, water2: 100, water3: 150, water4: 200 };
+      
+      for (const [row, top] of Object.entries(waterRows)) {
+        if (player.y >= top && player.y < top + 50) {
+          // Player is on this water row - check if on a log
+          for (const log of logs) {
+            if (log.row === row) {
+              if (player.x + 35 > log.x && player.x + 5 < log.x + log.width) {
+                return log; // On this log
+              }
+            }
+          }
+          return null; // In water, not on log = splash!
+        }
+      }
+      return 'safe'; // Not in water area
+    }
+    
+    function checkGoal() {
+      if (player.y <= 5) {
+        for (let i = 0; i < goalSpots.length; i++) {
+          const spot = goalSpots[i];
+          const spotX = 25 + i * 100;
+          
+          if (!spot.reached && player.x >= spotX - 10 && player.x <= spotX + 40) {
+            spot.reached = true;
+            document.getElementById(spot.id).classList.add('reached');
+            document.getElementById(spot.id).textContent = '🐸';
+            goalsReached++;
+            score += 500;
+            scoreDisplay.textContent = score;
+            
+            // Reset to start
+            player.x = 230;
+            player.y = 505;
+            updatePlayer();
+            
+            // Check if all goals reached
+            if (goalsReached >= 5) {
+              gameRunning = false;
+              document.getElementById('winScore').textContent = score;
+              gameWinScreen.style.display = 'block';
+            }
+            return true;
+          }
+        }
+        
+        // Hit the edge, not a goal spot
+        loseLife();
+        return true;
+      }
+      return false;
+    }
+    
+    function loseLife() {
+      lives--;
+      livesDisplay.textContent = lives;
+      createSplash(player.x + 20, player.y + 20);
+      
+      if (lives <= 0) {
+        gameRunning = false;
+        document.getElementById('finalScore').textContent = score;
+        gameOverScreen.style.display = 'block';
+      } else {
+        player.x = 230;
+        player.y = 505;
+        onLog = null;
+        updatePlayer();
+      }
+    }
+    
+    function gameLoop() {
+      if (!gameRunning) return;
+      
+      spawnTraffic();
+      
+      // Move cars
+      cars = cars.filter(car => {
+        car.x += car.direction * car.speed;
+        car.element.style.left = car.x + 'px';
+        
+        if (car.x > 500 || car.x < -car.width - 10) {
+          car.element.remove();
+          return false;
+        }
+        return true;
+      });
+      
+      // Move logs
+      logs = logs.filter(log => {
+        log.x += log.direction * log.speed;
+        log.element.style.left = log.x + 'px';
+        
+        if (log.x > 500 || log.x < -log.width - 10) {
+          log.element.remove();
+          return false;
+        }
+        return true;
+      });
+      
+      // Check car collision
+      if (checkCarCollision()) {
+        loseLife();
+      }
+      
+      // Check log/water collision
+      const logCheck = checkLogCollision();
+      if (logCheck === null) {
+        // In water without log
+        loseLife();
+      } else if (logCheck !== 'safe') {
+        // On a log - move with it
+        player.x += logCheck.direction * logCheck.speed;
+        if (player.x < -20 || player.x > 480) {
+          loseLife();
+        } else {
+          updatePlayer();
+        }
+      }
+      
+      requestAnimationFrame(gameLoop);
+    }
+    
+    function restartGame() {
+      // Clear everything
+      cars.forEach(c => c.element.remove());
+      logs.forEach(l => l.element.remove());
+      cars = [];
+      logs = [];
+      
+      // Reset goals
+      goalSpots.forEach(spot => {
+        spot.reached = false;
+        document.getElementById(spot.id).classList.remove('reached');
+        document.getElementById(spot.id).textContent = '';
+      });
+      
+      // Reset state
+      player = { x: 230, y: 505 };
+      score = 0;
+      lives = 3;
+      level = 1;
+      gameRunning = true;
+      goalsReached = 0;
+      onLog = null;
+      
+      // Update displays
+      scoreDisplay.textContent = '0';
+      levelDisplay.textContent = '1';
+      livesDisplay.textContent = '3';
+      updatePlayer();
+      gameOverScreen.style.display = 'none';
+      gameWinScreen.style.display = 'none';
+      
+      requestAnimationFrame(gameLoop);
+    }
+    
+    function nextLevel() {
+      // Clear moving objects
+      cars.forEach(c => c.element.remove());
+      logs.forEach(l => l.element.remove());
+      cars = [];
+      logs = [];
+      
+      // Reset goals
+      goalSpots.forEach(spot => {
+        spot.reached = false;
+        document.getElementById(spot.id).classList.remove('reached');
+        document.getElementById(spot.id).textContent = '';
+      });
+      
+      // Advance level
+      level++;
+      goalsReached = 0;
+      player = { x: 230, y: 505 };
+      gameRunning = true;
+      onLog = null;
+      
+      levelDisplay.textContent = level;
+      updatePlayer();
+      gameWinScreen.style.display = 'none';
+      
+      requestAnimationFrame(gameLoop);
+    }
+    
+    // Controls
+    document.addEventListener('keydown', (e) => {
+      if (!gameRunning) return;
+      
+      const step = 50;
+      
+      if (e.key === 'ArrowUp') {
+        player.y = Math.max(0, player.y - step);
+        score += 10;
+        scoreDisplay.textContent = score;
+      } else if (e.key === 'ArrowDown') {
+        player.y = Math.min(505, player.y + step);
+      } else if (e.key === 'ArrowLeft') {
+        player.x = Math.max(0, player.x - step);
+      } else if (e.key === 'ArrowRight') {
+        player.x = Math.min(460, player.x + step);
+      }
+      
+      updatePlayer();
+      checkGoal();
+    });
+    
+    // Start game
+    updatePlayer();
+    requestAnimationFrame(gameLoop);
+  </script>
+</body>
+</html>

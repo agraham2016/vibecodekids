@@ -140,23 +140,101 @@ WHEN THEY'RE READY TO BUILD:
 
 Remember: You're helping them THINK and PLAN - not building yet! Nothing will appear in their preview until they switch to Build Mode.`;
 
+// ========== TEMPLATE SYSTEM ==========
+
+/**
+ * Keywords that trigger each game template
+ */
+const TEMPLATE_KEYWORDS = {
+  racing: ['racing', 'race', 'car game', 'driving', 'dodge cars', 'racing game', 'car racing', 'drive'],
+  shooter: ['shooter', 'shooting', 'space invaders', 'shoot', 'laser', 'zombie', 'space shooter', 'shoot em up', 'shmup', 'bullet'],
+  platformer: ['platformer', 'jumping', 'mario', 'jump game', 'side scroller', 'platform game', 'jumping game', 'collect coins'],
+  frogger: ['frogger', 'crossing', 'cross the road', 'dodge traffic', 'crossy', 'road crossing'],
+  puzzle: ['puzzle', 'matching', 'memory game', 'match 3', 'tile', 'memory', 'card matching', 'match game'],
+  clicker: ['clicker', 'clicking', 'idle', 'tapper', 'cookie clicker', 'idle game', 'tap game', 'incremental'],
+  rpg: ['rpg', 'adventure', 'quest', 'explore', 'adventure game', 'story game', 'exploration', 'rpg game', 'role playing']
+};
+
+/**
+ * Detect which template to use based on user message
+ * @param {string} message - The user's message
+ * @returns {string|null} - Template type or null if no match
+ */
+export function detectTemplate(message) {
+  const lower = message.toLowerCase();
+  
+  for (const [type, keywords] of Object.entries(TEMPLATE_KEYWORDS)) {
+    if (keywords.some(kw => lower.includes(kw))) {
+      return type;
+    }
+  }
+  
+  return null;
+}
+
+/**
+ * Get template info for display
+ */
+export function getTemplateInfo() {
+  return {
+    racing: { name: 'Racing Game', icon: '🏎️', description: 'Dodge cars and race for high scores!' },
+    shooter: { name: 'Shooter Game', icon: '🔫', description: 'Blast enemies and save the day!' },
+    platformer: { name: 'Platformer', icon: '🦘', description: 'Jump, collect coins, avoid obstacles!' },
+    frogger: { name: 'Frogger Style', icon: '🐸', description: 'Cross roads and rivers safely!' },
+    puzzle: { name: 'Puzzle Game', icon: '🧩', description: 'Match cards and test your memory!' },
+    clicker: { name: 'Clicker Game', icon: '👆', description: 'Click to earn, buy upgrades!' },
+    rpg: { name: 'Adventure/RPG', icon: '⚔️', description: 'Explore, talk to NPCs, find treasure!' }
+  };
+}
+
+// Template mode prompt - tells AI to customize, not rebuild
+const TEMPLATE_MODE_PROMPT = `TEMPLATE MODE - You are customizing an existing working game!
+
+Your job is to CUSTOMIZE this template based on what the kid wants:
+- Change colors, themes, characters, and visuals based on their requests
+- The core game mechanics ALREADY WORK - don't rebuild them!
+- Add new features ON TOP of the existing code
+- DO NOT remove or break existing functionality
+- Keep the same game structure but make it their own
+
+Example customizations:
+- "Make the car blue" → Change the player color
+- "Add unicorns" → Replace emoji/sprites with unicorn emojis
+- "Make it space themed" → Change background, colors, and styling
+- "Make enemies faster" → Adjust speed values
+- "Add more levels" → Extend the existing level system
+
+IMPORTANT: The game already works! Just tweak it to match their vision.
+`;
+
 /**
  * Generate the complete system prompt
  * @param {string} currentCode - The current project code (if any)
  * @param {string} mode - 'vibe' for building, 'plan' for brainstorming
+ * @param {string|null} templateType - Template type if using a starter template
  */
-export function getSystemPrompt(currentCode, mode = 'vibe') {
+export function getSystemPrompt(currentCode, mode = 'vibe', templateType = null) {
   const basePrompt = mode === 'plan' ? PLAN_MODE_PROMPT : SYSTEM_PROMPT;
+  
+  // Add template mode instructions if using a template
+  const templatePrompt = templateType ? `
+${TEMPLATE_MODE_PROMPT}
+Starting template: ${templateType.toUpperCase()} game
+` : '';
   
   const contextPrompt = currentCode ? `
 CURRENT PROJECT (for your reference only - NEVER mention this to the kid):
 ${currentCode}
 
-${mode === 'vibe' ? 'When they ask for changes, update this existing project. Keep what they already have and add to it!' : 'They have an existing project. Help them plan improvements or new features for it!'}
+${templateType 
+  ? 'This is a TEMPLATE game. Customize it based on what they want - colors, themes, characters. Keep the mechanics working!'
+  : mode === 'vibe' 
+    ? 'When they ask for changes, update this existing project. Keep what they already have and add to it!' 
+    : 'They have an existing project. Help them plan improvements or new features for it!'}
 ` : '';
 
   return `${basePrompt}
-
+${templatePrompt}
 ${contextPrompt}`;
 }
 
