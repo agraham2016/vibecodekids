@@ -53,6 +53,15 @@ TECHNICAL WORK (do this silently, don't talk about it):
 - Keep 3D projects simple but impressive - spinning shapes, simple games, 3D art
 - For "3D maze" or "3D world" - use simple box geometries as walls/floors
 
+GAME MECHANICS - VERY IMPORTANT:
+- For racing games: Move the SCENERY (road, trees) toward the camera to simulate driving, not just update a speed number
+- For platformers: Actually move the player sprite and check real collision with platforms
+- For any game with movement: Update object positions in the animation loop based on speed/velocity
+- ALWAYS connect keyboard input to ACTUAL visual movement, not just variable updates
+- For 3D racing: Move trees/obstacles toward camera (z position) based on speed, reset when they pass
+- For steering: Actually change car's x position when left/right pressed
+- Test your logic: if speed > 0, something visual MUST be moving on screen
+
 Remember: Kids just want to see their creation come to life - they don't need to know HOW it works!`;
 
 /**
