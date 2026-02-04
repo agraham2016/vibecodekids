@@ -9,6 +9,8 @@
   border-bottom: 1px solid rgba(255, 255, 255, 0.15);
   box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
   flex-shrink: 0;
+  position: relative;
+  z-index: 100;
 }
 
 .header-left {
@@ -311,6 +313,7 @@
 /* Projects Dropdown */
 .projects-dropdown-container {
   position: relative;
+  z-index: 9999;
 }
 
 .btn-projects {
@@ -361,13 +364,13 @@
   left: 0;
   min-width: 280px;
   max-width: 320px;
-  background: rgba(30, 27, 75, 0.95);
+  background: rgba(30, 27, 75, 0.98);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: var(--radius);
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-  z-index: 1000;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7);
+  z-index: 9999;
   animation: dropdownSlide 0.2s ease;
 }
 
