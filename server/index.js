@@ -419,7 +419,7 @@ function formatMessageContent(text, imageBase64) {
 // Main generation endpoint
 app.post('/api/generate', async (req, res) => {
   try {
-    const { message, image, currentCode, conversationHistory = [] } = req.body;
+    const { message, image, currentCode, conversationHistory = [], mode = 'vibe' } = req.body;
 
     // Get user from session if logged in
     const token = req.headers.authorization?.replace('Bearer ', '');
@@ -463,8 +463,8 @@ app.post('/api/generate', async (req, res) => {
       });
     }
 
-    // Build conversation with system prompt
-    const systemPrompt = getSystemPrompt(currentCode);
+    // Build conversation with system prompt (pass mode for plan vs vibe)
+    const systemPrompt = getSystemPrompt(currentCode, mode);
     
     // Format conversation history for Claude (with image support)
     const messages = [
@@ -492,18 +492,21 @@ app.post('/api/generate', async (req, res) => {
     // Extract response
     const assistantMessage = response.content[0].text;
     
-    // Parse code from response if present
+    // Parse code from response if present (only in vibe mode)
     let code = null;
-    const codeMatch = assistantMessage.match(/```html\n([\s\S]*?)```/);
-    if (codeMatch) {
-      code = codeMatch[1].trim();
-    } else {
-      // Check for full HTML without code blocks
-      const htmlMatch = assistantMessage.match(/<!DOCTYPE html>[\s\S]*<\/html>/i);
-      if (htmlMatch) {
-        code = htmlMatch[0];
+    if (mode === 'vibe') {
+      const codeMatch = assistantMessage.match(/```html\n([\s\S]*?)```/);
+      if (codeMatch) {
+        code = codeMatch[1].trim();
+      } else {
+        // Check for full HTML without code blocks
+        const htmlMatch = assistantMessage.match(/<!DOCTYPE html>[\s\S]*<\/html>/i);
+        if (htmlMatch) {
+          code = htmlMatch[0];
+        }
       }
     }
+    // In plan mode, code stays null - no preview updates
 
     // Sanitize the output message
     const cleanMessage = sanitizeOutput(assistantMessage);

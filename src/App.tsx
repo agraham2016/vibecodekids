@@ -92,6 +92,7 @@ function App() {
   const [showVersionHistory, setShowVersionHistory] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+  const [vibeMode, setVibeMode] = useState<'plan' | 'vibe'>('vibe')
   const lastSavedCode = useRef<string>(DEFAULT_HTML)
 
   // Fetch user's projects
@@ -275,7 +276,8 @@ function App() {
             role: m.role,
             content: m.content,
             image: m.image
-          }))
+          })),
+          mode: vibeMode
         })
       })
 
@@ -342,7 +344,7 @@ function App() {
     } finally {
       setIsLoading(false)
     }
-  }, [code, messages, authToken])
+  }, [code, messages, authToken, vibeMode])
 
   const handleCodeChange = useCallback((newCode: string) => {
     setCode(newCode)
@@ -539,6 +541,8 @@ function App() {
           messages={messages}
           onSendMessage={handleSendMessage}
           isLoading={isLoading}
+          mode={vibeMode}
+          onModeChange={setVibeMode}
         />
         
         {showCode && (

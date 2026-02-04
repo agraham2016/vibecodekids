@@ -51,9 +51,12 @@ interface ChatPanelProps {
   messages: Message[]
   onSendMessage: (content: string, image?: string) => void
   isLoading: boolean
+  mode: 'plan' | 'vibe'
+  onModeChange: (mode: 'plan' | 'vibe') => void
 }
 
-const SUGGESTION_PROMPTS = [
+// Vibe Mode suggestions - for building
+const VIBE_SUGGESTIONS = [
   "Make a game like Snake",
   "Create a bouncing ball animation",
   "Build a multiplayer game I can play with friends",
@@ -64,7 +67,17 @@ const SUGGESTION_PROMPTS = [
   "Design a cool website about space"
 ]
 
-export default function ChatPanel({ messages, onSendMessage, isLoading }: ChatPanelProps) {
+// Plan Mode suggestions - for brainstorming
+const PLAN_SUGGESTIONS = [
+  "Help me plan a platformer game",
+  "What makes a good racing game?",
+  "I want to make something with animals",
+  "Help me think of a fun multiplayer game",
+  "What kind of game should I make?",
+  "Help me design a puzzle game"
+]
+
+export default function ChatPanel({ messages, onSendMessage, isLoading, mode, onModeChange }: ChatPanelProps) {
   const [input, setInput] = useState('')
   const [isListening, setIsListening] = useState(false)
   const [speechSupported, setSpeechSupported] = useState(false)
@@ -208,24 +221,53 @@ export default function ChatPanel({ messages, onSendMessage, isLoading }: ChatPa
         Chat with your AI Helper
       </div>
       
+      {/* Mode Toggle */}
+      <div className="mode-toggle-container">
+        <button 
+          className={`mode-btn ${mode === 'plan' ? 'active' : ''}`}
+          onClick={() => onModeChange('plan')}
+          disabled={isLoading}
+        >
+          <span>📝</span> Plan
+        </button>
+        <button 
+          className={`mode-btn ${mode === 'vibe' ? 'active' : ''}`}
+          onClick={() => onModeChange('vibe')}
+          disabled={isLoading}
+        >
+          <span>🚀</span> Vibe
+        </button>
+      </div>
+      
       <div className="panel-content chat-messages">
         {messages.length === 0 ? (
           <div className="chat-welcome">
-            <div className="welcome-icon">🤖</div>
-            <h3>Welcome to Vibe Code Studio!</h3>
-            <p>Tell me what you want to create, and I'll help you build it!</p>
+            <div className="welcome-icon">{mode === 'plan' ? '📝' : '🤖'}</div>
+            <h3>{mode === 'plan' ? "Let's Plan Your Game!" : "Welcome to Vibe Code Studio!"}</h3>
+            <p>{mode === 'plan' 
+              ? "I'll help you brainstorm and plan before we build. What kind of game are you thinking?"
+              : "Tell me what you want to create, and I'll help you build it!"
+            }</p>
+            
+            <div className="mode-indicator">
+              {mode === 'plan' ? (
+                <span className="mode-badge plan">Planning Mode - No code yet, just ideas!</span>
+              ) : (
+                <span className="mode-badge vibe">Vibe Mode - Let's build!</span>
+              )}
+            </div>
             
             <div className="suggestions">
-              <p className="suggestions-label">Try one of these ideas:</p>
+              <p className="suggestions-label">{mode === 'plan' ? "Let's brainstorm:" : "Try one of these ideas:"}</p>
               <div className="suggestion-buttons">
-                {SUGGESTION_PROMPTS.map((suggestion, i) => (
+                {(mode === 'plan' ? PLAN_SUGGESTIONS : VIBE_SUGGESTIONS).map((suggestion, i) => (
                   <button
                     key={i}
                     className="suggestion-btn"
                     onClick={() => handleSuggestionClick(suggestion)}
                     disabled={isLoading}
                   >
-                    <span className="suggestion-icon">✨</span>
+                    <span className="suggestion-icon">{mode === 'plan' ? '💭' : '✨'}</span>
                     {suggestion}
                   </button>
                 ))}
@@ -299,7 +341,7 @@ export default function ChatPanel({ messages, onSendMessage, isLoading }: ChatPa
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={isListening ? "🎤 Listening... speak now!" : uploadedImage ? "Describe what you want to do with this image..." : "What do you want to create today? 🎨"}
+            placeholder={isListening ? "🎤 Listening... speak now!" : uploadedImage ? "Describe what you want to do with this image..." : mode === 'plan' ? "What kind of game are you thinking about? 💭" : "What do you want to create today? 🎨"}
             disabled={isLoading}
             rows={2}
           />
