@@ -739,6 +739,322 @@ app.post('/api/projects/:id/like', async (req, res) => {
   }
 });
 
+// ========== SAVE & VERSION HISTORY ==========
+
+// Save project draft (create or update)
+app.post('/api/projects/save', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    
+    if (!token) {
+      return res.status(401).json({ error: 'Please log in to save your project' });
+    }
+    
+    const session = sessions.get(token);
+    if (!session) {
+      return res.status(401).json({ error: 'Session expired. Please log in again.' });
+    }
+    
+    const { projectId, title, code, category = 'other' } = req.body;
+    
+    if (!code) {
+      return res.status(400).json({ error: 'No code to save' });
+    }
+    
+    const projectTitle = title || 'My Project';
+    const now = new Date().toISOString();
+    
+    // If projectId exists and is valid, update existing project
+    if (projectId && projectId !== 'new' && /^[a-z0-9]{6}$/.test(projectId)) {
+      const projectPath = path.join(PROJECTS_DIR, `${projectId}.json`);
+      
+      try {
+        const existingData = await fs.readFile(projectPath, 'utf-8');
+        const existingProject = JSON.parse(existingData);
+        
+        // Verify ownership
+        if (existingProject.userId !== session.userId) {
+          return res.status(403).json({ error: 'You can only save your own projects' });
+        }
+        
+        // Save current version to history before updating
+        if (!existingProject.versions) {
+          existingProject.versions = [];
+        }
+        
+        // Only save version if code actually changed
+        if (existingProject.code !== code) {
+          existingProject.versions.push({
+            versionId: Date.now().toString(),
+            code: existingProject.code,
+            title: existingProject.title,
+            savedAt: existingProject.updatedAt || existingProject.createdAt,
+            autoSave: false
+          });
+          
+          // Keep only last 20 versions
+          if (existingProject.versions.length > 20) {
+            existingProject.versions = existingProject.versions.slice(-20);
+          }
+        }
+        
+        // Update the project
+        existingProject.title = projectTitle;
+        existingProject.code = code;
+        existingProject.category = category;
+        existingProject.updatedAt = now;
+        
+        await fs.writeFile(projectPath, JSON.stringify(existingProject, null, 2));
+        
+        return res.json({
+          success: true,
+          message: 'Project saved!',
+          project: {
+            id: existingProject.id,
+            title: existingProject.title,
+            updatedAt: existingProject.updatedAt,
+            versionsCount: existingProject.versions.length
+          }
+        });
+        
+      } catch (err) {
+        if (err.code !== 'ENOENT') throw err;
+        // Project doesn't exist, will create new one below
+      }
+    }
+    
+    // Create new project
+    const id = randomBytes(3).toString('hex');
+    const newProject = {
+      id,
+      title: projectTitle,
+      code,
+      category,
+      creatorName: session.displayName,
+      userId: session.userId,
+      isPublic: false, // Drafts are private by default
+      isDraft: true,
+      createdAt: now,
+      updatedAt: now,
+      views: 0,
+      likes: 0,
+      versions: []
+    };
+    
+    await fs.writeFile(
+      path.join(PROJECTS_DIR, `${id}.json`),
+      JSON.stringify(newProject, null, 2)
+    );
+    
+    res.json({
+      success: true,
+      message: 'Project created!',
+      project: {
+        id: newProject.id,
+        title: newProject.title,
+        createdAt: newProject.createdAt,
+        versionsCount: 0
+      }
+    });
+    
+  } catch (error) {
+    console.error('Save project error:', error);
+    res.status(500).json({ error: 'Could not save project' });
+  }
+});
+
+// Get version history for a project
+app.get('/api/projects/:id/versions', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    const { id } = req.params;
+    
+    if (!/^[a-z0-9]{6}$/.test(id)) {
+      return res.status(400).json({ error: 'Invalid project ID' });
+    }
+    
+    const projectPath = path.join(PROJECTS_DIR, `${id}.json`);
+    const data = await fs.readFile(projectPath, 'utf-8');
+    const project = JSON.parse(data);
+    
+    // Check if user owns this project
+    if (token) {
+      const session = sessions.get(token);
+      if (!session || project.userId !== session.userId) {
+        return res.status(403).json({ error: 'You can only view versions of your own projects' });
+      }
+    } else {
+      return res.status(401).json({ error: 'Please log in to view version history' });
+    }
+    
+    // Return version list (without full code to save bandwidth)
+    const versions = (project.versions || []).map((v, index) => ({
+      versionId: v.versionId,
+      title: v.title,
+      savedAt: v.savedAt,
+      versionNumber: index + 1
+    }));
+    
+    // Add current version at the end
+    versions.push({
+      versionId: 'current',
+      title: project.title + ' (Current)',
+      savedAt: project.updatedAt || project.createdAt,
+      versionNumber: versions.length + 1,
+      isCurrent: true
+    });
+    
+    res.json({
+      projectId: project.id,
+      projectTitle: project.title,
+      versions: versions.reverse() // Most recent first
+    });
+    
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+    console.error('Get versions error:', error);
+    res.status(500).json({ error: 'Could not load version history' });
+  }
+});
+
+// Load a specific version
+app.get('/api/projects/:id/versions/:versionId', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    const { id, versionId } = req.params;
+    
+    if (!/^[a-z0-9]{6}$/.test(id)) {
+      return res.status(400).json({ error: 'Invalid project ID' });
+    }
+    
+    const projectPath = path.join(PROJECTS_DIR, `${id}.json`);
+    const data = await fs.readFile(projectPath, 'utf-8');
+    const project = JSON.parse(data);
+    
+    // Check ownership
+    if (token) {
+      const session = sessions.get(token);
+      if (!session || project.userId !== session.userId) {
+        return res.status(403).json({ error: 'You can only access versions of your own projects' });
+      }
+    } else {
+      return res.status(401).json({ error: 'Please log in to access version history' });
+    }
+    
+    // Return current version
+    if (versionId === 'current') {
+      return res.json({
+        versionId: 'current',
+        title: project.title,
+        code: project.code,
+        savedAt: project.updatedAt || project.createdAt,
+        isCurrent: true
+      });
+    }
+    
+    // Find the requested version
+    const version = (project.versions || []).find(v => v.versionId === versionId);
+    
+    if (!version) {
+      return res.status(404).json({ error: 'Version not found' });
+    }
+    
+    res.json({
+      versionId: version.versionId,
+      title: version.title,
+      code: version.code,
+      savedAt: version.savedAt
+    });
+    
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+    console.error('Get version error:', error);
+    res.status(500).json({ error: 'Could not load version' });
+  }
+});
+
+// Restore a version (makes it the current version)
+app.post('/api/projects/:id/versions/:versionId/restore', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    const { id, versionId } = req.params;
+    
+    if (!token) {
+      return res.status(401).json({ error: 'Please log in to restore versions' });
+    }
+    
+    const session = sessions.get(token);
+    if (!session) {
+      return res.status(401).json({ error: 'Session expired' });
+    }
+    
+    if (!/^[a-z0-9]{6}$/.test(id)) {
+      return res.status(400).json({ error: 'Invalid project ID' });
+    }
+    
+    const projectPath = path.join(PROJECTS_DIR, `${id}.json`);
+    const data = await fs.readFile(projectPath, 'utf-8');
+    const project = JSON.parse(data);
+    
+    // Check ownership
+    if (project.userId !== session.userId) {
+      return res.status(403).json({ error: 'You can only restore your own projects' });
+    }
+    
+    if (versionId === 'current') {
+      return res.json({ success: true, message: 'Already on current version' });
+    }
+    
+    // Find the version to restore
+    const version = (project.versions || []).find(v => v.versionId === versionId);
+    
+    if (!version) {
+      return res.status(404).json({ error: 'Version not found' });
+    }
+    
+    // Save current as a version before restoring
+    if (!project.versions) {
+      project.versions = [];
+    }
+    
+    project.versions.push({
+      versionId: Date.now().toString(),
+      code: project.code,
+      title: project.title,
+      savedAt: project.updatedAt || project.createdAt,
+      autoSave: false
+    });
+    
+    // Keep only last 20 versions
+    if (project.versions.length > 20) {
+      project.versions = project.versions.slice(-20);
+    }
+    
+    // Restore the old version
+    project.code = version.code;
+    project.updatedAt = new Date().toISOString();
+    
+    await fs.writeFile(projectPath, JSON.stringify(project, null, 2));
+    
+    res.json({
+      success: true,
+      message: 'Version restored!',
+      code: project.code
+    });
+    
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+    console.error('Restore version error:', error);
+    res.status(500).json({ error: 'Could not restore version' });
+  }
+});
+
 // ========== ADMIN API ==========
 
 // Get all users

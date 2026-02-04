@@ -96,6 +96,69 @@
   box-shadow: 0 6px 25px rgba(139, 92, 246, 0.4);
 }
 
+/* Save Button */
+.btn-save {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  border-radius: var(--radius);
+  font-weight: 600;
+  font-size: 0.85rem;
+  transition: all 0.2s ease;
+  background: rgba(52, 211, 153, 0.2);
+  border: 1px solid rgba(52, 211, 153, 0.3);
+  color: #34d399;
+  cursor: pointer;
+}
+
+.btn-save:hover:not(:disabled) {
+  background: rgba(52, 211, 153, 0.3);
+  transform: translateY(-1px);
+}
+
+.btn-save.has-changes {
+  background: rgba(251, 191, 36, 0.2);
+  border-color: rgba(251, 191, 36, 0.4);
+  color: #fbbf24;
+  animation: pulse-save 2s ease-in-out infinite;
+}
+
+.btn-save.has-changes:hover:not(:disabled) {
+  background: rgba(251, 191, 36, 0.3);
+}
+
+.btn-save:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+@keyframes pulse-save {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.4); }
+  50% { box-shadow: 0 0 0 6px rgba(251, 191, 36, 0); }
+}
+
+/* Version History Button */
+.btn-versions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border-radius: var(--radius);
+  font-size: 1.2rem;
+  transition: all 0.2s ease;
+  background: rgba(139, 92, 246, 0.15);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  cursor: pointer;
+}
+
+.btn-versions:hover {
+  background: rgba(139, 92, 246, 0.25);
+  transform: translateY(-1px);
+}
+
 .btn-secondary {
   background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(10px);

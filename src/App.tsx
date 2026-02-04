@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import Header from './components/Header'
 import ChatPanel from './components/ChatPanel'
 import CodeEditor from './components/CodeEditor'
@@ -6,6 +6,7 @@ import PreviewPanel from './components/PreviewPanel'
 import ShareModal from './components/ShareModal'
 import AuthModal from './components/AuthModal'
 import UpgradeModal from './components/UpgradeModal'
+import VersionHistoryModal from './components/VersionHistoryModal'
 import LandingPage from './components/LandingPage'
 import { Message, Project, MembershipUsage, TierInfo, UserProject } from './types'
 import './App.css'
@@ -88,6 +89,10 @@ function App() {
   })
   const [userProjects, setUserProjects] = useState<UserProject[]>([])
   const [isLoadingProjects, setIsLoadingProjects] = useState(false)
+  const [showVersionHistory, setShowVersionHistory] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+  const lastSavedCode = useRef<string>(DEFAULT_HTML)
 
   // Fetch user's projects
   const fetchUserProjects = useCallback(async (token: string) => {
@@ -124,6 +129,8 @@ function App() {
           updatedAt: new Date()
         })
         setMessages([]) // Clear chat for the loaded project
+        lastSavedCode.current = project.code
+        setHasUnsavedChanges(false)
       }
     } catch (error) {
       console.error('Failed to load project:', error)
@@ -141,6 +148,8 @@ function App() {
       createdAt: new Date(),
       updatedAt: new Date()
     })
+    lastSavedCode.current = DEFAULT_HTML
+    setHasUnsavedChanges(false)
   }, [])
 
   // Check for existing session on mount
@@ -315,6 +324,10 @@ function App() {
           code: data.code,
           updatedAt: new Date()
         }))
+        // Track that we have unsaved changes from AI generation
+        if (data.code !== lastSavedCode.current) {
+          setHasUnsavedChanges(true)
+        }
       }
     } catch (error) {
       console.error('Error:', error)
@@ -338,6 +351,72 @@ function App() {
       code: newCode,
       updatedAt: new Date()
     }))
+    // Track unsaved changes
+    if (newCode !== lastSavedCode.current) {
+      setHasUnsavedChanges(true)
+    }
+  }, [])
+
+  // Save project handler
+  const handleSave = useCallback(async () => {
+    if (!authToken || isSaving) return
+    
+    setIsSaving(true)
+    
+    try {
+      const response = await fetch('/api/projects/save', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${authToken}`
+        },
+        body: JSON.stringify({
+          projectId: currentProject.id,
+          title: currentProject.name,
+          code: code,
+          category: 'other'
+        })
+      })
+      
+      const data = await response.json()
+      
+      if (response.ok && data.success) {
+        // Update project ID if it was new
+        if (currentProject.id === 'new' && data.project?.id) {
+          setCurrentProject(prev => ({
+            ...prev,
+            id: data.project.id
+          }))
+        }
+        
+        // Mark as saved
+        lastSavedCode.current = code
+        setHasUnsavedChanges(false)
+        
+        // Refresh projects list
+        fetchUserProjects(authToken)
+      } else {
+        console.error('Save failed:', data.error)
+        alert(data.error || 'Could not save project')
+      }
+    } catch (error) {
+      console.error('Save error:', error)
+      alert('Could not save project. Please try again.')
+    } finally {
+      setIsSaving(false)
+    }
+  }, [authToken, code, currentProject.id, currentProject.name, isSaving, fetchUserProjects])
+
+  // Handle version restore
+  const handleRestoreVersion = useCallback((restoredCode: string) => {
+    setCode(restoredCode)
+    setCurrentProject(prev => ({
+      ...prev,
+      code: restoredCode,
+      updatedAt: new Date()
+    }))
+    lastSavedCode.current = restoredCode
+    setHasUnsavedChanges(false)
   }, [])
 
   const handleStartOver = useCallback(() => {
@@ -350,6 +429,8 @@ function App() {
       createdAt: new Date(),
       updatedAt: new Date()
     })
+    lastSavedCode.current = DEFAULT_HTML
+    setHasUnsavedChanges(false)
   }, [])
 
   // Show loading while checking auth
@@ -420,12 +501,26 @@ function App() {
           isWelcomePrompt={isWelcomeUpgrade}
         />
       )}
+
+      {showVersionHistory && (
+        <VersionHistoryModal
+          isOpen={showVersionHistory}
+          onClose={() => setShowVersionHistory(false)}
+          projectId={currentProject.id}
+          authToken={authToken}
+          onRestoreVersion={handleRestoreVersion}
+        />
+      )}
       
       <Header 
         projectName={currentProject.name}
         currentProjectId={currentProject.id}
         onStartOver={handleStartOver}
         onShare={() => setShowShareModal(true)}
+        onSave={handleSave}
+        onOpenVersionHistory={() => setShowVersionHistory(true)}
+        isSaving={isSaving}
+        hasUnsavedChanges={hasUnsavedChanges}
         showCode={showCode}
         onToggleCode={() => setShowCode(!showCode)}
         user={user}

@@ -15,6 +15,10 @@ interface HeaderProps {
   currentProjectId: string
   onStartOver: () => void
   onShare: () => void
+  onSave: () => void
+  onOpenVersionHistory: () => void
+  isSaving: boolean
+  hasUnsavedChanges: boolean
   showCode: boolean
   onToggleCode: () => void
   user: User | null
@@ -50,7 +54,11 @@ export default function Header({
   projectName,
   currentProjectId,
   onStartOver, 
-  onShare, 
+  onShare,
+  onSave,
+  onOpenVersionHistory,
+  isSaving,
+  hasUnsavedChanges,
   showCode, 
   onToggleCode,
   user,
@@ -181,6 +189,26 @@ export default function Header({
       </div>
       
       <div className="header-right">
+        {user && (
+          <>
+            <button 
+              className={`btn-save ${hasUnsavedChanges ? 'has-changes' : ''}`}
+              onClick={onSave}
+              disabled={isSaving}
+              title={hasUnsavedChanges ? 'Save your changes' : 'Project saved'}
+            >
+              <span>{isSaving ? '⏳' : hasUnsavedChanges ? '💾' : '✅'}</span>
+              {isSaving ? 'Saving...' : hasUnsavedChanges ? 'Save' : 'Saved'}
+            </button>
+            <button 
+              className="btn-versions"
+              onClick={onOpenVersionHistory}
+              title="Version History"
+            >
+              <span>📜</span>
+            </button>
+          </>
+        )}
         <button className="btn-primary" onClick={onShare}>
           <span>🎉</span> Share
         </button>
