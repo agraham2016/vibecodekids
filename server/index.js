@@ -141,10 +141,14 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Projects storage path
-const PROJECTS_DIR = path.join(__dirname, '..', 'data', 'projects');
-// Users storage path
-const USERS_DIR = path.join(__dirname, '..', 'data', 'users');
+// Data storage paths - use /app/data for Railway volume persistence
+const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, '..', 'data');
+const PROJECTS_DIR = path.join(DATA_DIR, 'projects');
+const USERS_DIR = path.join(DATA_DIR, 'users');
+
+console.log('📂 Data directory:', DATA_DIR);
+console.log('📂 Projects directory:', PROJECTS_DIR);
+console.log('📂 Users directory:', USERS_DIR);
 
 // Ensure data directories exist
 async function ensureDataDirs() {
