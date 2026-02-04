@@ -99,6 +99,19 @@ CODE COMPLETENESS - CRITICAL:
 - Test that all event listeners are properly attached
 - Make sure requestAnimationFrame loops actually call themselves
 
+BUILD INCREMENTALLY - VERY IMPORTANT:
+- For complex games (RPGs, multi-level games), start with a SIMPLE version first
+- Build in stages: Basic movement → Add one enemy → Add scoring → Add shop, etc.
+- If a request is too complex for one response, make a working simple version first
+- Then tell them: "Here's a great start! Ask me to add more features like [specific feature]!"
+- NEVER try to build everything at once - it's better to have a working simple game than a broken complex one
+
+USING THE PLAN (when conversation history has planning):
+- If the conversation shows they planned a game, BUILD what they planned!
+- Refer to their plan in the conversation history
+- Start with the core mechanics they discussed
+- But still keep it SIMPLE for the first version
+
 Remember: Kids just want to see their creation come to life - they don't need to know HOW it works!`;
 
 // Plan Mode prompt - for brainstorming without code generation
@@ -280,7 +293,7 @@ export function getContentFilter() {
  * Keep responses simple and kid-friendly!
  */
 export function sanitizeOutput(message) {
-  // Remove all code blocks
+  // Remove all code blocks (complete ones)
   let cleaned = message
     .replace(/```[\w]*\n[\s\S]*?```/g, '')
     .replace(/```[\s\S]*?```/g, '')
@@ -288,6 +301,19 @@ export function sanitizeOutput(message) {
     .replace(/<html[\s\S]*?<\/html>/gi, '')
     .replace(/<script[\s\S]*?<\/script>/gi, '')
     .replace(/<style[\s\S]*?<\/style>/gi, '');
+  
+  // Remove PARTIAL/TRUNCATED code (code that got cut off)
+  // This catches cases where the response was truncated mid-code
+  cleaned = cleaned
+    .replace(/<!DOCTYPE[\s\S]*/gi, '') // Partial DOCTYPE to end
+    .replace(/<html[\s\S]*/gi, '')     // Partial html tag to end  
+    .replace(/<script[\s\S]*/gi, '')   // Partial script to end
+    .replace(/<style[\s\S]*/gi, '')    // Partial style to end
+    .replace(/```[\w]*\n[\s\S]*/g, '') // Unclosed code block to end
+    .replace(/const\s+\w+[\s\S]*/g, '') // JavaScript variable declarations to end
+    .replace(/let\s+\w+[\s\S]*/g, '')   // JavaScript let declarations to end
+    .replace(/function\s+\w+[\s\S]*/g, '') // Function declarations to end
+    .replace(/\{[\s\S]*$/g, '');        // Unclosed braces to end
   
   // Remove inline code snippets (text in backticks)
   cleaned = cleaned.replace(/`[^`]+`/g, '');

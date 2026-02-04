@@ -529,10 +529,10 @@ app.post('/api/generate', async (req, res) => {
       }
     ];
 
-    // Call Claude API
+    // Call Claude API with higher token limit for complex games
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
-      max_tokens: 4096,
+      max_tokens: 8192,
       system: systemPrompt,
       messages: messages
     });
@@ -545,6 +545,8 @@ app.post('/api/generate', async (req, res) => {
     
     // Parse code from response if present (only in vibe mode)
     let code = null;
+    let wasCodeTruncated = false;
+    
     if (mode === 'vibe') {
       const codeMatch = assistantMessage.match(/```html\n([\s\S]*?)```/);
       if (codeMatch) {
@@ -554,6 +556,19 @@ app.post('/api/generate', async (req, res) => {
         const htmlMatch = assistantMessage.match(/<!DOCTYPE html>[\s\S]*<\/html>/i);
         if (htmlMatch) {
           code = htmlMatch[0];
+        }
+      }
+      
+      // Check if response appears truncated (has code but no closing tag)
+      if (!code) {
+        const hasPartialHtml = assistantMessage.includes('<!DOCTYPE html') || 
+                               assistantMessage.includes('<html') ||
+                               assistantMessage.includes('<script');
+        const hasClosingHtml = assistantMessage.includes('</html>');
+        
+        if (hasPartialHtml && !hasClosingHtml) {
+          wasCodeTruncated = true;
+          console.log('⚠️ Response appears truncated - code was cut off');
         }
       }
       
@@ -567,6 +582,11 @@ app.post('/api/generate', async (req, res) => {
 
     // Sanitize the output message
     let cleanMessage = sanitizeOutput(assistantMessage);
+    
+    // If code was truncated, give a helpful message
+    if (wasCodeTruncated) {
+      cleanMessage = "Oops! That game is pretty complex and I ran out of space! 😅 Try asking for something simpler first, then we can add more features step by step. For example: 'Make a simple RPG game' and then 'Now add a shop' after! 🎮";
+    }
     
     // If in plan mode and user seemed to want to build something, add a reminder
     if (mode === 'plan') {
