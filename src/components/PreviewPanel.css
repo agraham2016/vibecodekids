@@ -4,6 +4,30 @@
   min-height: 0;
   height: 100%;
   transition: all 0.3s ease;
+  position: relative;
+}
+
+/* Arcade Cabinet Border Effect */
+.preview-panel::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: calc(var(--radius-lg) + 2px);
+  background: linear-gradient(
+    135deg,
+    rgba(139, 92, 246, 0.6),
+    rgba(236, 72, 153, 0.4),
+    rgba(56, 189, 248, 0.6)
+  );
+  z-index: -1;
+  opacity: 0.6;
+  filter: blur(3px);
+  animation: arcadeBorderGlow 3s ease-in-out infinite;
+}
+
+@keyframes arcadeBorderGlow {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 0.8; }
 }
 
 .preview-header {

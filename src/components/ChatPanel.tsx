@@ -53,6 +53,7 @@ interface ChatPanelProps {
   isLoading: boolean
   mode: 'plan' | 'vibe'
   onModeChange: (mode: 'plan' | 'vibe') => void
+  isInDrawer?: boolean // When true, mode toggle is handled by drawer
 }
 
 // Vibe Mode suggestions - for building
@@ -77,7 +78,7 @@ const PLAN_SUGGESTIONS = [
   "Help me design a puzzle game"
 ]
 
-export default function ChatPanel({ messages, onSendMessage, isLoading, mode, onModeChange }: ChatPanelProps) {
+export default function ChatPanel({ messages, onSendMessage, isLoading, mode, onModeChange, isInDrawer = false }: ChatPanelProps) {
   const [input, setInput] = useState('')
   const [isListening, setIsListening] = useState(false)
   const [speechSupported, setSpeechSupported] = useState(false)
@@ -210,34 +211,39 @@ export default function ChatPanel({ messages, onSendMessage, isLoading, mode, on
   }
 
   return (
-    <div className="panel chat-panel">
+    <div className={`panel chat-panel ${isInDrawer ? 'in-drawer' : ''}`}>
       <TipsModal 
         isOpen={showTipsModal} 
         onClose={() => setShowTipsModal(false)} 
       />
       
-      <div className="panel-header">
-        <span className="icon">💬</span>
-        Chat with your AI Helper
-      </div>
+      {/* Only show header when not in drawer */}
+      {!isInDrawer && (
+        <div className="panel-header">
+          <span className="icon">💬</span>
+          Chat with your AI Helper
+        </div>
+      )}
       
-      {/* Mode Toggle */}
-      <div className="mode-toggle-container">
-        <button 
-          className={`mode-btn ${mode === 'plan' ? 'active' : ''}`}
-          onClick={() => onModeChange('plan')}
-          disabled={isLoading}
-        >
-          <span>📝</span> Plan
-        </button>
-        <button 
-          className={`mode-btn ${mode === 'vibe' ? 'active' : ''}`}
-          onClick={() => onModeChange('vibe')}
-          disabled={isLoading}
-        >
-          <span>🚀</span> Vibe
-        </button>
-      </div>
+      {/* Mode Toggle - only show when not in drawer (drawer has its own) */}
+      {!isInDrawer && (
+        <div className="mode-toggle-container">
+          <button 
+            className={`mode-btn ${mode === 'plan' ? 'active' : ''}`}
+            onClick={() => onModeChange('plan')}
+            disabled={isLoading}
+          >
+            <span>📝</span> Plan
+          </button>
+          <button 
+            className={`mode-btn ${mode === 'vibe' ? 'active' : ''}`}
+            onClick={() => onModeChange('vibe')}
+            disabled={isLoading}
+          >
+            <span>🚀</span> Vibe
+          </button>
+        </div>
+      )}
       
       <div className="panel-content chat-messages">
         {messages.length === 0 ? (

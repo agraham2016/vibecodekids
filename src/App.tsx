@@ -1,8 +1,9 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import Header from './components/Header'
-import ChatPanel from './components/ChatPanel'
+import ChatDrawer from './components/ChatDrawer'
 import CodeEditor from './components/CodeEditor'
 import PreviewPanel from './components/PreviewPanel'
+import FloatingActions from './components/FloatingActions'
 import ShareModal from './components/ShareModal'
 import AuthModal from './components/AuthModal'
 import UpgradeModal from './components/UpgradeModal'
@@ -10,6 +11,9 @@ import VersionHistoryModal from './components/VersionHistoryModal'
 import LandingPage from './components/LandingPage'
 import { Message, Project, MembershipUsage, TierInfo, UserProject } from './types'
 import './App.css'
+
+// Drawer height states
+export type DrawerState = 'minimized' | 'half' | 'full'
 
 interface User {
   id: string
@@ -93,6 +97,7 @@ function App() {
   const [isSaving, setIsSaving] = useState(false)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [vibeMode, setVibeMode] = useState<'plan' | 'vibe'>('vibe')
+  const [drawerState, setDrawerState] = useState<DrawerState>('half')
   const lastSavedCode = useRef<string>(DEFAULT_HTML)
 
   // Fetch user's projects
@@ -517,17 +522,8 @@ function App() {
       <Header 
         projectName={currentProject.name}
         currentProjectId={currentProject.id}
-        onStartOver={handleStartOver}
-        onShare={() => setShowShareModal(true)}
-        onSave={handleSave}
-        onOpenVersionHistory={() => setShowVersionHistory(true)}
-        isSaving={isSaving}
-        hasUnsavedChanges={hasUnsavedChanges}
-        showCode={showCode}
-        onToggleCode={() => setShowCode(!showCode)}
         user={user}
         membership={membership}
-        onLoginClick={() => setShowAuthModal(true)}
         onLogout={handleLogout}
         onUpgradeClick={handleUpgradeClick}
         userProjects={userProjects}
@@ -536,23 +532,45 @@ function App() {
         onNewProject={handleNewProject}
       />
       
-      <main className={`main-content ${showCode ? 'with-code' : ''}`}>
-        <ChatPanel 
+      <main className="main-content">
+        {/* Full-screen Preview Area */}
+        <div className={`preview-area ${showCode ? 'with-code' : ''}`}>
+          <PreviewPanel code={code} />
+          
+          {showCode && (
+            <div className="code-overlay">
+              <CodeEditor 
+                code={code}
+                onChange={handleCodeChange}
+              />
+            </div>
+          )}
+        </div>
+        
+        {/* Floating Action Buttons */}
+        <FloatingActions
+          onShare={() => setShowShareModal(true)}
+          onSave={handleSave}
+          onOpenVersionHistory={() => setShowVersionHistory(true)}
+          onToggleCode={() => setShowCode(!showCode)}
+          onStartOver={handleStartOver}
+          showCode={showCode}
+          isSaving={isSaving}
+          hasUnsavedChanges={hasUnsavedChanges}
+          isLoggedIn={!!user}
+          drawerState={drawerState}
+        />
+        
+        {/* Bottom Chat Drawer */}
+        <ChatDrawer
           messages={messages}
           onSendMessage={handleSendMessage}
           isLoading={isLoading}
           mode={vibeMode}
           onModeChange={setVibeMode}
+          drawerState={drawerState}
+          onDrawerStateChange={setDrawerState}
         />
-        
-        {showCode && (
-          <CodeEditor 
-            code={code}
-            onChange={handleCodeChange}
-          />
-        )}
-        
-        <PreviewPanel code={code} />
       </main>
     </div>
   )

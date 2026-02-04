@@ -13,17 +13,8 @@ interface User {
 interface HeaderProps {
   projectName: string
   currentProjectId: string
-  onStartOver: () => void
-  onShare: () => void
-  onSave: () => void
-  onOpenVersionHistory: () => void
-  isSaving: boolean
-  hasUnsavedChanges: boolean
-  showCode: boolean
-  onToggleCode: () => void
   user: User | null
   membership: MembershipUsage | null
-  onLoginClick: () => void
   onLogout: () => void
   onUpgradeClick: () => void
   userProjects: UserProject[]
@@ -53,17 +44,8 @@ const CATEGORY_ICONS: Record<string, string> = {
 export default function Header({ 
   projectName,
   currentProjectId,
-  onStartOver, 
-  onShare,
-  onSave,
-  onOpenVersionHistory,
-  isSaving,
-  hasUnsavedChanges,
-  showCode, 
-  onToggleCode,
   user,
   membership,
-  onLoginClick,
   onLogout,
   onUpgradeClick,
   userProjects,
@@ -101,13 +83,16 @@ export default function Header({
   
   return (
     <header className="header">
+      {/* Left: Logo */}
       <div className="header-left">
         <a href="/gallery" className="logo">
-          <span className="logo-icon">🚀</span>
-          <span className="logo-text">Vibe Code Studio</span>
+          <span className="logo-icon">🕹️</span>
+          <span className="logo-text">Vibe Code</span>
         </a>
-        
-        {/* Projects Dropdown */}
+      </div>
+      
+      {/* Center: Project Selector */}
+      <div className="header-center">
         {user && (
           <div className="projects-dropdown-container" ref={dropdownRef}>
             <button 
@@ -169,50 +154,8 @@ export default function Header({
         )}
       </div>
       
-      <div className="header-center">
-        <a href="/gallery" className="btn-nav-sm" title="Arcade">
-          🕹️
-        </a>
-        <a href="/admin" className="btn-nav-sm" title="Admin">
-          ⚙️
-        </a>
-        <button 
-          className={`btn-nav-sm ${showCode ? 'active' : ''}`}
-          onClick={onToggleCode}
-          title={showCode ? 'Hide Code' : 'Show Code'}
-        >
-          👨‍💻
-        </button>
-        <button className="btn-nav-sm" onClick={onStartOver} title="Start Over">
-          🔄
-        </button>
-      </div>
-      
+      {/* Right: User Badge & Actions */}
       <div className="header-right">
-        {user && (
-          <>
-            <button 
-              className={`btn-save ${hasUnsavedChanges ? 'has-changes' : ''}`}
-              onClick={onSave}
-              disabled={isSaving}
-              title={hasUnsavedChanges ? 'Save your changes' : 'Project saved'}
-            >
-              <span>{isSaving ? '⏳' : hasUnsavedChanges ? '💾' : '✅'}</span>
-              {isSaving ? 'Saving...' : hasUnsavedChanges ? 'Save' : 'Saved'}
-            </button>
-            <button 
-              className="btn-versions"
-              onClick={onOpenVersionHistory}
-              title="Version History"
-            >
-              <span>📜</span>
-            </button>
-          </>
-        )}
-        <button className="btn-primary" onClick={onShare}>
-          <span>🎉</span> Share
-        </button>
-        
         {user ? (
           <div className="user-section">
             {/* Membership Badge */}
@@ -233,6 +176,7 @@ export default function Header({
               </button>
             )}
             
+            {/* User Avatar & Logout */}
             <div className="user-menu">
               <span className="user-avatar">👤</span>
               <span className="user-name">{user.displayName}</span>
@@ -242,9 +186,7 @@ export default function Header({
             </div>
           </div>
         ) : (
-          <button className="btn-login" onClick={onLoginClick}>
-            <span>🔑</span> Log In
-          </button>
+          <div className="guest-badge">Guest Mode</div>
         )}
       </div>
     </header>

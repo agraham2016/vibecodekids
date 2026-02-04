@@ -229,3 +229,110 @@ input, textarea {
 .modal-overlay > * {
   margin: auto;
 }
+
+/* ========== ARCADE-STYLE EFFECTS ========== */
+
+/* Smooth spring animation for interactive elements */
+@keyframes springPop {
+  0% { transform: scale(0.9); opacity: 0; }
+  70% { transform: scale(1.05); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.spring-pop {
+  animation: springPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* Neon glow effect */
+@keyframes neonPulse {
+  0%, 100% { 
+    filter: drop-shadow(0 0 5px currentColor);
+    opacity: 1;
+  }
+  50% { 
+    filter: drop-shadow(0 0 20px currentColor) drop-shadow(0 0 40px currentColor);
+    opacity: 0.9;
+  }
+}
+
+.neon-glow {
+  animation: neonPulse 2s ease-in-out infinite;
+}
+
+/* Arcade scanline effect (subtle) */
+@keyframes scanline {
+  0% { background-position: 0 0; }
+  100% { background-position: 0 100%; }
+}
+
+/* Shimmer effect for buttons */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.btn-shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.2) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 3s infinite;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+/* Slide up animation for drawer */
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+}
+
+.slide-up {
+  animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* Float animation for icons */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+.float {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* Rainbow border for special elements */
+@keyframes rainbowBorder {
+  0% { border-color: #8b5cf6; }
+  25% { border-color: #ec4899; }
+  50% { border-color: #38bdf8; }
+  75% { border-color: #34d399; }
+  100% { border-color: #8b5cf6; }
+}
+
+.rainbow-border {
+  animation: rainbowBorder 4s linear infinite;
+}
