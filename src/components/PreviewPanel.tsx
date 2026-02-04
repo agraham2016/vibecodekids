@@ -5,11 +5,53 @@ interface PreviewPanelProps {
   code: string
 }
 
+// Inject Three.js and other 3D libraries into the preview
+function injectLibraries(code: string): string {
+  // Check if code already has doctype/html structure
+  const hasFullStructure = code.toLowerCase().includes('<!doctype') || code.toLowerCase().includes('<html');
+  
+  // Libraries to inject
+  const libraryScripts = `
+    <!-- 3D Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+      // Make Three.js globally available
+      window.THREE = THREE;
+    </script>
+  `;
+  
+  if (hasFullStructure) {
+    // Inject into the <head> if it exists
+    if (code.includes('</head>')) {
+      return code.replace('</head>', `${libraryScripts}</head>`);
+    } else if (code.includes('<body')) {
+      // Insert before body if no head
+      return code.replace(/<body/i, `${libraryScripts}<body`);
+    }
+  }
+  
+  // If no structure, wrap the code
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  ${libraryScripts}
+</head>
+<body>
+${code}
+</body>
+</html>`;
+}
+
 export default function PreviewPanel({ code }: PreviewPanelProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const fullscreenIframeRef = useRef<HTMLIFrameElement>(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [key, setKey] = useState(0) // Force iframe refresh
+
+  // Inject libraries into the code
+  const enhancedCode = injectLibraries(code)
 
   // Update main preview iframe
   useEffect(() => {
@@ -19,11 +61,11 @@ export default function PreviewPanel({ code }: PreviewPanelProps) {
       
       if (doc) {
         doc.open()
-        doc.write(code)
+        doc.write(enhancedCode)
         doc.close()
       }
     }
-  }, [code, key])
+  }, [enhancedCode, key])
 
   // Update fullscreen iframe when opened
   useEffect(() => {
@@ -33,11 +75,11 @@ export default function PreviewPanel({ code }: PreviewPanelProps) {
       
       if (doc) {
         doc.open()
-        doc.write(code)
+        doc.write(enhancedCode)
         doc.close()
       }
     }
-  }, [isFullscreen, code])
+  }, [isFullscreen, enhancedCode])
 
   // Handle Escape key to exit fullscreen
   useEffect(() => {

@@ -37,6 +37,22 @@ TECHNICAL WORK (do this silently, don't talk about it):
 - For multiplayer games, use window.VibeMultiplayer API silently
 - Ensure everything works immediately
 
+3D GAMES AND GRAPHICS (when kids ask for 3D):
+- Three.js is pre-loaded! Use it directly with THREE.* 
+- For 3D games, create a full-screen canvas with a scene, camera, and renderer
+- Use simple geometric shapes: BoxGeometry, SphereGeometry, ConeGeometry, CylinderGeometry
+- Add lighting: AmbientLight + DirectionalLight or PointLight
+- Use MeshStandardMaterial or MeshPhongMaterial for nice shiny surfaces
+- Add OrbitControls for letting users rotate/zoom the view
+- Animate with requestAnimationFrame loop
+- Example 3D project structure:
+  * Create scene, camera (PerspectiveCamera), renderer (WebGLRenderer)
+  * Set renderer size to window dimensions
+  * Add lights and meshes to scene
+  * Create animation loop with renderer.render(scene, camera)
+- Keep 3D projects simple but impressive - spinning shapes, simple games, 3D art
+- For "3D maze" or "3D world" - use simple box geometries as walls/floors
+
 Remember: Kids just want to see their creation come to life - they don't need to know HOW it works!`;
 
 /**

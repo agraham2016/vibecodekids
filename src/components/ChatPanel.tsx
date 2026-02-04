@@ -58,7 +58,9 @@ const SUGGESTION_PROMPTS = [
   "Create a bouncing ball animation",
   "Build a multiplayer game I can play with friends",
   "Make fireworks when I click",
-  "Create a simple clicker game",
+  "Create a 3D spinning planet",
+  "Build a 3D racing game",
+  "Make a 3D cube that I can rotate",
   "Design a cool website about space"
 ]
 
