@@ -62,16 +62,38 @@ export function getContentFilter() {
   return [
     // Violence
     'kill', 'murder', 'weapon', 'gun', 'knife', 'blood', 'gore', 'death',
+    'shoot', 'shooting', 'bomb', 'explosion', 'war', 'fight', 'attack',
+    
     // Adult content
-    'nude', 'naked', 'sex', 'porn', 'adult content',
+    'nude', 'naked', 'sex', 'porn', 'adult content', 'xxx', 'nsfw',
+    
     // Harmful content
-    'hack', 'steal', 'phishing', 'malware', 'virus',
+    'hack', 'steal', 'phishing', 'malware', 'virus', 'cheat',
+    
     // Scary content for young kids
-    'horror', 'torture', 'nightmare',
+    'horror', 'torture', 'nightmare', 'creepy', 'terrifying',
+    
     // Self-harm
-    'suicide', 'self-harm', 'cutting',
-    // Drugs/alcohol
-    'drugs', 'cocaine', 'heroin', 'meth',
+    'suicide', 'self-harm', 'cutting', 'hurt myself',
+    
+    // Drugs
+    'drugs', 'cocaine', 'heroin', 'meth', 'weed', 'marijuana', 
+    'smoking', 'cigarette', 'vape', 'vaping',
+    
+    // Alcohol
+    'alcohol', 'beer', 'wine', 'vodka', 'whiskey', 'drunk', 
+    'drinking alcohol', 'booze', 'liquor', 'cocktail', 'bar',
+    
+    // Profanity (keeping it kid-friendly)
+    'damn', 'crap', 'stupid', 'idiot', 'dumb', 'loser', 
+    'shut up', 'sucks', 'hate you',
+    
+    // Gambling
+    'gambling', 'casino', 'betting', 'poker', 'slots', 'lottery',
+    'blackjack', 'roulette',
+    
+    // Bullying/mean content
+    'bully', 'bullying', 'mean', 'ugly', 'fat', 'loser',
   ];
 }
 

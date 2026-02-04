@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { Message } from '../types'
+import TipsModal from './TipsModal'
 import './ChatPanel.css'
 
 // TypeScript declarations for Web Speech API
@@ -66,6 +67,7 @@ export default function ChatPanel({ messages, onSendMessage, isLoading }: ChatPa
   const [isListening, setIsListening] = useState(false)
   const [speechSupported, setSpeechSupported] = useState(false)
   const [uploadedImage, setUploadedImage] = useState<string | null>(null)
+  const [showTipsModal, setShowTipsModal] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -194,6 +196,11 @@ export default function ChatPanel({ messages, onSendMessage, isLoading }: ChatPa
 
   return (
     <div className="panel chat-panel">
+      <TipsModal 
+        isOpen={showTipsModal} 
+        onClose={() => setShowTipsModal(false)} 
+      />
+      
       <div className="panel-header">
         <span className="icon">💬</span>
         Chat with your AI Helper
@@ -303,6 +310,16 @@ export default function ChatPanel({ messages, onSendMessage, isLoading }: ChatPa
               onChange={handleImageUpload}
               style={{ display: 'none' }}
             />
+            
+            {/* Tips button */}
+            <button 
+              type="button"
+              className="tips-btn"
+              onClick={() => setShowTipsModal(true)}
+              title="Tips & Rules"
+            >
+              <span className="tips-btn-icon">💡</span>
+            </button>
             
             {/* Image upload button */}
             <button 
