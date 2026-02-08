@@ -388,7 +388,7 @@ export default function ChatPanel({ messages, onSendMessage, isLoading, mode, on
             onKeyDown={handleKeyDown}
             placeholder={isListening ? "🎤 Listening... speak now!" : uploadedImage ? "Describe what you want to do with this image..." : mode === 'plan' ? "What kind of game are you thinking about? 💭" : "What do you want to create today? 🎨"}
             disabled={isLoading}
-            rows={2}
+            rows={3}
           />
           <div className="input-buttons">
             {/* Hidden file input */}
