@@ -1,6 +1,5 @@
-import { useState, useRef, useEffect } from 'react'
 import './Header.css'
-import { MembershipUsage, UserProject } from '../types'
+import { MembershipUsage } from '../types'
 
 interface User {
   id: string
@@ -11,68 +10,20 @@ interface User {
 }
 
 interface HeaderProps {
-  projectName: string
-  currentProjectId: string
   user: User | null
   membership: MembershipUsage | null
   onLogout: () => void
   onUpgradeClick: () => void
-  userProjects: UserProject[]
-  isLoadingProjects: boolean
-  onLoadProject: (projectId: string) => void
-  onNewProject: () => void
-}
-
-// Category icons
-const CATEGORY_ICONS: Record<string, string> = {
-  game: '🎮',
-  animation: '🎬',
-  art: '🎨',
-  tool: '🔧',
-  story: '📖',
-  music: '🎵',
-  other: '✨'
 }
 
 export default function Header({ 
-  projectName,
-  currentProjectId,
   user,
   membership: _membership,
   onLogout,
   onUpgradeClick,
-  userProjects,
-  isLoadingProjects,
-  onLoadProject,
-  onNewProject
 }: HeaderProps) {
-  void _membership // Prop passed but not displayed in minimal header
-  const [showProjectsDropdown, setShowProjectsDropdown] = useState(false)
-  const dropdownRef = useRef<HTMLDivElement>(null)
-  
+  void _membership
   const tier = user?.membershipTier || 'free'
-  
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setShowProjectsDropdown(false)
-      }
-    }
-    
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [])
-  
-  const handleProjectClick = (projectId: string) => {
-    onLoadProject(projectId)
-    setShowProjectsDropdown(false)
-  }
-  
-  const handleNewProjectClick = () => {
-    onNewProject()
-    setShowProjectsDropdown(false)
-  }
   
   return (
     <header className="header">
@@ -80,71 +31,8 @@ export default function Header({
       <div className="header-left">
         <a href="/gallery" className="logo">
           <span className="logo-icon">🕹️</span>
-          <span className="logo-text">Vibe Code</span>
+          <span className="logo-text">Vibe Code Kidz</span>
         </a>
-      </div>
-      
-      {/* Center: Project Selector */}
-      <div className="header-center">
-        {user && (
-          <div className="projects-dropdown-container" ref={dropdownRef}>
-            <button 
-              className="btn-projects"
-              onClick={() => setShowProjectsDropdown(!showProjectsDropdown)}
-            >
-              <span className="project-icon">📁</span>
-              <span className="project-name">{currentProjectId === 'new' ? 'New Project' : projectName}</span>
-              <span className="dropdown-arrow">{showProjectsDropdown ? '▲' : '▼'}</span>
-            </button>
-            
-            {showProjectsDropdown && (
-              <div className="projects-dropdown">
-                <div className="dropdown-header">My Projects</div>
-                
-                <button 
-                  className="dropdown-item new-project"
-                  onClick={handleNewProjectClick}
-                >
-                  <span className="item-icon">➕</span>
-                  <span className="item-title">New Project</span>
-                </button>
-                
-                <div className="dropdown-divider"></div>
-                
-                {isLoadingProjects ? (
-                  <div className="dropdown-loading">Loading...</div>
-                ) : userProjects.length === 0 ? (
-                  <div className="dropdown-empty">No saved projects yet</div>
-                ) : (
-                  <div className="dropdown-list">
-                    {userProjects.map(project => (
-                      <button
-                        key={project.id}
-                        className={`dropdown-item ${project.id === currentProjectId ? 'active' : ''}`}
-                        onClick={() => handleProjectClick(project.id)}
-                      >
-                        <span className="item-icon">
-                          {CATEGORY_ICONS[project.category] || '✨'}
-                        </span>
-                        <div className="item-content">
-                          <span className="item-title">{project.title}</span>
-                          <span className="item-meta">
-                            {project.isPublic ? '🌐' : '🔒'} 
-                            {' '}
-                            {project.views} views
-                          </span>
-                        </div>
-                        {project.id === currentProjectId && (
-                          <span className="item-current">●</span>
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        )}
       </div>
       
       {/* Right: User Badge & Actions */}

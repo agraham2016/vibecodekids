@@ -1,9 +1,9 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import Header from './components/Header'
-import ChatDrawer from './components/ChatDrawer'
+import ProjectsPanel from './components/ProjectsPanel'
+import ChatPanel from './components/ChatPanel'
 import CodeEditor from './components/CodeEditor'
 import PreviewPanel from './components/PreviewPanel'
-import FloatingActions from './components/FloatingActions'
 import ShareModal from './components/ShareModal'
 import AuthModal from './components/AuthModal'
 import UpgradeModal from './components/UpgradeModal'
@@ -11,9 +11,6 @@ import VersionHistoryModal from './components/VersionHistoryModal'
 import LandingPage from './components/LandingPage'
 import { Message, Project, MembershipUsage, TierInfo, UserProject } from './types'
 import './App.css'
-
-// Drawer height states
-export type DrawerState = 'minimized' | 'half' | 'full'
 
 interface User {
   id: string
@@ -82,7 +79,7 @@ function App() {
   const [tiers, setTiers] = useState<Record<string, TierInfo>>({})
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   const [isWelcomeUpgrade, setIsWelcomeUpgrade] = useState(false)
-  const [isCheckingAuth, setIsCheckingAuth] = useState(true) // Check session on load
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true)
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login')
   const [currentProject, setCurrentProject] = useState<Project>({
     id: 'new',
@@ -97,7 +94,6 @@ function App() {
   const [isSaving, setIsSaving] = useState(false)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [vibeMode, setVibeMode] = useState<'plan' | 'vibe'>('vibe')
-  const [drawerState, setDrawerState] = useState<DrawerState>('half')
   const lastSavedCode = useRef<string>(DEFAULT_HTML)
 
   // Fetch user's projects
@@ -134,7 +130,7 @@ function App() {
           createdAt: new Date(project.createdAt),
           updatedAt: new Date()
         })
-        setMessages([]) // Clear chat for the loaded project
+        setMessages([])
         lastSavedCode.current = project.code
         setHasUnsavedChanges(false)
       }
@@ -162,7 +158,6 @@ function App() {
   useEffect(() => {
     const token = localStorage.getItem('authToken')
     if (token) {
-      // Verify session
       fetch('/api/auth/me', {
         headers: { Authorization: `Bearer ${token}` }
       })
@@ -174,10 +169,8 @@ function App() {
             if (data.membership) {
               setMembership(data.membership)
             }
-            // Fetch user's projects
             fetchUserProjects(token)
           } else {
-            // Invalid token, clear it
             localStorage.removeItem('authToken')
           }
         })
@@ -191,7 +184,6 @@ function App() {
       setIsCheckingAuth(false)
     }
     
-    // Fetch tier info (public endpoint)
     fetch('/api/membership/tiers')
       .then(res => res.json())
       .then(data => {
@@ -207,25 +199,20 @@ function App() {
     setAuthToken(token)
     setShowAuthModal(false)
     
-    // Set membership info if provided
     if (loginData?.membership) {
       setMembership(loginData.membership)
     }
-    
-    // Set tiers if provided
     if (loginData?.tiers) {
       setTiers(loginData.tiers)
     }
     
-    // Fetch user's projects
     fetchUserProjects(token)
     
-    // Show upgrade prompt for new/free users (the sale opportunity!)
     if (loginData?.showUpgradePrompt) {
       setIsWelcomeUpgrade(true)
       setTimeout(() => {
         setShowUpgradeModal(true)
-      }, 500) // Small delay for better UX
+      }, 500)
     }
   }
 
@@ -249,7 +236,6 @@ function App() {
   }
 
   const handleSendMessage = useCallback(async (content: string, image?: string) => {
-    // Add user message
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
@@ -261,7 +247,6 @@ function App() {
     setIsLoading(true)
 
     try {
-      // Build headers with auth token if available
       const headers: Record<string, string> = {
         'Content-Type': 'application/json'
       }
@@ -269,7 +254,6 @@ function App() {
         headers['Authorization'] = `Bearer ${authToken}`
       }
       
-      // Call our API
       const response = await fetch('/api/generate', {
         method: 'POST',
         headers,
@@ -288,7 +272,6 @@ function App() {
 
       const data = await response.json()
       
-      // Handle rate limiting or tier limits
       if (response.status === 429 || response.status === 403) {
         const limitMessage: Message = {
           id: (Date.now() + 1).toString(),
@@ -298,7 +281,6 @@ function App() {
         }
         setMessages(prev => [...prev, limitMessage])
         
-        // Show upgrade modal if needed
         if (data.upgradeRequired) {
           setTimeout(() => setShowUpgradeModal(true), 1000)
         }
@@ -309,12 +291,10 @@ function App() {
         throw new Error('Failed to generate code')
       }
       
-      // Update membership usage if provided
       if (data.usage) {
         setMembership(data.usage)
       }
       
-      // Add assistant message
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
@@ -323,7 +303,6 @@ function App() {
       }
       setMessages(prev => [...prev, assistantMessage])
 
-      // Update code if provided
       if (data.code) {
         setCode(data.code)
         setCurrentProject(prev => ({
@@ -331,14 +310,12 @@ function App() {
           code: data.code,
           updatedAt: new Date()
         }))
-        // Track that we have unsaved changes from AI generation
         if (data.code !== lastSavedCode.current) {
           setHasUnsavedChanges(true)
         }
       }
     } catch (error) {
       console.error('Error:', error)
-      // Add error message in kid-friendly way
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
@@ -358,7 +335,6 @@ function App() {
       code: newCode,
       updatedAt: new Date()
     }))
-    // Track unsaved changes
     if (newCode !== lastSavedCode.current) {
       setHasUnsavedChanges(true)
     }
@@ -388,7 +364,6 @@ function App() {
       const data = await response.json()
       
       if (response.ok && data.success) {
-        // Update project ID if it was new
         if (currentProject.id === 'new' && data.project?.id) {
           setCurrentProject(prev => ({
             ...prev,
@@ -396,11 +371,8 @@ function App() {
           }))
         }
         
-        // Mark as saved
         lastSavedCode.current = code
         setHasUnsavedChanges(false)
-        
-        // Refresh projects list
         fetchUserProjects(authToken)
       } else {
         console.error('Save failed:', data.error)
@@ -477,7 +449,7 @@ function App() {
     )
   }
 
-  // Show main app for logged-in users
+  // Show main app for logged-in users - 3-panel IDE layout
   return (
     <div className="app">
       {showShareModal && (
@@ -520,57 +492,68 @@ function App() {
       )}
       
       <Header 
-        projectName={currentProject.name}
-        currentProjectId={currentProject.id}
         user={user}
         membership={membership}
         onLogout={handleLogout}
         onUpgradeClick={handleUpgradeClick}
-        userProjects={userProjects}
-        isLoadingProjects={isLoadingProjects}
-        onLoadProject={handleLoadProject}
-        onNewProject={handleNewProject}
       />
       
       <main className="main-content">
-        {/* Full-screen Preview Area */}
-        <div className={`preview-area ${showCode ? 'with-code' : ''}`}>
-          <PreviewPanel code={code} />
-          
-          {showCode && (
-            <div className="code-overlay">
+        {/* Left Panel: Projects */}
+        <ProjectsPanel
+          userProjects={userProjects}
+          isLoadingProjects={isLoadingProjects}
+          currentProjectId={currentProject.id}
+          projectName={currentProject.name}
+          onLoadProject={handleLoadProject}
+          onNewProject={handleNewProject}
+          onSave={handleSave}
+          onShare={() => setShowShareModal(true)}
+          onOpenVersionHistory={() => setShowVersionHistory(true)}
+          onStartOver={handleStartOver}
+          isSaving={isSaving}
+          hasUnsavedChanges={hasUnsavedChanges}
+          isLoggedIn={!!user}
+        />
+        
+        {/* Middle Panel: Chat */}
+        <div className="chat-panel-container">
+          <ChatPanel
+            messages={messages}
+            onSendMessage={handleSendMessage}
+            isLoading={isLoading}
+            mode={vibeMode}
+            onModeChange={setVibeMode}
+          />
+        </div>
+        
+        {/* Right Panel: Preview / Code Toggle */}
+        <div className="preview-code-container">
+          <div className="view-toggle-bar">
+            <button
+              className={`view-toggle-btn ${!showCode ? 'active' : ''}`}
+              onClick={() => setShowCode(false)}
+            >
+              <span>👁️</span> Preview
+            </button>
+            <button
+              className={`view-toggle-btn ${showCode ? 'active' : ''}`}
+              onClick={() => setShowCode(true)}
+            >
+              <span>👨‍💻</span> Code
+            </button>
+          </div>
+          <div className="view-content">
+            {showCode ? (
               <CodeEditor 
                 code={code}
                 onChange={handleCodeChange}
               />
-            </div>
-          )}
+            ) : (
+              <PreviewPanel code={code} />
+            )}
+          </div>
         </div>
-        
-        {/* Floating Action Buttons */}
-        <FloatingActions
-          onShare={() => setShowShareModal(true)}
-          onSave={handleSave}
-          onOpenVersionHistory={() => setShowVersionHistory(true)}
-          onToggleCode={() => setShowCode(!showCode)}
-          onStartOver={handleStartOver}
-          showCode={showCode}
-          isSaving={isSaving}
-          hasUnsavedChanges={hasUnsavedChanges}
-          isLoggedIn={!!user}
-          drawerState={drawerState}
-        />
-        
-        {/* Bottom Chat Drawer */}
-        <ChatDrawer
-          messages={messages}
-          onSendMessage={handleSendMessage}
-          isLoading={isLoading}
-          mode={vibeMode}
-          onModeChange={setVibeMode}
-          drawerState={drawerState}
-          onDrawerStateChange={setDrawerState}
-        />
       </main>
     </div>
   )

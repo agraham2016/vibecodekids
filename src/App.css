@@ -37,61 +37,98 @@
   margin-top: 16px;
 }
 
-/* ========== NEW LAYOUT ========== */
+/* ========== 3-PANEL IDE LAYOUT ========== */
 
 .main-content {
   flex: 1;
-  position: relative;
+  display: flex;
+  flex-direction: row;
+  min-height: 0;
+  overflow: hidden;
+  gap: 8px;
+  padding: 8px;
+}
+
+/* ========== MIDDLE PANEL: CHAT ========== */
+
+.chat-panel-container {
+  width: 360px;
+  min-width: 280px;
+  max-width: 420px;
   display: flex;
   flex-direction: column;
   min-height: 0;
+  flex-shrink: 0;
+}
+
+.chat-panel-container > .panel {
+  height: 100%;
+}
+
+/* ========== RIGHT PANEL: PREVIEW / CODE ========== */
+
+.preview-code-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+
+/* View Toggle Bar */
+.view-toggle-bar {
+  display: flex;
+  gap: 4px;
+  padding: 6px 8px;
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-bottom: none;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  flex-shrink: 0;
+}
+
+.view-toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.view-toggle-btn:hover:not(.active) {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.view-toggle-btn.active {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.4) 0%, rgba(236, 72, 153, 0.4) 100%);
+  border-color: rgba(139, 92, 246, 0.5);
+  color: white;
+  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.25);
+}
+
+/* View Content area */
+.view-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
   overflow: hidden;
 }
 
-/* Preview Area - Takes up all available space */
-.preview-area {
-  flex: 1;
-  position: relative;
-  min-height: 0;
-  padding: 12px;
-  padding-bottom: 0; /* Drawer will overlap */
-}
-
-.preview-area .panel {
+.view-content > .panel {
   height: 100%;
-  width: 100%;
-}
-
-/* Code Editor Overlay */
-.code-overlay {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  width: 45%;
-  max-width: 600px;
-  height: calc(100% - 24px);
-  z-index: 50;
-  animation: slideInRight 0.3s ease;
-}
-
-.code-overlay .panel {
-  height: 100%;
-}
-
-@keyframes slideInRight {
-  from {
-    opacity: 0;
-    transform: translateX(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-/* When code is shown, shrink preview slightly */
-.preview-area.with-code > .panel {
-  width: calc(55% - 12px);
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
 }
 
 /* Glass Panel base styles */
@@ -135,28 +172,48 @@
 
 /* ========== RESPONSIVE ========== */
 
-@media (max-width: 900px) {
-  .preview-area {
-    padding: 8px;
+@media (max-width: 1024px) {
+  .main-content {
+    gap: 6px;
+    padding: 6px;
   }
-  
-  .code-overlay {
-    width: 90%;
-    max-width: none;
-    left: 5%;
-    right: 5%;
-    top: 8px;
-    height: 50%;
+
+  .chat-panel-container {
+    width: 300px;
+    min-width: 240px;
   }
-  
-  .preview-area.with-code > .panel {
+}
+
+@media (max-width: 768px) {
+  .main-content {
+    flex-direction: column;
+    gap: 4px;
+    padding: 4px;
+  }
+
+  .projects-panel {
+    display: none;
+  }
+
+  .chat-panel-container {
     width: 100%;
+    max-width: none;
     height: 45%;
+    flex-shrink: 0;
+  }
+
+  .preview-code-container {
+    flex: 1;
   }
 }
 
 @media (max-width: 600px) {
-  .preview-area {
-    padding: 4px;
+  .main-content {
+    padding: 2px;
+    gap: 2px;
+  }
+
+  .chat-panel-container {
+    height: 50%;
   }
 }

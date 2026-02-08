@@ -53,7 +53,6 @@ interface ChatPanelProps {
   isLoading: boolean
   mode: 'plan' | 'vibe'
   onModeChange: (mode: 'plan' | 'vibe') => void
-  isInDrawer?: boolean // When true, mode toggle is handled by drawer
 }
 
 // Game template categories - pre-built starter games
@@ -89,7 +88,7 @@ const PLAN_SUGGESTIONS = [
   "Help me design a puzzle game"
 ]
 
-export default function ChatPanel({ messages, onSendMessage, isLoading, mode, onModeChange, isInDrawer = false }: ChatPanelProps) {
+export default function ChatPanel({ messages, onSendMessage, isLoading, mode, onModeChange }: ChatPanelProps) {
   const [input, setInput] = useState('')
   const [isListening, setIsListening] = useState(false)
   const [speechSupported, setSpeechSupported] = useState(false)
@@ -222,36 +221,44 @@ export default function ChatPanel({ messages, onSendMessage, isLoading, mode, on
   }
 
   return (
-    <div className={`panel chat-panel ${isInDrawer ? 'in-drawer' : ''}`}>
+    <div className="panel chat-panel">
       <TipsModal 
         isOpen={showTipsModal} 
         onClose={() => setShowTipsModal(false)} 
       />
       
-      {/* Only show header when not in drawer */}
-      {!isInDrawer && (
-        <div className="panel-header">
-          <span className="icon">💬</span>
-          Chat with your AI Helper
-        </div>
-      )}
-      
-      {/* Mode Toggle - only show when not in drawer (drawer has its own) */}
-      {!isInDrawer && (
-        <div className="mode-toggle-container">
+      {/* Panel Header */}
+      <div className="panel-header chat-header">
+        <span className="icon">💬</span>
+        <span className="chat-header-title">AI Helper</span>
+        
+        {/* Mode Toggle */}
+        <div className="mode-toggle-inline">
           <button 
-            className={`mode-btn ${mode === 'plan' ? 'active' : ''}`}
+            className={`mode-toggle-pill ${mode === 'plan' ? 'active' : ''}`}
             onClick={() => onModeChange('plan')}
             disabled={isLoading}
+            title="Plan Mode - Brainstorm ideas"
           >
-            <span>📝</span> Plan
+            📝 Plan
           </button>
           <button 
-            className={`mode-btn ${mode === 'vibe' ? 'active' : ''}`}
+            className={`mode-toggle-pill ${mode === 'vibe' ? 'active' : ''}`}
             onClick={() => onModeChange('vibe')}
             disabled={isLoading}
+            title="Vibe Mode - Build your game!"
           >
-            <span>🚀</span> Vibe
+            🚀 Build
+          </button>
+        </div>
+      </div>
+      
+      {/* Plan Mode Warning */}
+      {mode === 'plan' && (
+        <div className="plan-mode-bar">
+          <span>📝 Planning Mode</span> — brainstorming only, nothing will be built yet.
+          <button className="plan-switch-btn" onClick={() => onModeChange('vibe')}>
+            Switch to Build 🚀
           </button>
         </div>
       )}
