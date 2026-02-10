@@ -32,6 +32,14 @@
       border: 4px solid #228B22;
     }
     
+    .world {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+    
     /* Decorative clouds */
     .cloud {
       position: absolute;
@@ -50,15 +58,16 @@
       z-index: 100;
     }
     
-    .score, .coins, .lives {
-      font-size: 20px;
+    .hud-item {
+      font-size: 18px;
       font-weight: bold;
       color: white;
       text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
     }
     
-    .coins { color: #FFD700; }
-    .lives { color: #FF6B6B; }
+    .hud-coins { color: #FFD700; }
+    .hud-lives { color: #FF6B6B; }
+    .hud-distance { color: #90EE90; }
     
     .player {
       position: absolute;
@@ -100,13 +109,10 @@
       border-top: 4px solid #228B22;
     }
     
-    .ground {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      height: 50px;
-      background: linear-gradient(180deg, #228B22 0%, #1a6b1a 100%);
+    .platform.ground-segment {
+      background: linear-gradient(180deg, #228B22 0%, #1a6b1a 50%, #654321 100%);
+      border-top: 4px solid #32CD32;
+      border-radius: 5px 5px 0 0;
     }
     
     .coin {
@@ -153,7 +159,7 @@
       border-bottom: 20px solid #666;
     }
     
-    .game-over, .game-win {
+    .game-over {
       position: absolute;
       top: 50%;
       left: 50%;
@@ -167,12 +173,11 @@
     }
     
     .game-over h2 { color: #ff6b6b; font-size: 32px; margin-bottom: 15px; }
-    .game-win h2 { color: #00ff00; font-size: 32px; margin-bottom: 15px; }
     
-    .game-over p, .game-win p {
+    .game-over p {
       color: white;
       font-size: 18px;
-      margin-bottom: 20px;
+      margin-bottom: 10px;
     }
     
     .restart-btn {
@@ -185,6 +190,7 @@
       border-radius: 25px;
       cursor: pointer;
       transition: all 0.2s;
+      margin-top: 10px;
     }
     
     .restart-btn:hover {
@@ -214,130 +220,144 @@
       0% { opacity: 1; transform: translateY(0); }
       100% { opacity: 0; transform: translateY(-30px); }
     }
+    
+    .danger-flash {
+      animation: dangerPulse 0.3s ease-in-out;
+    }
+    
+    @keyframes dangerPulse {
+      0%, 100% { box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+      50% { box-shadow: 0 0 40px rgba(255,0,0,0.6); }
+    }
   </style>
 </head>
 <body>
-  <!-- GAME_TITLE -->Platformer Adventure<!-- /GAME_TITLE -->
+  <!-- GAME_TITLE -->Platformer Runner<!-- /GAME_TITLE -->
   <div class="game-container" id="gameContainer">
-    <div class="cloud" style="left: 50px; top: 30px; width: 80px; height: 30px;"></div>
-    <div class="cloud" style="left: 200px; top: 60px; width: 100px; height: 35px;"></div>
-    <div class="cloud" style="left: 450px; top: 25px; width: 90px; height: 32px;"></div>
-    <div class="cloud" style="left: 600px; top: 70px; width: 70px; height: 25px;"></div>
+    <!-- Clouds (parallax layer — outside world so they scroll independently) -->
+    <div id="cloudLayer">
+      <div class="cloud" id="cloud0" style="left: 50px; top: 30px; width: 80px; height: 30px;"></div>
+      <div class="cloud" id="cloud1" style="left: 200px; top: 60px; width: 100px; height: 35px;"></div>
+      <div class="cloud" id="cloud2" style="left: 450px; top: 25px; width: 90px; height: 32px;"></div>
+      <div class="cloud" id="cloud3" style="left: 600px; top: 70px; width: 70px; height: 25px;"></div>
+    </div>
     
     <div class="hud">
-      <div class="score">Score: <span id="score">0</span></div>
-      <div class="coins">Coins: <span id="coins">0</span> / <span id="totalCoins">0</span></div>
-      <div class="lives">Lives: <span id="lives">3</span></div>
+      <div class="hud-item">Score: <span id="score">0</span></div>
+      <div class="hud-item hud-distance">Dist: <span id="distance">0</span>m</div>
+      <div class="hud-item hud-coins">Coins: <span id="coins">0</span></div>
+      <div class="hud-item hud-lives">Lives: <span id="lives">3</span></div>
     </div>
     
     <!-- PLAYER_CHARACTER -->character<!-- /PLAYER_CHARACTER -->
-    <div class="player" id="player"></div>
-    <div class="ground"></div>
-    
     <!-- OBSTACLES -->spikes<!-- /OBSTACLES -->
+    
+    <!-- World container (scrolls via transform) -->
+    <div class="world" id="world">
+      <div class="player" id="player"></div>
+      <!-- Platforms, coins, spikes are generated dynamically -->
+    </div>
+    
     <div class="game-over" id="gameOver">
       <h2>Game Over!</h2>
-      <p>You collected <span id="finalCoins">0</span> coins</p>
-      <p>Score: <span id="finalScore">0</span></p>
+      <p>Distance: <span id="finalDistance">0</span>m</p>
+      <p>Coins: <span id="finalCoins">0</span></p>
+      <p>Final Score: <span id="finalScore">0</span></p>
       <button class="restart-btn" onclick="restartGame()">Try Again</button>
     </div>
-    
-    <div class="game-win" id="gameWin">
-      <h2>You Win!</h2>
-      <p>All coins collected!</p>
-      <p>Final Score: <span id="winScore">0</span></p>
-      <button class="restart-btn" onclick="restartGame()">Play Again</button>
-    </div>
   </div>
-  <div class="controls-hint">Use ARROW KEYS to move, SPACE or UP to jump!</div>
+  <div class="controls-hint">ARROW KEYS to move, SPACE / UP to jump — Keep moving right!</div>
   
   <script>
+    // ===== DOM references =====
     const gameContainer = document.getElementById('gameContainer');
+    const world = document.getElementById('world');
     const playerEl = document.getElementById('player');
     const scoreDisplay = document.getElementById('score');
     const coinsDisplay = document.getElementById('coins');
-    const totalCoinsDisplay = document.getElementById('totalCoins');
+    const distanceDisplay = document.getElementById('distance');
     const livesDisplay = document.getElementById('lives');
     const gameOverScreen = document.getElementById('gameOver');
-    const gameWinScreen = document.getElementById('gameWin');
     
-    // Game state
-    let player = { x: 50, y: 350, vx: 0, vy: 0, onGround: false, facingLeft: false };
+    // ===== Game state =====
+    let player = { x: 80, y: 300, vx: 0, vy: 0, onGround: false, facingLeft: false };
     let score = 0;
     let coinsCollected = 0;
     let lives = 3;
     let gameRunning = true;
+    let cameraX = 0;
+    let distanceTraveled = 0;
+    let invulnerable = false;
+    let invulnerableTimer = 0;
     
+    // ===== Physics constants =====
     const gravity = 0.6;
     const jumpForce = -14;
     const moveSpeed = 5;
     const friction = 0.85;
     
-    // Level data
-    const platforms = [
-      { x: 100, y: 320, width: 120, height: 20 },
-      { x: 280, y: 270, width: 100, height: 20 },
-      { x: 450, y: 220, width: 130, height: 20 },
-      { x: 200, y: 170, width: 100, height: 20 },
-      { x: 500, y: 130, width: 120, height: 20 },
-      { x: 50, y: 200, width: 80, height: 20 },
+    // ===== Scrolling / difficulty =====
+    const baseScrollSpeed = 1.5;
+    let scrollSpeed = baseScrollSpeed;
+    const maxScrollSpeed = 4.5;
+    
+    // ===== Level layout constants =====
+    const GROUND_Y = 390;
+    const VIEWPORT_W = 700;
+    const VIEWPORT_H = 450;
+    const CHUNK_WIDTH = 600;
+    
+    // ===== Active game objects =====
+    let activePlatforms = [];
+    let activeCoins = [];
+    let activeSpikes = [];
+    let nextChunkX = 0;
+    
+    // ===== Cloud parallax data =====
+    const clouds = [
+      { el: document.getElementById('cloud0'), baseX: 50, speed: 0.3 },
+      { el: document.getElementById('cloud1'), baseX: 200, speed: 0.2 },
+      { el: document.getElementById('cloud2'), baseX: 450, speed: 0.35 },
+      { el: document.getElementById('cloud3'), baseX: 600, speed: 0.25 },
     ];
     
-    const coins = [
-      { x: 140, y: 290 },
-      { x: 310, y: 240 },
-      { x: 490, y: 190 },
-      { x: 230, y: 140 },
-      { x: 540, y: 100 },
-      { x: 70, y: 170 },
-      { x: 400, y: 370 },
-      { x: 600, y: 370 },
-    ];
+    // ============================================================
+    //  Element creation helpers
+    // ============================================================
     
-    const spikes = [
-      { x: 350, y: 380 },
-      { x: 550, y: 380 },
-    ];
+    function createPlatform(x, y, w, h, isGround) {
+      const el = document.createElement('div');
+      el.className = isGround ? 'platform ground-segment' : 'platform';
+      el.style.left = x + 'px';
+      el.style.top = y + 'px';
+      el.style.width = w + 'px';
+      el.style.height = h + 'px';
+      world.appendChild(el);
+      const obj = { el: el, x: x, y: y, width: w, height: h };
+      activePlatforms.push(obj);
+      return obj;
+    }
     
-    let coinElements = [];
-    let platformElements = [];
-    let spikeElements = [];
+    function createCoin(x, y) {
+      const el = document.createElement('div');
+      el.className = 'coin';
+      el.style.left = x + 'px';
+      el.style.top = y + 'px';
+      world.appendChild(el);
+      const obj = { el: el, x: x, y: y, collected: false };
+      activeCoins.push(obj);
+      return obj;
+    }
     
-    function createLevel() {
-      // Create platforms
-      platforms.forEach(p => {
-        const plat = document.createElement('div');
-        plat.className = 'platform';
-        plat.style.left = p.x + 'px';
-        plat.style.top = p.y + 'px';
-        plat.style.width = p.width + 'px';
-        plat.style.height = p.height + 'px';
-        gameContainer.appendChild(plat);
-        platformElements.push(plat);
-      });
-      
-      // Create coins
-      coins.forEach(c => {
-        const coin = document.createElement('div');
-        coin.className = 'coin';
-        coin.style.left = c.x + 'px';
-        coin.style.top = c.y + 'px';
-        coin.dataset.collected = 'false';
-        gameContainer.appendChild(coin);
-        coinElements.push({ element: coin, x: c.x, y: c.y, collected: false });
-      });
-      
-      // Create spikes
-      spikes.forEach(s => {
-        const spike = document.createElement('div');
-        spike.className = 'spike';
-        spike.style.left = s.x + 'px';
-        spike.style.top = s.y + 'px';
-        gameContainer.appendChild(spike);
-        spikeElements.push({ element: spike, x: s.x, y: s.y });
-      });
-      
-      totalCoinsDisplay.textContent = coins.length;
+    function createSpike(x, y) {
+      const el = document.createElement('div');
+      el.className = 'spike';
+      el.style.left = x + 'px';
+      el.style.top = y + 'px';
+      world.appendChild(el);
+      const obj = { el: el, x: x, y: y };
+      activeSpikes.push(obj);
+      return obj;
     }
     
     function createCollectEffect(x, y) {
@@ -346,29 +366,130 @@
       effect.textContent = '+100';
       effect.style.left = x + 'px';
       effect.style.top = y + 'px';
-      gameContainer.appendChild(effect);
+      world.appendChild(effect);
       setTimeout(() => effect.remove(), 500);
     }
+    
+    // ============================================================
+    //  Procedural level generation
+    // ============================================================
+    
+    function generateChunk(startX) {
+      let x = startX;
+      const endX = startX + CHUNK_WIDTH;
+      
+      // Difficulty factor: 0 at start, approaches 1 over ~5000 distance units
+      const diff = Math.min(1, distanceTraveled / 5000);
+      
+      while (x < endX) {
+        // --- Ground-level platform segment ---
+        const platWidth = Math.max(70, 140 + Math.random() * 100 - diff * 50);
+        createPlatform(x, GROUND_Y, platWidth, 60, true);
+        
+        // Coin sitting on the ground platform
+        if (Math.random() < 0.35) {
+          createCoin(x + platWidth / 2 - 12, GROUND_Y - 35);
+        }
+        
+        // Spike on the ground platform (more likely as difficulty increases)
+        if (Math.random() < 0.12 + diff * 0.18) {
+          const spikeX = x + 20 + Math.random() * Math.max(0, platWidth - 60);
+          createSpike(spikeX, GROUND_Y - 20);
+        }
+        
+        // --- Gap after this platform ---
+        const gap = 55 + Math.random() * 35 + diff * 30;
+        
+        // --- Elevated platform near / over the gap ---
+        if (Math.random() < 0.5) {
+          const ey = 260 + Math.random() * 90;           // y: 260-350
+          const ew = 80 + Math.random() * 60;            // width: 80-140
+          const ex = x + platWidth + gap / 2 - ew / 2;   // centered over gap
+          createPlatform(ex, ey, ew, 20, false);
+          
+          if (Math.random() < 0.6) {
+            createCoin(ex + ew / 2 - 12, ey - 40);
+          }
+        }
+        
+        // --- High bonus platform (harder to reach, always has a coin) ---
+        if (Math.random() < 0.2) {
+          const hy = 150 + Math.random() * 80;           // y: 150-230
+          const hw = 60 + Math.random() * 50;            // width: 60-110
+          const hx = x + Math.random() * platWidth;
+          createPlatform(hx, hy, hw, 20, false);
+          createCoin(hx + hw / 2 - 12, hy - 40);
+        }
+        
+        x += platWidth + gap;
+      }
+      
+      nextChunkX = x;
+    }
+    
+    function generateInitialLevel() {
+      // Safe wide starting platform so the player has room to orient
+      createPlatform(0, GROUND_Y, 300, 60, true);
+      nextChunkX = 300;
+      
+      // Pre-generate a couple of chunks ahead
+      generateChunk(nextChunkX);
+      generateChunk(nextChunkX);
+    }
+    
+    // ============================================================
+    //  Cleanup off-screen elements (performance)
+    // ============================================================
+    
+    function cleanupOffscreen() {
+      const threshold = cameraX - 200;
+      
+      activePlatforms = activePlatforms.filter(function(p) {
+        if (p.x + p.width < threshold) { p.el.remove(); return false; }
+        return true;
+      });
+      
+      activeCoins = activeCoins.filter(function(c) {
+        if (c.x + 25 < threshold) {
+          if (!c.collected) c.el.remove();
+          return false;
+        }
+        return true;
+      });
+      
+      activeSpikes = activeSpikes.filter(function(s) {
+        if (s.x + 30 < threshold) { s.el.remove(); return false; }
+        return true;
+      });
+    }
+    
+    // ============================================================
+    //  Player rendering
+    // ============================================================
     
     function updatePlayer() {
       playerEl.style.left = player.x + 'px';
       playerEl.style.top = player.y + 'px';
       playerEl.classList.toggle('facing-left', player.facingLeft);
+      
+      // Blink effect during invulnerability
+      if (invulnerable) {
+        playerEl.style.opacity = (invulnerableTimer % 10 < 5) ? '0.4' : '1';
+      } else {
+        playerEl.style.opacity = '1';
+      }
     }
+    
+    // ============================================================
+    //  Collision detection
+    // ============================================================
     
     function checkPlatformCollision() {
       player.onGround = false;
       
-      // Ground collision
-      if (player.y >= 350) {
-        player.y = 350;
-        player.vy = 0;
-        player.onGround = true;
-      }
-      
-      // Platform collisions
-      platforms.forEach(p => {
-        // Only check if falling
+      for (var i = 0; i < activePlatforms.length; i++) {
+        var p = activePlatforms[i];
+        // Only check when falling
         if (player.vy >= 0) {
           if (player.x + 35 > p.x && player.x + 5 < p.x + p.width) {
             if (player.y + 50 >= p.y && player.y + 50 <= p.y + 15) {
@@ -378,122 +499,242 @@
             }
           }
         }
-      });
+      }
     }
     
     function checkCoinCollision() {
-      coinElements.forEach(coin => {
-        if (coin.collected) return;
+      for (var i = 0; i < activeCoins.length; i++) {
+        var coin = activeCoins[i];
+        if (coin.collected) continue;
         
-        const dx = (player.x + 20) - (coin.x + 12);
-        const dy = (player.y + 25) - (coin.y + 12);
-        const distance = Math.sqrt(dx * dx + dy * dy);
+        var dx = (player.x + 20) - (coin.x + 12);
+        var dy = (player.y + 25) - (coin.y + 12);
+        var distance = Math.sqrt(dx * dx + dy * dy);
         
         if (distance < 30) {
           coin.collected = true;
-          coin.element.style.display = 'none';
+          coin.el.style.display = 'none';
           coinsCollected++;
-          score += 100;
           coinsDisplay.textContent = coinsCollected;
-          scoreDisplay.textContent = score;
           createCollectEffect(coin.x, coin.y);
-          
-          // Check win condition
-          if (coinsCollected >= coins.length) {
-            gameRunning = false;
-            document.getElementById('winScore').textContent = score;
-            gameWinScreen.style.display = 'block';
-          }
         }
-      });
+      }
     }
     
     function checkSpikeCollision() {
-      spikeElements.forEach(spike => {
+      if (invulnerable) return;
+      
+      for (var i = 0; i < activeSpikes.length; i++) {
+        var spike = activeSpikes[i];
         if (player.x + 35 > spike.x && player.x + 5 < spike.x + 30) {
           if (player.y + 50 > spike.y && player.y + 40 < spike.y + 20) {
-            // Hit spike!
-            lives--;
-            livesDisplay.textContent = lives;
-            
-            if (lives <= 0) {
-              gameRunning = false;
-              document.getElementById('finalCoins').textContent = coinsCollected;
-              document.getElementById('finalScore').textContent = score;
-              gameOverScreen.style.display = 'block';
-            } else {
-              // Reset player position
-              player.x = 50;
-              player.y = 350;
-              player.vx = 0;
-              player.vy = 0;
-            }
+            handleDeath();
+            return; // Only one death per frame
           }
         }
-      });
+      }
     }
+    
+    // ============================================================
+    //  Death & respawn
+    // ============================================================
+    
+    function handleDeath() {
+      if (invulnerable) return;
+      
+      lives--;
+      livesDisplay.textContent = lives;
+      
+      if (lives <= 0) {
+        gameRunning = false;
+        var distMeters = Math.floor(distanceTraveled / 50);
+        score = coinsCollected * 100 + distMeters;
+        document.getElementById('finalDistance').textContent = distMeters;
+        document.getElementById('finalCoins').textContent = coinsCollected;
+        document.getElementById('finalScore').textContent = score;
+        gameOverScreen.style.display = 'block';
+      } else {
+        respawnPlayer();
+        invulnerable = true;
+        invulnerableTimer = 90; // ~1.5 seconds of invulnerability
+        
+        // Visual feedback
+        gameContainer.classList.remove('danger-flash');
+        void gameContainer.offsetWidth; // force reflow to restart animation
+        gameContainer.classList.add('danger-flash');
+        setTimeout(function() { gameContainer.classList.remove('danger-flash'); }, 300);
+      }
+    }
+    
+    function respawnPlayer() {
+      // Find the best platform near the left-center of the viewport to respawn on
+      var targetX = cameraX + 150;
+      var bestPlatform = null;
+      var bestDist = Infinity;
+      
+      for (var i = 0; i < activePlatforms.length; i++) {
+        var p = activePlatforms[i];
+        var platCenter = p.x + p.width / 2;
+        var dist = Math.abs(platCenter - targetX);
+        // Must be on-screen
+        if (dist < bestDist && p.x + p.width > cameraX && p.x < cameraX + VIEWPORT_W) {
+          bestDist = dist;
+          bestPlatform = p;
+        }
+      }
+      
+      if (bestPlatform) {
+        player.x = bestPlatform.x + bestPlatform.width / 2 - 20;
+        player.y = bestPlatform.y - 55;
+      } else {
+        // Fallback: place above center of viewport
+        player.x = cameraX + 150;
+        player.y = 200;
+      }
+      
+      player.vx = 0;
+      player.vy = 0;
+    }
+    
+    // ============================================================
+    //  Parallax clouds
+    // ============================================================
+    
+    function updateClouds() {
+      for (var i = 0; i < clouds.length; i++) {
+        var c = clouds[i];
+        var offsetX = c.baseX - cameraX * c.speed;
+        // Wrap clouds so they loop continuously
+        var wrapped = ((offsetX % (VIEWPORT_W + 200)) + VIEWPORT_W + 200) % (VIEWPORT_W + 200) - 100;
+        c.el.style.left = wrapped + 'px';
+      }
+    }
+    
+    // ============================================================
+    //  Main game loop
+    // ============================================================
     
     function gameLoop() {
       if (!gameRunning) return;
       
-      // Apply gravity
-      player.vy += gravity;
+      // --- Difficulty scaling ---
+      scrollSpeed = Math.min(maxScrollSpeed, baseScrollSpeed + (distanceTraveled / 5000) * 2);
       
-      // Apply velocity
+      // --- Advance camera ---
+      cameraX += scrollSpeed;
+      distanceTraveled += scrollSpeed;
+      
+      // --- Update HUD ---
+      var distMeters = Math.floor(distanceTraveled / 50);
+      score = coinsCollected * 100 + distMeters;
+      scoreDisplay.textContent = score;
+      distanceDisplay.textContent = distMeters;
+      
+      // --- Generate new chunks ahead ---
+      if (cameraX + VIEWPORT_W + 400 > nextChunkX) {
+        generateChunk(nextChunkX);
+      }
+      
+      // --- Invulnerability countdown ---
+      if (invulnerable) {
+        invulnerableTimer--;
+        if (invulnerableTimer <= 0) {
+          invulnerable = false;
+        }
+      }
+      
+      // --- Player physics ---
+      player.vy += gravity;
       player.x += player.vx;
       player.y += player.vy;
-      
-      // Apply friction
       player.vx *= friction;
       
-      // Boundary checks
-      if (player.x < 0) player.x = 0;
-      if (player.x > 660) player.x = 660;
+      // Right boundary: can't run too far ahead of camera
+      if (player.x > cameraX + VIEWPORT_W - 50) {
+        player.x = cameraX + VIEWPORT_W - 50;
+      }
       
-      // Check collisions
+      // --- Collision detection ---
       checkPlatformCollision();
       checkCoinCollision();
       checkSpikeCollision();
       
-      // Update display
+      // --- Death checks ---
+      if (gameRunning) {
+        // Left-edge death (left behind by the camera)
+        if (player.x + 40 < cameraX) {
+          handleDeath();
+        }
+        // Fall death (fell into a gap)
+        if (player.y > VIEWPORT_H + 50) {
+          handleDeath();
+        }
+      }
+      
+      // --- Render ---
+      world.style.transform = 'translateX(' + (-cameraX) + 'px)';
       updatePlayer();
+      updateClouds();
+      
+      // --- Cleanup ---
+      cleanupOffscreen();
       
       requestAnimationFrame(gameLoop);
     }
     
+    // ============================================================
+    //  Restart
+    // ============================================================
+    
     function restartGame() {
-      // Clear old elements
-      coinElements.forEach(c => c.element.remove());
-      platformElements.forEach(p => p.remove());
-      spikeElements.forEach(s => s.element.remove());
-      coinElements = [];
-      platformElements = [];
-      spikeElements = [];
+      // Remove all dynamically created elements
+      activePlatforms.forEach(function(p) { p.el.remove(); });
+      activeCoins.forEach(function(c) { if (!c.collected) c.el.remove(); });
+      activeSpikes.forEach(function(s) { s.el.remove(); });
+      activePlatforms = [];
+      activeCoins = [];
+      activeSpikes = [];
       
-      // Reset state
-      player = { x: 50, y: 350, vx: 0, vy: 0, onGround: false, facingLeft: false };
+      // Remove lingering effects
+      var effects = world.querySelectorAll('.collect-effect');
+      for (var i = 0; i < effects.length; i++) effects[i].remove();
+      
+      // Reset all state
+      player = { x: 80, y: 300, vx: 0, vy: 0, onGround: false, facingLeft: false };
       score = 0;
       coinsCollected = 0;
       lives = 3;
+      cameraX = 0;
+      distanceTraveled = 0;
+      scrollSpeed = baseScrollSpeed;
+      invulnerable = false;
+      invulnerableTimer = 0;
       gameRunning = true;
+      nextChunkX = 0;
       
-      // Update displays
+      // Reset displays
       scoreDisplay.textContent = '0';
       coinsDisplay.textContent = '0';
+      distanceDisplay.textContent = '0';
       livesDisplay.textContent = '3';
       gameOverScreen.style.display = 'none';
-      gameWinScreen.style.display = 'none';
       
-      // Recreate level
-      createLevel();
+      // Reset world transform
+      world.style.transform = 'translateX(0px)';
+      
+      // Build level and start
+      generateInitialLevel();
       updatePlayer();
-      
       requestAnimationFrame(gameLoop);
     }
     
-    // Controls
-    const keys = {};
-    document.addEventListener('keydown', (e) => {
+    // ============================================================
+    //  Controls
+    // ============================================================
+    
+    var keys = {};
+    
+    document.addEventListener('keydown', function(e) {
       keys[e.key] = true;
       
       if ((e.key === ' ' || e.key === 'ArrowUp') && player.onGround && gameRunning) {
@@ -503,12 +744,12 @@
       }
     });
     
-    document.addEventListener('keyup', (e) => {
+    document.addEventListener('keyup', function(e) {
       keys[e.key] = false;
     });
     
-    // Movement loop
-    setInterval(() => {
+    // Movement input loop (separate from render loop for consistent feel)
+    setInterval(function() {
       if (!gameRunning) return;
       
       if (keys['ArrowLeft']) {
@@ -521,8 +762,11 @@
       }
     }, 16);
     
-    // Initialize
-    createLevel();
+    // ============================================================
+    //  Initialize
+    // ============================================================
+    
+    generateInitialLevel();
     updatePlayer();
     requestAnimationFrame(gameLoop);
   </script>
