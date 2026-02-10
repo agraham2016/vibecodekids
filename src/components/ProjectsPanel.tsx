@@ -12,6 +12,7 @@ interface ProjectsPanelProps {
   onShare: () => void
   onOpenVersionHistory: () => void
   onStartOver: () => void
+  onDeleteProject: (projectId: string) => void
   isSaving: boolean
   hasUnsavedChanges: boolean
   isLoggedIn: boolean
@@ -39,6 +40,7 @@ export default function ProjectsPanel({
   onShare,
   onOpenVersionHistory,
   onStartOver,
+  onDeleteProject,
   isSaving,
   hasUnsavedChanges,
   isLoggedIn
@@ -73,24 +75,40 @@ export default function ProjectsPanel({
           <div className="pp-empty">No saved projects yet</div>
         ) : (
           userProjects.map(project => (
-            <button
+            <div
               key={project.id}
-              className={`pp-item ${project.id === currentProjectId ? 'active' : ''}`}
-              onClick={() => onLoadProject(project.id)}
+              className={`pp-item-wrap ${project.id === currentProjectId ? 'active' : ''}`}
             >
-              <span className="pp-item-icon">
-                {CATEGORY_ICONS[project.category] || '✨'}
-              </span>
-              <div className="pp-item-info">
-                <span className="pp-item-title">{project.title}</span>
-                <span className="pp-item-meta">
-                  {project.isPublic ? '🌐' : '🔒'} {project.views} views
+              <button
+                type="button"
+                className="pp-item"
+                onClick={() => onLoadProject(project.id)}
+              >
+                <span className="pp-item-icon">
+                  {CATEGORY_ICONS[project.category] || '✨'}
                 </span>
-              </div>
-              {project.id === currentProjectId && (
-                <span className="pp-item-active">●</span>
-              )}
-            </button>
+                <div className="pp-item-info">
+                  <span className="pp-item-title">{project.title}</span>
+                  <span className="pp-item-meta">
+                    {project.isPublic ? '🌐' : '🔒'} {project.views} views
+                  </span>
+                </div>
+                {project.id === currentProjectId && (
+                  <span className="pp-item-active">●</span>
+                )}
+              </button>
+              <button
+                type="button"
+                className="pp-item-delete"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onDeleteProject(project.id)
+                }}
+                title="Delete this project (removes from Arcade too)"
+              >
+                🗑️
+              </button>
+            </div>
           ))
         )}
       </div>

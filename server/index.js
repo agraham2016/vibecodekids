@@ -876,6 +876,43 @@ app.get('/api/projects/:id', async (req, res) => {
   }
 });
 
+// Delete own project (removes from studio and arcade/gallery)
+app.delete('/api/projects/:id', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) {
+      return res.status(401).json({ error: 'Please log in to delete projects' });
+    }
+
+    const session = sessions.get(token);
+    if (!session) {
+      return res.status(401).json({ error: 'Session expired. Please log in again.' });
+    }
+
+    const { id } = req.params;
+    if (!/^[a-z0-9]{6}$/.test(id)) {
+      return res.status(400).json({ error: 'Invalid project ID' });
+    }
+
+    const projectPath = path.join(PROJECTS_DIR, `${id}.json`);
+    const data = await fs.readFile(projectPath, 'utf-8');
+    const project = JSON.parse(data);
+
+    if (project.userId !== session.userId) {
+      return res.status(403).json({ error: 'You can only delete your own projects' });
+    }
+
+    await fs.unlink(projectPath);
+    res.json({ success: true, message: 'Project deleted' });
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+    console.error('Delete project error:', error);
+    res.status(500).json({ error: 'Could not delete project' });
+  }
+});
+
 // Get gallery (public projects)
 app.get('/api/gallery', async (req, res) => {
   try {

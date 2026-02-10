@@ -154,6 +154,41 @@ function App() {
     setHasUnsavedChanges(false)
   }, [])
 
+  // Delete a project (removes from studio and arcade)
+  const handleDeleteProject = useCallback(async (projectId: string) => {
+    if (!authToken) return
+    if (!window.confirm('Delete this project? It will be removed from the Arcade too.')) return
+
+    try {
+      const response = await fetch(`/api/projects/${projectId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${authToken}` }
+      })
+      const data = await response.json()
+      if (!response.ok) {
+        alert(data.error || 'Could not delete project')
+        return
+      }
+      fetchUserProjects(authToken)
+      if (currentProject.id === projectId) {
+        setCode(DEFAULT_HTML)
+        setMessages([])
+        setCurrentProject({
+          id: 'new',
+          name: 'My Awesome Project',
+          code: DEFAULT_HTML,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        })
+        lastSavedCode.current = DEFAULT_HTML
+        setHasUnsavedChanges(false)
+      }
+    } catch (err) {
+      console.error('Delete project error:', err)
+      alert('Could not delete project. Please try again.')
+    }
+  }, [authToken, currentProject.id, fetchUserProjects])
+
   // Check for existing session on mount
   useEffect(() => {
     const token = localStorage.getItem('authToken')
@@ -521,6 +556,7 @@ function App() {
           onShare={() => setShowShareModal(true)}
           onOpenVersionHistory={() => setShowVersionHistory(true)}
           onStartOver={handleStartOver}
+          onDeleteProject={handleDeleteProject}
           isSaving={isSaving}
           hasUnsavedChanges={hasUnsavedChanges}
           isLoggedIn={!!user}
