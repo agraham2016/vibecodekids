@@ -89,22 +89,21 @@
   transform: scale(1.1);
 }
 
-/* Iframe wrapper - takes all remaining space */
+/* Iframe wrapper - scrollable so full game is visible */
 .preview-iframe-wrapper {
   flex: 1;
-  position: relative;
   min-height: 0;
   background: white;
   border-radius: 0 0 var(--radius-lg) var(--radius-lg);
   overflow: auto;
 }
 
+/* Iframe is at least 640px tall so full game (templates use ~400x600) fits.
+   Wrapper scrolls when preview area is shorter than the game. */
 .preview-iframe {
-  position: absolute;
-  top: 0;
-  left: 0;
+  display: block;
   width: 100%;
-  height: 100%;
+  min-height: 640px;
   border: none;
   background: white;
 }
