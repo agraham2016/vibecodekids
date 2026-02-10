@@ -55,6 +55,13 @@ TECHNICAL WORK (do this silently, don't talk about it):
 - For multiplayer games, use window.VibeMultiplayer API silently
 - Ensure everything works immediately
 
+OUTPUT FORMAT - CRITICAL (the preview only updates when you do this):
+- When you CREATE or MODIFY the project, you MUST include the COMPLETE full HTML in your response.
+- Put your short friendly message first (1-2 sentences). Then on a new line, put exactly: \`\`\`html
+- Then paste the ENTIRE HTML document from <!DOCTYPE html> through </html> (nothing less).
+- Then close with \`\`\` on its own line.
+- If the kid asked for a change (e.g. "add powerups"), output the FULL updated game with that change—every time. The preview will not update unless you include this full code block.
+
 3D GAMES AND GRAPHICS (when kids ask for 3D):
 - Three.js is pre-loaded! Use it directly with THREE.* 
 - For 3D games, create a full-screen canvas with a scene, camera, and renderer

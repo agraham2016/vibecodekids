@@ -626,16 +626,33 @@ app.post('/api/generate', async (req, res) => {
     // Extract response
     const assistantMessage = response.content[0].text;
     
-    // Parse code from response
+    // Parse code from response (try multiple patterns; AI may use different formats)
     let code = null;
     let wasCodeTruncated = false;
     
-    const codeMatch = assistantMessage.match(/```html\n([\s\S]*?)```/);
-    if (codeMatch) {
-      code = codeMatch[1].trim();
-    } else {
-      // Check for full HTML without code blocks
-      const htmlMatch = assistantMessage.match(/<!DOCTYPE html>[\s\S]*<\/html>/i);
+    // 1) Markdown code block: ```html or ```HTML, optional whitespace/newline
+    const codeBlockMatch = assistantMessage.match(/```\s*html\s*\n([\s\S]*?)```/i);
+    if (codeBlockMatch) {
+      code = codeBlockMatch[1].trim();
+    }
+    // 2) Any code block containing full HTML (e.g. ``` with different lang tag)
+    if (!code) {
+      const blockRegex = /```\s*\w*\s*\n([\s\S]*?)```/gi;
+      let blockMatch;
+      while ((blockMatch = blockRegex.exec(assistantMessage)) !== null) {
+        const inner = blockMatch[1].trim();
+        if (inner.includes('<!DOCTYPE') && inner.includes('</html>')) {
+          const extracted = inner.match(/<!DOCTYPE\s+html>[\s\S]*<\/html>/i);
+          if (extracted && extracted[0].length > 100) {
+            code = extracted[0];
+            break;
+          }
+        }
+      }
+    }
+    // 3) Raw HTML (no backticks)
+    if (!code) {
+      const htmlMatch = assistantMessage.match(/<!DOCTYPE\s+html>[\s\S]*?<\/html>/i);
       if (htmlMatch) {
         code = htmlMatch[0];
       }
@@ -643,7 +660,7 @@ app.post('/api/generate', async (req, res) => {
     
     // Check if response appears truncated (has code but no closing tag)
     if (!code) {
-      const hasPartialHtml = assistantMessage.includes('<!DOCTYPE html') || 
+      const hasPartialHtml = assistantMessage.includes('<!DOCTYPE') || 
                              assistantMessage.includes('<html') ||
                              assistantMessage.includes('<script');
       const hasClosingHtml = assistantMessage.includes('</html>');
@@ -651,6 +668,8 @@ app.post('/api/generate', async (req, res) => {
       if (hasPartialHtml && !hasClosingHtml) {
         wasCodeTruncated = true;
         console.log('⚠️ Response appears truncated - code was cut off');
+      } else {
+        console.log('⚠️ No code block found in AI response (preview will not update)');
       }
     }
     
