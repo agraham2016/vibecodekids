@@ -2,6 +2,13 @@
 <html>
 <head>
   <style>
+    :root {
+      --game-primary: #ff6b6b;
+      --game-secondary: #228B22;
+      --game-bg: #87CEEB;
+      --game-text: #ffffff;
+      --game-accent: #FFD700;
+    }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: 'Segoe UI', sans-serif;
@@ -210,6 +217,7 @@
   </style>
 </head>
 <body>
+  <!-- GAME_TITLE -->Platformer Adventure<!-- /GAME_TITLE -->
   <div class="game-container" id="gameContainer">
     <div class="cloud" style="left: 50px; top: 30px; width: 80px; height: 30px;"></div>
     <div class="cloud" style="left: 200px; top: 60px; width: 100px; height: 35px;"></div>
@@ -222,9 +230,11 @@
       <div class="lives">Lives: <span id="lives">3</span></div>
     </div>
     
+    <!-- PLAYER_CHARACTER -->character<!-- /PLAYER_CHARACTER -->
     <div class="player" id="player"></div>
     <div class="ground"></div>
     
+    <!-- OBSTACLES -->spikes<!-- /OBSTACLES -->
     <div class="game-over" id="gameOver">
       <h2>Game Over!</h2>
       <p>You collected <span id="finalCoins">0</span> coins</p>

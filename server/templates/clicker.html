@@ -2,6 +2,13 @@
 <html>
 <head>
   <style>
+    :root {
+      --game-primary: #FFD700;
+      --game-secondary: #0f3460;
+      --game-bg: #1a1a2e;
+      --game-text: #ffffff;
+      --game-accent: #88ff88;
+    }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: 'Segoe UI', sans-serif;
@@ -223,12 +230,14 @@
   </style>
 </head>
 <body>
+  <!-- GAME_TITLE -->Coin Clicker<!-- /GAME_TITLE -->
   <div class="game-container">
     <div class="main-area">
       <div class="score-display"><span id="score">0</span> coins</div>
       <div class="per-second">+<span id="perSecond">0</span> per second</div>
       
       <div class="click-area" id="clickArea">
+        <!-- PLAYER_CHARACTER -->coin<!-- /PLAYER_CHARACTER -->
         <button class="main-button" id="mainButton">💰</button>
       </div>
       
@@ -249,6 +258,7 @@
       </div>
     </div>
     
+    <!-- OBSTACLES -->upgrades<!-- /OBSTACLES -->
     <div class="upgrades-panel">
       <div class="upgrades-title">Upgrades</div>
       <div id="upgradesContainer"></div>

@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Message } from '../types'
+import { Message, GameConfig } from '../types'
+import GameSurvey from './GameSurvey'
 import TipsModal from './TipsModal'
 import './ChatPanel.css'
 
@@ -51,44 +52,11 @@ interface ChatPanelProps {
   messages: Message[]
   onSendMessage: (content: string, image?: string) => void
   isLoading: boolean
-  mode: 'plan' | 'vibe'
-  onModeChange: (mode: 'plan' | 'vibe') => void
+  gameConfig: GameConfig | null
+  onSurveyComplete: (config: GameConfig) => void
 }
 
-// Game template categories - pre-built starter games
-const GAME_TEMPLATES = [
-  { id: 'racing', icon: '🏎️', label: 'Racing Game', prompt: 'Make a racing game where I dodge cars' },
-  { id: 'shooter', icon: '🔫', label: 'Shooter Game', prompt: 'Make a space shooter game' },
-  { id: 'platformer', icon: '🦘', label: 'Platformer', prompt: 'Make a platformer jumping game' },
-  { id: 'frogger', icon: '🐸', label: 'Frogger Style', prompt: 'Make a frogger game crossing the road' },
-  { id: 'puzzle', icon: '🧩', label: 'Puzzle Game', prompt: 'Make a memory matching puzzle game' },
-  { id: 'clicker', icon: '👆', label: 'Clicker Game', prompt: 'Make a clicker idle game' },
-  { id: 'rpg', icon: '⚔️', label: 'Adventure/RPG', prompt: 'Make an RPG adventure game' }
-]
-
-// Vibe Mode suggestions - for building
-const VIBE_SUGGESTIONS = [
-  "Make a game like Snake",
-  "Create a bouncing ball animation",
-  "Build a multiplayer game I can play with friends",
-  "Make fireworks when I click",
-  "Create a 3D spinning planet",
-  "Build a 3D racing game",
-  "Make a 3D cube that I can rotate",
-  "Design a cool website about space"
-]
-
-// Plan Mode suggestions - for brainstorming
-const PLAN_SUGGESTIONS = [
-  "Help me plan a platformer game",
-  "What makes a good racing game?",
-  "I want to make something with animals",
-  "Help me think of a fun multiplayer game",
-  "What kind of game should I make?",
-  "Help me design a puzzle game"
-]
-
-export default function ChatPanel({ messages, onSendMessage, isLoading, mode, onModeChange }: ChatPanelProps) {
+export default function ChatPanel({ messages, onSendMessage, isLoading, gameConfig, onSurveyComplete }: ChatPanelProps) {
   const [input, setInput] = useState('')
   const [isListening, setIsListening] = useState(false)
   const [speechSupported, setSpeechSupported] = useState(false)
@@ -125,7 +93,7 @@ export default function ChatPanel({ messages, onSendMessage, isLoading, mode, on
         if (finalTranscript) {
           setInput(prev => prev + finalTranscript)
         } else if (interimTranscript) {
-          // Show interim results in a visual way (optional)
+          // Show interim results
         }
       }
 
@@ -153,7 +121,7 @@ export default function ChatPanel({ messages, onSendMessage, isLoading, mode, on
       recognitionRef.current.stop()
       setIsListening(false)
     } else {
-      setInput('') // Clear input when starting fresh
+      setInput('')
       recognitionRef.current.start()
       setIsListening(true)
     }
@@ -180,27 +148,17 @@ export default function ChatPanel({ messages, onSendMessage, isLoading, mode, on
     }
   }
 
-  const handleSuggestionClick = (suggestion: string) => {
-    if (!isLoading) {
-      onSendMessage(suggestion)
-    }
-  }
-
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
-      // Check file size (max 5MB)
       if (file.size > 5 * 1024 * 1024) {
         alert('Image is too big! Please use an image smaller than 5MB.')
         return
       }
-
-      // Check file type
       if (!file.type.startsWith('image/')) {
         alert('Please upload an image file (PNG, JPG, etc.)')
         return
       }
-
       const reader = new FileReader()
       reader.onloadend = () => {
         setUploadedImage(reader.result as string)
@@ -220,6 +178,21 @@ export default function ChatPanel({ messages, onSendMessage, isLoading, mode, on
     }
   }
 
+  // ========== SURVEY MODE ==========
+  // If no gameConfig yet, show the survey instead of chat
+  if (!gameConfig) {
+    return (
+      <div className="panel chat-panel">
+        <div className="panel-header chat-header">
+          <span className="icon">🎮</span>
+          <span className="chat-header-title">Let's Build a Game!</span>
+        </div>
+        <GameSurvey onComplete={onSurveyComplete} />
+      </div>
+    )
+  }
+
+  // ========== CHAT MODE ==========
   return (
     <div className="panel chat-panel">
       <TipsModal 
@@ -231,92 +204,20 @@ export default function ChatPanel({ messages, onSendMessage, isLoading, mode, on
       <div className="panel-header chat-header">
         <span className="icon">💬</span>
         <span className="chat-header-title">AI Helper</span>
-        
-        {/* Mode Toggle */}
-        <div className="mode-toggle-inline">
-          <button 
-            className={`mode-toggle-pill ${mode === 'plan' ? 'active' : ''}`}
-            onClick={() => onModeChange('plan')}
-            disabled={isLoading}
-            title="Plan Mode - Brainstorm ideas"
-          >
-            📝 Plan
-          </button>
-          <button 
-            className={`mode-toggle-pill ${mode === 'vibe' ? 'active' : ''}`}
-            onClick={() => onModeChange('vibe')}
-            disabled={isLoading}
-            title="Vibe Mode - Build your game!"
-          >
-            🚀 Build
-          </button>
+        <div className="game-config-badge">
+          {gameConfig.gameType} • {gameConfig.theme}
         </div>
       </div>
-      
-      {/* Plan Mode Warning */}
-      {mode === 'plan' && (
-        <div className="plan-mode-bar">
-          <span>📝 Planning Mode</span> — brainstorming only, nothing will be built yet.
-          <button className="plan-switch-btn" onClick={() => onModeChange('vibe')}>
-            Switch to Build 🚀
-          </button>
-        </div>
-      )}
       
       <div className="panel-content chat-messages">
         {messages.length === 0 ? (
           <div className="chat-welcome">
-            <div className="welcome-icon">{mode === 'plan' ? '📝' : '🎮'}</div>
-            <h3>{mode === 'plan' ? "Let's Plan Your Game!" : "What do you want to build?"}</h3>
-            <p>{mode === 'plan' 
-              ? "I'll help you brainstorm and plan before we build. What kind of game are you thinking?"
-              : "Pick a game type to start with a working template, or describe your idea!"
-            }</p>
-            
-            <div className="mode-indicator">
-              {mode === 'plan' ? (
-                <span className="mode-badge plan">Planning Mode - No code yet, just ideas!</span>
-              ) : (
-                <span className="mode-badge vibe">Build Mode - Let's create!</span>
-              )}
-            </div>
-            
-            {/* Template Buttons - Only in Vibe Mode */}
-            {mode === 'vibe' && (
-              <div className="template-section">
-                <p className="template-label">Start with a working game:</p>
-                <div className="template-grid">
-                  {GAME_TEMPLATES.map((template) => (
-                    <button
-                      key={template.id}
-                      className="template-btn"
-                      onClick={() => handleSuggestionClick(template.prompt)}
-                      disabled={isLoading}
-                    >
-                      <span className="template-icon">{template.icon}</span>
-                      <span className="template-name">{template.label}</span>
-                    </button>
-                  ))}
-                </div>
-                <p className="template-hint">These templates come with working game mechanics!</p>
-              </div>
-            )}
-            
-            <div className="suggestions">
-              <p className="suggestions-label">{mode === 'plan' ? "Let's brainstorm:" : "Or try something custom:"}</p>
-              <div className="suggestion-buttons">
-                {(mode === 'plan' ? PLAN_SUGGESTIONS : VIBE_SUGGESTIONS).map((suggestion, i) => (
-                  <button
-                    key={i}
-                    className="suggestion-btn"
-                    onClick={() => handleSuggestionClick(suggestion)}
-                    disabled={isLoading}
-                  >
-                    <span className="suggestion-icon">{mode === 'plan' ? '💭' : '✨'}</span>
-                    {suggestion}
-                  </button>
-                ))}
-              </div>
+            <div className="welcome-icon">🎮</div>
+            <h3>Building your {gameConfig.theme} {gameConfig.gameType} game!</h3>
+            <p>I'm creating it right now. Once it appears in the preview, you can ask me to change anything!</p>
+            <div className="building-indicator">
+              <div className="building-spinner-sm" />
+              <span>Generating your game...</span>
             </div>
           </div>
         ) : (
@@ -386,7 +287,7 @@ export default function ChatPanel({ messages, onSendMessage, isLoading, mode, on
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={isListening ? "🎤 Listening... speak now!" : uploadedImage ? "Describe what you want to do with this image..." : mode === 'plan' ? "What kind of game are you thinking about? 💭" : "What do you want to create today? 🎨"}
+            placeholder={isListening ? "🎤 Listening... speak now!" : uploadedImage ? "Describe what you want to do with this image..." : "What do you want to change? 🎨"}
             disabled={isLoading}
             rows={3}
           />

@@ -2,6 +2,13 @@
 <html>
 <head>
   <style>
+    :root {
+      --game-primary: #ff4444;
+      --game-secondary: #16213e;
+      --game-bg: #1a1a2e;
+      --game-text: #ffffff;
+      --game-accent: #00ff88;
+    }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: 'Segoe UI', sans-serif;
@@ -189,6 +196,7 @@
   </style>
 </head>
 <body>
+  <!-- GAME_TITLE -->Racing Game<!-- /GAME_TITLE -->
   <div class="game-container" id="gameContainer">
     <div class="road">
       <div class="road-line" style="top: 0px;"></div>
@@ -200,7 +208,9 @@
     </div>
     <div class="score-display">Score: <span id="score">0</span></div>
     <div class="speed-display">Speed: <span id="speed">1</span>x</div>
+    <!-- PLAYER_CHARACTER -->car<!-- /PLAYER_CHARACTER -->
     <div class="player-car" id="playerCar"></div>
+    <!-- OBSTACLES -->enemy_cars<!-- /OBSTACLES -->
     <div class="game-over" id="gameOver">
       <h2>CRASH!</h2>
       <p>Final Score: <span id="finalScore">0</span></p>

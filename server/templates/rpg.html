@@ -2,6 +2,13 @@
 <html>
 <head>
   <style>
+    :root {
+      --game-primary: #4CAF50;
+      --game-secondary: #D2B48C;
+      --game-bg: #1a1a2e;
+      --game-text: #ffffff;
+      --game-accent: #FFD700;
+    }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: 'Segoe UI', sans-serif;
@@ -249,6 +256,7 @@
   </style>
 </head>
 <body>
+  <!-- GAME_TITLE -->RPG Adventure<!-- /GAME_TITLE -->
   <div class="game-container">
     <div class="game-world" id="gameWorld">
       <div class="hud">
@@ -264,6 +272,7 @@
         </div>
       </div>
       
+      <!-- PLAYER_CHARACTER -->wizard<!-- /PLAYER_CHARACTER -->
       <div class="player" id="player">🧙</div>
       
       <div class="dialog-box" id="dialogBox">
@@ -331,6 +340,7 @@
       4: { class: 'chest', solid: false, icon: '📦', collectible: true },
     };
     
+    // <!-- OBSTACLES -->trees_and_water<!-- /OBSTACLES -->
     // NPCs
     const npcs = [
       { x: 200, y: 120, icon: '👴', name: 'Old Wizard', dialog: [

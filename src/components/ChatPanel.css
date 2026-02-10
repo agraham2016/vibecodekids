@@ -19,76 +19,45 @@
   margin-right: auto;
 }
 
-/* Inline Mode Toggle */
-.mode-toggle-inline {
-  display: flex;
-  gap: 4px;
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 20px;
-  padding: 3px;
-}
-
-.mode-toggle-pill {
-  padding: 5px 10px;
-  border-radius: 16px;
-  background: transparent;
-  border: 1px solid transparent;
-  color: rgba(255, 255, 255, 0.5);
+/* Game Config Badge */
+.game-config-badge {
+  padding: 4px 10px;
+  background: rgba(139, 92, 246, 0.2);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  border-radius: 12px;
+  color: #a78bfa;
   font-size: 0.7rem;
   font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
+  text-transform: capitalize;
   white-space: nowrap;
 }
 
-.mode-toggle-pill:hover:not(.active):not(:disabled) {
-  color: rgba(255, 255, 255, 0.8);
-  background: rgba(255, 255, 255, 0.08);
-}
-
-.mode-toggle-pill.active {
-  background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
-  color: white;
-  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
-}
-
-.mode-toggle-pill:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/* Plan Mode Warning Bar */
-.plan-mode-bar {
+/* Building Indicator (shown while first game generates) */
+.building-indicator {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 14px;
-  background: linear-gradient(135deg, rgba(251, 191, 36, 0.2) 0%, rgba(245, 158, 11, 0.2) 100%);
-  border-bottom: 1px solid rgba(251, 191, 36, 0.3);
-  font-size: 0.75rem;
-  color: #fbbf24;
-  font-weight: 600;
-  flex-shrink: 0;
-  flex-wrap: wrap;
-}
-
-.plan-switch-btn {
-  margin-left: auto;
-  padding: 4px 10px;
-  background: rgba(139, 92, 246, 0.4);
-  border: 1px solid rgba(139, 92, 246, 0.5);
+  gap: 10px;
+  padding: 12px 18px;
+  background: rgba(139, 92, 246, 0.15);
+  border: 1px solid rgba(139, 92, 246, 0.3);
   border-radius: 12px;
-  color: white;
-  font-size: 0.7rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  white-space: nowrap;
+  color: #a78bfa;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-top: 8px;
 }
 
-.plan-switch-btn:hover {
-  background: rgba(139, 92, 246, 0.6);
-  transform: scale(1.05);
+.building-spinner-sm {
+  width: 20px;
+  height: 20px;
+  border: 3px solid rgba(255, 255, 255, 0.1);
+  border-top-color: #8b5cf6;
+  border-radius: 50%;
+  animation: spinSm 0.7s linear infinite;
+}
+
+@keyframes spinSm {
+  to { transform: rotate(360deg); }
 }
 
 /* Chat Messages */
@@ -100,31 +69,6 @@
   flex-direction: column;
   gap: 14px;
   min-height: 0;
-}
-
-/* Mode Indicator Badge */
-.mode-indicator {
-  margin-bottom: 16px;
-}
-
-.mode-badge {
-  display: inline-block;
-  padding: 8px 16px;
-  border-radius: 20px;
-  font-size: 0.85rem;
-  font-weight: 600;
-}
-
-.mode-badge.plan {
-  background: linear-gradient(135deg, rgba(251, 191, 36, 0.3) 0%, rgba(245, 158, 11, 0.3) 100%);
-  border: 1px solid rgba(251, 191, 36, 0.5);
-  color: #fbbf24;
-}
-
-.mode-badge.vibe {
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.3) 0%, rgba(236, 72, 153, 0.3) 100%);
-  border: 1px solid rgba(139, 92, 246, 0.5);
-  color: #a78bfa;
 }
 
 /* ========== GAME TEMPLATE BUTTONS ========== */

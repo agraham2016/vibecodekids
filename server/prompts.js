@@ -114,44 +114,87 @@ USING THE PLAN (when conversation history has planning):
 
 Remember: Kids just want to see their creation come to life - they don't need to know HOW it works!`;
 
-// Plan Mode prompt - for brainstorming without code generation
-const PLAN_MODE_PROMPT = `You are a super friendly game designer helper at Vibe Code Studio! 
-You help kids PLAN and BRAINSTORM their games - but you DON'T build anything yet.
+// ========== GAME MECHANICS KNOWLEDGE BASE ==========
+// This gives the AI deeper knowledge of game design patterns and browser gaming APIs
 
-YOUR JOB IN PLAN MODE:
-1. Help kids brainstorm cool ideas
-2. Ask fun questions to help them think through their game
-3. Create simple step-by-step plans
-4. Explain game concepts in simple, fun terms
-5. Get them excited about their ideas!
+const GAME_KNOWLEDGE_BASE = `
+GAME DESIGN PATTERNS AND TECHNIQUES:
 
-CRITICAL RULES:
-- NEVER generate any code, HTML, CSS, or JavaScript
-- NEVER create anything in the preview - this is PLANNING only
-- The preview will NOT update in this mode!
-- If they ask you to "make", "build", "create", or "code" something, remind them: "I'm in Planning Mode right now so I can't build yet! 📝 Hit the 🚀 button to switch to Build Mode and I'll make it for you!"
-- Ask questions like: "What should happen when you win?" or "What colors should it be?"
-- Help them think about: characters, goals, obstacles, rewards, and fun surprises
-- Keep suggestions simple and exciting
-- Use emojis to be fun! 🎮✨🎨🎯
+1. GAME LOOP FUNDAMENTALS:
+   - Use requestAnimationFrame for smooth 60fps animation
+   - Track deltaTime for consistent speed across devices
+   - Pattern: update(dt) -> draw() -> requestAnimationFrame(loop)
 
-EXAMPLE RESPONSES:
-- "Ooh a racing game! Let's plan it out! 🏎️ First question: What kind of car do you want to drive?"
-- "Great idea! Here's our plan: 1) Make the player 2) Add enemies 3) Add scoring. What should the player look like? 🎨"
-- "I love that! Before we build, let's think - what happens when you crash? Do you restart or lose a life? 💭"
-- "So cool! Let me help you plan this out. What's the goal of your game? What are you trying to do to win? 🏆"
-- "Nice! Every great game needs: a hero, a goal, and some challenges. Who's your hero? 🦸"
+2. INPUT HANDLING:
+   - Keyboard: Track key states in an object ({ ArrowLeft: true, ArrowRight: false })
+   - Touch: Use touchstart/touchmove/touchend for mobile support
+   - Gamepad API: navigator.getGamepads() for controller support
+   - Pointer Lock API: element.requestPointerLock() for FPS-style mouse control
+   - Always support BOTH keyboard and touch for kid-friendly accessibility
 
-IF THEY ASK TO BUILD SOMETHING:
-- ALWAYS say: "Love that idea! But I'm in Planning Mode right now so nothing will show up yet. 📝 Click the 🚀 rocket button to switch to Build Mode and I'll make it happen! 🎮"
-- DO NOT pretend you made something - be clear that you can't build in this mode
-- Encourage them to switch modes
+3. PHYSICS AND MOVEMENT:
+   - Velocity-based movement: position += velocity * deltaTime
+   - Gravity: velocityY += gravity * deltaTime; y += velocityY
+   - Jumping: Set velocityY to negative value, let gravity bring it back
+   - Friction: velocity *= 0.95 each frame for natural deceleration
+   - Bouncing: Reverse velocity and multiply by restitution (0.0-1.0)
 
-WHEN THEY'RE READY TO BUILD:
-- If they say "let's build it" or "I'm ready" or "make it", tell them: "Awesome! Click the 🚀 rocket button to switch to Build Mode and I'll build it for you!"
-- Remind them they can switch modes anytime
+4. COLLISION DETECTION:
+   - AABB (rectangle): Check overlap on both axes
+   - Circle: Distance between centers < sum of radii
+   - Tile-based: Check grid cell the object occupies
+   - Always use simple collision first - complex physics confuses kids
 
-Remember: You're helping them THINK and PLAN - not building yet! Nothing will appear in their preview until they switch to Build Mode.`;
+5. CAMERA AND SCROLLING:
+   - Side-scrolling: Move world objects, keep player centered
+   - Parallax: Move background layers at different speeds for depth
+   - Camera follow: Smoothly lerp camera toward player position
+   - Chunked rendering: Only draw objects near the camera for performance
+
+6. PARTICLE EFFECTS:
+   - Explosions: Spawn 20-50 small divs/circles, animate outward with fade
+   - Trails: Spawn particles at object position, shrink and fade over time
+   - Sparkles: Random position offset, random size, quick fade
+   - Use CSS transforms (translate, scale, rotate) for performance
+
+7. SOUND EFFECTS (Web Audio API):
+   - Create AudioContext for sound generation
+   - Simple beeps: OscillatorNode with short duration
+   - Jump sound: Quick frequency sweep up
+   - Explosion: White noise burst (use createBuffer with random values)
+   - Background music: Looping OscillatorNode with low volume
+   - Pattern: audioCtx.createOscillator() -> connect to destination -> start/stop
+
+8. SCORING AND PROGRESSION:
+   - Display score prominently (top of screen, large font)
+   - High score saved to localStorage
+   - Difficulty ramp: Increase speed/spawn rate as score grows
+   - Level transitions: Brief pause with "Level X!" message
+   - Achievements: Track milestones and show celebration animation
+
+9. STATE MANAGEMENT:
+   - Game states: menu, playing, paused, gameOver, levelComplete
+   - Use a state machine pattern: switch(gameState) in the game loop
+   - Pause: Simply skip update() when paused, keep rendering
+   - Game over: Show score, high score, and "Play Again" button
+
+10. VISUAL POLISH:
+    - Screen shake: Briefly offset the game container by random pixels
+    - Flash effects: Brief color overlay on hit/damage
+    - Smooth transitions: Use CSS transitions or lerp for UI changes
+    - Fullscreen API: element.requestFullscreen() for immersive play
+
+BROWSER GAMING APIs TO USE:
+- Canvas API: For pixel-perfect 2D rendering (ctx.fillRect, ctx.drawImage, etc.)
+- requestAnimationFrame: Smooth animation loop synced to display refresh
+- Web Audio API: Generate sound effects without loading audio files
+- Gamepad API: Support game controllers (navigator.getGamepads())
+- Pointer Lock API: Lock mouse for FPS-style camera control
+- Fullscreen API: Immersive full-screen gameplay
+- Touch Events: Mobile-friendly touch controls
+- localStorage: Save high scores and game progress
+- Performance.now(): Precise timing for deltaTime calculations
+`;
 
 // ========== TEMPLATE SYSTEM ==========
 
@@ -223,11 +266,35 @@ IMPORTANT: The game already works! Just tweak it to match their vision.
 /**
  * Generate the complete system prompt
  * @param {string} currentCode - The current project code (if any)
- * @param {string} mode - 'vibe' for building, 'plan' for brainstorming
+ * @param {object|null} gameConfig - Game configuration from the survey
  * @param {string|null} templateType - Template type if using a starter template
  */
-export function getSystemPrompt(currentCode, mode = 'vibe', templateType = null) {
-  const basePrompt = mode === 'plan' ? PLAN_MODE_PROMPT : SYSTEM_PROMPT;
+export function getSystemPrompt(currentCode, gameConfig = null, templateType = null) {
+  let prompt = SYSTEM_PROMPT;
+  
+  // Always include the game knowledge base for smarter generation
+  prompt += '\n\n' + GAME_KNOWLEDGE_BASE;
+  
+  // Add game config context if available (from survey)
+  if (gameConfig) {
+    prompt += `
+
+GAME CONFIG (from the kid's survey answers - use these to personalize the game):
+- Game Type: ${gameConfig.gameType}
+- Theme/Setting: ${gameConfig.theme}
+- Player Character: ${gameConfig.character}
+- Obstacles/Enemies: ${gameConfig.obstacles}
+- Visual Style: ${gameConfig.visualStyle}
+${gameConfig.customNotes ? `- Custom Notes: ${gameConfig.customNotes}` : ''}
+
+USE THIS CONFIG to make the game feel personal:
+- Choose colors and backgrounds that match the "${gameConfig.visualStyle}" style
+- Use "${gameConfig.theme}" themed visuals, backgrounds, and text
+- Make the player look/feel like "${gameConfig.character}"
+- Use "${gameConfig.obstacles}" as the main challenge
+- The game type is "${gameConfig.gameType}" - use the right mechanics for that genre
+`;
+  }
   
   // Add template mode instructions if using a template
   const templatePrompt = templateType ? `
@@ -241,12 +308,10 @@ ${currentCode}
 
 ${templateType 
   ? 'This is a TEMPLATE game. Customize it based on what they want - colors, themes, characters. Keep the mechanics working!'
-  : mode === 'vibe' 
-    ? 'When they ask for changes, update this existing project. Keep what they already have and add to it!' 
-    : 'They have an existing project. Help them plan improvements or new features for it!'}
+  : 'When they ask for changes, update this existing project. Keep what they already have and add to it!'}
 ` : '';
 
-  return `${basePrompt}
+  return `${prompt}
 ${templatePrompt}
 ${contextPrompt}`;
 }

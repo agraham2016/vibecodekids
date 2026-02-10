@@ -2,6 +2,13 @@
 <html>
 <head>
   <style>
+    :root {
+      --game-primary: #4ecdc4;
+      --game-secondary: #228B22;
+      --game-bg: #1a1a2e;
+      --game-text: #ffffff;
+      --game-accent: #FFD700;
+    }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: 'Segoe UI', sans-serif;
@@ -201,6 +208,7 @@
   </style>
 </head>
 <body>
+  <!-- GAME_TITLE -->Frogger<!-- /GAME_TITLE -->
   <div class="game-container" id="gameContainer">
     <div class="hud">
       <div class="score">Score: <span id="score">0</span></div>
@@ -226,6 +234,7 @@
     <!-- Safe zone (middle) -->
     <div class="row safe-zone" style="top: 250px;"></div>
     
+    <!-- OBSTACLES -->cars_and_trucks<!-- /OBSTACLES -->
     <!-- Road rows -->
     <div class="row road" style="top: 300px;" id="road1"></div>
     <div class="row road" style="top: 350px;" id="road2"></div>
@@ -235,6 +244,7 @@
     <!-- Start zone -->
     <div class="row safe-zone" style="top: 500px;"></div>
     
+    <!-- PLAYER_CHARACTER -->frog<!-- /PLAYER_CHARACTER -->
     <div class="player" id="player">🐸</div>
     
     <div class="game-over" id="gameOver">

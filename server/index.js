@@ -448,10 +448,85 @@ function formatMessageContent(text, imageBase64) {
   ];
 }
 
+/**
+ * Pre-customize a template based on gameConfig
+ * Swaps colors, themes, labels, and character references in the template HTML
+ */
+function preCustomizeTemplate(templateHtml, gameConfig) {
+  if (!gameConfig || !templateHtml) return templateHtml;
+  
+  let html = templateHtml;
+  
+  // ========== VISUAL STYLE COLOR MAPPINGS ==========
+  const styleColors = {
+    neon: {
+      primary: '#8b5cf6',
+      secondary: '#ec4899',
+      background: '#0f0a1e',
+      text: '#e0d4ff',
+      accent: '#06d6a0',
+      bgGradient: 'linear-gradient(135deg, #0f0a1e 0%, #1a0e2e 100%)',
+    },
+    retro: {
+      primary: '#f59e0b',
+      secondary: '#ef4444',
+      background: '#1a1a2e',
+      text: '#e2e8f0',
+      accent: '#22c55e',
+      bgGradient: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
+    },
+    cute: {
+      primary: '#f472b6',
+      secondary: '#a78bfa',
+      background: '#fdf2f8',
+      text: '#4a1942',
+      accent: '#34d399',
+      bgGradient: 'linear-gradient(135deg, #fdf2f8 0%, #fce7f3 100%)',
+    },
+    spooky: {
+      primary: '#a855f7',
+      secondary: '#f97316',
+      background: '#0c0a1a',
+      text: '#c4b5fd',
+      accent: '#22d3ee',
+      bgGradient: 'linear-gradient(135deg, #0c0a1a 0%, #1a0f2b 100%)',
+    },
+    clean: {
+      primary: '#3b82f6',
+      secondary: '#10b981',
+      background: '#f8fafc',
+      text: '#1e293b',
+      accent: '#f59e0b',
+      bgGradient: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
+    },
+  };
+  
+  const colors = styleColors[gameConfig.visualStyle] || styleColors.neon;
+  
+  // Replace CSS custom properties if present
+  html = html.replace(/--game-primary:\s*[^;]+;/g, `--game-primary: ${colors.primary};`);
+  html = html.replace(/--game-secondary:\s*[^;]+;/g, `--game-secondary: ${colors.secondary};`);
+  html = html.replace(/--game-bg:\s*[^;]+;/g, `--game-bg: ${colors.background};`);
+  html = html.replace(/--game-text:\s*[^;]+;/g, `--game-text: ${colors.text};`);
+  html = html.replace(/--game-accent:\s*[^;]+;/g, `--game-accent: ${colors.accent};`);
+  
+  // Replace title/heading text with theme-appropriate text
+  const themeTitle = `${gameConfig.theme.charAt(0).toUpperCase() + gameConfig.theme.slice(1)} ${gameConfig.gameType.charAt(0).toUpperCase() + gameConfig.gameType.slice(1)}`;
+  html = html.replace(/<!-- GAME_TITLE -->[^<]*<!-- \/GAME_TITLE -->/g, `<!-- GAME_TITLE -->${themeTitle}<!-- /GAME_TITLE -->`);
+  
+  // Replace character placeholder
+  html = html.replace(/<!-- PLAYER_CHARACTER -->[^<]*<!-- \/PLAYER_CHARACTER -->/g, `<!-- PLAYER_CHARACTER -->${gameConfig.character}<!-- /PLAYER_CHARACTER -->`);
+  
+  // Replace obstacle placeholder
+  html = html.replace(/<!-- OBSTACLES -->[^<]*<!-- \/OBSTACLES -->/g, `<!-- OBSTACLES -->${gameConfig.obstacles}<!-- /OBSTACLES -->`);
+  
+  return html;
+}
+
 // Main generation endpoint
 app.post('/api/generate', async (req, res) => {
   try {
-    const { message, image, currentCode, conversationHistory = [], mode = 'vibe' } = req.body;
+    const { message, image, currentCode, conversationHistory = [], gameConfig = null } = req.body;
 
     // Get user from session if logged in
     const token = req.headers.authorization?.replace('Bearer ', '');
@@ -495,27 +570,35 @@ app.post('/api/generate', async (req, res) => {
       });
     }
 
-    // ========== TEMPLATE DETECTION ==========
-    // Check if we should use a template (only if code is default and in vibe mode)
+    // ========== TEMPLATE DETECTION & PRE-CUSTOMIZATION ==========
     let templateType = null;
     let codeToUse = currentCode;
     
-    if (mode === 'vibe' && isDefaultCode(currentCode)) {
-      // Detect if user is asking for a specific game type
-      templateType = detectTemplate(message);
+    if (isDefaultCode(currentCode)) {
+      // Use gameConfig to select template, or detect from message
+      if (gameConfig && gameConfig.gameType) {
+        templateType = gameConfig.gameType;
+      } else {
+        templateType = detectTemplate(message);
+      }
       
       if (templateType) {
-        // Load the template
-        const templateCode = await loadTemplate(templateType);
+        let templateCode = await loadTemplate(templateType);
         if (templateCode) {
+          // Pre-customize template based on gameConfig survey answers
+          if (gameConfig) {
+            templateCode = preCustomizeTemplate(templateCode, gameConfig);
+            console.log(`📦 Using pre-customized ${templateType} template (theme: ${gameConfig.theme}, style: ${gameConfig.visualStyle})`);
+          } else {
+            console.log(`📦 Using ${templateType} template for this request`);
+          }
           codeToUse = templateCode;
-          console.log(`📦 Using ${templateType} template for this request`);
         }
       }
     }
 
-    // Build conversation with system prompt (pass mode and template type)
-    const systemPrompt = getSystemPrompt(codeToUse, mode, templateType);
+    // Build conversation with system prompt (pass gameConfig and template type)
+    const systemPrompt = getSystemPrompt(codeToUse, gameConfig, templateType);
     
     // Format conversation history for Claude (with image support)
     const messages = [
@@ -543,42 +626,39 @@ app.post('/api/generate', async (req, res) => {
     // Extract response
     const assistantMessage = response.content[0].text;
     
-    // Parse code from response if present (only in vibe mode)
+    // Parse code from response
     let code = null;
     let wasCodeTruncated = false;
     
-    if (mode === 'vibe') {
-      const codeMatch = assistantMessage.match(/```html\n([\s\S]*?)```/);
-      if (codeMatch) {
-        code = codeMatch[1].trim();
-      } else {
-        // Check for full HTML without code blocks
-        const htmlMatch = assistantMessage.match(/<!DOCTYPE html>[\s\S]*<\/html>/i);
-        if (htmlMatch) {
-          code = htmlMatch[0];
-        }
-      }
-      
-      // Check if response appears truncated (has code but no closing tag)
-      if (!code) {
-        const hasPartialHtml = assistantMessage.includes('<!DOCTYPE html') || 
-                               assistantMessage.includes('<html') ||
-                               assistantMessage.includes('<script');
-        const hasClosingHtml = assistantMessage.includes('</html>');
-        
-        if (hasPartialHtml && !hasClosingHtml) {
-          wasCodeTruncated = true;
-          console.log('⚠️ Response appears truncated - code was cut off');
-        }
-      }
-      
-      // If we used a template and AI didn't generate new code, use the template
-      if (!code && templateType && codeToUse) {
-        code = codeToUse;
-        console.log(`📦 Returning ${templateType} template as starting point`);
+    const codeMatch = assistantMessage.match(/```html\n([\s\S]*?)```/);
+    if (codeMatch) {
+      code = codeMatch[1].trim();
+    } else {
+      // Check for full HTML without code blocks
+      const htmlMatch = assistantMessage.match(/<!DOCTYPE html>[\s\S]*<\/html>/i);
+      if (htmlMatch) {
+        code = htmlMatch[0];
       }
     }
-    // In plan mode, code stays null - no preview updates
+    
+    // Check if response appears truncated (has code but no closing tag)
+    if (!code) {
+      const hasPartialHtml = assistantMessage.includes('<!DOCTYPE html') || 
+                             assistantMessage.includes('<html') ||
+                             assistantMessage.includes('<script');
+      const hasClosingHtml = assistantMessage.includes('</html>');
+      
+      if (hasPartialHtml && !hasClosingHtml) {
+        wasCodeTruncated = true;
+        console.log('⚠️ Response appears truncated - code was cut off');
+      }
+    }
+    
+    // If we used a template and AI didn't generate new code, use the template
+    if (!code && templateType && codeToUse) {
+      code = codeToUse;
+      console.log(`📦 Returning ${templateType} template as starting point`);
+    }
 
     // Sanitize the output message
     let cleanMessage = sanitizeOutput(assistantMessage);
@@ -586,18 +666,6 @@ app.post('/api/generate', async (req, res) => {
     // If code was truncated, give a helpful message
     if (wasCodeTruncated) {
       cleanMessage = "Oops! That game is pretty complex and I ran out of space! 😅 Try asking for something simpler first, then we can add more features step by step. For example: 'Make a simple RPG game' and then 'Now add a shop' after! 🎮";
-    }
-    
-    // If in plan mode and user seemed to want to build something, add a reminder
-    if (mode === 'plan') {
-      const buildWords = ['make', 'build', 'create', 'code', 'add', 'put', 'show', 'give'];
-      const lowerMessage = message.toLowerCase();
-      const seemsLikeBuildRequest = buildWords.some(word => lowerMessage.includes(word));
-      
-      // If the AI didn't mention switching modes, add a gentle reminder
-      if (seemsLikeBuildRequest && !cleanMessage.toLowerCase().includes('build mode') && !cleanMessage.toLowerCase().includes('rocket')) {
-        cleanMessage += " 💡 (Psst! I'm in Planning Mode so nothing shows up yet. Hit the 🚀 rocket button to switch to Build Mode!)";
-      }
     }
 
     // Include usage info in response

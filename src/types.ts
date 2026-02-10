@@ -6,6 +6,33 @@ export interface Message {
   timestamp: Date
 }
 
+// Game configuration from the onboarding survey
+export type GameType = 'racing' | 'shooter' | 'platformer' | 'frogger' | 'puzzle' | 'clicker' | 'rpg'
+
+export interface GameConfig {
+  gameType: GameType
+  theme: string        // "space", "underwater", "jungle", etc.
+  character: string    // "rocket ship", "unicorn", "ninja", etc.
+  obstacles: string    // "asteroids", "zombies", "cars", etc.
+  visualStyle: string  // "neon", "retro", "cute", "spooky", "clean"
+  customNotes: string  // Any free-text details the kid mentioned
+}
+
+// Survey question definition
+export interface SurveyQuestion {
+  id: string
+  botMessage: string
+  options: SurveyOption[]
+  allowFreeText: boolean
+  freeTextPlaceholder?: string
+}
+
+export interface SurveyOption {
+  label: string
+  icon: string
+  value: string
+}
+
 export interface Project {
   id: string
   name: string

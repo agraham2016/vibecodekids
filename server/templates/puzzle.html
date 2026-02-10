@@ -2,6 +2,13 @@
 <html>
 <head>
   <style>
+    :root {
+      --game-primary: #6366f1;
+      --game-secondary: #764ba2;
+      --game-bg: #667eea;
+      --game-text: #ffffff;
+      --game-accent: #00ff88;
+    }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: 'Segoe UI', sans-serif;
@@ -180,6 +187,7 @@
   </style>
 </head>
 <body>
+  <!-- GAME_TITLE -->Memory Match<!-- /GAME_TITLE -->
   <div class="game-container">
     <div class="title">Memory Match!</div>
     <div class="hud">
@@ -187,6 +195,7 @@
       <div class="matches">Matches: <span id="matches">0</span>/8</div>
       <div class="timer">Time: <span id="timer">0</span>s</div>
     </div>
+    <!-- PLAYER_CHARACTER -->cards<!-- /PLAYER_CHARACTER -->
     <div class="game-board" id="gameBoard"></div>
   </div>
   
@@ -208,6 +217,7 @@
     const gameWinScreen = document.getElementById('gameWin');
     
     // Emoji pairs for matching
+    // <!-- OBSTACLES -->emoji_pairs<!-- /OBSTACLES -->
     const emojis = ['🎮', '🚀', '⭐', '🎨', '🎵', '🌈', '🦄', '🍕'];
     
     let cards = [];

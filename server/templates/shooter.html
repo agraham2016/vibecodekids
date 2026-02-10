@@ -2,6 +2,13 @@
 <html>
 <head>
   <style>
+    :root {
+      --game-primary: #00ffff;
+      --game-secondary: #4400ff;
+      --game-bg: #0a0a20;
+      --game-text: #ffffff;
+      --game-accent: #00ff00;
+    }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: 'Segoe UI', sans-serif;
@@ -197,6 +204,7 @@
   </style>
 </head>
 <body>
+  <!-- GAME_TITLE -->Space Shooter<!-- /GAME_TITLE -->
   <div class="game-container" id="gameContainer">
     <div class="stars" id="stars"></div>
     <div class="hud">
@@ -204,7 +212,9 @@
       <div class="level">Level: <span id="level">1</span></div>
       <div class="lives">Lives: <span id="lives">3</span></div>
     </div>
+    <!-- PLAYER_CHARACTER -->spaceship<!-- /PLAYER_CHARACTER -->
     <div class="player-ship" id="player"></div>
+    <!-- OBSTACLES -->aliens<!-- /OBSTACLES -->
     <div class="game-over" id="gameOver">
       <h2>GAME OVER</h2>
       <p>Final Score: <span id="finalScore">0</span></p>

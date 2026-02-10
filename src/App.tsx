@@ -9,7 +9,7 @@ import AuthModal from './components/AuthModal'
 import UpgradeModal from './components/UpgradeModal'
 import VersionHistoryModal from './components/VersionHistoryModal'
 import LandingPage from './components/LandingPage'
-import { Message, Project, MembershipUsage, TierInfo, UserProject } from './types'
+import { Message, Project, MembershipUsage, TierInfo, UserProject, GameConfig } from './types'
 import './App.css'
 
 interface User {
@@ -93,7 +93,7 @@ function App() {
   const [showVersionHistory, setShowVersionHistory] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
-  const [vibeMode, setVibeMode] = useState<'plan' | 'vibe'>('vibe')
+  const [gameConfig, setGameConfig] = useState<GameConfig | null>(null)
   const lastSavedCode = useRef<string>(DEFAULT_HTML)
 
   // Fetch user's projects
@@ -266,7 +266,7 @@ function App() {
             content: m.content,
             image: m.image
           })),
-          mode: vibeMode
+          gameConfig: gameConfig
         })
       })
 
@@ -326,7 +326,7 @@ function App() {
     } finally {
       setIsLoading(false)
     }
-  }, [code, messages, authToken, vibeMode])
+  }, [code, messages, authToken, gameConfig])
 
   const handleCodeChange = useCallback((newCode: string) => {
     setCode(newCode)
@@ -410,7 +410,17 @@ function App() {
     })
     lastSavedCode.current = DEFAULT_HTML
     setHasUnsavedChanges(false)
+    setGameConfig(null) // Reset to show survey again
   }, [])
+
+  // When the survey is completed, store the config and auto-generate the first game
+  const handleSurveyComplete = useCallback((config: GameConfig) => {
+    setGameConfig(config)
+    // Build a descriptive prompt from the survey answers
+    const buildPrompt = `Build me a ${config.theme} ${config.gameType} game where I play as a ${config.character}. The obstacles/enemies should be ${config.obstacles}. Make it look ${config.visualStyle}.${config.customNotes ? ` Also: ${config.customNotes}` : ''}`
+    // Auto-send this as the first message to start building
+    handleSendMessage(buildPrompt)
+  }, [handleSendMessage])
 
   // Show loading while checking auth
   if (isCheckingAuth) {
@@ -522,8 +532,8 @@ function App() {
             messages={messages}
             onSendMessage={handleSendMessage}
             isLoading={isLoading}
-            mode={vibeMode}
-            onModeChange={setVibeMode}
+            gameConfig={gameConfig}
+            onSurveyComplete={handleSurveyComplete}
           />
         </div>
         
