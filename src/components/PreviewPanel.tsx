@@ -125,30 +125,14 @@ export default function PreviewPanel({ code }: PreviewPanelProps) {
           </button>
         </div>
         
-        <div className="panel-content preview-content">
-          <div className="browser-mockup">
-            <div className="browser-bar">
-              <div className="browser-dots">
-                <span className="dot red"></span>
-                <span className="dot yellow"></span>
-                <span className="dot green"></span>
-              </div>
-              <div className="browser-url">
-                <span className="url-icon">🔒</span>
-                <span className="url-text">my-awesome-project.kidvibe.code</span>
-              </div>
-            </div>
-            
-            <div className="preview-iframe-container">
-              <iframe
-                key={key}
-                ref={iframeRef}
-                title="Preview"
-                sandbox="allow-scripts allow-same-origin"
-                className="preview-iframe"
-              />
-            </div>
-          </div>
+        <div className="preview-iframe-wrapper">
+          <iframe
+            key={key}
+            ref={iframeRef}
+            title="Preview"
+            sandbox="allow-scripts allow-same-origin"
+            className="preview-iframe"
+          />
         </div>
       </div>
 
