@@ -10,6 +10,12 @@ function injectLibraries(code: string): string {
   // Check if code already has doctype/html structure
   const hasFullStructure = code.toLowerCase().includes('<!doctype') || code.toLowerCase().includes('<html');
   
+  // Preview scrollbar: so the full game is visible when the iframe is shorter than the game
+  const previewScrollStyle = `
+    <style id="vibe-preview-scroll">
+      html, body { overflow-y: auto !important; overflow-x: hidden; min-height: 100%; }
+    </style>
+  `;
   // Libraries to inject
   const libraryScripts = `
     <!-- 3D Libraries -->
@@ -19,14 +25,15 @@ function injectLibraries(code: string): string {
       window.THREE = THREE;
     </script>
   `;
-  
+  const headInject = previewScrollStyle + libraryScripts;
+
   if (hasFullStructure) {
     // Inject into the <head> if it exists
     if (code.includes('</head>')) {
-      return code.replace('</head>', `${libraryScripts}</head>`);
+      return code.replace('</head>', `${headInject}</head>`);
     } else if (code.includes('<body')) {
       // Insert before body if no head
-      return code.replace(/<body/i, `${libraryScripts}<body`);
+      return code.replace(/<body/i, `${previewScrollStyle}<body`);
     }
   }
   
@@ -36,6 +43,7 @@ function injectLibraries(code: string): string {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  ${previewScrollStyle}
   ${libraryScripts}
 </head>
 <body>
