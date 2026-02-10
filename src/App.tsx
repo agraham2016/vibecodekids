@@ -534,6 +534,7 @@ function App() {
             isLoading={isLoading}
             gameConfig={gameConfig}
             onSurveyComplete={handleSurveyComplete}
+            currentProjectId={currentProject.id}
           />
         </div>
         

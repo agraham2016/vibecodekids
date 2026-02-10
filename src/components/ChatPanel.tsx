@@ -54,9 +54,10 @@ interface ChatPanelProps {
   isLoading: boolean
   gameConfig: GameConfig | null
   onSurveyComplete: (config: GameConfig) => void
+  currentProjectId: string
 }
 
-export default function ChatPanel({ messages, onSendMessage, isLoading, gameConfig, onSurveyComplete }: ChatPanelProps) {
+export default function ChatPanel({ messages, onSendMessage, isLoading, gameConfig, onSurveyComplete, currentProjectId }: ChatPanelProps) {
   const [input, setInput] = useState('')
   const [isListening, setIsListening] = useState(false)
   const [speechSupported, setSpeechSupported] = useState(false)
@@ -179,8 +180,10 @@ export default function ChatPanel({ messages, onSendMessage, isLoading, gameConf
   }
 
   // ========== SURVEY MODE ==========
-  // If no gameConfig yet, show the survey instead of chat
-  if (!gameConfig) {
+  // Show survey only when no gameConfig AND no project loaded (new project)
+  // If they clicked a project from the list, show chat so they can edit it
+  const showSurvey = !gameConfig && currentProjectId === 'new'
+  if (showSurvey) {
     return (
       <div className="panel chat-panel">
         <div className="panel-header chat-header">
@@ -204,21 +207,35 @@ export default function ChatPanel({ messages, onSendMessage, isLoading, gameConf
       <div className="panel-header chat-header">
         <span className="icon">💬</span>
         <span className="chat-header-title">AI Helper</span>
-        <div className="game-config-badge">
-          {gameConfig.gameType} • {gameConfig.theme}
-        </div>
+        {gameConfig && (
+          <div className="game-config-badge">
+            {gameConfig.gameType} • {gameConfig.theme}
+          </div>
+        )}
+        {!gameConfig && currentProjectId !== 'new' && (
+          <div className="game-config-badge edit-mode">Editing project</div>
+        )}
       </div>
       
       <div className="panel-content chat-messages">
         {messages.length === 0 ? (
           <div className="chat-welcome">
             <div className="welcome-icon">🎮</div>
-            <h3>Building your {gameConfig.theme} {gameConfig.gameType} game!</h3>
-            <p>I'm creating it right now. Once it appears in the preview, you can ask me to change anything!</p>
-            <div className="building-indicator">
-              <div className="building-spinner-sm" />
-              <span>Generating your game...</span>
-            </div>
+            {gameConfig ? (
+              <>
+                <h3>Building your {gameConfig.theme} {gameConfig.gameType} game!</h3>
+                <p>I'm creating it right now. Once it appears in the preview, you can ask me to change anything!</p>
+                <div className="building-indicator">
+                  <div className="building-spinner-sm" />
+                  <span>Generating your game...</span>
+                </div>
+              </>
+            ) : (
+              <>
+                <h3>Edit your game!</h3>
+                <p>Ask me to add powerups, change colors, new levels, or anything else. I'll update the code for you.</p>
+              </>
+            )}
           </div>
         ) : (
           <>
