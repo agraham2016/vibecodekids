@@ -323,6 +323,18 @@ function App() {
       }
 
       if (!response.ok) {
+        // Use the server's kid-friendly error message if available
+        const serverMsg = data?.message
+        if (serverMsg) {
+          const errorMsg: Message = {
+            id: (Date.now() + 1).toString(),
+            role: 'assistant',
+            content: serverMsg,
+            timestamp: new Date()
+          }
+          setMessages(prev => [...prev, errorMsg])
+          return
+        }
         throw new Error('Failed to generate code')
       }
       

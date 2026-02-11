@@ -612,13 +612,28 @@ app.post('/api/generate', async (req, res) => {
       }
     ];
 
-    // Call Claude API with higher token limit for complex games
-    const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 16384,
-      system: systemPrompt,
-      messages: messages
-    });
+    // Call Claude API with retry logic for transient failures
+    let response;
+    const maxRetries = 2;
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        response = await anthropic.messages.create({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 16384,
+          system: systemPrompt,
+          messages: messages
+        });
+        break; // Success, exit retry loop
+      } catch (apiError) {
+        console.error(`⚠️ Claude API attempt ${attempt}/${maxRetries} failed:`, apiError.status || apiError.message);
+        if (attempt === maxRetries) {
+          // All retries exhausted - throw with details
+          throw new Error(`Claude API failed after ${maxRetries} attempts: ${apiError.status || ''} ${apiError.message || 'Unknown error'}`);
+        }
+        // Wait briefly before retry (1 second)
+        await new Promise(r => setTimeout(r, 1000));
+      }
+    }
 
     // Increment usage counter after successful generation
     await incrementUsage(userId, 'generate');
@@ -756,11 +771,26 @@ app.post('/api/generate', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('API Error:', error);
+    console.error('API Error:', error.message || error);
+    console.error('Stack:', error.stack);
     
-    // Kid-friendly error message
-    res.status(500).json({
-      message: "Oops! My brain got a little confused. 🤔 Can you try asking me again?",
+    // Provide a more helpful response depending on the error type
+    let friendlyMessage = "Oops! My brain got a little confused. 🤔 Can you try asking me again?";
+    let statusCode = 500;
+    
+    const errMsg = (error.message || '').toLowerCase();
+    if (errMsg.includes('rate') || errMsg.includes('429')) {
+      friendlyMessage = "I'm a little busy right now! 🐢 Wait a moment and try again.";
+      statusCode = 429;
+    } else if (errMsg.includes('timeout') || errMsg.includes('timed out')) {
+      friendlyMessage = "That took too long! 🕐 Try asking for something a bit simpler.";
+    } else if (errMsg.includes('overloaded') || errMsg.includes('529')) {
+      friendlyMessage = "The servers are super busy! 🚀 Try again in a minute.";
+      statusCode = 503;
+    }
+    
+    res.status(statusCode).json({
+      message: friendlyMessage,
       code: null
     });
   }
