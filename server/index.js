@@ -615,7 +615,7 @@ app.post('/api/generate', async (req, res) => {
     // Call Claude API with higher token limit for complex games
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
-      max_tokens: 8192,
+      max_tokens: 16384,
       system: systemPrompt,
       messages: messages
     });
@@ -624,53 +624,112 @@ app.post('/api/generate', async (req, res) => {
     await incrementUsage(userId, 'generate');
 
     // Extract response
-    const assistantMessage = response.content[0].text;
+    let assistantMessage = response.content[0].text;
     
-    // Parse code from response (try multiple patterns; AI may use different formats)
-    let code = null;
-    let wasCodeTruncated = false;
-    
-    // 1) Markdown code block: ```html or ```HTML, optional whitespace/newline
-    const codeBlockMatch = assistantMessage.match(/```\s*html\s*\n([\s\S]*?)```/i);
-    if (codeBlockMatch) {
-      code = codeBlockMatch[1].trim();
-    }
-    // 2) Any code block containing full HTML (e.g. ``` with different lang tag)
-    if (!code) {
+    // --- Helper: try to extract complete HTML from an AI response ---
+    function extractCode(text) {
+      // 1) Markdown code block: ```html or ```HTML
+      const codeBlockMatch = text.match(/```\s*html\s*\n([\s\S]*?)```/i);
+      if (codeBlockMatch) {
+        const inner = codeBlockMatch[1].trim();
+        if (inner.includes('</html>')) return inner;
+      }
+      // 2) Any code block containing full HTML
       const blockRegex = /```\s*\w*\s*\n([\s\S]*?)```/gi;
       let blockMatch;
-      while ((blockMatch = blockRegex.exec(assistantMessage)) !== null) {
+      while ((blockMatch = blockRegex.exec(text)) !== null) {
         const inner = blockMatch[1].trim();
         if (inner.includes('<!DOCTYPE') && inner.includes('</html>')) {
           const extracted = inner.match(/<!DOCTYPE\s+html>[\s\S]*<\/html>/i);
-          if (extracted && extracted[0].length > 100) {
-            code = extracted[0];
-            break;
-          }
+          if (extracted && extracted[0].length > 100) return extracted[0];
         }
       }
+      // 3) Raw HTML (no backticks)
+      const htmlMatch = text.match(/<!DOCTYPE\s+html>[\s\S]*?<\/html>/i);
+      if (htmlMatch) return htmlMatch[0];
+      return null;
     }
-    // 3) Raw HTML (no backticks)
-    if (!code) {
-      const htmlMatch = assistantMessage.match(/<!DOCTYPE\s+html>[\s\S]*?<\/html>/i);
-      if (htmlMatch) {
-        code = htmlMatch[0];
-      }
+
+    // --- Helper: detect if the response was truncated mid-code ---
+    function isTruncated(text) {
+      const hasPartialHtml = text.includes('<!DOCTYPE') || 
+                             text.includes('<html') ||
+                             text.includes('<script');
+      const hasClosingHtml = text.includes('</html>');
+      return hasPartialHtml && !hasClosingHtml;
     }
+
+    // --- Helper: extract the partial code from a truncated response ---
+    function extractPartialCode(text) {
+      // Try to get everything from <!DOCTYPE or <html onward
+      const match = text.match(/<!DOCTYPE\s+html>[\s\S]*/i) || text.match(/<html[\s\S]*/i);
+      if (match) return match[0];
+      // Fallback: get content after the code fence opener
+      const fenceMatch = text.match(/```\s*html\s*\n([\s\S]*)/i);
+      if (fenceMatch) return fenceMatch[1];
+      return null;
+    }
+
+    let code = extractCode(assistantMessage);
+    let wasCodeTruncated = false;
     
-    // Check if response appears truncated (has code but no closing tag)
-    if (!code) {
-      const hasPartialHtml = assistantMessage.includes('<!DOCTYPE') || 
-                             assistantMessage.includes('<html') ||
-                             assistantMessage.includes('<script');
-      const hasClosingHtml = assistantMessage.includes('</html>');
+    // If no complete code found, check if it was truncated
+    if (!code && isTruncated(assistantMessage)) {
+      console.log('⚠️ Response truncated - attempting continuation...');
       
-      if (hasPartialHtml && !hasClosingHtml) {
-        wasCodeTruncated = true;
-        console.log('⚠️ Response appears truncated - code was cut off');
+      // Extract the partial code to send back for continuation
+      const partialCode = extractPartialCode(assistantMessage);
+      
+      if (partialCode) {
+        try {
+          // Ask Claude to continue from where it left off
+          const continuationResponse = await anthropic.messages.create({
+            model: 'claude-sonnet-4-20250514',
+            max_tokens: 16384,
+            system: 'You were generating an HTML game and your response was cut off. Continue EXACTLY where you left off. Do NOT repeat any code that was already written. Do NOT add any explanation text - ONLY output the remaining code to complete the HTML document. The code must end with </html>.',
+            messages: [
+              {
+                role: 'user',
+                content: `Continue this HTML code. Pick up EXACTLY where it ends (do not repeat anything):\n\n${partialCode.slice(-3000)}`
+              }
+            ]
+          });
+          
+          const continuationText = continuationResponse.content[0].text;
+          
+          // Clean up the continuation (remove any markdown fences)
+          let cleanContinuation = continuationText
+            .replace(/^```\s*\w*\s*\n?/i, '')
+            .replace(/\n?```\s*$/i, '')
+            .trim();
+          
+          // Stitch them together
+          const fullCode = partialCode + '\n' + cleanContinuation;
+          
+          // Check if the stitched result is valid
+          if (fullCode.includes('</html>')) {
+            // Extract clean HTML from the stitched result
+            const stitchedMatch = fullCode.match(/<!DOCTYPE\s+html>[\s\S]*<\/html>/i);
+            if (stitchedMatch && stitchedMatch[0].length > 200) {
+              code = stitchedMatch[0];
+              console.log('✅ Continuation successful - stitched complete HTML (' + code.length + ' chars)');
+            }
+          }
+          
+          if (!code) {
+            console.log('⚠️ Continuation did not produce valid HTML');
+            wasCodeTruncated = true;
+          }
+          
+        } catch (contError) {
+          console.error('⚠️ Continuation request failed:', contError.message);
+          wasCodeTruncated = true;
+        }
       } else {
-        console.log('⚠️ No code block found in AI response (preview will not update)');
+        wasCodeTruncated = true;
       }
+    } else if (!code) {
+      console.log('⚠️ No code block found in AI response (preview will not update)');
     }
     
     // If we used a template and AI didn't generate new code, use the template
@@ -682,9 +741,9 @@ app.post('/api/generate', async (req, res) => {
     // Sanitize the output message
     let cleanMessage = sanitizeOutput(assistantMessage);
     
-    // If code was truncated, give a helpful message
+    // If code was truncated even after continuation attempt, give a helpful message
     if (wasCodeTruncated) {
-      cleanMessage = "Oops! That game is pretty complex and I ran out of space! 😅 Try asking for something simpler first, then we can add more features step by step. For example: 'Make a simple RPG game' and then 'Now add a shop' after! 🎮";
+      cleanMessage = "That game got really big! 😅 Let me try a simpler approach — ask me to add one feature at a time, like 'add a speed powerup' instead of multiple things at once! 🎮";
     }
 
     // Include usage info in response
