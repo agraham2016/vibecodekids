@@ -527,6 +527,7 @@ function preCustomizeTemplate(templateHtml, gameConfig) {
 app.post('/api/generate', async (req, res) => {
   try {
     const { message, image, currentCode, conversationHistory = [], gameConfig = null } = req.body;
+    console.log(`🎮 Generate request: "${(message || '').slice(0, 80)}" | gameConfig: ${gameConfig ? gameConfig.gameType : 'none'} | hasCode: ${!!currentCode} | historyLen: ${conversationHistory.length}`);
 
     // Get user from session if logged in
     const token = req.headers.authorization?.replace('Bearer ', '');
@@ -612,6 +613,9 @@ app.post('/api/generate', async (req, res) => {
       }
     ];
 
+    // Log prompt size for debugging
+    console.log(`📝 System prompt: ${systemPrompt.length} chars | Messages: ${messages.length} | Template: ${templateType || 'none'}`);
+
     // Call Claude API with retry logic for transient failures
     let response;
     const maxRetries = 2;
@@ -619,13 +623,13 @@ app.post('/api/generate', async (req, res) => {
       try {
         response = await anthropic.messages.create({
           model: 'claude-sonnet-4-20250514',
-          max_tokens: 16384,
+          max_tokens: 8192,
           system: systemPrompt,
           messages: messages
         });
         break; // Success, exit retry loop
       } catch (apiError) {
-        console.error(`⚠️ Claude API attempt ${attempt}/${maxRetries} failed:`, apiError.status || apiError.message);
+        console.error(`⚠️ Claude API attempt ${attempt}/${maxRetries} failed:`, apiError.status, apiError.message, apiError.error || '');
         if (attempt === maxRetries) {
           // All retries exhausted - throw with details
           throw new Error(`Claude API failed after ${maxRetries} attempts: ${apiError.status || ''} ${apiError.message || 'Unknown error'}`);
@@ -700,7 +704,7 @@ app.post('/api/generate', async (req, res) => {
           // Ask Claude to continue from where it left off
           const continuationResponse = await anthropic.messages.create({
             model: 'claude-sonnet-4-20250514',
-            max_tokens: 16384,
+            max_tokens: 8192,
             system: 'You were generating an HTML game and your response was cut off. Continue EXACTLY where you left off. Do NOT repeat any code that was already written. Do NOT add any explanation text - ONLY output the remaining code to complete the HTML document. The code must end with </html>.',
             messages: [
               {
