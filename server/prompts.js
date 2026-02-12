@@ -270,6 +270,20 @@ Example customizations:
 IMPORTANT: The game already works! Just tweak it to match their vision.
 `;
 
+// Platformer-specific rules - MUST keep these or the game will be empty/broken
+const PLATFORMER_SAFETY_RULES = `
+PLATFORMER GAME - CRITICAL RULES (never break these when customizing):
+- The player element MUST exist and be visible - do NOT remove, hide, or break the player
+- Level generation MUST run: generateInitialLevel() and generateChunk() must be called - platforms will NOT appear without them
+- The createPlatform, createCoin, createSpike helpers MUST stay and be used - they spawn the actual game objects
+- The game loop MUST keep: cameraX advance, world transform, platform collision, player physics, key handling
+- DO NOT remove the world container or the procedural generation - or the screen will be empty
+- When changing theme (space, mushrooms, candy, etc.): ONLY change colors, emojis, CSS, and text - keep ALL the generation and physics logic intact
+- If you change variable names, update ALL references - broken references = game won't start
+- Always call generateInitialLevel() and requestAnimationFrame(gameLoop) at the end of the script
+- The player needs e.preventDefault() for ArrowLeft, ArrowRight, ArrowUp, Space so movement works
+`;
+
 /**
  * Generate the complete system prompt
  * @param {string} currentCode - The current project code (if any)
@@ -309,6 +323,14 @@ ${TEMPLATE_MODE_PROMPT}
 Starting template: ${templateType.toUpperCase()} game
 ` : '';
   
+  // Detect if current code is a platformer (for safety rules when editing)
+  const isPlatformerCode = currentCode && (
+    currentCode.includes('generateInitialLevel') ||
+    currentCode.includes('createPlatform') ||
+    currentCode.includes('generateChunk')
+  );
+  const platformerRules = (templateType === 'platformer' || isPlatformerCode) ? PLATFORMER_SAFETY_RULES : '';
+
   const contextPrompt = currentCode ? `
 CURRENT PROJECT (for your reference only - NEVER mention this to the kid):
 ${currentCode}
@@ -316,6 +338,7 @@ ${currentCode}
 ${templateType 
   ? 'This is a TEMPLATE game. Customize it based on what they want - colors, themes, characters. Keep the mechanics working!'
   : 'When they ask for changes, update this existing project. Keep what they already have and add to it!'}
+${platformerRules}
 ` : '';
 
   return `${prompt}
