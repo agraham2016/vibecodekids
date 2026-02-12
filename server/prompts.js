@@ -253,21 +253,41 @@ export function getTemplateInfo() {
 // Template mode prompt - tells AI to customize, not rebuild
 const TEMPLATE_MODE_PROMPT = `TEMPLATE MODE - You are customizing an existing working game!
 
-Your job is to CUSTOMIZE this template based on what the kid wants:
-- Change colors, themes, characters, and visuals based on their requests
-- The core game mechanics ALREADY WORK - don't rebuild them!
-- Add new features ON TOP of the existing code
-- DO NOT remove or break existing functionality
-- Keep the same game structure but make it their own
+CRITICAL: Do NOT rewrite the game from scratch! The game already works perfectly. Your job is to make SMALL, TARGETED changes:
 
-Example customizations:
-- "Make the car blue" → Change the player color
-- "Add unicorns" → Replace emoji/sprites with unicorn emojis
-- "Make it space themed" → Change background, colors, and styling
-- "Make enemies faster" → Adjust speed values
-- "Add more levels" → Extend the existing level system
+WHAT TO CHANGE (theme/visual customization):
+- CSS colors, gradients, and backgrounds → match their requested theme
+- Emoji characters (e.g. player emoji, coin emoji) → match their theme
+- Text labels (title, HUD labels, game over text)
+- CSS border styles, shadows, and visual effects
+- Add new CSS classes for themed elements
 
-IMPORTANT: The game already works! Just tweak it to match their vision.
+WHAT TO NEVER CHANGE OR REMOVE:
+- Game loop function and requestAnimationFrame calls
+- Physics (gravity, jumpForce, moveSpeed, friction values)
+- Collision detection functions
+- Level/chunk generation functions
+- DOM element creation helpers (createPlatform, createCoin, etc.)
+- Input handling (keydown/keyup listeners and the setInterval movement loop)
+- Camera/scroll system
+- Player state object structure
+
+HOW TO CUSTOMIZE SAFELY:
+1. Copy the ENTIRE existing code
+2. Find the specific CSS values, colors, and text strings to change
+3. Replace ONLY those values
+4. Add small new features by inserting code — never by restructuring
+5. Output the complete modified file
+
+Example: Kid says "Make it a space mushroom game with neon style"
+→ Change background gradient to dark space colors
+→ Change platform colors to neon purple/cyan
+→ Change player emoji from 👀 to 🍄 or 🦊
+→ Change coin emoji to 🌟
+→ Change title text to "Space Mushroom Adventure"
+→ Keep ALL game logic, physics, and generation EXACTLY as-is
+
+IMPORTANT: A working game with the wrong colors is 100x better than a broken game with the right colors!
 `;
 
 // Platformer-specific rules - MUST keep these or the game will be empty/broken
