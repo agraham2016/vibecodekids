@@ -68,7 +68,12 @@ OUTPUT FORMAT - CRITICAL (the preview only updates when you do this):
 - Use simple geometric shapes: BoxGeometry, SphereGeometry, ConeGeometry, CylinderGeometry
 - Add lighting: AmbientLight + DirectionalLight or PointLight
 - Use MeshStandardMaterial or MeshPhongMaterial for nice shiny surfaces
-- Add OrbitControls for letting users rotate/zoom the view
+- For non-game 3D art/viewers, add OrbitControls for rotate/zoom
+- For 3D GAMES (RPG, shooter, adventure): use ARROW KEYS for movement, NOT WASD
+- Arrow keys MUST call e.preventDefault() so the browser doesn't scroll
+- Movement MUST be relative to camera direction (use sin/cos of camera yaw)
+- Camera look/rotation MUST allow full 360 degrees horizontally - NEVER clamp yaw to 180
+- Vertical look (pitch) can be clamped to prevent flipping
 - Animate with requestAnimationFrame loop
 - Example 3D project structure:
   * Create scene, camera (PerspectiveCamera), renderer (WebGLRenderer)
@@ -290,6 +295,53 @@ Example: Kid says "Make it a space mushroom game with neon style"
 IMPORTANT: A working game with the wrong colors is 100x better than a broken game with the right colors!
 `;
 
+// 3D game rules - controls and camera MUST work properly
+const THREE_D_GAME_RULES = `
+3D GAME - CRITICAL CONTROL AND CAMERA RULES:
+
+MOVEMENT CONTROLS - USE ARROW KEYS (not WASD):
+- ArrowUp = move FORWARD (the direction the camera faces)
+- ArrowDown = move BACKWARD
+- ArrowLeft = move LEFT (strafe) or turn left
+- ArrowRight = move RIGHT (strafe) or turn right
+- ALWAYS call e.preventDefault() for ArrowUp, ArrowDown, ArrowLeft, ArrowRight, and Space to stop browser scrolling
+- Movement must be RELATIVE TO THE CAMERA DIRECTION, not absolute world axes
+- Forward movement formula: x += Math.sin(cameraYaw) * speed; z += Math.cos(cameraYaw) * speed
+- Do NOT use WASD as the primary controls - kids expect arrow keys
+
+CAMERA / LOOK AROUND - FULL 360 DEGREE ROTATION:
+- The player MUST be able to look/turn a FULL 360 degrees horizontally (yaw)
+- Do NOT clamp the horizontal rotation (yaw) - let it wrap freely from 0 to 2*PI or use unclamped values
+- Vertical look (pitch) CAN be clamped to roughly -80 to +80 degrees to prevent flipping
+- For mouse look: use mousemove event with movementX for yaw, movementY for pitch
+- For keyboard turning: ArrowLeft/ArrowRight can rotate the camera yaw smoothly
+- WRONG: if (yaw > Math.PI) yaw = Math.PI  ← this clamps to 180 degrees, NEVER do this
+- RIGHT: yaw += rotationSpeed (let it go freely, or use yaw = yaw % (Math.PI * 2) for wrapping)
+- Camera rotation code pattern:
+  camera.rotation.order = 'YXZ';
+  camera.rotation.y = yaw;    // horizontal - NO clamp, full 360
+  camera.rotation.x = pitch;  // vertical - clamp between -1.4 and 1.4
+
+MOVEMENT DIRECTION (prevent "backwards" controls):
+- When the player presses ArrowUp, they MUST move in the direction the camera is facing
+- Calculate movement vector from camera yaw angle:
+  var moveX = Math.sin(camera.rotation.y) * speed;
+  var moveZ = Math.cos(camera.rotation.y) * speed;
+- ArrowUp: position.x -= moveX; position.z -= moveZ (forward)
+- ArrowDown: position.x += moveX; position.z += moveZ (backward)
+- If controls feel "backwards", the sin/cos signs are wrong - flip them
+- Test: pressing ArrowUp while looking north should move north, looking east should move east
+
+3D RPG SPECIFIC:
+- Include a visible ground plane (large flat BoxGeometry or PlaneGeometry)
+- Add simple lighting (AmbientLight + DirectionalLight minimum)
+- Player character should be visible (a colored mesh or emoji sprite)
+- Keep the game world simple - a few buildings/trees/objects, not massive
+- Use simple AABB collision for walls and objects
+- Include a HUD overlay (HTML div) for health, gold, level on top of the 3D canvas
+- The 3D canvas should fill the game container
+`;
+
 // Platformer-specific rules - MUST keep these or the game will be empty/broken
 const PLATFORMER_SAFETY_RULES = `
 PLATFORMER GAME - CRITICAL RULES (never break these when customizing):
@@ -351,6 +403,20 @@ Starting template: ${templateType.toUpperCase()} game
   );
   const platformerRules = (templateType === 'platformer' || isPlatformerCode) ? PLATFORMER_SAFETY_RULES : '';
 
+  // Detect if current code or request involves 3D (Three.js, 3D RPG, etc.)
+  const is3DCode = currentCode && (
+    currentCode.includes('THREE.Scene') ||
+    currentCode.includes('THREE.PerspectiveCamera') ||
+    currentCode.includes('WebGLRenderer') ||
+    currentCode.includes('three.js') ||
+    currentCode.includes('three.min.js')
+  );
+  const is3DRequest = gameConfig && (
+    (gameConfig.gameType || '').toLowerCase().includes('3d') ||
+    (gameConfig.customNotes || '').toLowerCase().includes('3d')
+  );
+  const threeDRules = (is3DCode || is3DRequest) ? THREE_D_GAME_RULES : '';
+
   const contextPrompt = currentCode ? `
 CURRENT PROJECT (for your reference only - NEVER mention this to the kid):
 ${currentCode}
@@ -359,11 +425,15 @@ ${templateType
   ? 'This is a TEMPLATE game. Customize it based on what they want - colors, themes, characters. Keep the mechanics working!'
   : 'When they ask for changes, update this existing project. Keep what they already have and add to it!'}
 ${platformerRules}
+${threeDRules}
 ` : '';
+
+  // If this is a 3D request but no current code yet (first generation), still include 3D rules
+  const extraRules = (!currentCode && threeDRules) ? `\n${threeDRules}` : '';
 
   return `${prompt}
 ${templatePrompt}
-${contextPrompt}`;
+${contextPrompt}${extraRules}`;
 }
 
 /**

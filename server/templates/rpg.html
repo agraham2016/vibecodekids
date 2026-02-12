@@ -521,9 +521,13 @@
     
     // Controls
     document.addEventListener('keydown', (e) => {
+      // Prevent browser from capturing arrow keys and space
+      if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', ' '].includes(e.key)) {
+        e.preventDefault();
+      }
+      
       if (dialogActive) {
         if (e.key === ' ') {
-          e.preventDefault();
           advanceDialog();
         }
         return;
@@ -539,7 +543,6 @@
       if (e.key === 'ArrowRight') newX += speed;
       
       if (e.key === ' ') {
-        e.preventDefault();
         checkNPCInteraction();
         return;
       }
