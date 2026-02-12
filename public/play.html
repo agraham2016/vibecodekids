@@ -847,6 +847,12 @@
       doc.write(project.code);
       doc.close();
       
+      // Focus iframe so arrow keys reach the game (click game area to play)
+      iframe.setAttribute('tabindex', '0');
+      setTimeout(function() {
+        try { iframe.focus(); } catch (e) { /* ignore */ }
+      }, 100);
+      
       // Show play container
       document.getElementById('loading').style.display = 'none';
       document.getElementById('play').style.display = 'flex';
