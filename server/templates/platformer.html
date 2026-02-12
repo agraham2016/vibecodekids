@@ -487,12 +487,18 @@
     function checkPlatformCollision() {
       player.onGround = false;
       
+      var feetY = player.y + 50;
+      var prevFeetY = feetY - player.vy; // feet position last frame
+      
       for (var i = 0; i < activePlatforms.length; i++) {
         var p = activePlatforms[i];
-        // Only check when falling
+        // Only check when falling or resting
         if (player.vy >= 0) {
+          // Horizontal overlap check (player body vs platform width)
           if (player.x + 35 > p.x && player.x + 5 < p.x + p.width) {
-            if (player.y + 50 >= p.y && player.y + 50 <= p.y + 15) {
+            // Crossed-surface check: feet were at/above platform top last frame,
+            // and are now at/below it — catches any fall speed
+            if (prevFeetY <= p.y + 2 && feetY >= p.y) {
               player.y = p.y - 50;
               player.vy = 0;
               player.onGround = true;
