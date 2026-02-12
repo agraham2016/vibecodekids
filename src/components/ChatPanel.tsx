@@ -61,72 +61,149 @@ export default function ChatPanel({ messages, onSendMessage, isLoading, gameConf
   const [input, setInput] = useState('')
   const [isListening, setIsListening] = useState(false)
   const [speechSupported, setSpeechSupported] = useState(false)
+  const [speechError, setSpeechError] = useState<string | null>(null)
   const [uploadedImage, setUploadedImage] = useState<string | null>(null)
   const [showTipsModal, setShowTipsModal] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const recognitionRef = useRef<SpeechRecognition | null>(null)
+  const speechTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const gotResultRef = useRef(false)
+
+  // Create a fresh SpeechRecognition instance (Safari needs a new one each session)
+  const createRecognition = useCallback(() => {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition
+    if (!SR) return null
+
+    const rec = new SR()
+    rec.continuous = false
+    rec.interimResults = true
+    rec.lang = 'en-US'
+
+    rec.onresult = (event: SpeechRecognitionEvent) => {
+      gotResultRef.current = true
+      // Clear the no-result timeout since we're getting data
+      if (speechTimeoutRef.current) {
+        clearTimeout(speechTimeoutRef.current)
+        speechTimeoutRef.current = null
+      }
+
+      let finalTranscript = ''
+      let interimTranscript = ''
+
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript
+        if (event.results[i].isFinal) {
+          finalTranscript += transcript
+        } else {
+          interimTranscript += transcript
+        }
+      }
+
+      if (finalTranscript) {
+        setInput(prev => prev + finalTranscript)
+      } else if (interimTranscript) {
+        // Show interim results
+      }
+    }
+
+    rec.onerror = (event: any) => {
+      setIsListening(false)
+      const error = event?.error || 'unknown'
+      if (error === 'not-allowed' || error === 'permission-denied') {
+        setSpeechError('Mic permission denied — check your browser settings')
+      } else if (error === 'audio-capture' || error === 'no-speech') {
+        setSpeechError("Couldn't hear you — try again closer to the mic")
+      } else if (error === 'network') {
+        setSpeechError('Speech needs an internet connection')
+      } else if (error === 'aborted') {
+        // User or code cancelled — no error needed
+      } else {
+        setSpeechError('Speech not working — try typing instead')
+      }
+      // Clear error after a few seconds
+      setTimeout(() => setSpeechError(null), 4000)
+    }
+
+    rec.onend = () => {
+      setIsListening(false)
+    }
+
+    return rec
+  }, [])
 
   // Check if speech recognition is supported
   useEffect(() => {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
-    if (SpeechRecognition) {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition
+    if (SR) {
       setSpeechSupported(true)
-      recognitionRef.current = new SpeechRecognition()
-      recognitionRef.current.continuous = false
-      recognitionRef.current.interimResults = true
-      recognitionRef.current.lang = 'en-US'
-
-      recognitionRef.current.onresult = (event: SpeechRecognitionEvent) => {
-        let finalTranscript = ''
-        let interimTranscript = ''
-
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          const transcript = event.results[i][0].transcript
-          if (event.results[i].isFinal) {
-            finalTranscript += transcript
-          } else {
-            interimTranscript += transcript
-          }
-        }
-
-        if (finalTranscript) {
-          setInput(prev => prev + finalTranscript)
-        } else if (interimTranscript) {
-          // Show interim results
-        }
-      }
-
-      recognitionRef.current.onerror = () => {
-        setIsListening(false)
-      }
-
-      recognitionRef.current.onend = () => {
-        setIsListening(false)
-      }
     }
 
     return () => {
       if (recognitionRef.current) {
         recognitionRef.current.abort()
       }
+      if (speechTimeoutRef.current) {
+        clearTimeout(speechTimeoutRef.current)
+      }
     }
   }, [])
 
   // Toggle speech recognition
   const toggleListening = useCallback(() => {
-    if (!recognitionRef.current) return
+    if (!speechSupported) return
+    setSpeechError(null)
+
+    // Clear any existing timeout
+    if (speechTimeoutRef.current) {
+      clearTimeout(speechTimeoutRef.current)
+      speechTimeoutRef.current = null
+    }
 
     if (isListening) {
-      recognitionRef.current.stop()
+      if (recognitionRef.current) {
+        recognitionRef.current.stop()
+      }
       setIsListening(false)
     } else {
-      setInput('')
-      recognitionRef.current.start()
-      setIsListening(true)
+      // Abort previous instance (Safari can't reuse them)
+      if (recognitionRef.current) {
+        try { recognitionRef.current.abort() } catch (_e) { /* ignore */ }
+      }
+
+      // Create a fresh instance each session (fixes Safari InvalidStateError)
+      const rec = createRecognition()
+      if (!rec) {
+        setSpeechError('Speech not available in this browser')
+        setTimeout(() => setSpeechError(null), 4000)
+        return
+      }
+      recognitionRef.current = rec
+
+      try {
+        gotResultRef.current = false
+        rec.start()
+        setIsListening(true)
+
+        // Safety timeout: if no results AND no error after 8 seconds, stop and show message
+        // This catches Safari silently failing without triggering onerror
+        speechTimeoutRef.current = setTimeout(() => {
+          if (!gotResultRef.current) {
+            try { recognitionRef.current?.stop() } catch (_e) { /* ignore */ }
+            setIsListening(false)
+            setSpeechError("Couldn't hear anything — make sure your mic is allowed in browser settings")
+            setTimeout(() => setSpeechError(null), 5000)
+          }
+        }, 8000)
+      } catch (err: any) {
+        // Safari can throw synchronously on start()
+        setIsListening(false)
+        setSpeechError('Speech not available — try typing instead')
+        setTimeout(() => setSpeechError(null), 4000)
+      }
     }
-  }, [isListening])
+  }, [isListening, speechSupported, createRecognition])
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -360,6 +437,9 @@ export default function ChatPanel({ messages, onSendMessage, isLoading, gameConf
             </button>
           </div>
         </div>
+        {speechError && (
+          <div className="speech-error">{speechError}</div>
+        )}
         <div className="input-hint">
           {isListening ? "🎤 Speak clearly, then click Send" : "Press Enter to send • 🎤 Talk • 📷 Upload image"}
         </div>
