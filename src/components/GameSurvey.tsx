@@ -184,12 +184,18 @@ const VISUAL_STYLES = [
 
 // ========== SURVEY STEPS ==========
 
-type SurveyStep = 'gameType' | 'theme' | 'character' | 'obstacles' | 'visualStyle' | 'done'
+type SurveyStep = 'gameType' | 'dimension' | 'theme' | 'character' | 'obstacles' | 'visualStyle' | 'done'
 
-const STEP_ORDER: SurveyStep[] = ['gameType', 'theme', 'character', 'obstacles', 'visualStyle', 'done']
+const STEP_ORDER: SurveyStep[] = ['gameType', 'dimension', 'theme', 'character', 'obstacles', 'visualStyle', 'done']
+
+const DIMENSION_OPTIONS = [
+  { icon: '🖼️', label: '2D (Classic Style)', value: '2d' },
+  { icon: '🌐', label: '3D (Inside the Game)', value: '3d' },
+]
 
 const BOT_MESSAGES: Record<string, string> = {
   gameType: "Hey there! What kind of game do you want to make today? Pick one or tell me your idea!",
+  dimension: "Cool! Do you want your game in 2D (flat, classic style) or 3D (like you're inside the game)?",
   theme: "Awesome choice! Where does your game take place?",
   character: "Cool! Who or what do you control in the game?",
   obstacles: "Nice! What do you have to dodge or fight?",
@@ -266,6 +272,7 @@ export default function GameSurvey({ onComplete }: GameSurveyProps) {
       if (nextStep === 'done') {
         const finalConfig: GameConfig = {
           gameType: (newAnswers.gameType || 'platformer') as GameType,
+          dimension: (newAnswers.dimension || '2d') as '2d' | '3d',
           theme: newAnswers.theme || 'space',
           character: newAnswers.character || 'hero',
           obstacles: newAnswers.obstacles || 'enemies',
@@ -286,6 +293,7 @@ export default function GameSurvey({ onComplete }: GameSurveyProps) {
 
     const configKeys: Record<string, keyof GameConfig> = {
       gameType: 'gameType',
+      dimension: 'dimension',
       theme: 'theme',
       character: 'character',
       obstacles: 'obstacles',
@@ -300,6 +308,7 @@ export default function GameSurvey({ onComplete }: GameSurveyProps) {
 
     const configKeys: Record<string, keyof GameConfig> = {
       gameType: 'gameType',
+      dimension: 'dimension',
       theme: 'theme',
       character: 'character',
       obstacles: 'obstacles',
@@ -321,6 +330,7 @@ export default function GameSurvey({ onComplete }: GameSurveyProps) {
     const gameType = answers.gameType || 'racing'
     switch (step) {
       case 'gameType': return GAME_TYPES
+      case 'dimension': return DIMENSION_OPTIONS
       case 'theme': return THEMES[gameType] || THEMES.racing
       case 'character': return CHARACTERS[gameType] || CHARACTERS.racing
       case 'obstacles': return OBSTACLES[gameType] || OBSTACLES.racing

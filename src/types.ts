@@ -11,6 +11,7 @@ export type GameType = 'racing' | 'shooter' | 'platformer' | 'frogger' | 'puzzle
 
 export interface GameConfig {
   gameType: GameType
+  dimension: '2d' | '3d'  // 2D (DOM/Canvas) or 3D (Three.js)
   theme: string        // "space", "underwater", "jungle", etc.
   character: string    // "rocket ship", "unicorn", "ninja", etc.
   obstacles: string    // "asteroids", "zombies", "cars", etc.

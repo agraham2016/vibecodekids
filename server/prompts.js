@@ -89,6 +89,8 @@ GAME MECHANICS - VERY IMPORTANT:
 - For any game with movement: Update object positions in the animation loop based on speed/velocity
 - ALWAYS connect keyboard input to ACTUAL visual movement, not just variable updates
 - For 3D racing: Move trees/obstacles toward camera (z position) based on speed, reset when they pass
+- For 3D racing: ALL scenery (road, buildings, trees) MUST be recycled in a loop - when objects pass the camera, reset their Z to the far end. Otherwise the world disappears after a few seconds!
+- For 3D racing: The car stays at a fixed Z - move the WORLD toward the camera, not the car forward
 - For steering: Actually change car's x position when left/right pressed
 - Test your logic: if speed > 0, something visual MUST be moving on screen
 
@@ -342,6 +344,71 @@ MOVEMENT DIRECTION (prevent "backwards" controls):
 - The 3D canvas should fill the game container
 `;
 
+// 3D Racing rules - camera, scenery recycling, and movement direction
+const THREE_D_RACING_RULES = `
+3D RACING GAME - CRITICAL RULES (these prevent the most common 3D racing bugs):
+
+CAMERA SETUP (chase cam - NOT free-look):
+- The camera goes BEHIND and ABOVE the car, looking forward
+- Do NOT use OrbitControls or free-look rotation for racing games
+- Camera follows the car's X position for steering feel
+- Pattern:
+  camera.position.set(car.position.x, 5, car.position.z + 10);
+  camera.lookAt(car.position.x, 1, car.position.z - 20);
+
+ROAD AND MOVEMENT DIRECTION:
+- The road extends along the NEGATIVE Z axis (into the screen, away from camera)
+- The car stays at a roughly fixed Z position (e.g. z = 0)
+- "Forward driving" is simulated by moving ALL scenery TOWARD the camera (increasing Z each frame)
+- Do NOT move the car forward along Z - move the world instead
+- ArrowLeft/ArrowRight = steer the car (change car.position.x)
+- ArrowUp = speed up, ArrowDown = slow down / brake
+- ALWAYS call e.preventDefault() for all arrow keys
+
+SCENERY RECYCLING - CRITICAL (prevents the "world disappears" bug):
+- ALL road segments, buildings, trees, and scenery objects MUST be recycled in a loop
+- Each frame: move each object's Z position toward camera by speed * deltaTime
+- When an object's Z passes the camera (z > cameraZ + buffer), RESET it to the far end:
+  if (obj.position.z > 20) { obj.position.z -= totalRoadLength; }
+- This creates an endless scrolling effect
+- If you do NOT recycle, the world empties out after 2-3 seconds and the player sees nothing
+- Create enough objects to fill the visible road (e.g. 20-40 road segments, 10+ buildings per side)
+
+GROUND PLANE:
+- Use a very large ground plane (e.g. PlaneGeometry(200, 2000)) so it never runs out
+- OR use tiled ground segments that recycle like other scenery
+- Color the ground to match the theme (green for grass, grey for asphalt, etc.)
+
+CORRECT CODE PATTERN:
+function gameLoop() {
+  requestAnimationFrame(gameLoop);
+  var delta = clock.getDelta();
+  
+  // Move scenery toward camera
+  for (var i = 0; i < scenery.length; i++) {
+    scenery[i].position.z += speed * delta;
+    // Recycle when past camera
+    if (scenery[i].position.z > 20) {
+      scenery[i].position.z -= roadLength;
+      // Randomize X for variety
+      scenery[i].position.x = (Math.random() - 0.5) * 30;
+    }
+  }
+  
+  // Camera follows car
+  camera.position.x = car.position.x;
+  camera.lookAt(car.position.x, 1, car.position.z - 20);
+  
+  renderer.render(scene, camera);
+}
+
+OBSTACLES AND SCORING:
+- Spawn obstacle cars/objects in the road that also scroll toward the camera
+- When an obstacle reaches the player's Z and the player dodges it, add score
+- When an obstacle overlaps the player's X position, trigger a crash
+- Use simple distance checks for collision (not complex physics)
+`;
+
 // Platformer-specific rules - MUST keep these or the game will be empty/broken
 const PLATFORMER_SAFETY_RULES = `
 PLATFORMER GAME - CRITICAL RULES (never break these when customizing):
@@ -374,6 +441,7 @@ export function getSystemPrompt(currentCode, gameConfig = null, templateType = n
 
 GAME CONFIG (from the kid's survey answers - use these to personalize the game):
 - Game Type: ${gameConfig.gameType}
+- Dimension: ${gameConfig.dimension || '2d'} (2d = flat DOM/Canvas game, 3d = Three.js 3D game)
 - Theme/Setting: ${gameConfig.theme}
 - Player Character: ${gameConfig.character}
 - Obstacles/Enemies: ${gameConfig.obstacles}
@@ -386,6 +454,7 @@ USE THIS CONFIG to make the game feel personal:
 - Make the player look/feel like "${gameConfig.character}"
 - Use "${gameConfig.obstacles}" as the main challenge
 - The game type is "${gameConfig.gameType}" - use the right mechanics for that genre
+- Dimension is "${gameConfig.dimension || '2d'}": if "3d", build with Three.js (3D scene, camera, renderer). If "2d", use standard HTML/CSS/Canvas.
 `;
   }
   
@@ -403,7 +472,7 @@ Starting template: ${templateType.toUpperCase()} game
   );
   const platformerRules = (templateType === 'platformer' || isPlatformerCode) ? PLATFORMER_SAFETY_RULES : '';
 
-  // Detect if current code or request involves 3D (Three.js, 3D RPG, etc.)
+  // Detect if current code or request involves 3D (Three.js, survey dimension, etc.)
   const is3DCode = currentCode && (
     currentCode.includes('THREE.Scene') ||
     currentCode.includes('THREE.PerspectiveCamera') ||
@@ -411,11 +480,21 @@ Starting template: ${templateType.toUpperCase()} game
     currentCode.includes('three.js') ||
     currentCode.includes('three.min.js')
   );
-  const is3DRequest = gameConfig && (
+  const wants3D = gameConfig && gameConfig.dimension === '3d';
+  const is3DRequest = wants3D || (gameConfig && (
     (gameConfig.gameType || '').toLowerCase().includes('3d') ||
     (gameConfig.customNotes || '').toLowerCase().includes('3d')
+  ));
+  const is3D = is3DCode || is3DRequest;
+  const threeDRules = is3D ? THREE_D_GAME_RULES : '';
+
+  // Detect 3D racing specifically
+  const isRacing = (
+    templateType === 'racing' ||
+    (gameConfig && (gameConfig.gameType || '').toLowerCase().includes('racing')) ||
+    (currentCode && currentCode.includes('THREE') && /car|race|road|driving/i.test(currentCode))
   );
-  const threeDRules = (is3DCode || is3DRequest) ? THREE_D_GAME_RULES : '';
+  const racingRules = (is3D && isRacing) ? THREE_D_RACING_RULES : '';
 
   const contextPrompt = currentCode ? `
 CURRENT PROJECT (for your reference only - NEVER mention this to the kid):
@@ -426,10 +505,11 @@ ${templateType
   : 'When they ask for changes, update this existing project. Keep what they already have and add to it!'}
 ${platformerRules}
 ${threeDRules}
+${racingRules}
 ` : '';
 
   // If this is a 3D request but no current code yet (first generation), still include 3D rules
-  const extraRules = (!currentCode && threeDRules) ? `\n${threeDRules}` : '';
+  const extraRules = (!currentCode && (threeDRules || racingRules)) ? `\n${threeDRules}\n${racingRules}` : '';
 
   return `${prompt}
 ${templatePrompt}
