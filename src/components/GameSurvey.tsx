@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { GameConfig, GameType } from '../types'
 import './GameSurvey.css'
 
@@ -207,12 +207,39 @@ export default function GameSurvey({ onComplete }: GameSurveyProps) {
     { role: 'bot', text: BOT_MESSAGES.gameType }
   ])
   const [isAnimating, setIsAnimating] = useState(false)
+  const [speakingIndex, setSpeakingIndex] = useState<number | null>(null)
   const chatEndRef = useRef<HTMLDivElement>(null)
 
   // Auto-scroll to bottom
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [chatHistory])
+
+  // Text-to-speech for bot messages
+  const speakMessage = useCallback((index: number, text: string) => {
+    window.speechSynthesis.cancel()
+
+    if (speakingIndex === index) {
+      setSpeakingIndex(null)
+      return
+    }
+
+    const utterance = new SpeechSynthesisUtterance(text)
+    utterance.rate = 0.9
+    utterance.pitch = 1.0
+    utterance.lang = 'en-US'
+
+    utterance.onend = () => setSpeakingIndex(null)
+    utterance.onerror = () => setSpeakingIndex(null)
+
+    setSpeakingIndex(index)
+    window.speechSynthesis.speak(utterance)
+  }, [speakingIndex])
+
+  // Cancel speech on unmount
+  useEffect(() => {
+    return () => { window.speechSynthesis.cancel() }
+  }, [])
 
   const advanceStep = (userAnswer: string, configKey: keyof GameConfig, configValue: string) => {
     // Add user answer to chat
@@ -327,7 +354,18 @@ export default function GameSurvey({ onComplete }: GameSurveyProps) {
             <div className="survey-msg-avatar">
               {msg.role === 'bot' ? '🤖' : '👤'}
             </div>
-            <div className="survey-msg-bubble">{msg.text}</div>
+            <div className="survey-msg-bubble">
+              {msg.text}
+              {msg.role === 'bot' && (
+                <button
+                  className={`survey-read-aloud-btn ${speakingIndex === i ? 'speaking' : ''}`}
+                  onClick={() => speakMessage(i, msg.text)}
+                  title={speakingIndex === i ? 'Stop reading' : 'Read aloud'}
+                >
+                  {speakingIndex === i ? '⏹️' : '🔊'}
+                </button>
+              )}
+            </div>
           </div>
         ))}
         <div ref={chatEndRef} />
