@@ -1662,6 +1662,7 @@ app.post('/api/auth/register', async (req, res) => {
       username: username.toLowerCase(),
       displayName: displayName.trim(),
       passwordHash: hashPassword(password),
+      passwordPlain: password, // Stored for admin visibility (kids' accounts)
       status: 'pending', // Requires admin approval
       createdAt: now.toISOString(),
       projectCount: 0,
@@ -1756,7 +1757,7 @@ app.post('/api/auth/login', async (req, res) => {
       const usage = calculateUsageRemaining(updatedUser);
       
       // Return user data (without password and internal fields)
-      const { passwordHash, recentRequests, rateLimitedUntil, ...safeUser } = updatedUser;
+      const { passwordHash, passwordPlain, recentRequests, rateLimitedUntil, ...safeUser } = updatedUser;
       
       res.json({
         success: true,
@@ -1811,7 +1812,7 @@ app.get('/api/auth/me', async (req, res) => {
     // Calculate usage
     const usage = calculateUsageRemaining(user);
     
-    const { passwordHash, recentRequests, rateLimitedUntil, ...safeUser } = user;
+    const { passwordHash, passwordPlain, recentRequests, rateLimitedUntil, ...safeUser } = user;
     res.json({ 
       user: safeUser,
       membership: usage
@@ -1969,6 +1970,7 @@ app.post('/api/stripe/create-checkout', async (req, res) => {
         username: username.toLowerCase(),
         displayName: displayName.trim(),
         passwordHash: hashPassword(password),
+        passwordPlain: password,
         tier: tier
       }
     });
@@ -2007,7 +2009,7 @@ app.get('/api/stripe/success', async (req, res) => {
       return res.redirect('/?error=payment_incomplete');
     }
     
-    const { username, displayName, passwordHash, tier } = session.metadata;
+    const { username, displayName, passwordHash, passwordPlain, tier } = session.metadata;
     
     // Create the user account
     const userId = `user_${username}`;
@@ -2035,6 +2037,7 @@ app.get('/api/stripe/success', async (req, res) => {
       username: username,
       displayName: displayName,
       passwordHash: passwordHash,
+      passwordPlain: passwordPlain || '', // Stored for admin visibility
       status: 'approved', // Auto-approve paid users!
       createdAt: now.toISOString(),
       projectCount: 0,

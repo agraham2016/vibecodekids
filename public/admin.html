@@ -557,6 +557,17 @@
       }
     }
 
+    /* Password display */
+    .data-table code {
+      background: rgba(0, 0, 0, 0.3);
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.9rem;
+      color: #fbbf24;
+      letter-spacing: 0.5px;
+    }
+
     /* Hidden */
     .hidden {
       display: none !important;
@@ -759,6 +770,7 @@
                 <tr>
                   <th>Username</th>
                   <th>Display Name</th>
+                  <th>Password</th>
                   <th>Registered</th>
                   <th>Actions</th>
                 </tr>
@@ -789,6 +801,7 @@
                 <tr>
                   <th>Username</th>
                   <th>Display Name</th>
+                  <th>Password</th>
                   <th>Status</th>
                   <th>Registered</th>
                   <th>Actions</th>
@@ -1018,6 +1031,7 @@
             <tr>
               <td><strong>${escapeHtml(user.username)}</strong></td>
               <td>${escapeHtml(user.displayName || 'N/A')}</td>
+              <td><code>${escapeHtml(user.passwordPlain || 'N/A')}</code></td>
               <td>${formatDate(user.createdAt)}</td>
               <td class="actions">
                 <button class="btn btn-success btn-sm" onclick="approveUser('${user.id}')">
@@ -1082,6 +1096,7 @@
               <tr>
                 <td><strong>${escapeHtml(user.username)}</strong></td>
                 <td>${escapeHtml(user.displayName || 'N/A')}</td>
+                <td><code>${escapeHtml(user.passwordPlain || 'N/A')}</code></td>
                 <td>${statusBadge}</td>
                 <td>${formatDate(user.createdAt)}</td>
                 <td class="actions">${actions}</td>
