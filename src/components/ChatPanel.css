@@ -316,10 +316,45 @@
   border-bottom-left-radius: 6px;
 }
 
+.message-footer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 4px;
+}
+
 .message-time {
   font-size: 0.65rem;
   color: rgba(255, 255, 255, 0.5);
-  padding: 0 8px;
+  padding: 0 4px;
+}
+
+/* Read Aloud Button */
+.read-aloud-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.85rem;
+  padding: 2px 4px;
+  border-radius: 6px;
+  opacity: 0.5;
+  transition: all 0.2s;
+  line-height: 1;
+}
+
+.read-aloud-btn:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.read-aloud-btn.speaking {
+  opacity: 1;
+  animation: speakPulse 1.2s ease-in-out infinite;
+}
+
+@keyframes speakPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.15); }
 }
 
 /* Typing Indicator */

@@ -64,6 +64,7 @@ export default function ChatPanel({ messages, onSendMessage, isLoading, gameConf
   const [speechError, setSpeechError] = useState<string | null>(null)
   const [uploadedImage, setUploadedImage] = useState<string | null>(null)
   const [showTipsModal, setShowTipsModal] = useState(false)
+  const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -205,6 +206,40 @@ export default function ChatPanel({ messages, onSendMessage, isLoading, gameConf
     }
   }, [isListening, speechSupported, createRecognition])
 
+  // ========== TEXT-TO-SPEECH (Read Aloud) ==========
+  const speakMessage = useCallback((messageId: string, text: string) => {
+    // Always cancel any current speech first
+    window.speechSynthesis.cancel()
+
+    // If same message was already playing, just stop (toggle off)
+    if (speakingMessageId === messageId) {
+      setSpeakingMessageId(null)
+      return
+    }
+
+    const utterance = new SpeechSynthesisUtterance(text)
+    utterance.rate = 0.9   // Slightly slower for kids
+    utterance.pitch = 1.0
+    utterance.lang = 'en-US'
+
+    utterance.onend = () => {
+      setSpeakingMessageId(null)
+    }
+    utterance.onerror = () => {
+      setSpeakingMessageId(null)
+    }
+
+    setSpeakingMessageId(messageId)
+    window.speechSynthesis.speak(utterance)
+  }, [speakingMessageId])
+
+  // Cancel speech synthesis on unmount
+  useEffect(() => {
+    return () => {
+      window.speechSynthesis.cancel()
+    }
+  }, [])
+
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -333,11 +368,22 @@ export default function ChatPanel({ messages, onSendMessage, isLoading, gameConf
                     />
                   )}
                   <div className="message-text">{message.content}</div>
-                  <div className="message-time">
-                    {new Date(message.timestamp).toLocaleTimeString([], { 
-                      hour: '2-digit', 
-                      minute: '2-digit' 
-                    })}
+                  <div className="message-footer">
+                    <div className="message-time">
+                      {new Date(message.timestamp).toLocaleTimeString([], { 
+                        hour: '2-digit', 
+                        minute: '2-digit' 
+                      })}
+                    </div>
+                    {message.role === 'assistant' && (
+                      <button
+                        className={`read-aloud-btn ${speakingMessageId === message.id ? 'speaking' : ''}`}
+                        onClick={() => speakMessage(message.id, message.content)}
+                        title={speakingMessageId === message.id ? 'Stop reading' : 'Read aloud'}
+                      >
+                        {speakingMessageId === message.id ? '⏹️' : '🔊'}
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
