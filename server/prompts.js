@@ -458,8 +458,9 @@ USE THIS CONFIG to make the game feel personal:
 `;
   }
   
-  // Add template mode instructions if using a template
-  const templatePrompt = templateType ? `
+  // Add template mode instructions if using a template (skip for 3D — no 2D template to customize)
+  const is3DDimension = gameConfig && gameConfig.dimension === '3d';
+  const templatePrompt = (templateType && !is3DDimension) ? `
 ${TEMPLATE_MODE_PROMPT}
 Starting template: ${templateType.toUpperCase()} game
 ` : '';

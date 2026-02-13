@@ -583,7 +583,9 @@ app.post('/api/generate', async (req, res) => {
         templateType = detectTemplate(message);
       }
       
-      if (templateType) {
+      // Skip 2D template when kid chose 3D — the AI needs to generate from scratch
+      const skip3DTemplate = gameConfig && gameConfig.dimension === '3d';
+      if (templateType && !skip3DTemplate) {
         let templateCode = await loadTemplate(templateType);
         if (templateCode) {
           // Pre-customize template based on gameConfig survey answers
@@ -595,6 +597,8 @@ app.post('/api/generate', async (req, res) => {
           }
           codeToUse = templateCode;
         }
+      } else if (skip3DTemplate) {
+        console.log(`🌐 3D mode selected — skipping 2D ${templateType} template, AI will generate 3D from scratch`);
       }
     }
 
