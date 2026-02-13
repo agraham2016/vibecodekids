@@ -620,6 +620,16 @@ app.post('/api/generate', async (req, res) => {
     // Log prompt size for debugging
     console.log(`📝 System prompt: ${systemPrompt.length} chars | Messages: ${messages.length} | Template: ${templateType || 'none'}`);
 
+    // Scale max_tokens: the AI must re-output the full code + new additions
+    const codeLength = (codeToUse || '').length;
+    const baseTokens = 16384;
+    // Rough estimate: 1 token ≈ 3-4 chars. Add buffer for new code + chat text.
+    const estimatedTokensNeeded = Math.ceil(codeLength / 3) + 4096;
+    const maxTokens = Math.min(Math.max(baseTokens, estimatedTokensNeeded), 32768);
+    if (maxTokens > baseTokens) {
+      console.log(`📏 Code is ${codeLength} chars — increased max_tokens to ${maxTokens} (from ${baseTokens})`);
+    }
+
     // Call Claude API with retry logic for transient failures
     let response;
     const maxRetries = 2;
@@ -627,7 +637,7 @@ app.post('/api/generate', async (req, res) => {
       try {
         response = await anthropic.messages.create({
           model: 'claude-sonnet-4-20250514',
-          max_tokens: 16384,
+          max_tokens: maxTokens,
           system: systemPrompt,
           messages: messages
         });
@@ -709,11 +719,11 @@ app.post('/api/generate', async (req, res) => {
           const continuationResponse = await anthropic.messages.create({
             model: 'claude-sonnet-4-20250514',
             max_tokens: 8192,
-            system: 'You were generating an HTML game and your response was cut off. Continue EXACTLY where you left off. Do NOT repeat any code that was already written. Do NOT add any explanation text - ONLY output the remaining code to complete the HTML document. The code must end with </html>.',
+            system: 'You were generating an HTML game and your response was cut off. Continue EXACTLY where you left off. Do NOT repeat any code that was already written. Do NOT add any explanation text - ONLY output the remaining code to complete the HTML document. The code must end with </html>. IMPORTANT: Make sure ALL features from the original game are still present in the remaining code - do NOT skip or drop any existing game objects, arrays, update loops, or rendering calls.',
             messages: [
               {
                 role: 'user',
-                content: `Continue this HTML code. Pick up EXACTLY where it ends (do not repeat anything):\n\n${partialCode.slice(-3000)}`
+                content: `Continue this HTML code. Pick up EXACTLY where it ends (do not repeat anything). Make sure all existing game features are preserved in the remaining code:\n\n${partialCode.slice(-3000)}`
               }
             ]
           });
