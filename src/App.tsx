@@ -270,7 +270,7 @@ function App() {
     setShowUpgradeModal(true)
   }
 
-  const handleSendMessage = useCallback(async (content: string, image?: string) => {
+  const handleSendMessage = useCallback(async (content: string, image?: string, configOverride?: GameConfig | null) => {
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
@@ -301,7 +301,7 @@ function App() {
             content: m.content,
             image: m.image
           })),
-          gameConfig: gameConfig
+          gameConfig: configOverride !== undefined ? configOverride : gameConfig
         })
       })
 
@@ -463,10 +463,11 @@ function App() {
   // When the survey is completed, store the config and auto-generate the first game
   const handleSurveyComplete = useCallback((config: GameConfig) => {
     setGameConfig(config)
-    // Build a descriptive prompt from the survey answers
-    const buildPrompt = `Build me a ${config.theme} ${config.gameType} game where I play as a ${config.character}. The obstacles/enemies should be ${config.obstacles}. Make it look ${config.visualStyle}.${config.customNotes ? ` Also: ${config.customNotes}` : ''}`
-    // Auto-send this as the first message to start building
-    handleSendMessage(buildPrompt)
+    // Build a descriptive prompt from the survey answers (include 3D if selected)
+    const dimensionLabel = config.dimension === '3d' ? '3D' : '2D'
+    const buildPrompt = `Build me a ${dimensionLabel} ${config.theme} ${config.gameType} game where I play as a ${config.character}. The obstacles/enemies should be ${config.obstacles}. Make it look ${config.visualStyle}.${config.customNotes ? ` Also: ${config.customNotes}` : ''}`
+    // Pass config directly to avoid React state timing issue (setGameConfig is async)
+    handleSendMessage(buildPrompt, undefined, config)
   }, [handleSendMessage])
 
   // Show loading while checking auth
