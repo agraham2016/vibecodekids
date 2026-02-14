@@ -138,7 +138,7 @@ export default function PreviewPanel({ code }: PreviewPanelProps) {
             key={key}
             ref={iframeRef}
             title="Preview"
-            sandbox="allow-scripts allow-same-origin"
+            sandbox="allow-scripts allow-same-origin allow-pointer-lock"
             className="preview-iframe"
           />
         </div>
@@ -163,7 +163,7 @@ export default function PreviewPanel({ code }: PreviewPanelProps) {
             <iframe
               ref={fullscreenIframeRef}
               title="Fullscreen Preview"
-              sandbox="allow-scripts allow-same-origin"
+              sandbox="allow-scripts allow-same-origin allow-pointer-lock"
               className="play-mode-iframe"
             />
           </div>

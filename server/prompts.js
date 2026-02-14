@@ -409,6 +409,91 @@ OBSTACLES AND SCORING:
 - Use simple distance checks for collision (not complex physics)
 `;
 
+// 3D Shooter-specific rules - FPS controls, pointer lock, shooting mechanics
+const THREE_D_SHOOTER_RULES = `
+3D SHOOTING GAME - CRITICAL RULES (FPS / third-person shooter):
+
+POINTER LOCK SETUP (required for mouse look):
+- The game MUST use requestPointerLock() for mouse-based camera control
+- On page load, show a "Click to Play" overlay message on top of the canvas
+- When the player clicks the canvas/overlay, call canvas.requestPointerLock() (or renderer.domElement.requestPointerLock())
+- Listen for document 'pointerlockchange' event to detect when pointer lock activates/deactivates
+- When pointer lock is lost (player presses Escape), show the "Click to Play" overlay again
+- Pattern:
+  var canvas = renderer.domElement;
+  var overlay = document.getElementById('overlay');
+  overlay.addEventListener('click', function() { canvas.requestPointerLock(); });
+  document.addEventListener('pointerlockchange', function() {
+    if (document.pointerLockElement === canvas) {
+      overlay.style.display = 'none'; // Hide overlay, game is active
+    } else {
+      overlay.style.display = 'flex'; // Show overlay, game is paused
+    }
+  });
+
+MOUSE LOOK (FPS camera):
+- ONLY process mouse look when pointer lock is active (document.pointerLockElement === canvas)
+- Use mousemove event with event.movementX for yaw and event.movementY for pitch
+- Sensitivity should be low (multiply by 0.002 to 0.004) so it's not too fast for kids
+- Yaw (horizontal) = FULL 360 degrees, NO clamping
+- Pitch (vertical) = clamp between -1.4 and 1.4 radians to prevent flipping
+- Pattern:
+  document.addEventListener('mousemove', function(e) {
+    if (document.pointerLockElement !== canvas) return;
+    yaw -= e.movementX * 0.003;
+    pitch -= e.movementY * 0.003;
+    pitch = Math.max(-1.4, Math.min(1.4, pitch));
+    camera.rotation.order = 'YXZ';
+    camera.rotation.y = yaw;
+    camera.rotation.x = pitch;
+  });
+
+MOVEMENT - ARROW KEYS:
+- ArrowUp = move forward (direction camera faces)
+- ArrowDown = move backward
+- ArrowLeft = strafe left
+- ArrowRight = strafe right
+- Space = jump (if applicable)
+- ALWAYS call e.preventDefault() for arrow keys and space
+- Movement MUST be relative to camera yaw direction (use sin/cos)
+
+SHOOTING:
+- Click (mousedown) or Space to fire a projectile
+- Projectiles fire FROM the camera position IN the camera's forward direction
+- Forward direction: new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion)
+- Create a small sphere or box mesh for each projectile, add to scene
+- Move projectiles forward each frame at a fast speed
+- Remove projectiles after they travel a max distance or hit something
+- Keep a projectiles array and update/cleanup in the game loop
+
+CROSSHAIR:
+- Add a simple crosshair in the CENTER of the screen using an HTML div overlay
+- Use position:fixed, top:50%, left:50%, transform:translate(-50%,-50%)
+- A simple + or dot shape works well, make it white or bright colored
+- The crosshair should ALWAYS be visible on top of the 3D canvas
+
+ENEMIES / TARGETS:
+- Spawn enemies as colored meshes (e.g. red cubes or spheres) at random positions
+- Use simple distance-based hit detection: when a projectile is within a threshold of an enemy, it's a hit
+- On hit: remove the enemy, remove the projectile, increment score, optionally spawn a new enemy
+- Keep an enemies array, check collisions each frame in the game loop
+- Start with a small number of enemies (5-10) and respawn them when destroyed
+
+HUD OVERLAY:
+- Use HTML divs positioned on top of the 3D canvas (position:fixed or position:absolute)
+- Show: Score, Health/Lives, Ammo (if limited)
+- Use large, readable text with a slight text-shadow for visibility against the 3D scene
+- Place at top-left or top-center of the screen
+
+COMMON 3D SHOOTER MISTAKES TO AVOID:
+- Forgetting requestPointerLock() - mouse look will NOT work without it
+- Processing mousemove when pointer lock is not active - causes jumpy camera
+- Not showing a "Click to Play" prompt - kids won't know they need to click
+- Making mouse sensitivity too high - kids find it disorienting
+- Shooting projectiles in world-axis direction instead of camera direction
+- Forgetting to remove old projectiles - causes memory leaks and slowdown
+`;
+
 // Platformer-specific rules - MUST keep these or the game will be empty/broken
 const PLATFORMER_SAFETY_RULES = `
 PLATFORMER GAME - CRITICAL RULES (never break these when customizing):
@@ -532,6 +617,14 @@ Starting template: ${templateType.toUpperCase()} game
   );
   const racingRules = (is3D && isRacing) ? THREE_D_RACING_RULES : '';
 
+  // Detect 3D shooter specifically
+  const isShooter = (
+    templateType === 'shooter' ||
+    (gameConfig && (gameConfig.gameType || '').toLowerCase().includes('shooter')) ||
+    (currentCode && currentCode.includes('THREE') && /shoot|gun|bullet|projectile|fps/i.test(currentCode))
+  );
+  const shooterRules = (is3D && isShooter) ? THREE_D_SHOOTER_RULES : '';
+
   const modificationRules = (!templateType && currentCode) ? MODIFICATION_SAFETY_RULES : '';
 
   const contextPrompt = currentCode ? `
@@ -545,10 +638,11 @@ ${modificationRules}
 ${platformerRules}
 ${threeDRules}
 ${racingRules}
+${shooterRules}
 ` : '';
 
   // If this is a 3D request but no current code yet (first generation), still include 3D rules
-  const extraRules = (!currentCode && (threeDRules || racingRules)) ? `\n${threeDRules}\n${racingRules}` : '';
+  const extraRules = (!currentCode && (threeDRules || racingRules || shooterRules)) ? `\n${threeDRules}\n${racingRules}\n${shooterRules}` : '';
 
   return `${prompt}
 ${templatePrompt}
