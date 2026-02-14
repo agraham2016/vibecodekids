@@ -6,7 +6,8 @@
 
 import { promises as fs } from 'fs';
 import path from 'path';
-import { USERS_DIR, PROJECTS_DIR } from '../config/index.js';
+import { execSync } from 'child_process';
+import { DATA_DIR, USERS_DIR, PROJECTS_DIR } from '../config/index.js';
 
 // ========== USER OPERATIONS ==========
 
@@ -87,5 +88,14 @@ export async function ensureDataDirs() {
     await fs.mkdir(USERS_DIR, { recursive: true });
   } catch {
     // Directories already exist
+  }
+
+  // Fix volume permissions (Railway and Docker volume mounts can have
+  // ownership mismatches between deploys)
+  try {
+    execSync(`chmod -R 777 "${DATA_DIR}" 2>/dev/null || true`);
+    console.log('🔧 Fixed data directory permissions');
+  } catch {
+    // chmod not available or not needed (Windows, etc.)
   }
 }
