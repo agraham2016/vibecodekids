@@ -35,5 +35,6 @@ playwright-report/
 # Keep data folder structure but not actual data
 data/users/*.json
 data/projects/*.json
+data/sessions.json
 !data/users/.gitkeep
 !data/projects/.gitkeep

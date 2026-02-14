@@ -682,17 +682,12 @@
         
         <form id="loginForm">
           <div class="form-group">
-            <label for="username">Username</label>
-            <input type="text" id="username" name="username" required autocomplete="username">
-          </div>
-          
-          <div class="form-group">
-            <label for="password">Password</label>
-            <input type="password" id="password" name="password" required autocomplete="current-password">
+            <label for="password">Admin Key</label>
+            <input type="password" id="password" name="password" required autocomplete="off" placeholder="Enter admin secret key">
           </div>
           
           <button type="submit" class="btn btn-primary">
-            Sign In
+            Access Dashboard
           </button>
           
           <div id="loginError" class="error-message hidden"></div>
@@ -864,14 +859,17 @@
   </div>
 
   <script>
-    // Admin credentials (hardcoded for now)
-    const ADMIN_CREDENTIALS = {
-      username: 'a.graham2016',
-      password: 'Learning123!'
-    };
+    // Admin key stored in session (validated server-side via x-admin-key header)
+    let adminKey = sessionStorage.getItem('adminKey');
 
-    // Session token (simple implementation)
-    let adminToken = localStorage.getItem('adminToken');
+    // Helper: add admin auth headers to every fetch request
+    function adminFetch(url, options = {}) {
+      if (!options.headers) options.headers = {};
+      if (adminKey) {
+        options.headers['x-admin-key'] = adminKey;
+      }
+      return fetch(url, options);
+    }
 
     // DOM Elements
     const loginPage = document.getElementById('loginPage');
@@ -879,38 +877,63 @@
     const loginForm = document.getElementById('loginForm');
     const loginError = document.getElementById('loginError');
 
-    // Check if already logged in
-    function checkAuth() {
-      if (adminToken === 'authenticated') {
-        showDashboard();
+    // Check if already logged in by hitting a protected endpoint
+    async function checkAuth() {
+      if (!adminKey) return;
+      try {
+        const response = await adminFetch('/api/admin/stats');
+        if (response.ok) {
+          showDashboard();
+        } else {
+          // Key is invalid or expired
+          sessionStorage.removeItem('adminKey');
+          adminKey = null;
+        }
+      } catch (err) {
+        // Server unreachable, stay on login
       }
     }
 
-    // Login handler
-    loginForm.addEventListener('submit', (e) => {
+    // Login handler -- validates against server
+    loginForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       
-      const username = document.getElementById('username').value;
-      const password = document.getElementById('password').value;
+      // The "password" field is now the admin secret key
+      const key = document.getElementById('password').value.trim();
       
-      if (username === ADMIN_CREDENTIALS.username && password === ADMIN_CREDENTIALS.password) {
-        adminToken = 'authenticated';
-        localStorage.setItem('adminToken', adminToken);
-        loginError.classList.add('hidden');
-        showDashboard();
-      } else {
-        loginError.textContent = 'Invalid credentials. Please try again.';
+      if (!key) {
+        loginError.textContent = 'Please enter the admin key.';
+        loginError.classList.remove('hidden');
+        return;
+      }
+
+      // Test the key by hitting a protected endpoint
+      try {
+        const response = await fetch('/api/admin/stats', {
+          headers: { 'x-admin-key': key }
+        });
+
+        if (response.ok) {
+          adminKey = key;
+          sessionStorage.setItem('adminKey', adminKey);
+          loginError.classList.add('hidden');
+          showDashboard();
+        } else {
+          loginError.textContent = 'Invalid admin key. Access denied.';
+          loginError.classList.remove('hidden');
+        }
+      } catch (err) {
+        loginError.textContent = 'Could not connect to server. Try again.';
         loginError.classList.remove('hidden');
       }
     });
 
     // Logout
     function logout() {
-      adminToken = null;
-      localStorage.removeItem('adminToken');
+      adminKey = null;
+      sessionStorage.removeItem('adminKey');
       dashboardPage.classList.add('hidden');
       loginPage.classList.remove('hidden');
-      document.getElementById('username').value = '';
       document.getElementById('password').value = '';
     }
 
@@ -985,7 +1008,7 @@
     // Load stats
     async function loadStats() {
       try {
-        const response = await fetch('/api/admin/stats');
+        const response = await adminFetch('/api/admin/stats');
         const stats = await response.json();
         
         document.getElementById('statTotalUsers').textContent = stats.totalUsers;
@@ -1017,7 +1040,7 @@
       table.classList.add('hidden');
       
       try {
-        const response = await fetch('/api/admin/users');
+        const response = await adminFetch('/api/admin/users');
         const users = await response.json();
         const pendingUsers = users.filter(u => u.status === 'pending');
         
@@ -1064,7 +1087,7 @@
       table.classList.add('hidden');
       
       try {
-        const response = await fetch('/api/admin/users');
+        const response = await adminFetch('/api/admin/users');
         const users = await response.json();
         
         loading.classList.add('hidden');
@@ -1124,7 +1147,7 @@
       table.classList.add('hidden');
       
       try {
-        const response = await fetch('/api/admin/projects');
+        const response = await adminFetch('/api/admin/projects');
         const projects = await response.json();
         
         loading.classList.add('hidden');
@@ -1164,7 +1187,7 @@
     // Approve user
     async function approveUser(userId) {
       try {
-        const response = await fetch(`/api/admin/users/${userId}/approve`, {
+        const response = await adminFetch(`/api/admin/users/${userId}/approve`, {
           method: 'POST'
         });
         
@@ -1188,7 +1211,7 @@
         'Are you sure you want to deny this user?',
         async () => {
           try {
-            const response = await fetch(`/api/admin/users/${userId}/deny`, {
+            const response = await adminFetch(`/api/admin/users/${userId}/deny`, {
               method: 'POST'
             });
             
@@ -1214,7 +1237,7 @@
         `Are you sure you want to delete "${title}"? This cannot be undone.`,
         async () => {
           try {
-            const response = await fetch(`/api/admin/projects/${projectId}`, {
+            const response = await adminFetch(`/api/admin/projects/${projectId}`, {
               method: 'DELETE'
             });
             
