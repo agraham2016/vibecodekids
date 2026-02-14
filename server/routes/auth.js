@@ -5,6 +5,7 @@
  */
 
 import { Router } from 'express';
+import crypto from 'crypto';
 import bcrypt from 'bcrypt';
 import { BCRYPT_ROUNDS, MEMBERSHIP_TIERS } from '../config/index.js';
 import { readUser, writeUser, userExists, listProjects } from '../services/storage.js';
@@ -148,7 +149,26 @@ export default function createAuthRouter(sessions) {
         throw err;
       }
 
-      if (!bcrypt.compareSync(password, user.passwordHash)) {
+      // Check password -- supports both bcrypt and legacy SHA-256 hashes
+      const isLegacySHA256 = /^[a-f0-9]{64}$/i.test(user.passwordHash);
+      let passwordValid = false;
+
+      if (isLegacySHA256) {
+        // Legacy SHA-256 hash: verify and auto-upgrade to bcrypt
+        const sha256Hash = crypto.createHash('sha256').update(password).digest('hex');
+        if (sha256Hash === user.passwordHash) {
+          passwordValid = true;
+          // Silently upgrade to bcrypt
+          user.passwordHash = bcrypt.hashSync(password, BCRYPT_ROUNDS);
+          await writeUser(user.id, user);
+          console.log(`🔄 Auto-upgraded password hash for user: ${user.username}`);
+        }
+      } else {
+        // bcrypt hash
+        passwordValid = bcrypt.compareSync(password, user.passwordHash);
+      }
+
+      if (!passwordValid) {
         return res.status(401).json({ error: 'Incorrect password' });
       }
 
