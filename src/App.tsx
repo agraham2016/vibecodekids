@@ -9,7 +9,7 @@ import AuthModal from './components/AuthModal'
 import UpgradeModal from './components/UpgradeModal'
 import VersionHistoryModal from './components/VersionHistoryModal'
 import LandingPage from './components/LandingPage'
-import { Message, Project, MembershipUsage, TierInfo, UserProject, GameConfig } from './types'
+import { Message, Project, MembershipUsage, TierInfo, UserProject } from './types'
 import './App.css'
 
 interface User {
@@ -93,7 +93,6 @@ function App() {
   const [showVersionHistory, setShowVersionHistory] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
-  const [gameConfig, setGameConfig] = useState<GameConfig | null>(null)
   const lastSavedCode = useRef<string>(DEFAULT_HTML)
 
   // Fetch user's projects
@@ -270,7 +269,7 @@ function App() {
     setShowUpgradeModal(true)
   }
 
-  const handleSendMessage = useCallback(async (content: string, image?: string, configOverride?: GameConfig | null) => {
+  const handleSendMessage = useCallback(async (content: string, image?: string) => {
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
@@ -301,7 +300,7 @@ function App() {
             content: m.content,
             image: m.image
           })),
-          gameConfig: configOverride !== undefined ? configOverride : gameConfig
+          gameConfig: null
         })
       })
 
@@ -373,7 +372,7 @@ function App() {
     } finally {
       setIsLoading(false)
     }
-  }, [code, messages, authToken, gameConfig])
+  }, [code, messages, authToken])
 
   const handleCodeChange = useCallback((newCode: string) => {
     setCode(newCode)
@@ -457,18 +456,7 @@ function App() {
     })
     lastSavedCode.current = DEFAULT_HTML
     setHasUnsavedChanges(false)
-    setGameConfig(null) // Reset to show survey again
   }, [])
-
-  // When the survey is completed, store the config and auto-generate the first game
-  const handleSurveyComplete = useCallback((config: GameConfig) => {
-    setGameConfig(config)
-    // Build a descriptive prompt from the survey answers (include 3D if selected)
-    const dimensionLabel = config.dimension === '3d' ? '3D' : '2D'
-    const buildPrompt = `Build me a ${dimensionLabel} ${config.theme} ${config.gameType} game where I play as a ${config.character}. The obstacles/enemies should be ${config.obstacles}. Make it look ${config.visualStyle}.${config.customNotes ? ` Also: ${config.customNotes}` : ''}`
-    // Pass config directly to avoid React state timing issue (setGameConfig is async)
-    handleSendMessage(buildPrompt, undefined, config)
-  }, [handleSendMessage])
 
   // Show loading while checking auth
   if (isCheckingAuth) {
@@ -581,9 +569,6 @@ function App() {
             messages={messages}
             onSendMessage={handleSendMessage}
             isLoading={isLoading}
-            gameConfig={gameConfig}
-            onSurveyComplete={handleSurveyComplete}
-            currentProjectId={currentProject.id}
           />
         </div>
         

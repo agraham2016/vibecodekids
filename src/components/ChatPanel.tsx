@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Message, GameConfig } from '../types'
-import GameSurvey from './GameSurvey'
+import { Message } from '../types'
 import TipsModal from './TipsModal'
 import './ChatPanel.css'
 
@@ -52,12 +51,9 @@ interface ChatPanelProps {
   messages: Message[]
   onSendMessage: (content: string, image?: string) => void
   isLoading: boolean
-  gameConfig: GameConfig | null
-  onSurveyComplete: (config: GameConfig) => void
-  currentProjectId: string
 }
 
-export default function ChatPanel({ messages, onSendMessage, isLoading, gameConfig, onSurveyComplete, currentProjectId }: ChatPanelProps) {
+export default function ChatPanel({ messages, onSendMessage, isLoading }: ChatPanelProps) {
   const [input, setInput] = useState('')
   const [isListening, setIsListening] = useState(false)
   const [speechSupported, setSpeechSupported] = useState(false)
@@ -291,22 +287,6 @@ export default function ChatPanel({ messages, onSendMessage, isLoading, gameConf
     }
   }
 
-  // ========== SURVEY MODE ==========
-  // Show survey only when no gameConfig AND no project loaded (new project)
-  // If they clicked a project from the list, show chat so they can edit it
-  const showSurvey = !gameConfig && currentProjectId === 'new'
-  if (showSurvey) {
-    return (
-      <div className="panel chat-panel">
-        <div className="panel-header chat-header">
-          <span className="icon">🎮</span>
-          <span className="chat-header-title">Let's Build a Game!</span>
-        </div>
-        <GameSurvey onComplete={onSurveyComplete} />
-      </div>
-    )
-  }
-
   // ========== CHAT MODE ==========
   return (
     <div className="panel chat-panel">
@@ -319,35 +299,14 @@ export default function ChatPanel({ messages, onSendMessage, isLoading, gameConf
       <div className="panel-header chat-header">
         <span className="icon">💬</span>
         <span className="chat-header-title">AI Helper</span>
-        {gameConfig && (
-          <div className="game-config-badge">
-            {gameConfig.gameType} • {gameConfig.theme}
-          </div>
-        )}
-        {!gameConfig && currentProjectId !== 'new' && (
-          <div className="game-config-badge edit-mode">Editing project</div>
-        )}
       </div>
       
       <div className="panel-content chat-messages">
         {messages.length === 0 ? (
           <div className="chat-welcome">
             <div className="welcome-icon">🎮</div>
-            {gameConfig ? (
-              <>
-                <h3>Building your {gameConfig.theme} {gameConfig.gameType} game!</h3>
-                <p>I'm creating it right now. Once it appears in the preview, you can ask me to change anything!</p>
-                <div className="building-indicator">
-                  <div className="building-spinner-sm" />
-                  <span>Generating your game...</span>
-                </div>
-              </>
-            ) : (
-              <>
-                <h3>Edit your game!</h3>
-                <p>Ask me to add powerups, change colors, new levels, or anything else. I'll update the code for you.</p>
-              </>
-            )}
+            <h3>Let's build something awesome!</h3>
+            <p>Tell me what kind of game you want to make! For example: "Make me a 3D space shooter" or "Build a racing game with dinosaurs" -- anything you can imagine!</p>
           </div>
         ) : (
           <>
