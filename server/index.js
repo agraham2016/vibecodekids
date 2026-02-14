@@ -8,7 +8,7 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { createServer } from 'http';
-import { getSystemPrompt, getContentFilter, sanitizeOutput, detectTemplate, getTemplateInfo } from './prompts.js';
+import { getSystemPrompt, getContentFilter, sanitizeOutput, detectGameGenre } from './prompts.js';
 import { initMultiplayer, getRoomInfo, getActiveRooms } from './multiplayer.js';
 
 // Load environment variables
@@ -161,26 +161,6 @@ async function ensureDataDirs() {
 }
 ensureDataDirs();
 
-// ========== GAME TEMPLATES ==========
-const TEMPLATES_DIR = path.join(__dirname, 'templates');
-
-/**
- * Load a game template by type
- * @param {string} type - Template type (racing, shooter, platformer, etc.)
- * @returns {string|null} - Template HTML or null if not found
- */
-async function loadTemplate(type) {
-  const templatePath = path.join(TEMPLATES_DIR, `${type}.html`);
-  try {
-    const template = await fs.readFile(templatePath, 'utf-8');
-    // Add marker so we know a template was used
-    return template.replace('</html>', `<!-- TEMPLATE:${type} --></html>`);
-  } catch (err) {
-    console.error('Template not found:', type, err.message);
-    return null;
-  }
-}
-
 /**
  * Check if the current code is the default/empty state
  * (meaning user hasn't started building yet)
@@ -189,8 +169,7 @@ function isDefaultCode(code) {
   if (!code) return true;
   // Check for default welcome screen markers
   return code.includes('Vibe Code Studio') && 
-         code.includes('Tell me what you want to create') &&
-         !code.includes('<!-- TEMPLATE:');
+         code.includes('Tell me what you want to create');
 }
 
 // Initialize Anthropic client
@@ -448,81 +427,6 @@ function formatMessageContent(text, imageBase64) {
   ];
 }
 
-/**
- * Pre-customize a template based on gameConfig
- * Swaps colors, themes, labels, and character references in the template HTML
- */
-function preCustomizeTemplate(templateHtml, gameConfig) {
-  if (!gameConfig || !templateHtml) return templateHtml;
-  
-  let html = templateHtml;
-  
-  // ========== VISUAL STYLE COLOR MAPPINGS ==========
-  const styleColors = {
-    neon: {
-      primary: '#8b5cf6',
-      secondary: '#ec4899',
-      background: '#0f0a1e',
-      text: '#e0d4ff',
-      accent: '#06d6a0',
-      bgGradient: 'linear-gradient(135deg, #0f0a1e 0%, #1a0e2e 100%)',
-    },
-    retro: {
-      primary: '#f59e0b',
-      secondary: '#ef4444',
-      background: '#1a1a2e',
-      text: '#e2e8f0',
-      accent: '#22c55e',
-      bgGradient: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
-    },
-    cute: {
-      primary: '#f472b6',
-      secondary: '#a78bfa',
-      background: '#fdf2f8',
-      text: '#4a1942',
-      accent: '#34d399',
-      bgGradient: 'linear-gradient(135deg, #fdf2f8 0%, #fce7f3 100%)',
-    },
-    spooky: {
-      primary: '#a855f7',
-      secondary: '#f97316',
-      background: '#0c0a1a',
-      text: '#c4b5fd',
-      accent: '#22d3ee',
-      bgGradient: 'linear-gradient(135deg, #0c0a1a 0%, #1a0f2b 100%)',
-    },
-    clean: {
-      primary: '#3b82f6',
-      secondary: '#10b981',
-      background: '#f8fafc',
-      text: '#1e293b',
-      accent: '#f59e0b',
-      bgGradient: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
-    },
-  };
-  
-  const colors = styleColors[gameConfig.visualStyle] || styleColors.neon;
-  
-  // Replace CSS custom properties if present
-  html = html.replace(/--game-primary:\s*[^;]+;/g, `--game-primary: ${colors.primary};`);
-  html = html.replace(/--game-secondary:\s*[^;]+;/g, `--game-secondary: ${colors.secondary};`);
-  html = html.replace(/--game-bg:\s*[^;]+;/g, `--game-bg: ${colors.background};`);
-  html = html.replace(/--game-text:\s*[^;]+;/g, `--game-text: ${colors.text};`);
-  html = html.replace(/--game-accent:\s*[^;]+;/g, `--game-accent: ${colors.accent};`);
-  
-  // Replace title/heading text with theme-appropriate text
-  const themeTitle = `${gameConfig.theme.charAt(0).toUpperCase() + gameConfig.theme.slice(1)} ${gameConfig.gameType.charAt(0).toUpperCase() + gameConfig.gameType.slice(1)}`;
-  html = html.replace(/<!-- GAME_TITLE -->[^<]*<!-- \/GAME_TITLE -->/g, `<!-- GAME_TITLE -->${themeTitle}<!-- /GAME_TITLE -->`);
-  
-  // Replace character placeholder
-  html = html.replace(/<!-- PLAYER_CHARACTER -->[^<]*<!-- \/PLAYER_CHARACTER -->/g, `<!-- PLAYER_CHARACTER -->${gameConfig.character}<!-- /PLAYER_CHARACTER -->`);
-  
-  // Replace obstacle placeholder
-  html = html.replace(/<!-- OBSTACLES -->[^<]*<!-- \/OBSTACLES -->/g, `<!-- OBSTACLES -->${gameConfig.obstacles}<!-- /OBSTACLES -->`);
-  
-  return html;
-}
-
 // Main generation endpoint
 app.post('/api/generate', async (req, res) => {
   try {
@@ -571,39 +475,22 @@ app.post('/api/generate', async (req, res) => {
       });
     }
 
-    // ========== TEMPLATE DETECTION & PRE-CUSTOMIZATION ==========
-    let templateType = null;
+    // ========== GENRE DETECTION ==========
+    let gameGenre = null;
     let codeToUse = currentCode;
     
-    if (isDefaultCode(currentCode)) {
-      // Use gameConfig to select template, or detect from message
-      if (gameConfig && gameConfig.gameType) {
-        templateType = gameConfig.gameType;
-      } else {
-        templateType = detectTemplate(message);
-      }
-      
-      // Skip 2D template when kid chose 3D — the AI needs to generate from scratch
-      const skip3DTemplate = gameConfig && gameConfig.dimension === '3d';
-      if (templateType && !skip3DTemplate) {
-        let templateCode = await loadTemplate(templateType);
-        if (templateCode) {
-          // Pre-customize template based on gameConfig survey answers
-          if (gameConfig) {
-            templateCode = preCustomizeTemplate(templateCode, gameConfig);
-            console.log(`📦 Using pre-customized ${templateType} template (theme: ${gameConfig.theme}, style: ${gameConfig.visualStyle})`);
-          } else {
-            console.log(`📦 Using ${templateType} template for this request`);
-          }
-          codeToUse = templateCode;
-        }
-      } else if (skip3DTemplate) {
-        console.log(`🌐 3D mode selected — skipping 2D ${templateType} template, AI will generate 3D from scratch`);
-      }
+    if (gameConfig && gameConfig.gameType) {
+      gameGenre = gameConfig.gameType;
+    } else if (!currentCode || isDefaultCode(currentCode)) {
+      gameGenre = detectGameGenre(message);
+    }
+    
+    if (gameGenre) {
+      console.log(`🎮 Detected game genre: ${gameGenre}`);
     }
 
-    // Build conversation with system prompt (pass gameConfig and template type)
-    const systemPrompt = getSystemPrompt(codeToUse, gameConfig, templateType);
+    // Build conversation with system prompt (pass gameConfig and genre)
+    const systemPrompt = getSystemPrompt(codeToUse, gameConfig, gameGenre);
     
     // Format conversation history for Claude (with image support)
     const messages = [
@@ -618,7 +505,7 @@ app.post('/api/generate', async (req, res) => {
     ];
 
     // Log prompt size for debugging
-    console.log(`📝 System prompt: ${systemPrompt.length} chars | Messages: ${messages.length} | Template: ${templateType || 'none'}`);
+    console.log(`📝 System prompt: ${systemPrompt.length} chars | Messages: ${messages.length} | Genre: ${gameGenre || 'none'}`);
 
     // Scale max_tokens: the AI must re-output the full code + new additions
     const codeLength = (codeToUse || '').length;
@@ -765,12 +652,6 @@ app.post('/api/generate', async (req, res) => {
       console.log('⚠️ No code block found in AI response (preview will not update)');
     }
     
-    // If we used a template and AI didn't generate new code, use the template
-    if (!code && templateType && codeToUse) {
-      code = codeToUse;
-      console.log(`📦 Returning ${templateType} template as starting point`);
-    }
-
     // Sanitize the output message
     let cleanMessage = sanitizeOutput(assistantMessage);
     
@@ -817,40 +698,6 @@ app.post('/api/generate', async (req, res) => {
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Vibe Code Studio server is running! 🚀' });
-});
-
-// ========== TEMPLATES API ==========
-
-// Get list of available templates
-app.get('/api/templates', (req, res) => {
-  const templates = getTemplateInfo();
-  res.json({ templates });
-});
-
-// Get a specific template by type
-app.get('/api/templates/:type', async (req, res) => {
-  const { type } = req.params;
-  const validTypes = ['racing', 'shooter', 'platformer', 'frogger', 'puzzle', 'clicker', 'rpg'];
-  
-  if (!validTypes.includes(type)) {
-    return res.status(400).json({ error: 'Invalid template type' });
-  }
-  
-  const templateCode = await loadTemplate(type);
-  
-  if (!templateCode) {
-    return res.status(404).json({ error: 'Template not found' });
-  }
-  
-  const templateInfo = getTemplateInfo()[type];
-  
-  res.json({
-    type,
-    name: templateInfo.name,
-    icon: templateInfo.icon,
-    description: templateInfo.description,
-    code: templateCode
-  });
 });
 
 // ========== PROJECT SHARING API ==========

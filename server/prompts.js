@@ -213,9 +213,9 @@ BROWSER GAMING APIs TO USE:
 // ========== TEMPLATE SYSTEM ==========
 
 /**
- * Keywords that trigger each game template
+ * Keywords for detecting game genre from free-text messages
  */
-const TEMPLATE_KEYWORDS = {
+const GENRE_KEYWORDS = {
   racing: ['racing', 'race', 'car game', 'driving', 'dodge cars', 'racing game', 'car racing', 'drive'],
   shooter: ['shooter', 'shooting', 'space invaders', 'shoot', 'laser', 'zombie', 'space shooter', 'shoot em up', 'shmup', 'bullet'],
   platformer: ['platformer', 'jumping', 'mario', 'jump game', 'side scroller', 'platform game', 'jumping game', 'collect coins'],
@@ -226,14 +226,14 @@ const TEMPLATE_KEYWORDS = {
 };
 
 /**
- * Detect which template to use based on user message
+ * Detect game genre from a free-text message (when no survey config is available)
  * @param {string} message - The user's message
- * @returns {string|null} - Template type or null if no match
+ * @returns {string|null} - Genre type or null if no match
  */
-export function detectTemplate(message) {
+export function detectGameGenre(message) {
   const lower = message.toLowerCase();
   
-  for (const [type, keywords] of Object.entries(TEMPLATE_KEYWORDS)) {
+  for (const [type, keywords] of Object.entries(GENRE_KEYWORDS)) {
     if (keywords.some(kw => lower.includes(kw))) {
       return type;
     }
@@ -241,61 +241,6 @@ export function detectTemplate(message) {
   
   return null;
 }
-
-/**
- * Get template info for display
- */
-export function getTemplateInfo() {
-  return {
-    racing: { name: 'Racing Game', icon: '🏎️', description: 'Dodge cars and race for high scores!' },
-    shooter: { name: 'Shooter Game', icon: '🔫', description: 'Blast enemies and save the day!' },
-    platformer: { name: 'Platformer', icon: '🦘', description: 'Jump, collect coins, avoid obstacles!' },
-    frogger: { name: 'Frogger Style', icon: '🐸', description: 'Cross roads and rivers safely!' },
-    puzzle: { name: 'Puzzle Game', icon: '🧩', description: 'Match cards and test your memory!' },
-    clicker: { name: 'Clicker Game', icon: '👆', description: 'Click to earn, buy upgrades!' },
-    rpg: { name: 'Adventure/RPG', icon: '⚔️', description: 'Explore, talk to NPCs, find treasure!' }
-  };
-}
-
-// Template mode prompt - tells AI to customize, not rebuild
-const TEMPLATE_MODE_PROMPT = `TEMPLATE MODE - You are customizing an existing working game!
-
-CRITICAL: Do NOT rewrite the game from scratch! The game already works perfectly. Your job is to make SMALL, TARGETED changes:
-
-WHAT TO CHANGE (theme/visual customization):
-- CSS colors, gradients, and backgrounds → match their requested theme
-- Emoji characters (e.g. player emoji, coin emoji) → match their theme
-- Text labels (title, HUD labels, game over text)
-- CSS border styles, shadows, and visual effects
-- Add new CSS classes for themed elements
-
-WHAT TO NEVER CHANGE OR REMOVE:
-- Game loop function and requestAnimationFrame calls
-- Physics (gravity, jumpForce, moveSpeed, friction values)
-- Collision detection functions
-- Level/chunk generation functions
-- DOM element creation helpers (createPlatform, createCoin, etc.)
-- Input handling (keydown/keyup listeners and the setInterval movement loop)
-- Camera/scroll system
-- Player state object structure
-
-HOW TO CUSTOMIZE SAFELY:
-1. Copy the ENTIRE existing code
-2. Find the specific CSS values, colors, and text strings to change
-3. Replace ONLY those values
-4. Add small new features by inserting code — never by restructuring
-5. Output the complete modified file
-
-Example: Kid says "Make it a space mushroom game with neon style"
-→ Change background gradient to dark space colors
-→ Change platform colors to neon purple/cyan
-→ Change player emoji from 👀 to 🍄 or 🦊
-→ Change coin emoji to 🌟
-→ Change title text to "Space Mushroom Adventure"
-→ Keep ALL game logic, physics, and generation EXACTLY as-is
-
-IMPORTANT: A working game with the wrong colors is 100x better than a broken game with the right colors!
-`;
 
 // 3D game rules - controls and camera MUST work properly
 const THREE_D_GAME_RULES = `
@@ -547,9 +492,9 @@ REMEMBER: A game with ALL existing features plus the new one (even if imperfect)
  * Generate the complete system prompt
  * @param {string} currentCode - The current project code (if any)
  * @param {object|null} gameConfig - Game configuration from the survey
- * @param {string|null} templateType - Template type if using a starter template
+ * @param {string|null} gameGenre - Detected game genre (racing, shooter, platformer, etc.)
  */
-export function getSystemPrompt(currentCode, gameConfig = null, templateType = null) {
+export function getSystemPrompt(currentCode, gameConfig = null, gameGenre = null) {
   let prompt = SYSTEM_PROMPT;
   
   // Always include the game knowledge base for smarter generation
@@ -578,20 +523,13 @@ USE THIS CONFIG to make the game feel personal:
 `;
   }
   
-  // Add template mode instructions if using a template (skip for 3D — no 2D template to customize)
-  const is3DDimension = gameConfig && gameConfig.dimension === '3d';
-  const templatePrompt = (templateType && !is3DDimension) ? `
-${TEMPLATE_MODE_PROMPT}
-Starting template: ${templateType.toUpperCase()} game
-` : '';
-  
   // Detect if current code is a platformer (for safety rules when editing)
   const isPlatformerCode = currentCode && (
     currentCode.includes('generateInitialLevel') ||
     currentCode.includes('createPlatform') ||
     currentCode.includes('generateChunk')
   );
-  const platformerRules = (templateType === 'platformer' || isPlatformerCode) ? PLATFORMER_SAFETY_RULES : '';
+  const platformerRules = (gameGenre === 'platformer' || isPlatformerCode) ? PLATFORMER_SAFETY_RULES : '';
 
   // Detect if current code or request involves 3D (Three.js, survey dimension, etc.)
   const is3DCode = currentCode && (
@@ -611,7 +549,7 @@ Starting template: ${templateType.toUpperCase()} game
 
   // Detect 3D racing specifically
   const isRacing = (
-    templateType === 'racing' ||
+    gameGenre === 'racing' ||
     (gameConfig && (gameConfig.gameType || '').toLowerCase().includes('racing')) ||
     (currentCode && currentCode.includes('THREE') && /car|race|road|driving/i.test(currentCode))
   );
@@ -619,21 +557,20 @@ Starting template: ${templateType.toUpperCase()} game
 
   // Detect 3D shooter specifically
   const isShooter = (
-    templateType === 'shooter' ||
+    gameGenre === 'shooter' ||
     (gameConfig && (gameConfig.gameType || '').toLowerCase().includes('shooter')) ||
     (currentCode && currentCode.includes('THREE') && /shoot|gun|bullet|projectile|fps/i.test(currentCode))
   );
   const shooterRules = (is3D && isShooter) ? THREE_D_SHOOTER_RULES : '';
 
-  const modificationRules = (!templateType && currentCode) ? MODIFICATION_SAFETY_RULES : '';
+  // Add modification safety rules when editing existing code
+  const modificationRules = currentCode ? MODIFICATION_SAFETY_RULES : '';
 
   const contextPrompt = currentCode ? `
 CURRENT PROJECT (for your reference only - NEVER mention this to the kid):
 ${currentCode}
 
-${templateType 
-  ? 'This is a TEMPLATE game. Customize it based on what they want - colors, themes, characters. Keep the mechanics working!'
-  : 'When they ask for changes, update this existing project. Keep what they already have and add to it!'}
+When they ask for changes, update this existing project. Keep what they already have and add to it!
 ${modificationRules}
 ${platformerRules}
 ${threeDRules}
@@ -641,11 +578,10 @@ ${racingRules}
 ${shooterRules}
 ` : '';
 
-  // If this is a 3D request but no current code yet (first generation), still include 3D rules
+  // If this is a 3D request but no current code yet (first generation), still include genre-specific rules
   const extraRules = (!currentCode && (threeDRules || racingRules || shooterRules)) ? `\n${threeDRules}\n${racingRules}\n${shooterRules}` : '';
 
   return `${prompt}
-${templatePrompt}
 ${contextPrompt}${extraRules}`;
 }
 
