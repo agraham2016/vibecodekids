@@ -7,6 +7,7 @@
 
 import { Router } from 'express';
 import { readUser, writeUser, listUsers, listProjects, deleteProject } from '../services/storage.js';
+import { getUsageStats } from '../services/ai.js';
 
 const router = Router();
 
@@ -15,7 +16,12 @@ router.get('/users', async (req, res) => {
   try {
     const users = await listUsers();
     const safeUsers = users
-      .map(({ passwordHash, ...rest }) => rest)
+      .map(({ passwordHash, parentEmail, ...rest }) => ({
+        ...rest,
+        // Show redacted parent email for admin awareness (COPPA)
+        hasParentEmail: !!parentEmail,
+        parentEmailDomain: parentEmail ? parentEmail.split('@')[1] : null,
+      }))
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     res.json(safeUsers);
   } catch (error) {
@@ -162,6 +168,17 @@ router.post('/users/:id/set-tier', async (req, res) => {
     if (error.code === 'ENOENT') return res.status(404).json({ error: 'User not found' });
     console.error('Set tier error:', error);
     res.status(500).json({ error: 'Could not update tier' });
+  }
+});
+
+// AI usage stats
+router.get('/ai-usage', (_req, res) => {
+  try {
+    const stats = getUsageStats();
+    res.json(stats);
+  } catch (error) {
+    console.error('AI usage error:', error);
+    res.status(500).json({ error: 'Could not load AI usage stats' });
   }
 });
 

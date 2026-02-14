@@ -82,9 +82,48 @@ export interface User {
   id: string
   username: string
   displayName: string
-  status: 'pending' | 'approved' | 'denied'
+  status: 'pending' | 'approved' | 'denied' | 'deleted'
   membershipTier: MembershipTier
   membershipExpires: string | null
   createdAt: string
   lastLoginAt: string | null
+  isAdmin?: boolean
+  // COPPA fields
+  ageBracket?: 'under13' | '13to17' | '18plus' | 'unknown'
+  parentalConsentStatus?: 'not_required' | 'pending' | 'granted' | 'denied' | 'revoked'
+}
+
+/** Login response from /api/auth/login. */
+export interface LoginResponse {
+  success: boolean
+  token: string
+  user: User
+  membership: MembershipUsage
+  showUpgradePrompt: boolean
+  tiers: Record<string, TierInfo>
+}
+
+/** Register response from /api/auth/register. */
+export interface RegisterResponse {
+  success: boolean
+  message: string
+  requiresParentalConsent?: boolean
+}
+
+/** /api/auth/me response. */
+export interface AuthMeResponse {
+  user: User
+  membership: MembershipUsage
+}
+
+/** /api/generate response. */
+export interface GenerateResponse {
+  message: string
+  code: string | null
+  usage?: MembershipUsage
+  rateLimited?: boolean
+  waitSeconds?: number
+  upgradeRequired?: boolean
+  reason?: string
+  cached?: boolean
 }

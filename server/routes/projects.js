@@ -45,7 +45,7 @@ export default function createProjectsRouter(sessions) {
       let displayName = creatorName || 'Anonymous';
 
       if (token) {
-        const session = sessions.get(token);
+        const session = await sessions.get(token);
         if (session) {
           userId = session.userId;
           displayName = session.displayName;
@@ -97,7 +97,7 @@ export default function createProjectsRouter(sessions) {
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (!token) return res.status(401).json({ error: 'Please log in to save your project' });
 
-      const session = sessions.get(token);
+      const session = await sessions.get(token);
       if (!session) return res.status(401).json({ error: 'Session expired. Please log in again.' });
 
       const { projectId, title, code, category = 'other' } = req.body;
@@ -202,7 +202,7 @@ export default function createProjectsRouter(sessions) {
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (!token) return res.status(401).json({ error: 'Please log in to delete projects' });
 
-      const session = sessions.get(token);
+      const session = await sessions.get(token);
       if (!session) return res.status(401).json({ error: 'Session expired. Please log in again.' });
 
       const { id } = req.params;
@@ -249,7 +249,7 @@ export default function createProjectsRouter(sessions) {
       const project = await readProject(id);
 
       if (token) {
-        const session = sessions.get(token);
+        const session = await sessions.get(token);
         if (!session || project.userId !== session.userId) {
           return res.status(403).json({ error: 'You can only view versions of your own projects' });
         }
@@ -290,7 +290,7 @@ export default function createProjectsRouter(sessions) {
       const project = await readProject(id);
 
       if (token) {
-        const session = sessions.get(token);
+        const session = await sessions.get(token);
         if (!session || project.userId !== session.userId) {
           return res.status(403).json({ error: 'You can only access versions of your own projects' });
         }
@@ -320,7 +320,7 @@ export default function createProjectsRouter(sessions) {
       const { id, versionId } = req.params;
 
       if (!token) return res.status(401).json({ error: 'Please log in to restore versions' });
-      const session = sessions.get(token);
+      const session = await sessions.get(token);
       if (!session) return res.status(401).json({ error: 'Session expired' });
       if (!PROJECT_ID_REGEX.test(id)) return res.status(400).json({ error: 'Invalid project ID' });
 

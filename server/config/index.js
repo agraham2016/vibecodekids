@@ -15,6 +15,8 @@ const __dirname = path.dirname(__filename);
 
 // ========== SERVER ==========
 
+export const NODE_ENV = process.env.NODE_ENV || 'development';
+export const IS_PRODUCTION = NODE_ENV === 'production';
 export const PORT = process.env.PORT || 3001;
 export const BASE_URL = (process.env.BASE_URL || 'https://vibecodekidz.org').trim().replace(/\/+$/, '');
 
@@ -28,6 +30,20 @@ export const USERS_DIR = path.join(DATA_DIR, 'users');
 export const SESSIONS_FILE = path.join(DATA_DIR, 'sessions.json');
 export const DIST_DIR = path.join(ROOT_DIR, 'dist');
 export const PUBLIC_DIR = path.join(ROOT_DIR, 'public');
+
+// ========== DATABASE ==========
+// Set DATABASE_URL to enable Postgres. Without it, falls back to JSON file storage.
+
+export const DATABASE_URL = process.env.DATABASE_URL || null;
+export const USE_POSTGRES = !!DATABASE_URL;
+
+// ========== COPPA ==========
+
+export const COPPA_AGE_THRESHOLD = 13;
+export const CONSENT_TOKEN_EXPIRY_MS = 72 * 60 * 60 * 1000; // 72 hours for parent to respond
+export const DATA_RETENTION_DAYS = 365; // Max days to retain inactive child data
+export const SITE_NAME = 'VibeCodeKidz';
+export const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || 'support@vibecodekidz.org';
 
 // ========== AUTH ==========
 

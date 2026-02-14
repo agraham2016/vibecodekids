@@ -26,7 +26,7 @@ export default function createBillingRouter(sessions) {
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (!token) return res.status(401).json({ error: 'No token provided' });
 
-      const session = sessions.get(token);
+      const session = await sessions.get(token);
       if (!session) return res.status(401).json({ error: 'Invalid or expired session' });
 
       let user = await readUser(session.userId);
@@ -185,7 +185,7 @@ export default function createBillingRouter(sessions) {
       const { tier } = req.body;
 
       if (!token) return res.status(401).json({ error: 'No token provided' });
-      const session = sessions.get(token);
+      const session = await sessions.get(token);
       if (!session) return res.status(401).json({ error: 'Invalid or expired session' });
       if (!['creator', 'pro'].includes(tier)) return res.status(400).json({ error: 'Invalid tier' });
       if (!stripe) return res.status(500).json({ error: 'Payment system not configured' });
@@ -244,7 +244,7 @@ export default function createBillingRouter(sessions) {
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (!token) return res.status(401).json({ error: 'No token provided' });
 
-      const session = sessions.get(token);
+      const session = await sessions.get(token);
       if (!session) return res.status(401).json({ error: 'Invalid or expired session' });
 
       const user = await readUser(session.userId);

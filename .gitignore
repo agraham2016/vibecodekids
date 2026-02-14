@@ -36,5 +36,6 @@ playwright-report/
 data/users/*.json
 data/projects/*.json
 data/sessions.json
+data/consents.json
 !data/users/.gitkeep
 !data/projects/.gitkeep

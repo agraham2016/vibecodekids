@@ -12,10 +12,10 @@ import { readUser } from '../services/storage.js';
  * Attaches req.userId, req.session if valid token found.
  */
 export function extractUser(sessions) {
-  return (req, _res, next) => {
+  return async (req, _res, next) => {
     const token = req.headers.authorization?.replace('Bearer ', '');
     if (token) {
-      const session = sessions.get(token);
+      const session = await sessions.get(token);
       if (session) {
         req.userId = session.userId;
         req.session = session;
@@ -30,12 +30,12 @@ export function extractUser(sessions) {
  * Require a valid logged-in user.
  */
 export function requireAuth(sessions) {
-  return (req, res, next) => {
+  return async (req, res, next) => {
     const token = req.headers.authorization?.replace('Bearer ', '');
     if (!token) {
       return res.status(401).json({ error: 'No token provided' });
     }
-    const session = sessions.get(token);
+    const session = await sessions.get(token);
     if (!session) {
       return res.status(401).json({ error: 'Invalid or expired session' });
     }
@@ -60,7 +60,7 @@ export function requireAdmin(sessions) {
     // Method 2: Logged-in user with isAdmin flag
     const token = req.headers.authorization?.replace('Bearer ', '');
     if (token) {
-      const session = sessions.get(token);
+      const session = await sessions.get(token);
       if (session) {
         try {
           const user = await readUser(session.userId);

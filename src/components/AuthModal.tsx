@@ -24,9 +24,14 @@ export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: A
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [displayName, setDisplayName] = useState('')
+  const [age, setAge] = useState('')
+  const [parentEmail, setParentEmail] = useState('')
+  const [privacyAccepted, setPrivacyAccepted] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+
+  const isUnder13 = age !== '' && parseInt(age) < 13
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -37,11 +42,33 @@ export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: A
     try {
       if (mode === 'signup') {
         if (selectedPlan === 'free') {
-          // Free plan: Regular signup
+          // Validate age
+          const ageNum = parseInt(age)
+          if (!age || isNaN(ageNum) || ageNum < 5 || ageNum > 120) {
+            throw new Error('Please enter a valid age')
+          }
+
+          // Validate parent email for under-13
+          if (ageNum < 13 && !parentEmail) {
+            throw new Error('A parent or guardian email is required for users under 13')
+          }
+
+          if (!privacyAccepted) {
+            throw new Error('You must accept the privacy policy to create an account')
+          }
+
+          // Free plan: Regular signup with COPPA fields
           const response = await fetch('/api/auth/register', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password, displayName })
+            body: JSON.stringify({ 
+              username, 
+              password, 
+              displayName,
+              age: ageNum,
+              parentEmail: ageNum < 13 ? parentEmail : undefined,
+              privacyAccepted,
+            })
           })
 
           const data = await response.json()
@@ -54,11 +81,14 @@ export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: A
           setUsername('')
           setPassword('')
           setDisplayName('')
+          setAge('')
+          setParentEmail('')
+          setPrivacyAccepted(false)
           setTimeout(() => {
             setMode('login')
             setSignupStep('plan')
             setSuccess('')
-          }, 3000)
+          }, data.requiresParentalConsent ? 8000 : 3000)
         } else {
           // Paid plan: Create Stripe checkout
           const response = await fetch('/api/stripe/create-checkout', {
@@ -197,6 +227,39 @@ export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: A
             </div>
           )}
 
+          {mode === 'signup' && (
+            <div className="form-group">
+              <label>How old are you?</label>
+              <input
+                type="number"
+                value={age}
+                onChange={e => setAge(e.target.value)}
+                placeholder="Enter your age"
+                min={5}
+                max={120}
+                required
+              />
+              <span className="input-hint">We ask to keep everyone safe online</span>
+            </div>
+          )}
+
+          {mode === 'signup' && isUnder13 && (
+            <div className="form-group coppa-parent-field">
+              <label>Parent/Guardian Email</label>
+              <input
+                type="email"
+                value={parentEmail}
+                onChange={e => setParentEmail(e.target.value)}
+                placeholder="your.parent@email.com"
+                required
+              />
+              <span className="input-hint">
+                We need a parent's permission for users under 13. 
+                We'll send them an approval email -- that's the only time we use it.
+              </span>
+            </div>
+          )}
+
           <div className="form-group">
             <label>Username</label>
             <input
@@ -226,6 +289,25 @@ export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: A
             )}
           </div>
 
+          {mode === 'signup' && (
+            <div className="form-group privacy-checkbox">
+              <label className="checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={privacyAccepted}
+                  onChange={e => setPrivacyAccepted(e.target.checked)}
+                  required
+                />
+                <span>
+                  I agree to the{' '}
+                  <a href="/privacy" target="_blank" rel="noopener noreferrer">
+                    Privacy Policy
+                  </a>
+                </span>
+              </label>
+            </div>
+          )}
+
           {error && <div className="auth-error">{error}</div>}
           {success && <div className="auth-success">{success}</div>}
 
@@ -245,7 +327,14 @@ export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: A
           </button>
         </form>
 
-        {mode === 'signup' && selectedPlan === 'free' && (
+        {mode === 'signup' && selectedPlan === 'free' && isUnder13 && (
+          <div className="auth-note auth-note-coppa">
+            <span className="note-icon">👨‍👩‍👧</span>
+            <span>Your parent/guardian will receive an email to approve your account. Once they approve, an admin will complete the setup!</span>
+          </div>
+        )}
+
+        {mode === 'signup' && selectedPlan === 'free' && !isUnder13 && (
           <div className="auth-note">
             <span className="note-icon">ℹ️</span>
             <span>Free accounts need admin approval before you can log in.</span>

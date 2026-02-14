@@ -254,3 +254,66 @@
   border-color: rgba(34, 197, 94, 0.3);
   color: #86efac;
 }
+
+/* COPPA parent note */
+.auth-note-coppa {
+  background: rgba(59, 130, 246, 0.15);
+  border-color: rgba(59, 130, 246, 0.3);
+  color: #93c5fd;
+}
+
+/* COPPA parent email field highlight */
+.coppa-parent-field {
+  background: rgba(59, 130, 246, 0.08);
+  padding: 14px;
+  border-radius: var(--radius);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.coppa-parent-field .input-hint {
+  color: rgba(147, 197, 253, 0.8);
+}
+
+/* Privacy policy checkbox */
+.privacy-checkbox {
+  flex-direction: row !important;
+  align-items: center;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-weight: 400 !important;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  flex-shrink: 0;
+  accent-color: #8b5cf6;
+  cursor: pointer;
+}
+
+.checkbox-label a {
+  color: #a78bfa;
+  text-decoration: underline;
+}
+
+.checkbox-label a:hover {
+  color: #c4b5fd;
+}
+
+/* Age input -- narrower */
+.form-group input[type="number"] {
+  max-width: 120px;
+}
+
+.form-group input[type="number"]::-webkit-inner-spin-button,
+.form-group input[type="number"]::-webkit-outer-spin-button {
+  opacity: 1;
+}

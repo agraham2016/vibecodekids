@@ -1,93 +1,33 @@
 /**
- * Storage Service
+ * Storage Service (Auto-Switch)
  * 
- * Abstracts file-based data access into a clean interface.
- * This is the seam for Phase 2 database migration -- swap this file
- * with a Postgres-backed implementation and nothing else changes.
+ * When DATABASE_URL is set, delegates to services/db.js (Postgres).
+ * Otherwise, falls back to local JSON file storage.
+ * 
+ * Every consumer just imports from this file -- the backend doesn't
+ * need to know or care which storage engine is in use.
  */
 
-import { promises as fs } from 'fs';
-import path from 'path';
-import { USERS_DIR, PROJECTS_DIR } from '../config/index.js';
+import { USE_POSTGRES } from '../config/index.js';
 
-// ========== USER OPERATIONS ==========
+// Dynamic import based on environment
+let backend;
 
-export async function readUser(userId) {
-  const filePath = path.join(USERS_DIR, `${userId}.json`);
-  const data = await fs.readFile(filePath, 'utf-8');
-  return JSON.parse(data);
+if (USE_POSTGRES) {
+  backend = await import('./db.js');
+  console.log('💾 Storage: PostgreSQL');
+} else {
+  backend = await import('./fileStorage.js');
+  console.log('💾 Storage: Local JSON files');
 }
 
-export async function writeUser(userId, userData) {
-  const filePath = path.join(USERS_DIR, `${userId}.json`);
-  await fs.writeFile(filePath, JSON.stringify(userData, null, 2));
-}
-
-export async function userExists(userId) {
-  const filePath = path.join(USERS_DIR, `${userId}.json`);
-  try {
-    await fs.access(filePath);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-export async function listUsers() {
-  const files = await fs.readdir(USERS_DIR);
-  const users = [];
-  for (const file of files) {
-    if (!file.endsWith('.json')) continue;
-    try {
-      const data = await fs.readFile(path.join(USERS_DIR, file), 'utf-8');
-      users.push(JSON.parse(data));
-    } catch {
-      // Skip invalid files
-    }
-  }
-  return users;
-}
-
-// ========== PROJECT OPERATIONS ==========
-
-export async function readProject(projectId) {
-  const filePath = path.join(PROJECTS_DIR, `${projectId}.json`);
-  const data = await fs.readFile(filePath, 'utf-8');
-  return JSON.parse(data);
-}
-
-export async function writeProject(projectId, projectData) {
-  const filePath = path.join(PROJECTS_DIR, `${projectId}.json`);
-  await fs.writeFile(filePath, JSON.stringify(projectData, null, 2));
-}
-
-export async function deleteProject(projectId) {
-  const filePath = path.join(PROJECTS_DIR, `${projectId}.json`);
-  await fs.unlink(filePath);
-}
-
-export async function listProjects() {
-  const files = await fs.readdir(PROJECTS_DIR);
-  const projects = [];
-  for (const file of files) {
-    if (!file.endsWith('.json')) continue;
-    try {
-      const data = await fs.readFile(path.join(PROJECTS_DIR, file), 'utf-8');
-      projects.push(JSON.parse(data));
-    } catch {
-      // Skip invalid files
-    }
-  }
-  return projects;
-}
-
-// ========== DATA DIRECTORY SETUP ==========
-
-export async function ensureDataDirs() {
-  try {
-    await fs.mkdir(PROJECTS_DIR, { recursive: true });
-    await fs.mkdir(USERS_DIR, { recursive: true });
-  } catch {
-    // Directories already exist
-  }
-}
+// Re-export everything from whichever backend was loaded
+export const readUser       = backend.readUser;
+export const writeUser      = backend.writeUser;
+export const userExists     = backend.userExists;
+export const listUsers      = backend.listUsers;
+export const readProject    = backend.readProject;
+export const writeProject   = backend.writeProject;
+export const deleteProject  = backend.deleteProject;
+export const listProjects   = backend.listProjects;
+export const ensureDataDirs = backend.ensureDataDirs;

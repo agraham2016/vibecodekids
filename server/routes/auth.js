@@ -11,6 +11,7 @@ import { readUser, writeUser, userExists, listProjects } from '../services/stora
 import { generateToken } from '../services/sessions.js';
 import { filterContent } from '../middleware/contentFilter.js';
 import { checkAndResetCounters, calculateUsageRemaining } from '../middleware/rateLimit.js';
+import { getAgeBracket, requiresParentalConsent, createConsentRequest, sendConsentEmail } from '../services/consent.js';
 
 export default function createAuthRouter(sessions) {
   const router = Router();
@@ -18,7 +19,7 @@ export default function createAuthRouter(sessions) {
   // Register
   router.post('/register', async (req, res) => {
     try {
-      const { username, password, displayName } = req.body;
+      const { username, password, displayName, age, parentEmail, privacyAccepted } = req.body;
 
       if (!username || !password || !displayName) {
         return res.status(400).json({ error: 'Username, password, and display name are required' });
@@ -31,6 +32,35 @@ export default function createAuthRouter(sessions) {
       }
       if (displayName.length < 1 || displayName.length > 30) {
         return res.status(400).json({ error: 'Display name must be 1-30 characters' });
+      }
+
+      // COPPA: Require age
+      if (typeof age !== 'number' || age < 5 || age > 120) {
+        return res.status(400).json({ error: 'Please enter a valid age' });
+      }
+
+      // COPPA: Require privacy policy acceptance
+      if (!privacyAccepted) {
+        return res.status(400).json({ error: 'You must accept the privacy policy to create an account' });
+      }
+
+      const ageBracket = getAgeBracket(age);
+      const needsConsent = requiresParentalConsent(ageBracket);
+
+      // COPPA: Under-13 users MUST provide a parent email
+      if (needsConsent && !parentEmail) {
+        return res.status(400).json({ 
+          error: 'A parent or guardian email is required for users under 13',
+          requiresParentEmail: true
+        });
+      }
+
+      // Validate parent email format
+      if (needsConsent && parentEmail) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(parentEmail)) {
+          return res.status(400).json({ error: 'Please enter a valid parent email address' });
+        }
       }
 
       const usernameCheck = filterContent(username);
@@ -65,12 +95,33 @@ export default function createAuthRouter(sessions) {
         recentRequests: [],
         rateLimitedUntil: null,
         hasSeenUpgradePrompt: false,
-        lastLoginAt: null
+        lastLoginAt: null,
+        // COPPA fields
+        ageBracket,
+        parentEmail: needsConsent ? parentEmail.toLowerCase().trim() : null,
+        parentalConsentStatus: needsConsent ? 'pending' : 'not_required',
+        parentalConsentAt: null,
+        privacyAcceptedAt: now.toISOString(),
       };
 
       await writeUser(userId, user);
 
-      res.json({ success: true, message: 'Account created! Please wait for admin approval before logging in.' });
+      // COPPA: Send parental consent email for under-13
+      let responseMessage;
+      if (needsConsent) {
+        const token = await createConsentRequest(userId, parentEmail, 'consent');
+        await sendConsentEmail(parentEmail, username, token, 'consent');
+        responseMessage = 'Account created! We\'ve sent an email to your parent/guardian for approval. They need to approve before you can log in.';
+        console.log(`👶 Under-13 registration: ${username} → consent email sent to ${parentEmail}`);
+      } else {
+        responseMessage = 'Account created! Please wait for admin approval before logging in.';
+      }
+
+      res.json({ 
+        success: true, 
+        message: responseMessage,
+        requiresParentalConsent: needsConsent,
+      });
     } catch (error) {
       console.error('Register error:', error);
       res.status(500).json({ error: 'Could not create account' });
@@ -102,14 +153,25 @@ export default function createAuthRouter(sessions) {
       }
 
       if (user.status === 'pending') {
+        // Check if waiting on parental consent or admin approval
+        if (user.parentalConsentStatus === 'pending') {
+          return res.status(403).json({ error: 'We\'re still waiting for your parent/guardian to approve your account. Ask them to check their email!' });
+        }
         return res.status(403).json({ error: 'Your account is pending approval. Please wait for an admin to approve it.' });
       }
       if (user.status === 'denied') {
         return res.status(403).json({ error: 'Your account has been denied. Please contact support.' });
       }
+      if (user.status === 'deleted') {
+        return res.status(403).json({ error: 'This account has been deleted.' });
+      }
+      // COPPA: Block login if parental consent was revoked
+      if (user.parentalConsentStatus === 'revoked' || user.parentalConsentStatus === 'denied') {
+        return res.status(403).json({ error: 'Parental consent is required for this account. Please contact support.' });
+      }
 
       const token = generateToken();
-      sessions.set(token, {
+      await sessions.set(token, {
         userId: user.id,
         username: user.username,
         displayName: user.displayName,
@@ -129,7 +191,7 @@ export default function createAuthRouter(sessions) {
       await writeUser(userId, updatedUser);
 
       const usage = calculateUsageRemaining(updatedUser);
-      const { passwordHash, recentRequests, rateLimitedUntil, ...safeUser } = updatedUser;
+      const { passwordHash, recentRequests, rateLimitedUntil, parentEmail, ...safeUser } = updatedUser;
 
       res.json({
         success: true,
@@ -151,18 +213,18 @@ export default function createAuthRouter(sessions) {
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (!token) return res.status(401).json({ error: 'No token provided' });
 
-      const session = sessions.get(token);
+      const session = await sessions.get(token);
       if (!session) return res.status(401).json({ error: 'Invalid or expired session' });
 
       let user = await readUser(session.userId);
       if (user.status !== 'approved') {
-        sessions.delete(token);
+        await sessions.delete(token);
         return res.status(403).json({ error: 'Account no longer approved' });
       }
 
       user = checkAndResetCounters(user);
       const usage = calculateUsageRemaining(user);
-      const { passwordHash, recentRequests, rateLimitedUntil, ...safeUser } = user;
+      const { passwordHash, recentRequests, rateLimitedUntil, parentEmail, ...safeUser } = user;
 
       res.json({ user: safeUser, membership: usage });
     } catch (error) {
@@ -172,9 +234,9 @@ export default function createAuthRouter(sessions) {
   });
 
   // Logout
-  router.post('/logout', (req, res) => {
+  router.post('/logout', async (req, res) => {
     const token = req.headers.authorization?.replace('Bearer ', '');
-    if (token) sessions.delete(token);
+    if (token) await sessions.delete(token);
     res.json({ success: true });
   });
 
@@ -184,7 +246,7 @@ export default function createAuthRouter(sessions) {
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (!token) return res.status(401).json({ error: 'No token provided' });
 
-      const session = sessions.get(token);
+      const session = await sessions.get(token);
       if (!session) return res.status(401).json({ error: 'Invalid or expired session' });
 
       const allProjects = await listProjects();

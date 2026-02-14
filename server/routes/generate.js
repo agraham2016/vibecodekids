@@ -1,7 +1,13 @@
 /**
- * AI Generation Route
+ * AI Generation Route (Optimized)
  * 
  * POST /api/generate - Generate or modify game code from a prompt.
+ * 
+ * Optimizations:
+ * - Prompt caching via split static/dynamic system prompt
+ * - Conversation history trimming for long sessions
+ * - Template cache for common game types
+ * - Token usage tracking per user
  */
 
 import { Router } from 'express';
@@ -11,11 +17,15 @@ import { checkRateLimits, checkTierLimits, incrementUsage, calculateUsageRemaini
 import {
   formatMessageContent,
   calculateMaxTokens,
+  trimConversationHistory,
   callClaude,
   extractCode,
   isTruncated,
   extractPartialCode,
-  attemptContinuation
+  attemptContinuation,
+  getTemplateCacheKey,
+  getCachedTemplate,
+  cacheTemplate,
 } from '../services/ai.js';
 
 export default function createGenerateRouter(sessions) {
@@ -38,7 +48,7 @@ export default function createGenerateRouter(sessions) {
       const token = req.headers.authorization?.replace('Bearer ', '');
       let userId = null;
       if (token) {
-        const session = sessions.get(token);
+        const session = await sessions.get(token);
         if (session) userId = session.userId;
       }
 
@@ -82,25 +92,48 @@ export default function createGenerateRouter(sessions) {
 
       if (gameGenre) console.log(`🎮 Detected game genre: ${gameGenre}`);
 
-      // Build system prompt
-      const systemPrompt = getSystemPrompt(codeToUse, gameConfig, gameGenre);
+      // ===== TEMPLATE CACHE CHECK =====
+      // For brand-new games from the survey, check if we have a cached template
+      const isNewGame = !currentCode || isDefaultCode(currentCode);
+      const hasNoHistory = conversationHistory.length === 0;
+      
+      if (isNewGame && hasNoHistory && !image) {
+        const cacheKey = getTemplateCacheKey(message, gameConfig);
+        const cached = getCachedTemplate(cacheKey);
+        if (cached) {
+          cached.hits++;
+          await incrementUsage(userId, 'generate');
+          const usage = userId ? calculateUsageRemaining(tierCheck.user) : null;
+          return res.json({ 
+            message: cached.message, 
+            code: cached.code, 
+            usage,
+            cached: true,
+          });
+        }
+      }
 
-      // Format messages
-      const messages = [
+      // ===== BUILD PROMPT (split for caching) =====
+      const { staticPrompt, dynamicContext } = getSystemPrompt(codeToUse, gameConfig, gameGenre);
+
+      // ===== TRIM CONVERSATION HISTORY =====
+      const rawMessages = [
         ...conversationHistory.map(msg => ({
           role: msg.role,
           content: formatMessageContent(msg.content, msg.image)
         })),
         { role: 'user', content: formatMessageContent(message, image) }
       ];
+      const messages = trimConversationHistory(rawMessages, 12);
 
-      console.log(`📝 System prompt: ${systemPrompt.length} chars | Messages: ${messages.length} | Genre: ${gameGenre || 'none'}`);
+      const totalPromptChars = staticPrompt.length + dynamicContext.length;
+      console.log(`📝 Prompt: ${totalPromptChars} chars (static: ${staticPrompt.length}, dynamic: ${dynamicContext.length}) | Messages: ${messages.length} | Genre: ${gameGenre || 'none'}`);
 
       // Calculate tokens
       const maxTokens = calculateMaxTokens(codeToUse);
 
-      // Call Claude
-      const response = await callClaude(systemPrompt, messages, maxTokens);
+      // ===== CALL CLAUDE (with prompt caching) =====
+      const response = await callClaude(staticPrompt, dynamicContext, messages, maxTokens, userId);
 
       // Increment usage
       await incrementUsage(userId, 'generate');
@@ -116,7 +149,7 @@ export default function createGenerateRouter(sessions) {
         const partialCode = extractPartialCode(assistantMessage);
 
         if (partialCode) {
-          code = await attemptContinuation(partialCode);
+          code = await attemptContinuation(partialCode, userId);
           if (!code) wasCodeTruncated = true;
         } else {
           wasCodeTruncated = true;
@@ -129,6 +162,14 @@ export default function createGenerateRouter(sessions) {
       let cleanMessage = sanitizeOutput(assistantMessage);
       if (wasCodeTruncated) {
         cleanMessage = "That game got really big! 😅 Let me try a simpler approach — ask me to add one feature at a time, like 'add a speed powerup' instead of multiple things at once! 🎮";
+      }
+
+      // ===== CACHE TEMPLATE for new games =====
+      if (isNewGame && hasNoHistory && code && !wasCodeTruncated) {
+        const cacheKey = getTemplateCacheKey(message, gameConfig);
+        if (cacheKey) {
+          cacheTemplate(cacheKey, code, cleanMessage);
+        }
       }
 
       // Usage info

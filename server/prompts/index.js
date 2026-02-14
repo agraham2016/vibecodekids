@@ -114,21 +114,25 @@ export function sanitizeOutput(message) {
 /**
  * Generate the complete system prompt based on context.
  * 
+ * Returns { staticPrompt, dynamicContext } for prompt caching.
+ * The staticPrompt is the same across all requests (cacheable).
+ * The dynamicContext changes per request (not cached).
+ * 
  * @param {string} currentCode - The current project code (if any)
  * @param {object|null} gameConfig - Game configuration from the survey
  * @param {string|null} gameGenre - Detected game genre
- * @returns {string} Complete system prompt
+ * @returns {{ staticPrompt: string, dynamicContext: string }}
  */
 export function getSystemPrompt(currentCode, gameConfig = null, gameGenre = null) {
-  let prompt = SYSTEM_PROMPT;
+  // ===== STATIC PART (cacheable - same for every request) =====
+  const staticPrompt = SYSTEM_PROMPT + '\n\n' + GAME_KNOWLEDGE_BASE;
 
-  // Always include game knowledge base
-  prompt += '\n\n' + GAME_KNOWLEDGE_BASE;
+  // ===== DYNAMIC PART (per-request, NOT cached) =====
+  const dynamicParts = [];
 
   // Add game config context if available (from survey)
   if (gameConfig) {
-    prompt += `
-
+    dynamicParts.push(`
 GAME CONFIG (from the kid's survey answers - use these to personalize the game):
 - Game Type: ${gameConfig.gameType}
 - Dimension: ${gameConfig.dimension || '2d'} (2d = flat DOM/Canvas game, 3d = Three.js 3D game)
@@ -145,7 +149,7 @@ USE THIS CONFIG to make the game feel personal:
 - Use "${gameConfig.obstacles}" as the main challenge
 - The game type is "${gameConfig.gameType}" - use the right mechanics for that genre
 - Dimension is "${gameConfig.dimension || '2d'}": if "3d", build with Three.js (3D scene, camera, renderer). If "2d", use standard HTML/CSS/Canvas.
-`;
+`);
   }
 
   // Detect platformer code
@@ -154,7 +158,9 @@ USE THIS CONFIG to make the game feel personal:
     currentCode.includes('createPlatform') ||
     currentCode.includes('generateChunk')
   );
-  const platformerRules = (gameGenre === 'platformer' || isPlatformerCode) ? PLATFORMER_SAFETY_RULES : '';
+  if (gameGenre === 'platformer' || isPlatformerCode) {
+    dynamicParts.push(PLATFORMER_SAFETY_RULES);
+  }
 
   // Detect 3D code/request
   const is3DCode = currentCode && (
@@ -170,7 +176,10 @@ USE THIS CONFIG to make the game feel personal:
     (gameConfig.customNotes || '').toLowerCase().includes('3d')
   ));
   const is3D = is3DCode || is3DRequest;
-  const threeDRules = is3D ? THREE_D_GAME_RULES : '';
+
+  if (is3D) {
+    dynamicParts.push(THREE_D_GAME_RULES);
+  }
 
   // Detect 3D racing
   const isRacing = (
@@ -178,7 +187,9 @@ USE THIS CONFIG to make the game feel personal:
     (gameConfig && (gameConfig.gameType || '').toLowerCase().includes('racing')) ||
     (currentCode && currentCode.includes('THREE') && /car|race|road|driving/i.test(currentCode))
   );
-  const racingRules = (is3D && isRacing) ? THREE_D_RACING_RULES : '';
+  if (is3D && isRacing) {
+    dynamicParts.push(THREE_D_RACING_RULES);
+  }
 
   // Detect 3D shooter
   const isShooter = (
@@ -186,28 +197,31 @@ USE THIS CONFIG to make the game feel personal:
     (gameConfig && (gameConfig.gameType || '').toLowerCase().includes('shooter')) ||
     (currentCode && currentCode.includes('THREE') && /shoot|gun|bullet|projectile|fps/i.test(currentCode))
   );
-  const shooterRules = (is3D && isShooter) ? THREE_D_SHOOTER_RULES : '';
+  if (is3D && isShooter) {
+    dynamicParts.push(THREE_D_SHOOTER_RULES);
+  }
 
-  // Add modification safety rules when editing existing code
-  const modificationRules = currentCode ? MODIFICATION_SAFETY_RULES : '';
-
-  const contextPrompt = currentCode ? `
+  // Add modification safety rules + current code when editing
+  if (currentCode) {
+    dynamicParts.push(MODIFICATION_SAFETY_RULES);
+    dynamicParts.push(`
 CURRENT PROJECT (for your reference only - NEVER mention this to the kid):
 ${currentCode}
 
 When they ask for changes, update this existing project. Keep what they already have and add to it!
-${modificationRules}
-${platformerRules}
-${threeDRules}
-${racingRules}
-${shooterRules}
-` : '';
+`);
+  }
 
-  // If 3D request but no current code yet, still include genre-specific rules
-  const extraRules = (!currentCode && (threeDRules || racingRules || shooterRules))
-    ? `\n${threeDRules}\n${racingRules}\n${shooterRules}`
-    : '';
+  const dynamicContext = dynamicParts.join('\n');
 
-  return `${prompt}
-${contextPrompt}${extraRules}`;
+  return { staticPrompt, dynamicContext };
+}
+
+/**
+ * Legacy-compatible wrapper that returns a single string.
+ * Used by any code that hasn't been updated to the new split format.
+ */
+export function getSystemPromptString(currentCode, gameConfig = null, gameGenre = null) {
+  const { staticPrompt, dynamicContext } = getSystemPrompt(currentCode, gameConfig, gameGenre);
+  return staticPrompt + '\n' + dynamicContext;
 }

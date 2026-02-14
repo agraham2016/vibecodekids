@@ -1,13 +1,5 @@
 import './Header.css'
-import { MembershipUsage } from '../types'
-
-interface User {
-  id: string
-  username: string
-  displayName: string
-  status: string
-  membershipTier?: 'free' | 'creator' | 'pro'
-}
+import type { User, MembershipUsage } from '../types'
 
 interface HeaderProps {
   user: User | null
