@@ -74,7 +74,7 @@ export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: A
           const data = await response.json()
 
           if (!response.ok) {
-            throw new Error(data.error || 'Could not create account')
+            throw new Error(data.debug ? `${data.error}: ${data.debug}` : (data.error || 'Could not create account'))
           }
 
           setSuccess(data.message)
@@ -122,7 +122,7 @@ export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: A
         const data = await response.json()
 
         if (!response.ok) {
-          throw new Error(data.error || 'Could not log in')
+          throw new Error(data.debug ? `${data.error}: ${data.debug}` : (data.error || 'Could not log in'))
         }
 
         localStorage.setItem('authToken', data.token)

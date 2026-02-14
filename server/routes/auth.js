@@ -125,7 +125,7 @@ export default function createAuthRouter(sessions) {
       });
     } catch (error) {
       console.error('Register error:', error);
-      res.status(500).json({ error: 'Could not create account' });
+      res.status(500).json({ error: 'Could not create account', debug: error.message });
     }
   });
 
@@ -223,7 +223,7 @@ export default function createAuthRouter(sessions) {
       });
     } catch (error) {
       console.error('Login error:', error);
-      res.status(500).json({ error: 'Could not log in' });
+      res.status(500).json({ error: 'Could not log in', debug: error.message });
     }
   });
 
