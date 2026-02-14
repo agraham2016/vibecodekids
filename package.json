@@ -12,7 +12,7 @@
     "dev:full": "concurrently \"npm run dev\" \"npm run dev:server\"",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "start": "chmod -R 777 ./data 2>/dev/null; node server/index.js",
+    "start": "node server/index.js",
     "start:prod": "NODE_ENV=production node server/index.js",
     "start:local": "node server/index.js",
     "health": "curl -s http://localhost:3001/api/health | node -e \"process.stdin.on('data',d=>{const h=JSON.parse(d);console.log(h.status==='ok'?'OK':'FAIL',h);process.exit(h.status==='ok'?0:1)})\"",
