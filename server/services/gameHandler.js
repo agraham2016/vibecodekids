@@ -44,6 +44,9 @@ import {
   generateCacheKey,
   getCachedResponse,
   setCachedResponse,
+  detectIterationPattern,
+  getPatternHint,
+  storePatternSuccess,
 } from './responseCache.js';
 import { DEBUG_MAX_CLAUDE_ATTEMPTS } from '../config/index.js';
 import { resolveReferences } from './referenceResolver.js';
@@ -275,6 +278,16 @@ async function handleSingleModel({ prompt, currentCode, conversationHistory, gam
   const genre = gameConfig?.gameType || detectGameGenre(prompt || '') || null;
   const isNewGame = !currentCode || currentCode.includes('Tell me what you want to create');
 
+  // Check pattern cache for iteration hints
+  const iterationCategory = detectIterationPattern(prompt);
+  let patternHintText = '';
+  if (iterationCategory && currentCode) {
+    const hint = getPatternHint(iterationCategory, genre, targetModel);
+    if (hint) {
+      patternHintText = `\nPATTERN HINT (a similar "${iterationCategory}" request was successful before — here's what worked):\n${hint.hint}\nApply a similar approach to the current game code. This hint has worked ${hint.successCount} time(s) before.\n`;
+    }
+  }
+
   // Resolve reference code (templates, snippets, GitHub)
   let referenceCode = '';
   let referenceSources = [];
@@ -290,7 +303,10 @@ async function handleSingleModel({ prompt, currentCode, conversationHistory, gam
     console.log(`📚 Using references: ${referenceSources.join(', ')}`);
   }
 
-  const { staticPrompt, dynamicContext } = getSystemPrompt(currentCode, gameConfig, genre, referenceCode);
+  // Combine reference code with pattern hint
+  const fullReferenceCode = referenceCode + patternHintText;
+
+  const { staticPrompt, dynamicContext } = getSystemPrompt(currentCode, gameConfig, genre, fullReferenceCode);
   const personalityWrapper = getPersonalityWrapper(targetModel);
   const maxTokens = calculateMaxTokens(currentCode);
 
@@ -334,6 +350,12 @@ async function handleSingleModel({ prompt, currentCode, conversationHistory, gam
     }
   }
 
+  // Store pattern success if we got code and this was an iteration pattern
+  if (code && iterationCategory && currentCode) {
+    const summary = summarizeCodeChange(prompt, iterationCategory);
+    storePatternSuccess(iterationCategory, genre, targetModel, prompt, summary);
+  }
+
   // Build the friendly response message
   let response = cleanAssistantMessage(assistantText, wasTruncated);
 
@@ -343,7 +365,38 @@ async function handleSingleModel({ prompt, currentCode, conversationHistory, gam
     modelUsed: targetModel,
     isCacheHit: false,
     wasTruncated,
+    referenceSources,
   };
+}
+
+/**
+ * Generate a short summary of what kind of code change was made,
+ * keyed to the iteration pattern. Used by the pattern cache.
+ */
+function summarizeCodeChange(prompt, category) {
+  const summaries = {
+    'speed-up': 'Increased speed/velocity values, reduced delays, or increased game tick rate.',
+    'slow-down': 'Decreased speed/velocity values, added delays, or reduced game tick rate.',
+    'harder': 'Increased enemy count/speed, reduced player lives/health, or narrowed hit windows.',
+    'easier': 'Decreased enemy count/speed, increased player lives/health, or widened hit windows.',
+    'color-change': 'Modified fillStyle/backgroundColor/CSS color values to match the requested colors.',
+    'bigger': 'Increased width/height/radius/scale values for the target objects.',
+    'smaller': 'Decreased width/height/radius/scale values for the target objects.',
+    'background': 'Changed the canvas background color or CSS background of the game container.',
+    'add-sound': 'Added Web Audio API sound effects (beeps, explosions, jumps) using oscillator and gain nodes.',
+    'add-score': 'Added a score variable, increment logic on events, and HUD display with ctx.fillText or DOM element.',
+    'add-lives': 'Added lives/health counter, damage logic, death/respawn, and HUD hearts or health bar.',
+    'add-powerup': 'Added power-up objects with spawn logic, collection detection, and temporary buff effects.',
+    'add-enemies': 'Added enemy array with spawn function, movement AI (patrol/chase), and collision with player.',
+    'add-levels': 'Added level counter, difficulty progression, and level-complete transition screen.',
+    'add-effects': 'Added particle system with spawn/update/draw functions for explosions or trails.',
+    'more-fun': 'Added visual juice: screen shake, particles, combo counter, or surprise elements.',
+    'fix-bug': `Fixed the bug described in: "${prompt.slice(0, 100)}". Checked event listeners, game loop, and collision logic.`,
+    'fix-jump': 'Fixed jump mechanics: ensured onGround check, proper gravity reset, and collision with platforms.',
+    'fix-collision': 'Fixed collision detection: corrected AABB overlap check or boundary conditions.',
+    'fix-movement': 'Fixed movement: ensured key listeners are attached, velocity is applied in game loop, and boundaries are checked.',
+  };
+  return summaries[category] || `Applied "${category}" changes as requested: "${prompt.slice(0, 80)}"`;
 }
 
 // ========== DEBUG MODE HANDLER ==========

@@ -43,6 +43,8 @@ WHEN GENERATING GAMES:
 - Always include controls instructions in the game itself (on-screen text)
 - Make games PLAYABLE immediately — no broken states
 - Test mentally: "If a kid clicks play right now, does it work?"
+- ALWAYS output the COMPLETE HTML code — never respond with only a message and no code
+- When a kid asks for a change, your code MUST actually reflect that change. Verify before responding!
 `;
 
 // ========== VIBEGROK ==========
@@ -87,7 +89,16 @@ WHEN GENERATING GAMES:
 - Make it IMMEDIATELY fun — juice it up with effects, sounds, particles
 - Add little surprises the kid didn't ask for (a funny loading message, a hidden character)
 - Use bright colors, animations, screen shake — make it FEEL like a real game
-- Output playable HTML/JS whenever possible — show, don't tell!
+
+CODE OUTPUT RULES (STRICT — follow these EVERY TIME):
+- You MUST output the COMPLETE, FULL HTML code with every response — no exceptions!
+- NEVER respond with only a text message and no code. Every response MUST include the game code.
+- If a kid asks for a change (new feature, fix, tweak, color change — ANYTHING), your code MUST be DIFFERENT from the current code. Verify this before responding!
+- Do NOT just echo back the same code. Actually make the requested change in the code.
+- If you're unsure what to change, make your BEST guess and add something cool — but the code MUST be modified.
+- SELF-CHECK before responding: "Did I actually change the code? If I diff the old code vs my new code, would there be differences?" If the answer is NO, go back and actually make the change!
+- A fast response with no real changes is WORSE than a slower response that actually works. Take the time to modify the code!
+- Output the full HTML document from <!DOCTYPE html> to </html> — no partial snippets, no "here's the changed part"
 `;
 
 // ========== CRITIC PROMPTS ==========

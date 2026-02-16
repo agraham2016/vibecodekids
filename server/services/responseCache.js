@@ -25,6 +25,8 @@ const cacheStats = {
   evictions: 0,
   claudeHits: 0,
   grokHits: 0,
+  patternHits: 0,
+  patternMisses: 0,
 };
 
 // ========== HASH FUNCTION ==========
@@ -142,6 +144,135 @@ export function setCachedResponse(key, { response, code, model }) {
   console.log(`📦 Response cached [${model}] (${cache.size}/${RESPONSE_CACHE_MAX_SIZE} entries)`);
 }
 
+// ========== PATTERN CACHE (Prompt-Only, Ignores Code Context) ==========
+//
+// The primary cache above uses prompt+code as the key, so iterative changes
+// (where the code changes every turn) always miss. This secondary cache keys
+// on the prompt PATTERN only — so if kid A says "make it faster" and kid B
+// says "make it faster" on a totally different game, we can give the AI a
+// *hint* about what kind of code changes worked last time. This isn't a full
+// cached response — it's a "here's what worked before" context injection.
+
+const patternCache = new Map();
+const PATTERN_CACHE_MAX = 200;
+const PATTERN_CACHE_TTL = 4 * 60 * 60 * 1000; // 4 hours
+
+/**
+ * Common iteration patterns kids use. If the prompt matches one of these,
+ * we store/retrieve from the pattern cache.
+ */
+const ITERATION_PATTERNS = [
+  // Speed / difficulty
+  { pattern: /\b(faster|quicker|speed up|too slow|more speed)\b/i, category: 'speed-up' },
+  { pattern: /\b(slower|slow down|too fast|less speed)\b/i, category: 'slow-down' },
+  { pattern: /\b(harder|more difficult|too easy|challenge)\b/i, category: 'harder' },
+  { pattern: /\b(easier|too hard|simpler)\b/i, category: 'easier' },
+  // Visual changes
+  { pattern: /\b(change.*(color|colour)|different color|new color)\b/i, category: 'color-change' },
+  { pattern: /\b(bigger|larger|make it big|increase size)\b/i, category: 'bigger' },
+  { pattern: /\b(smaller|tinier|shrink|decrease size)\b/i, category: 'smaller' },
+  { pattern: /\b(background|backdrop|bg color)\b/i, category: 'background' },
+  // Features
+  { pattern: /\b(add sound|sound effect|sfx|audio|music)\b/i, category: 'add-sound' },
+  { pattern: /\b(add score|scoring|points|keep score)\b/i, category: 'add-score' },
+  { pattern: /\b(add lives|health|hearts|hp)\b/i, category: 'add-lives' },
+  { pattern: /\b(add power.?up|powerup|boost)\b/i, category: 'add-powerup' },
+  { pattern: /\b(add enemy|enemies|bad guys|monsters)\b/i, category: 'add-enemies' },
+  { pattern: /\b(add level|next level|levels|stage)\b/i, category: 'add-levels' },
+  { pattern: /\b(add particle|explosion|confetti|effects)\b/i, category: 'add-effects' },
+  { pattern: /\b(more fun|cooler|awesome|epic|make it better)\b/i, category: 'more-fun' },
+  // Fixes
+  { pattern: /\b(fix|broken|doesn.?t work|not working|bug|glitch)\b/i, category: 'fix-bug' },
+  { pattern: /\b(fix.*(jump|jumping)|can.?t jump|jump.*(broken|not))\b/i, category: 'fix-jump' },
+  { pattern: /\b(fix.*(collision|hit)|going through|pass through)\b/i, category: 'fix-collision' },
+  { pattern: /\b(fix.*(move|movement|control)|can.?t move|stuck)\b/i, category: 'fix-movement' },
+];
+
+/**
+ * Detect which iteration pattern a prompt matches (if any).
+ * @param {string} prompt
+ * @returns {string|null} Pattern category or null
+ */
+export function detectIterationPattern(prompt) {
+  if (!prompt) return null;
+  for (const { pattern, category } of ITERATION_PATTERNS) {
+    if (pattern.test(prompt)) return category;
+  }
+  return null;
+}
+
+/**
+ * Generate a pattern cache key from the category + genre + model.
+ * Ignores the actual code content.
+ */
+function patternCacheKey(category, genre, model) {
+  return `${category}::${genre || 'unknown'}::${model}`;
+}
+
+/**
+ * Look up a pattern hint. Returns a description of what changes were
+ * made previously for a similar request, or null.
+ * 
+ * @param {string} category - From detectIterationPattern()
+ * @param {string|null} genre - Detected game genre
+ * @param {string} model - 'claude' or 'grok'
+ * @returns {{ hint: string, successCount: number } | null}
+ */
+export function getPatternHint(category, genre, model) {
+  if (!category) return null;
+  const key = patternCacheKey(category, genre, model);
+  const entry = patternCache.get(key);
+  if (!entry) {
+    cacheStats.patternMisses++;
+    return null;
+  }
+  if (Date.now() - entry.lastUpdated > PATTERN_CACHE_TTL) {
+    patternCache.delete(key);
+    cacheStats.patternMisses++;
+    return null;
+  }
+  cacheStats.patternHits++;
+  console.log(`🧩 Pattern cache HIT: "${category}" (${entry.successCount} past successes)`);
+  return { hint: entry.hint, successCount: entry.successCount };
+}
+
+/**
+ * Store what worked for a given pattern. We keep a short summary
+ * of the kinds of changes that resolved the request.
+ * 
+ * @param {string} category - Pattern category
+ * @param {string|null} genre - Game genre
+ * @param {string} model - Which model succeeded
+ * @param {string} prompt - The original prompt
+ * @param {string} codeSummary - Brief description of what changed
+ */
+export function storePatternSuccess(category, genre, model, prompt, codeSummary) {
+  if (!category) return;
+  const key = patternCacheKey(category, genre, model);
+  const existing = patternCache.get(key);
+
+  if (existing) {
+    existing.successCount++;
+    existing.lastUpdated = Date.now();
+    // Keep the most recent hint
+    existing.hint = codeSummary;
+    existing.lastPrompt = prompt;
+  } else {
+    // Evict if full
+    if (patternCache.size >= PATTERN_CACHE_MAX) {
+      const oldest = [...patternCache.entries()].sort((a, b) => a[1].lastUpdated - b[1].lastUpdated)[0];
+      if (oldest) patternCache.delete(oldest[0]);
+    }
+    patternCache.set(key, {
+      hint: codeSummary,
+      successCount: 1,
+      lastUpdated: Date.now(),
+      lastPrompt: prompt,
+    });
+  }
+  console.log(`🧩 Pattern cached: "${category}" for ${genre || 'unknown'}/${model}`);
+}
+
 // ========== STATS ==========
 
 /**
@@ -149,15 +280,25 @@ export function setCachedResponse(key, { response, code, model }) {
  */
 export function getResponseCacheStats() {
   const total = cacheStats.hits + cacheStats.misses;
+  const patternTotal = cacheStats.patternHits + cacheStats.patternMisses;
   return {
-    entries: cache.size,
-    maxSize: RESPONSE_CACHE_MAX_SIZE,
-    hits: cacheStats.hits,
-    misses: cacheStats.misses,
-    evictions: cacheStats.evictions,
-    hitRate: total > 0 ? (cacheStats.hits / total * 100).toFixed(1) + '%' : '0%',
-    claudeHits: cacheStats.claudeHits,
-    grokHits: cacheStats.grokHits,
+    responseCache: {
+      entries: cache.size,
+      maxSize: RESPONSE_CACHE_MAX_SIZE,
+      hits: cacheStats.hits,
+      misses: cacheStats.misses,
+      evictions: cacheStats.evictions,
+      hitRate: total > 0 ? (cacheStats.hits / total * 100).toFixed(1) + '%' : '0%',
+      claudeHits: cacheStats.claudeHits,
+      grokHits: cacheStats.grokHits,
+    },
+    patternCache: {
+      entries: patternCache.size,
+      maxSize: PATTERN_CACHE_MAX,
+      hits: cacheStats.patternHits,
+      misses: cacheStats.patternMisses,
+      hitRate: patternTotal > 0 ? (cacheStats.patternHits / patternTotal * 100).toFixed(1) + '%' : '0%',
+    },
   };
 }
 

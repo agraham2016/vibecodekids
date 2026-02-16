@@ -172,6 +172,11 @@ export default function createGenerateRouter(sessions) {
         responsePayload.debugInfo = result.debugInfo;
       }
 
+      // Include reference sources for debugging (what code was injected)
+      if (result.referenceSources && result.referenceSources.length > 0) {
+        responsePayload.referenceSources = result.referenceSources;
+      }
+
       res.json(responsePayload);
 
     } catch (error) {

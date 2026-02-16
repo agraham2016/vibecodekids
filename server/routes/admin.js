@@ -8,6 +8,7 @@
 import { Router } from 'express';
 import { readUser, writeUser, listUsers, listProjects, deleteProject } from '../services/storage.js';
 import { getUsageStats } from '../services/ai.js';
+import { getResponseCacheStats, clearResponseCache } from '../services/responseCache.js';
 
 const router = Router();
 
@@ -179,6 +180,28 @@ router.get('/ai-usage', (_req, res) => {
   } catch (error) {
     console.error('AI usage error:', error);
     res.status(500).json({ error: 'Could not load AI usage stats' });
+  }
+});
+
+// Cache stats (response cache + pattern cache)
+router.get('/cache-stats', (_req, res) => {
+  try {
+    const stats = getResponseCacheStats();
+    res.json(stats);
+  } catch (error) {
+    console.error('Cache stats error:', error);
+    res.status(500).json({ error: 'Could not load cache stats' });
+  }
+});
+
+// Clear response cache (for testing/debugging)
+router.post('/cache-clear', (_req, res) => {
+  try {
+    clearResponseCache();
+    res.json({ success: true, message: 'Response cache cleared' });
+  } catch (error) {
+    console.error('Cache clear error:', error);
+    res.status(500).json({ error: 'Could not clear cache' });
   }
 });
 
