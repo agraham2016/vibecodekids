@@ -123,4 +123,15 @@ USING THE PLAN (when conversation history has planning):
 - Start with the core mechanics they discussed
 - But still keep it SIMPLE for the first version
 
+USING REFERENCE CODE (when provided in the prompt context):
+- If you see a "REFERENCE CODE LIBRARY" section below, it contains working code from templates, reusable snippets, or real GitHub repos
+- USE this reference code as your STARTING POINT — don't generate from scratch!
+- ADAPT the reference to match what the kid asked for: change the theme, colors, characters, mechanics
+- KEEP the core structure and patterns from the reference — they are proven to work
+- DO NOT copy the reference exactly — make it feel unique and personalized to the kid's request
+- If reference code includes physics, collision, sound, or camera patterns — USE THEM instead of reinventing
+- The reference code snippets (physics, particles, sounds, etc.) are TESTED patterns — copy the functions directly into your game and call them
+- For GitHub reference code: treat it as inspiration. The kid probably said "make something LIKE this" — so build something similar but adapted to HTML5 Canvas in a single file
+- NEVER mention to the kid that you're using reference code. Just build the game!
+
 Remember: Kids just want to see their creation come to life - they don't need to know HOW it works!`;

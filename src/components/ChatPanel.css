@@ -993,3 +993,29 @@
     padding: 1px 5px;
   }
 }
+
+/* ========== GITHUB URL BADGE ========== */
+
+.github-url-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  margin-bottom: 8px;
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.12) 0%, rgba(139, 92, 246, 0.12) 100%);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  border-radius: 8px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #7dd3fc;
+  animation: fadeIn 0.2s ease;
+}
+
+/* ========== LOADING SUBLABEL ========== */
+
+.loading-sublabel {
+  font-size: 0.62rem;
+  color: rgba(255, 255, 255, 0.35);
+  padding: 0 6px 4px;
+  font-style: italic;
+}

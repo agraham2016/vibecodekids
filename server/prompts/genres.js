@@ -6,12 +6,19 @@
 // Keywords for detecting game genre from free-text messages
 export const GENRE_KEYWORDS = {
   racing: ['racing', 'race', 'car game', 'driving', 'dodge cars', 'racing game', 'car racing', 'drive'],
+  'street-racing': ['street rod', 'street racing', 'drag race', 'drag racing', 'muscle car', 'hot rod', 'garage racing', 'car customization', 'tuning', 'nitro'],
   shooter: ['shooter', 'shooting', 'space invaders', 'shoot', 'laser', 'zombie', 'space shooter', 'shoot em up', 'shmup', 'bullet'],
   platformer: ['platformer', 'jumping', 'mario', 'jump game', 'side scroller', 'platform game', 'jumping game', 'collect coins'],
+  'endless-runner': ['endless runner', 'infinite runner', 'temple run', 'subway surfer', 'run game', 'auto runner', 'runner game'],
   frogger: ['frogger', 'crossing', 'cross the road', 'dodge traffic', 'crossy', 'road crossing'],
-  puzzle: ['puzzle', 'matching', 'memory game', 'match 3', 'tile', 'memory', 'card matching', 'match game'],
+  puzzle: ['puzzle', 'matching', 'memory game', 'match 3', 'tile', 'memory', 'card matching', 'match game', 'jigsaw', 'wordle', 'sudoku'],
   clicker: ['clicker', 'clicking', 'idle', 'tapper', 'cookie clicker', 'idle game', 'tap game', 'incremental'],
-  rpg: ['rpg', 'adventure', 'quest', 'explore', 'adventure game', 'story game', 'exploration', 'rpg game', 'role playing']
+  rpg: ['rpg', 'adventure', 'quest', 'explore', 'adventure game', 'story game', 'exploration', 'rpg game', 'role playing'],
+  fighting: ['fighting game', 'fighter', 'street fighter', 'beat em up', 'brawler', 'boxing', 'wrestling', 'mortal kombat', 'punch', 'kick fight'],
+  'tower-defense': ['tower defense', 'td game', 'defend the base', 'tower game', 'place towers', 'defense game', 'castle defense'],
+  card: ['card game', 'cards', 'solitaire', 'poker', 'blackjack', 'uno', 'card battle', 'deck building', 'trading card'],
+  sports: ['sports', 'soccer', 'football', 'basketball', 'baseball', 'tennis', 'golf', 'hockey', 'bowling'],
+  simulation: ['simulation', 'simulator', 'tycoon', 'farm', 'city builder', 'restaurant', 'pet simulator', 'life sim'],
 };
 
 /**

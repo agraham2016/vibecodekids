@@ -1,0 +1,77 @@
+{
+  "_comment": "Maps common game names/keywords to known-good GitHub repos with HTML5/JS implementations. The fetcher pulls these as reference code when a kid mentions a game by name.",
+  "repos": [
+    {
+      "keywords": ["flappy bird", "flappy", "bird game", "pipe game"],
+      "repo": "CodeExplainedRepo/Original-Flappy-bird-JavaScript",
+      "description": "Classic Flappy Bird clone in pure HTML5 Canvas + JS",
+      "mainFiles": ["index.html", "game.js", "flappy.js"]
+    },
+    {
+      "keywords": ["snake", "snake game", "classic snake"],
+      "repo": "patorjk/JavaScript-Snake",
+      "description": "Classic Snake game in vanilla JS",
+      "mainFiles": ["js/snake.js", "index.html"]
+    },
+    {
+      "keywords": ["tetris", "tetris game", "block game", "falling blocks"],
+      "repo": "jakesgordon/javascript-tetris",
+      "description": "Tetris in vanilla JavaScript",
+      "mainFiles": ["index.html", "tetris.js"]
+    },
+    {
+      "keywords": ["breakout", "brick breaker", "arkanoid", "paddle game", "pong"],
+      "repo": "end3r/Gamedev-Canvas-workshop",
+      "description": "MDN Breakout tutorial — clean Canvas game",
+      "mainFiles": ["index.html"]
+    },
+    {
+      "keywords": ["2048", "number puzzle", "sliding puzzle"],
+      "repo": "gabrielecirulli/2048",
+      "description": "Original 2048 game in HTML/CSS/JS",
+      "mainFiles": ["index.html", "js/game_manager.js", "js/grid.js"]
+    },
+    {
+      "keywords": ["pacman", "pac-man", "maze game", "ghost game"],
+      "repo": "luciopires/pacman",
+      "description": "Pac-Man in HTML5 Canvas",
+      "mainFiles": ["index.html", "pacman.js"]
+    },
+    {
+      "keywords": ["space invaders", "alien shooter", "galaga", "classic shooter"],
+      "repo": "nickaknudson/spaceinvaders",
+      "description": "Space Invaders in HTML5 Canvas",
+      "mainFiles": ["index.html", "game.js"]
+    },
+    {
+      "keywords": ["tower defense", "tower game", "td game", "defend the base"],
+      "repo": "nickaknudson/TowerDefense",
+      "description": "Tower defense game template in JS",
+      "mainFiles": ["index.html", "game.js"]
+    },
+    {
+      "keywords": ["street rod", "street racing", "drag racing", "muscle car", "garage racing", "car customization"],
+      "repo": "nicholasgasior/gta-html5",
+      "description": "Top-down driving game in HTML5 Canvas — good reference for street racing mechanics",
+      "mainFiles": ["index.html", "js/game.js", "js/car.js"]
+    },
+    {
+      "keywords": ["platformer", "mario", "jump and run", "side scroller"],
+      "repo": "nickaknudson/platformer",
+      "description": "HTML5 Canvas platformer with physics",
+      "mainFiles": ["index.html", "game.js"]
+    },
+    {
+      "keywords": ["fighting game", "fighter", "street fighter", "beat em up", "punch", "brawler"],
+      "repo": "nickaknudson/fighting-game",
+      "description": "2D fighting game with keyboard controls",
+      "mainFiles": ["index.html", "game.js"]
+    },
+    {
+      "keywords": ["card game", "cards", "solitaire", "memory cards", "card matching"],
+      "repo": "nickaknudson/memory-game",
+      "description": "Card matching/memory game in HTML/CSS/JS",
+      "mainFiles": ["index.html", "game.js"]
+    }
+  ]
+}

@@ -46,6 +46,8 @@ import {
   setCachedResponse,
 } from './responseCache.js';
 import { DEBUG_MAX_CLAUDE_ATTEMPTS } from '../config/index.js';
+import { resolveReferences } from './referenceResolver.js';
+import { detectGameGenre } from '../prompts/index.js';
 
 // ========== MODE DETECTION HELPERS ==========
 
@@ -269,7 +271,26 @@ function resolveTargetModel(mode, lastModelUsed) {
  * Call a single model (Claude or Grok) and process the response.
  */
 async function handleSingleModel({ prompt, currentCode, conversationHistory, gameConfig, image, userId, targetModel }) {
-  const { staticPrompt, dynamicContext } = getSystemPrompt(currentCode, gameConfig, null);
+  // Detect genre for reference resolution
+  const genre = gameConfig?.gameType || detectGameGenre(prompt || '') || null;
+  const isNewGame = !currentCode || currentCode.includes('Tell me what you want to create');
+
+  // Resolve reference code (templates, snippets, GitHub)
+  let referenceCode = '';
+  let referenceSources = [];
+  try {
+    const refs = await resolveReferences({ prompt, genre, gameConfig, isNewGame });
+    referenceCode = refs.referenceCode;
+    referenceSources = refs.sources;
+  } catch (err) {
+    console.error('⚠️ Reference resolution failed (continuing without):', err.message);
+  }
+
+  if (referenceSources.length > 0) {
+    console.log(`📚 Using references: ${referenceSources.join(', ')}`);
+  }
+
+  const { staticPrompt, dynamicContext } = getSystemPrompt(currentCode, gameConfig, genre, referenceCode);
   const personalityWrapper = getPersonalityWrapper(targetModel);
   const maxTokens = calculateMaxTokens(currentCode);
 

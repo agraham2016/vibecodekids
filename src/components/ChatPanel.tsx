@@ -83,6 +83,9 @@ export default function ChatPanel({
   const [showTipsModal, setShowTipsModal] = useState(false)
   const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(null)
   const [expandedAlternate, setExpandedAlternate] = useState<string | null>(null)
+  
+  // Detect GitHub URL in input
+  const hasGitHubUrl = /github\.com\/[^\s]+/i.test(input)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -491,6 +494,9 @@ export default function ChatPanel({
                   <div className="loading-label">
                     {activeModel === 'grok' ? 'VibeGrok is cooking... 🔥' : 'Professor Claude is thinking... 🧠'}
                   </div>
+                  <div className="loading-sublabel">
+                    Finding the best references and building your game...
+                  </div>
                 </div>
               </div>
             )}
@@ -532,6 +538,14 @@ export default function ChatPanel({
 
       {/* ===== INPUT AREA ===== */}
       <form className="chat-input-area" onSubmit={handleSubmit}>
+        {/* GitHub URL detected indicator */}
+        {hasGitHubUrl && (
+          <div className="github-url-badge">
+            <span>🔗</span>
+            <span>GitHub link detected — I'll fetch reference code from this repo!</span>
+          </div>
+        )}
+        
         {/* Image Preview */}
         {uploadedImage && (
           <div className="image-preview">

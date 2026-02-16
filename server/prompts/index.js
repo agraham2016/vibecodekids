@@ -121,9 +121,10 @@ export function sanitizeOutput(message) {
  * @param {string} currentCode - The current project code (if any)
  * @param {object|null} gameConfig - Game configuration from the survey
  * @param {string|null} gameGenre - Detected game genre
+ * @param {string} referenceCode - Reference code from templates/snippets/GitHub
  * @returns {{ staticPrompt: string, dynamicContext: string }}
  */
-export function getSystemPrompt(currentCode, gameConfig = null, gameGenre = null) {
+export function getSystemPrompt(currentCode, gameConfig = null, gameGenre = null, referenceCode = '') {
   // ===== STATIC PART (cacheable - same for every request) =====
   const staticPrompt = SYSTEM_PROMPT + '\n\n' + GAME_KNOWLEDGE_BASE;
 
@@ -199,6 +200,11 @@ USE THIS CONFIG to make the game feel personal:
   );
   if (is3D && isShooter) {
     dynamicParts.push(THREE_D_SHOOTER_RULES);
+  }
+
+  // Add reference code (templates, snippets, GitHub code)
+  if (referenceCode) {
+    dynamicParts.push(referenceCode);
   }
 
   // Add modification safety rules + current code when editing

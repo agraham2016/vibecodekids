@@ -73,6 +73,14 @@ export const DEBUG_MAX_CLAUDE_ATTEMPTS = 2;   // How many Claude tries before au
 export const RESPONSE_CACHE_TTL = 60 * 60 * 1000; // 1 hour TTL for response cache
 export const RESPONSE_CACHE_MAX_SIZE = 500;         // Max entries in response cache
 
+// ========== REFERENCE CODE SYSTEM ==========
+
+export const GITHUB_TOKEN = process.env.GITHUB_TOKEN || null; // Optional — raises rate limit from 60 to 5000 req/hr
+export const REFERENCE_MAX_CHARS = parseInt(process.env.REFERENCE_MAX_CHARS || '30000', 10);
+export const GITHUB_CACHE_TTL = 24 * 60 * 60 * 1000;  // 24 hours
+export const GITHUB_MAX_FILE_SIZE = 100000;              // Skip files larger than 100KB
+export const GITHUB_MAX_FETCHES_PER_SESSION = 3;
+
 // ========== STRIPE ==========
 
 export const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
