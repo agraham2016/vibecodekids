@@ -12,7 +12,7 @@ import { promises as fs } from 'fs';
 import { createServer } from 'http';
 
 // Config
-import { PORT, BASE_URL, PUBLIC_DIR, DIST_DIR, DATA_DIR, USE_POSTGRES, ANTHROPIC_API_KEY } from './config/index.js';
+import { PORT, BASE_URL, PUBLIC_DIR, DIST_DIR, DATA_DIR, USE_POSTGRES, ANTHROPIC_API_KEY, XAI_API_KEY } from './config/index.js';
 
 // Services
 import { ensureDataDirs } from './services/storage.js';
@@ -84,6 +84,7 @@ app.get('/api/health', async (_req, res) => {
     uptime,
     storage: USE_POSTGRES ? 'postgres' : 'file',
     ai: !!ANTHROPIC_API_KEY,
+    grok: !!XAI_API_KEY,
     timestamp: new Date().toISOString(),
   };
 

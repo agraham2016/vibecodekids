@@ -1,22 +1,38 @@
 /**
- * AI Service (Optimized)
+ * AI Service (Dual-Model: Claude + Grok)
  * 
- * Handles all Claude API interactions with:
- * - Prompt caching (cache_control) for the static system prompt
+ * Handles all AI API interactions with:
+ * - Claude (Anthropic API) — "Professor Claude": patient teacher
+ * - Grok (xAI API via OpenAI SDK) — "VibeGrok": hype gamer buddy
+ * - Prompt caching (cache_control) for static system prompts
  * - Streaming support for faster perceived response times
  * - Conversation history trimming to reduce token waste
- * - Token usage tracking and cost logging
+ * - Token usage tracking and cost logging for BOTH models
  * - Retry logic with exponential backoff
  * - Truncation recovery (continuation requests)
  */
 
 import Anthropic from '@anthropic-ai/sdk';
+import OpenAI from 'openai';
 import { 
   ANTHROPIC_API_KEY, AI_MODEL, AI_BASE_TOKENS, AI_MAX_TOKENS, 
-  AI_RETRY_COUNT, AI_RETRY_DELAY_MS 
+  AI_RETRY_COUNT, AI_RETRY_DELAY_MS,
+  XAI_API_KEY, GROK_MODEL, GROK_BASE_URL
 } from '../config/index.js';
 
 const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
+
+// Grok client — xAI API is OpenAI-compatible, just different baseURL
+const grokClient = XAI_API_KEY 
+  ? new OpenAI({ apiKey: XAI_API_KEY, baseURL: GROK_BASE_URL })
+  : null;
+
+/**
+ * Check if Grok is available (API key configured).
+ */
+export function isGrokAvailable() {
+  return !!grokClient;
+}
 
 // ========== TOKEN USAGE TRACKING ==========
 
@@ -33,51 +49,78 @@ const usageStats = {
 
 // Claude Sonnet pricing (per million tokens)
 const PRICING = {
-  input: 3.00,       // $3.00 / 1M input tokens
-  output: 15.00,     // $15.00 / 1M output tokens
-  cacheWrite: 3.75,  // $3.75 / 1M tokens (cache write)
-  cacheRead: 0.30,   // $0.30 / 1M tokens (cache hit)
+  claude: {
+    input: 3.00,       // $3.00 / 1M input tokens
+    output: 15.00,     // $15.00 / 1M output tokens
+    cacheWrite: 3.75,  // $3.75 / 1M tokens (cache write)
+    cacheRead: 0.30,   // $0.30 / 1M tokens (cache hit)
+  },
+  // Grok-3-fast pricing (xAI)
+  grok: {
+    input: 5.00,       // $5.00 / 1M input tokens
+    output: 25.00,     // $25.00 / 1M output tokens
+  },
 };
 
-function trackUsage(response, userId = null) {
+/**
+ * Track token usage and costs for any model (Claude or Grok).
+ * @param {object} response - API response with usage info
+ * @param {string|null} userId - For per-user tracking
+ * @param {'claude'|'grok'} model - Which model was called
+ */
+function trackUsage(response, userId = null, model = 'claude') {
   const usage = response.usage;
   if (!usage) return;
 
-  const inputTokens = usage.input_tokens || 0;
-  const outputTokens = usage.output_tokens || 0;
-  const cacheCreation = usage.cache_creation_input_tokens || 0;
-  const cacheRead = usage.cache_read_input_tokens || 0;
+  let inputTokens, outputTokens, costCents;
 
-  // Calculate cost
-  const regularInput = inputTokens - cacheCreation - cacheRead;
-  const costCents = (
-    (regularInput / 1_000_000) * PRICING.input * 100 +
-    (outputTokens / 1_000_000) * PRICING.output * 100 +
-    (cacheCreation / 1_000_000) * PRICING.cacheWrite * 100 +
-    (cacheRead / 1_000_000) * PRICING.cacheRead * 100
-  );
+  if (model === 'grok') {
+    // OpenAI-compatible usage format
+    inputTokens = usage.prompt_tokens || 0;
+    outputTokens = usage.completion_tokens || 0;
+    costCents = (
+      (inputTokens / 1_000_000) * PRICING.grok.input * 100 +
+      (outputTokens / 1_000_000) * PRICING.grok.output * 100
+    );
+  } else {
+    // Anthropic usage format
+    inputTokens = usage.input_tokens || 0;
+    outputTokens = usage.output_tokens || 0;
+    const cacheCreation = usage.cache_creation_input_tokens || 0;
+    const cacheRead = usage.cache_read_input_tokens || 0;
+
+    const regularInput = inputTokens - cacheCreation - cacheRead;
+    costCents = (
+      (regularInput / 1_000_000) * PRICING.claude.input * 100 +
+      (outputTokens / 1_000_000) * PRICING.claude.output * 100 +
+      (cacheCreation / 1_000_000) * PRICING.claude.cacheWrite * 100 +
+      (cacheRead / 1_000_000) * PRICING.claude.cacheRead * 100
+    );
+
+    if (cacheRead > 0) usageStats.cacheHits++;
+    if (cacheCreation > 0) usageStats.cacheMisses++;
+  }
 
   usageStats.totalRequests++;
   usageStats.totalInputTokens += inputTokens;
   usageStats.totalOutputTokens += outputTokens;
   usageStats.totalCostCents += costCents;
 
-  if (cacheRead > 0) usageStats.cacheHits++;
-  if (cacheCreation > 0) usageStats.cacheMisses++;
-
   // Per-user tracking
   if (userId) {
-    const userStats = usageStats.byUser.get(userId) || { requests: 0, inputTokens: 0, outputTokens: 0, costCents: 0 };
+    const userStats = usageStats.byUser.get(userId) || { requests: 0, inputTokens: 0, outputTokens: 0, costCents: 0, claudeCalls: 0, grokCalls: 0 };
     userStats.requests++;
     userStats.inputTokens += inputTokens;
     userStats.outputTokens += outputTokens;
     userStats.costCents += costCents;
+    if (model === 'grok') userStats.grokCalls++;
+    else userStats.claudeCalls++;
     usageStats.byUser.set(userId, userStats);
   }
 
   // Log summary
-  const cacheStatus = cacheRead > 0 ? `CACHE HIT (${cacheRead} tokens cached)` : cacheCreation > 0 ? `CACHE WRITE (${cacheCreation} tokens)` : 'NO CACHE';
-  console.log(`💰 AI Usage: ${inputTokens}in/${outputTokens}out | ${cacheStatus} | $${(costCents / 100).toFixed(4)} | Total: $${(usageStats.totalCostCents / 100).toFixed(4)}`);
+  const modelTag = model === 'grok' ? '🤖 Grok' : '🧠 Claude';
+  console.log(`💰 ${modelTag}: ${inputTokens}in/${outputTokens}out | $${(costCents / 100).toFixed(4)} | Total: $${(usageStats.totalCostCents / 100).toFixed(4)}`);
 }
 
 /**
@@ -244,6 +287,67 @@ export async function callClaudeStreaming(staticPrompt, dynamicContext, messages
   });
 
   return stream;
+}
+
+// ========== GROK API CALLS ==========
+
+/**
+ * Call Grok (xAI) API via OpenAI-compatible SDK with retry logic.
+ * 
+ * @param {string} systemPrompt - The full system prompt (personality + context)
+ * @param {Array} messages - Conversation messages [{role, content}]
+ * @param {number} maxTokens - Max output tokens
+ * @param {string|null} userId - For usage tracking
+ * @returns {object} OpenAI-compatible response object
+ */
+export async function callGrok(systemPrompt, messages, maxTokens, userId = null) {
+  if (!grokClient) {
+    throw new Error('Grok (xAI) API key not configured. Set XAI_API_KEY in .env');
+  }
+
+  // Convert Anthropic-style messages to OpenAI format
+  // (they're already {role, content} but we need to ensure the system prompt is first)
+  const openAIMessages = [
+    { role: 'system', content: systemPrompt },
+    ...messages.map(msg => ({
+      role: msg.role,
+      // Handle Claude's multi-part content format (image + text) → flatten to text for Grok
+      content: typeof msg.content === 'string' 
+        ? msg.content 
+        : Array.isArray(msg.content) 
+          ? msg.content.filter(p => p.type === 'text').map(p => p.text).join('\n')
+          : String(msg.content)
+    }))
+  ];
+
+  let response;
+  for (let attempt = 1; attempt <= AI_RETRY_COUNT; attempt++) {
+    try {
+      response = await grokClient.chat.completions.create({
+        model: GROK_MODEL,
+        max_tokens: maxTokens,
+        messages: openAIMessages,
+        temperature: 0.7,  // Slightly creative for fun factor
+      });
+      trackUsage(response, userId, 'grok');
+      return response;
+    } catch (apiError) {
+      console.error(`⚠️ Grok API attempt ${attempt}/${AI_RETRY_COUNT} failed:`, apiError.status, apiError.message);
+      if (attempt === AI_RETRY_COUNT) {
+        throw new Error(`Grok API failed after ${AI_RETRY_COUNT} attempts: ${apiError.status || ''} ${apiError.message || 'Unknown error'}`);
+      }
+      await new Promise(r => setTimeout(r, AI_RETRY_DELAY_MS * Math.pow(2, attempt - 1)));
+    }
+  }
+}
+
+/**
+ * Extract the text content from a Grok (OpenAI-format) response.
+ * @param {object} response - OpenAI-compatible response
+ * @returns {string} The assistant's reply text
+ */
+export function extractGrokText(response) {
+  return response?.choices?.[0]?.message?.content || '';
 }
 
 // ========== CODE EXTRACTION ==========

@@ -1,32 +1,32 @@
 /**
- * AI Generation Route (Optimized)
+ * AI Generation Route (Dual-Model: Claude + Grok)
  * 
- * POST /api/generate - Generate or modify game code from a prompt.
+ * POST /api/generate - Generate or modify game code using dual AI models.
  * 
- * Optimizations:
- * - Prompt caching via split static/dynamic system prompt
- * - Conversation history trimming for long sessions
- * - Template cache for common game types
- * - Token usage tracking per user
+ * Supports:
+ * - Mode-based routing (default/claude/grok/creative/debug/ask-other-buddy/critic)
+ * - Response caching across BOTH models
+ * - Template cache for brand-new games
+ * - Auto-detection of creative/debug intent from prompt
+ * - Token usage tracking per user per model
+ * 
+ * New request body fields:
+ * - mode: 'default' | 'claude' | 'grok' | 'creative' | 'debug' | 'ask-other-buddy' | 'critic'
+ * - lastModelUsed: 'claude' | 'grok' (for ask-other-buddy routing)
+ * - debugAttempt: number (for debug escalation tracking)
  */
 
 import { Router } from 'express';
-import { getSystemPrompt, detectGameGenre, sanitizeOutput } from '../prompts/index.js';
+import { detectGameGenre, sanitizeOutput } from '../prompts/index.js';
 import { filterContent } from '../middleware/contentFilter.js';
 import { checkRateLimits, checkTierLimits, incrementUsage, calculateUsageRemaining } from '../middleware/rateLimit.js';
 import {
-  formatMessageContent,
-  calculateMaxTokens,
-  trimConversationHistory,
-  callClaude,
-  extractCode,
-  isTruncated,
-  extractPartialCode,
-  attemptContinuation,
   getTemplateCacheKey,
   getCachedTemplate,
   cacheTemplate,
+  isGrokAvailable,
 } from '../services/ai.js';
+import { generateOrIterateGame } from '../services/gameHandler.js';
 
 export default function createGenerateRouter(sessions) {
   const router = Router();
@@ -41,8 +41,19 @@ export default function createGenerateRouter(sessions) {
 
   router.post('/', async (req, res) => {
     try {
-      const { message, image, currentCode, conversationHistory = [], gameConfig = null } = req.body;
-      console.log(`🎮 Generate request: "${(message || '').slice(0, 80)}" | gameConfig: ${gameConfig ? gameConfig.gameType : 'none'} | hasCode: ${!!currentCode} | historyLen: ${conversationHistory.length}`);
+      const { 
+        message, 
+        image, 
+        currentCode, 
+        conversationHistory = [], 
+        gameConfig = null,
+        // ---- NEW DUAL-MODEL FIELDS ----
+        mode = 'default',        // Routing mode
+        lastModelUsed = null,    // For ask-other-buddy
+        debugAttempt = 0,        // For debug escalation
+      } = req.body;
+
+      console.log(`🎮 Generate request: "${(message || '').slice(0, 80)}" | mode: ${mode} | model-hint: ${lastModelUsed || 'none'} | gameConfig: ${gameConfig ? gameConfig.gameType : 'none'} | hasCode: ${!!currentCode} | historyLen: ${conversationHistory.length}`);
 
       // Get user from session
       const token = req.headers.authorization?.replace('Bearer ', '');
@@ -58,6 +69,8 @@ export default function createGenerateRouter(sessions) {
         return res.status(429).json({
           message: rateLimitCheck.message,
           code: null,
+          modelUsed: null,
+          isCacheHit: false,
           rateLimited: true,
           waitSeconds: rateLimitCheck.waitSeconds
         });
@@ -69,6 +82,8 @@ export default function createGenerateRouter(sessions) {
         return res.status(403).json({
           message: tierCheck.message,
           code: null,
+          modelUsed: null,
+          isCacheHit: false,
           upgradeRequired: tierCheck.upgradeRequired,
           reason: tierCheck.reason
         });
@@ -77,27 +92,23 @@ export default function createGenerateRouter(sessions) {
       // Content filter
       const contentCheck = filterContent(message);
       if (contentCheck.blocked) {
-        return res.json({ message: contentCheck.reason, code: null });
+        return res.json({ message: contentCheck.reason, code: null, modelUsed: null, isCacheHit: false });
       }
 
-      // Genre detection
+      // Genre detection (still useful for template cache)
       let gameGenre = null;
-      let codeToUse = currentCode;
-
       if (gameConfig && gameConfig.gameType) {
         gameGenre = gameConfig.gameType;
       } else if (!currentCode || isDefaultCode(currentCode)) {
         gameGenre = detectGameGenre(message);
       }
-
       if (gameGenre) console.log(`🎮 Detected game genre: ${gameGenre}`);
 
-      // ===== TEMPLATE CACHE CHECK =====
-      // For brand-new games from the survey, check if we have a cached template
+      // ===== TEMPLATE CACHE CHECK (for brand-new survey-based games) =====
       const isNewGame = !currentCode || isDefaultCode(currentCode);
       const hasNoHistory = conversationHistory.length === 0;
       
-      if (isNewGame && hasNoHistory && !image) {
+      if (isNewGame && hasNoHistory && !image && mode === 'default') {
         const cacheKey = getTemplateCacheKey(message, gameConfig);
         const cached = getCachedTemplate(cacheKey);
         if (cached) {
@@ -108,74 +119,60 @@ export default function createGenerateRouter(sessions) {
             message: cached.message, 
             code: cached.code, 
             usage,
+            modelUsed: 'claude',
+            isCacheHit: true,
             cached: true,
           });
         }
       }
 
-      // ===== BUILD PROMPT (split for caching) =====
-      const { staticPrompt, dynamicContext } = getSystemPrompt(codeToUse, gameConfig, gameGenre);
-
-      // ===== TRIM CONVERSATION HISTORY =====
-      const rawMessages = [
-        ...conversationHistory.map(msg => ({
-          role: msg.role,
-          content: formatMessageContent(msg.content, msg.image)
-        })),
-        { role: 'user', content: formatMessageContent(message, image) }
-      ];
-      const messages = trimConversationHistory(rawMessages, 12);
-
-      const totalPromptChars = staticPrompt.length + dynamicContext.length;
-      console.log(`📝 Prompt: ${totalPromptChars} chars (static: ${staticPrompt.length}, dynamic: ${dynamicContext.length}) | Messages: ${messages.length} | Genre: ${gameGenre || 'none'}`);
-
-      // Calculate tokens
-      const maxTokens = calculateMaxTokens(codeToUse);
-
-      // ===== CALL CLAUDE (with prompt caching) =====
-      const response = await callClaude(staticPrompt, dynamicContext, messages, maxTokens, userId);
+      // ===== CALL THE DUAL-MODEL HANDLER =====
+      const result = await generateOrIterateGame({
+        prompt: message,
+        currentCode,
+        mode,
+        conversationHistory,
+        gameConfig,
+        image,
+        userId,
+        lastModelUsed,
+        debugAttempt,
+      });
 
       // Increment usage
       await incrementUsage(userId, 'generate');
 
-      // Extract response
-      let assistantMessage = response.content[0].text;
-      let code = extractCode(assistantMessage);
-      let wasCodeTruncated = false;
-
-      // Handle truncation
-      if (!code && isTruncated(assistantMessage)) {
-        console.log('⚠️ Response truncated - attempting continuation...');
-        const partialCode = extractPartialCode(assistantMessage);
-
-        if (partialCode) {
-          code = await attemptContinuation(partialCode, userId);
-          if (!code) wasCodeTruncated = true;
-        } else {
-          wasCodeTruncated = true;
-        }
-      } else if (!code) {
-        console.log('⚠️ No code block found in AI response');
-      }
-
-      // Sanitize output
-      let cleanMessage = sanitizeOutput(assistantMessage);
-      if (wasCodeTruncated) {
-        cleanMessage = "That game got really big! 😅 Let me try a simpler approach — ask me to add one feature at a time, like 'add a speed powerup' instead of multiple things at once! 🎮";
-      }
-
-      // ===== CACHE TEMPLATE for new games =====
-      if (isNewGame && hasNoHistory && code && !wasCodeTruncated) {
+      // ===== TEMPLATE CACHE (store new games for future hits) =====
+      if (isNewGame && hasNoHistory && result.code && !result.wasTruncated) {
         const cacheKey = getTemplateCacheKey(message, gameConfig);
         if (cacheKey) {
-          cacheTemplate(cacheKey, code, cleanMessage);
+          cacheTemplate(cacheKey, result.code, result.response);
         }
       }
 
-      // Usage info
+      // Build final response
       const usage = userId ? calculateUsageRemaining(tierCheck.user) : null;
 
-      res.json({ message: cleanMessage, code, usage });
+      const responsePayload = {
+        message: result.response,
+        code: result.code,
+        usage,
+        modelUsed: result.modelUsed,
+        isCacheHit: result.isCacheHit,
+        grokAvailable: isGrokAvailable(),
+      };
+
+      // Include alternate response for critic/side-by-side modes
+      if (result.alternateResponse) {
+        responsePayload.alternateResponse = result.alternateResponse;
+      }
+
+      // Include debug info if in debug mode
+      if (result.debugInfo) {
+        responsePayload.debugInfo = result.debugInfo;
+      }
+
+      res.json(responsePayload);
 
     } catch (error) {
       console.error('API Error:', error.message || error);
@@ -193,9 +190,17 @@ export default function createGenerateRouter(sessions) {
       } else if (errMsg.includes('overloaded') || errMsg.includes('529')) {
         friendlyMessage = "The servers are super busy! 🚀 Try again in a minute.";
         statusCode = 503;
+      } else if (errMsg.includes('xai') || errMsg.includes('grok')) {
+        friendlyMessage = "VibeGrok is taking a nap! 😴 Let me switch to Professor Claude...";
+        statusCode = 503;
       }
 
-      res.status(statusCode).json({ message: friendlyMessage, code: null });
+      res.status(statusCode).json({ 
+        message: friendlyMessage, 
+        code: null, 
+        modelUsed: null, 
+        isCacheHit: false 
+      });
     }
   });
 

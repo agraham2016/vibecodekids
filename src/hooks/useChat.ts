@@ -1,13 +1,29 @@
 /**
- * useChat Hook
+ * useChat Hook (Dual-Model: Claude + Grok)
  * 
- * Manages chat messages and AI generation.
- * Extracts all chat/AI logic from App.tsx.
+ * Manages chat messages, AI generation, and dual-model routing.
+ * Tracks which AI buddy is active, handles mode switching,
+ * and surfaces model metadata to the UI.
  */
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { api, ApiError } from '../lib/api'
-import type { Message, MembershipUsage, GenerateResponse } from '../types'
+import type { Message, MembershipUsage, GenerateResponse, AIModel, AIMode } from '../types'
+
+/** Extended message with model info for UI rendering. */
+export interface ChatMessage extends Message {
+  modelUsed?: AIModel | null
+  isCacheHit?: boolean
+  alternateResponse?: {
+    response: string
+    code: string | null
+    modelUsed: AIModel
+  }
+  debugInfo?: {
+    attempts: number
+    finalModel: AIModel
+  }
+}
 
 interface UseChatOptions {
   onCodeGenerated: (code: string) => void
@@ -16,16 +32,30 @@ interface UseChatOptions {
 }
 
 export function useChat({ onCodeGenerated, onUsageUpdate, onUpgradeNeeded }: UseChatOptions) {
-  const [messages, setMessages] = useState<Message[]>([])
+  const [messages, setMessages] = useState<ChatMessage[]>([])
   const [isLoading, setIsLoading] = useState(false)
+  const [activeModel, setActiveModel] = useState<AIModel>('claude')
+  const [grokAvailable, setGrokAvailable] = useState(false)
+  const [lastModelUsed, setLastModelUsed] = useState<AIModel | null>(null)
+  const debugAttemptRef = useRef(0)
 
+  /**
+   * Send a message to the AI with dual-model routing.
+   * 
+   * @param content - The kid's message
+   * @param image - Optional base64 image
+   * @param currentCode - Current game code
+   * @param gameConfig - Survey-based config
+   * @param modeOverride - Force a specific routing mode (for buttons like "Ask Other Buddy")
+   */
   const sendMessage = useCallback(async (
     content: string,
     image: string | undefined,
     currentCode: string,
-    gameConfig: any = null
+    gameConfig: any = null,
+    modeOverride?: AIMode
   ) => {
-    const userMessage: Message = {
+    const userMessage: ChatMessage = {
       id: Date.now().toString(),
       role: 'user',
       content,
@@ -34,6 +64,11 @@ export function useChat({ onCodeGenerated, onUsageUpdate, onUpgradeNeeded }: Use
     }
     setMessages(prev => [...prev, userMessage])
     setIsLoading(true)
+
+    // Determine the mode to send
+    // If the user toggled to Grok, default mode becomes 'grok'
+    // If modeOverride is set (from a button), use that
+    let mode: AIMode = modeOverride || (activeModel === 'grok' ? 'grok' : 'default')
 
     try {
       const data = await api.post<GenerateResponse>('/api/generate', {
@@ -46,17 +81,41 @@ export function useChat({ onCodeGenerated, onUsageUpdate, onUpgradeNeeded }: Use
           image: m.image
         })),
         gameConfig,
+        mode,
+        lastModelUsed,
+        debugAttempt: mode === 'debug' ? debugAttemptRef.current : 0,
       })
 
       if (data.usage) {
         onUsageUpdate(data.usage)
       }
 
-      const assistantMessage: Message = {
+      // Track Grok availability
+      if (data.grokAvailable !== undefined) {
+        setGrokAvailable(data.grokAvailable)
+      }
+
+      // Track which model was used
+      if (data.modelUsed) {
+        setLastModelUsed(data.modelUsed)
+      }
+
+      // Track debug attempts for escalation
+      if (mode === 'debug' && data.modelUsed === 'claude') {
+        debugAttemptRef.current += 1
+      } else {
+        debugAttemptRef.current = 0
+      }
+
+      const assistantMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
         content: data.message,
-        timestamp: new Date()
+        timestamp: new Date(),
+        modelUsed: data.modelUsed,
+        isCacheHit: data.isCacheHit,
+        alternateResponse: data.alternateResponse,
+        debugInfo: data.debugInfo,
       }
       setMessages(prev => [...prev, assistantMessage])
 
@@ -67,7 +126,6 @@ export function useChat({ onCodeGenerated, onUsageUpdate, onUpgradeNeeded }: Use
       let friendlyMessage = "Oops! Something went wrong on my end. 😅 Can you try asking me again? Sometimes I need a second try!"
 
       if (error instanceof ApiError) {
-        // Use server's kid-friendly message if available
         if (error.data?.message) {
           friendlyMessage = error.data.message
         }
@@ -79,20 +137,28 @@ export function useChat({ onCodeGenerated, onUsageUpdate, onUpgradeNeeded }: Use
         }
       }
 
-      const errorMsg: Message = {
+      const errorMsg: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
         content: friendlyMessage,
-        timestamp: new Date()
+        timestamp: new Date(),
+        modelUsed: null,
       }
       setMessages(prev => [...prev, errorMsg])
     } finally {
       setIsLoading(false)
     }
-  }, [messages, onCodeGenerated, onUsageUpdate, onUpgradeNeeded])
+  }, [messages, activeModel, lastModelUsed, onCodeGenerated, onUsageUpdate, onUpgradeNeeded])
+
+  /** Switch the active AI buddy (toggle between Claude and Grok). */
+  const switchModel = useCallback((model: AIModel) => {
+    setActiveModel(model)
+  }, [])
 
   const clearMessages = useCallback(() => {
     setMessages([])
+    setLastModelUsed(null)
+    debugAttemptRef.current = 0
   }, [])
 
   return {
@@ -100,5 +166,9 @@ export function useChat({ onCodeGenerated, onUsageUpdate, onUpgradeNeeded }: Use
     isLoading,
     sendMessage,
     clearMessages,
+    activeModel,
+    switchModel,
+    grokAvailable,
+    lastModelUsed,
   }
 }

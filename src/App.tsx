@@ -45,8 +45,11 @@ function App() {
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login')
   const [showVersionHistory, setShowVersionHistory] = useState(false)
 
-  // Chat with AI generation callbacks
-  const { messages, isLoading, sendMessage, clearMessages } = useChat({
+  // Chat with AI generation callbacks (dual-model)
+  const { 
+    messages, isLoading, sendMessage, clearMessages,
+    activeModel, switchModel, grokAvailable, lastModelUsed 
+  } = useChat({
     onCodeGenerated: setGeneratedCode,
     onUsageUpdate: setMembership,
     onUpgradeNeeded: () => setShowUpgradeModal(true),
@@ -82,9 +85,14 @@ function App() {
     clearMessages()
   }, [logout, clearMessages])
 
-  const handleSendMessage = useCallback(async (content: string, image?: string) => {
-    await sendMessage(content, image, code, null)
+  const handleSendMessage = useCallback(async (content: string, image?: string, modeOverride?: any) => {
+    await sendMessage(content, image, code, null, modeOverride)
   }, [sendMessage, code])
+
+  // Handle using alternate code from critic/side-by-side view
+  const handleUseAlternateCode = useCallback((altCode: string) => {
+    setGeneratedCode(altCode)
+  }, [setGeneratedCode])
 
   const handleLoadProject = useCallback(async (projectId: string) => {
     const project = await loadProject(projectId)
@@ -206,6 +214,11 @@ function App() {
             messages={messages}
             onSendMessage={handleSendMessage}
             isLoading={isLoading}
+            activeModel={activeModel}
+            onSwitchModel={switchModel}
+            grokAvailable={grokAvailable}
+            lastModelUsed={lastModelUsed}
+            onUseAlternateCode={handleUseAlternateCode}
           />
         </div>
 

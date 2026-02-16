@@ -60,6 +60,19 @@ export const AI_MAX_TOKENS = 32768;
 export const AI_RETRY_COUNT = 2;
 export const AI_RETRY_DELAY_MS = 1000;
 
+// ========== GROK (xAI) ==========
+
+export const XAI_API_KEY = process.env.XAI_API_KEY;
+export const GROK_MODEL = process.env.GROK_MODEL || 'grok-3-fast';
+export const GROK_BASE_URL = 'https://api.x.ai/v1';
+
+// ========== DUAL-MODEL SETTINGS ==========
+
+export const SESSION_TOKEN_CAP = parseInt(process.env.SESSION_TOKEN_CAP || '200000', 10);
+export const DEBUG_MAX_CLAUDE_ATTEMPTS = 2;   // How many Claude tries before auto-routing to Grok for debugging
+export const RESPONSE_CACHE_TTL = 60 * 60 * 1000; // 1 hour TTL for response cache
+export const RESPONSE_CACHE_MAX_SIZE = 500;         // Max entries in response cache
+
 // ========== STRIPE ==========
 
 export const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;

@@ -116,14 +116,50 @@ export interface AuthMeResponse {
   membership: MembershipUsage
 }
 
-/** /api/generate response. */
+/** Which AI model was used. */
+export type AIModel = 'claude' | 'grok'
+
+/** AI routing mode for the dual-model system. */
+export type AIMode = 'default' | 'claude' | 'grok' | 'creative' | 'debug' | 'ask-other-buddy' | 'critic'
+
+/** Alternate response from the other AI model (critic/side-by-side). */
+export interface AlternateResponse {
+  response: string
+  code: string | null
+  modelUsed: AIModel
+}
+
+/** Debug info when the system auto-escalated between models. */
+export interface DebugInfo {
+  attempts: number
+  finalModel: AIModel
+}
+
+/** /api/generate response (dual-model). */
 export interface GenerateResponse {
   message: string
   code: string | null
   usage?: MembershipUsage
+  modelUsed: AIModel | null
+  isCacheHit: boolean
+  grokAvailable?: boolean
+  alternateResponse?: AlternateResponse
+  debugInfo?: DebugInfo
   rateLimited?: boolean
   waitSeconds?: number
   upgradeRequired?: boolean
   reason?: string
   cached?: boolean
+}
+
+/** /api/generate request body (dual-model). */
+export interface GenerateRequest {
+  message: string
+  image?: string
+  currentCode?: string
+  conversationHistory?: Message[]
+  gameConfig?: GameConfig
+  mode?: AIMode
+  lastModelUsed?: AIModel
+  debugAttempt?: number
 }
