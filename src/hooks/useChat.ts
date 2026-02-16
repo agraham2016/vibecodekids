@@ -6,7 +6,7 @@
  * and surfaces model metadata to the UI.
  */
 
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { api, ApiError } from '../lib/api'
 import type { Message, MembershipUsage, GenerateResponse, AIModel, AIMode } from '../types'
 
@@ -38,6 +38,15 @@ export function useChat({ onCodeGenerated, onUsageUpdate, onUpgradeNeeded }: Use
   const [grokAvailable, setGrokAvailable] = useState(false)
   const [lastModelUsed, setLastModelUsed] = useState<AIModel | null>(null)
   const debugAttemptRef = useRef(0)
+
+  // Check if Grok is available on mount via health endpoint
+  useEffect(() => {
+    api.get<{ grok?: boolean }>('/api/health')
+      .then(data => {
+        if (data.grok) setGrokAvailable(true)
+      })
+      .catch(() => { /* ignore — just means we can't check yet */ })
+  }, [])
 
   /**
    * Send a message to the AI with dual-model routing.
