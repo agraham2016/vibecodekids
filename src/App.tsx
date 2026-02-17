@@ -18,7 +18,7 @@ function App() {
   // Auth from context (no more prop drilling)
   const { user, token, membership, tiers, isCheckingAuth, login, logout, setMembership } = useAuth()
 
-  // Project management
+  // Project management (pass isLoggedIn to enable auto-save)
   const {
     code,
     currentProject,
@@ -26,6 +26,7 @@ function App() {
     isLoadingProjects,
     isSaving,
     hasUnsavedChanges,
+    lastAutoSavedAt,
     fetchUserProjects,
     loadProject,
     newProject,
@@ -34,7 +35,7 @@ function App() {
     updateCode,
     restoreVersion,
     setGeneratedCode,
-  } = useProjects()
+  } = useProjects(!!user)
 
   // UI state
   const [showShareModal, setShowShareModal] = useState(false)
@@ -207,6 +208,7 @@ function App() {
           isSaving={isSaving}
           hasUnsavedChanges={hasUnsavedChanges}
           isLoggedIn={!!user}
+          lastAutoSavedAt={lastAutoSavedAt}
         />
 
         <div className="chat-panel-container">

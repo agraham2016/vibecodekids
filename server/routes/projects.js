@@ -100,7 +100,7 @@ export default function createProjectsRouter(sessions) {
       const session = await sessions.get(token);
       if (!session) return res.status(401).json({ error: 'Session expired. Please log in again.' });
 
-      const { projectId, title, code, category = 'other' } = req.body;
+      const { projectId, title, code, category = 'other', autoSave = false } = req.body;
       if (!code) return res.status(400).json({ error: 'No code to save' });
 
       const projectTitle = title || 'My Project';
@@ -118,13 +118,36 @@ export default function createProjectsRouter(sessions) {
           if (!existing.versions) existing.versions = [];
 
           if (existing.code !== code) {
-            existing.versions.push({
-              versionId: Date.now().toString(),
-              code: existing.code,
-              title: existing.title,
-              savedAt: existing.updatedAt || existing.createdAt,
-              autoSave: false
-            });
+            if (autoSave) {
+              // For auto-saves, replace the last version entry if it was also an auto-save
+              // to avoid flooding history with incremental auto-save snapshots
+              const lastVersion = existing.versions[existing.versions.length - 1];
+              if (lastVersion?.autoSave) {
+                existing.versions[existing.versions.length - 1] = {
+                  versionId: Date.now().toString(),
+                  code: existing.code,
+                  title: existing.title,
+                  savedAt: now,
+                  autoSave: true
+                };
+              } else {
+                existing.versions.push({
+                  versionId: Date.now().toString(),
+                  code: existing.code,
+                  title: existing.title,
+                  savedAt: now,
+                  autoSave: true
+                });
+              }
+            } else {
+              existing.versions.push({
+                versionId: Date.now().toString(),
+                code: existing.code,
+                title: existing.title,
+                savedAt: existing.updatedAt || existing.createdAt,
+                autoSave: false
+              });
+            }
             if (existing.versions.length > 20) {
               existing.versions = existing.versions.slice(-20);
             }

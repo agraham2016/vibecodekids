@@ -16,6 +16,18 @@ interface ProjectsPanelProps {
   isSaving: boolean
   hasUnsavedChanges: boolean
   isLoggedIn: boolean
+  lastAutoSavedAt: Date | null
+}
+
+function formatAutoSaveTime(date: Date): string {
+  const now = new Date()
+  const diffMs = now.getTime() - date.getTime()
+  const diffSec = Math.floor(diffMs / 1000)
+  if (diffSec < 10) return 'just now'
+  if (diffSec < 60) return `${diffSec}s ago`
+  const diffMin = Math.floor(diffSec / 60)
+  if (diffMin < 60) return `${diffMin}m ago`
+  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 }
 
 // Category icons
@@ -43,7 +55,8 @@ export default function ProjectsPanel({
   onDeleteProject,
   isSaving,
   hasUnsavedChanges,
-  isLoggedIn
+  isLoggedIn,
+  lastAutoSavedAt
 }: ProjectsPanelProps) {
   return (
     <div className="projects-panel">
@@ -66,6 +79,14 @@ export default function ProjectsPanel({
         </span>
         {hasUnsavedChanges && <span className="pp-unsaved-dot" title="Unsaved changes">●</span>}
       </div>
+
+      {/* Auto-save status */}
+      {isLoggedIn && lastAutoSavedAt && !hasUnsavedChanges && (
+        <div className="pp-autosave-status" title={`Auto-saved at ${lastAutoSavedAt.toLocaleTimeString()}`}>
+          <span className="pp-autosave-icon">☁️</span>
+          <span className="pp-autosave-text">Auto-saved {formatAutoSaveTime(lastAutoSavedAt)}</span>
+        </div>
+      )}
 
       {/* Projects List */}
       <div className="pp-list">

@@ -71,6 +71,10 @@ export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: A
             })
           })
 
+          const contentType = response.headers.get('content-type')
+          if (!contentType?.includes('application/json')) {
+            throw new Error('Server error — please try again later')
+          }
           const data = await response.json()
 
           if (!response.ok) {
@@ -91,7 +95,7 @@ export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: A
           }, data.requiresParentalConsent ? 8000 : 3000)
         } else {
           // Paid plan: Create Stripe checkout
-          const response = await fetch('/api/stripe/create-checkout', {
+          const response = await fetch('/api/stripe/checkout', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
@@ -102,6 +106,10 @@ export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: A
             })
           })
 
+          const contentType = response.headers.get('content-type')
+          if (!contentType?.includes('application/json')) {
+            throw new Error('Server error — please try again later')
+          }
           const data = await response.json()
 
           if (!response.ok) {
@@ -119,6 +127,10 @@ export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: A
           body: JSON.stringify({ username, password })
         })
 
+        const contentType = response.headers.get('content-type')
+        if (!contentType?.includes('application/json')) {
+          throw new Error('Server error — please try again later')
+        }
         const data = await response.json()
 
         if (!response.ok) {

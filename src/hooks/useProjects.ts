@@ -3,11 +3,14 @@
  * 
  * Manages project list, CRUD, save, and version operations.
  * Extracts all project logic from App.tsx.
+ * Includes auto-save: debounced 30s after last edit, plus save-on-blur.
  */
 
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { api, ApiError } from '../lib/api'
 import type { Project, UserProject } from '../types'
+
+const AUTO_SAVE_DELAY_MS = 30_000 // 30 seconds after last edit
 
 const DEFAULT_HTML = `<!DOCTYPE html>
 <html>
@@ -57,7 +60,7 @@ const DEFAULT_HTML = `<!DOCTYPE html>
 
 export { DEFAULT_HTML }
 
-export function useProjects() {
+export function useProjects(isLoggedIn = false) {
   const [code, setCode] = useState(DEFAULT_HTML)
   const [currentProject, setCurrentProject] = useState<Project>({
     id: 'new',
@@ -70,7 +73,10 @@ export function useProjects() {
   const [isLoadingProjects, setIsLoadingProjects] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+  const [lastAutoSavedAt, setLastAutoSavedAt] = useState<Date | null>(null)
   const lastSavedCode = useRef<string>(DEFAULT_HTML)
+  const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const isAutoSaving = useRef(false)
 
   const fetchUserProjects = useCallback(async () => {
     setIsLoadingProjects(true)
@@ -134,16 +140,23 @@ export function useProjects() {
     }
   }, [currentProject.id, fetchUserProjects, newProject])
 
-  const saveProject = useCallback(async () => {
-    if (isSaving) return false
+  const saveProject = useCallback(async (options?: { autoSave?: boolean }) => {
+    const isAuto = options?.autoSave ?? false
+    if (isSaving || isAutoSaving.current) return false
 
-    setIsSaving(true)
+    if (isAuto) {
+      isAutoSaving.current = true
+    } else {
+      setIsSaving(true)
+    }
+
     try {
       const data = await api.post('/api/projects/save', {
         projectId: currentProject.id,
         title: currentProject.name,
         code,
-        category: 'other'
+        category: 'other',
+        autoSave: isAuto
       })
 
       if (data.success) {
@@ -152,34 +165,54 @@ export function useProjects() {
         }
         lastSavedCode.current = code
         setHasUnsavedChanges(false)
+        if (isAuto) {
+          setLastAutoSavedAt(new Date())
+        }
         fetchUserProjects()
         return true
       } else {
-        alert(data.error || 'Could not save project')
+        if (!isAuto) alert(data.error || 'Could not save project')
         return false
       }
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : 'Could not save project. Please try again.'
-      alert(msg)
+      if (!isAuto) {
+        const msg = err instanceof ApiError ? err.message : 'Could not save project. Please try again.'
+        alert(msg)
+      }
       return false
     } finally {
-      setIsSaving(false)
+      if (isAuto) {
+        isAutoSaving.current = false
+      } else {
+        setIsSaving(false)
+      }
     }
   }, [code, currentProject.id, currentProject.name, isSaving, fetchUserProjects])
+
+  // Helper to reset the auto-save debounce timer
+  const scheduleAutoSave = useCallback(() => {
+    if (!isLoggedIn) return
+    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current)
+    autoSaveTimer.current = setTimeout(() => {
+      saveProject({ autoSave: true })
+    }, AUTO_SAVE_DELAY_MS)
+  }, [isLoggedIn, saveProject])
 
   const updateCode = useCallback((newCode: string) => {
     setCode(newCode)
     setCurrentProject(prev => ({ ...prev, code: newCode, updatedAt: new Date() }))
     if (newCode !== lastSavedCode.current) {
       setHasUnsavedChanges(true)
+      scheduleAutoSave()
     }
-  }, [])
+  }, [scheduleAutoSave])
 
   const restoreVersion = useCallback((restoredCode: string) => {
     setCode(restoredCode)
     setCurrentProject(prev => ({ ...prev, code: restoredCode, updatedAt: new Date() }))
     lastSavedCode.current = restoredCode
     setHasUnsavedChanges(false)
+    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current)
   }, [])
 
   /** Called when AI generates new code. */
@@ -188,6 +221,41 @@ export function useProjects() {
     setCurrentProject(prev => ({ ...prev, code: newCode, updatedAt: new Date() }))
     if (newCode !== lastSavedCode.current) {
       setHasUnsavedChanges(true)
+      scheduleAutoSave()
+    }
+  }, [scheduleAutoSave])
+
+  // Auto-save when the user switches away from the tab
+  useEffect(() => {
+    if (!isLoggedIn) return
+
+    const handleVisibilityChange = () => {
+      if (document.hidden && lastSavedCode.current !== code) {
+        if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current)
+        saveProject({ autoSave: true })
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
+  }, [isLoggedIn, code, saveProject])
+
+  // Warn before closing the tab with unsaved changes
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault()
+      }
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [hasUnsavedChanges])
+
+  // Clear timer on unmount
+  useEffect(() => {
+    return () => {
+      if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current)
     }
   }, [])
 
@@ -198,6 +266,7 @@ export function useProjects() {
     isLoadingProjects,
     isSaving,
     hasUnsavedChanges,
+    lastAutoSavedAt,
     fetchUserProjects,
     loadProject,
     newProject,

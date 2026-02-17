@@ -92,6 +92,30 @@
   50% { opacity: 1; }
 }
 
+/* Auto-save Status */
+.pp-autosave-status {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 16px 6px;
+  font-size: 0.68rem;
+  color: rgba(74, 222, 128, 0.7);
+  animation: autoSaveFadeIn 0.3s ease;
+}
+
+.pp-autosave-icon {
+  font-size: 0.7rem;
+}
+
+.pp-autosave-text {
+  opacity: 0.85;
+}
+
+@keyframes autoSaveFadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 /* Projects List */
 .pp-list {
   flex: 1;
