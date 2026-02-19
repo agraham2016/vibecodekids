@@ -12,7 +12,8 @@ import {
   THREE_D_GAME_RULES,
   THREE_D_RACING_RULES,
   THREE_D_SHOOTER_RULES,
-  PLATFORMER_SAFETY_RULES
+  PLATFORMER_SAFETY_RULES,
+  PHASER_GAME_RULES
 } from './genres.js';
 import { MODIFICATION_SAFETY_RULES } from './safety.js';
 
@@ -136,7 +137,7 @@ export function getSystemPrompt(currentCode, gameConfig = null, gameGenre = null
     dynamicParts.push(`
 GAME CONFIG (from the kid's survey answers - use these to personalize the game):
 - Game Type: ${gameConfig.gameType}
-- Dimension: ${gameConfig.dimension || '2d'} (2d = flat DOM/Canvas game, 3d = Three.js 3D game)
+- Dimension: ${gameConfig.dimension || '2d'} (2d = Phaser.js 2D game, 3d = Three.js 3D game)
 - Theme/Setting: ${gameConfig.theme}
 - Player Character: ${gameConfig.character}
 - Obstacles/Enemies: ${gameConfig.obstacles}
@@ -149,15 +150,27 @@ USE THIS CONFIG to make the game feel personal:
 - Make the player look/feel like "${gameConfig.character}"
 - Use "${gameConfig.obstacles}" as the main challenge
 - The game type is "${gameConfig.gameType}" - use the right mechanics for that genre
-- Dimension is "${gameConfig.dimension || '2d'}": if "3d", build with Three.js (3D scene, camera, renderer). If "2d", use standard HTML/CSS/Canvas.
+- Dimension is "${gameConfig.dimension || '2d'}": if "3d", build with Three.js (3D scene, camera, renderer). If "2d", use Phaser.js with arcade physics.
 `);
+  }
+
+  // Detect Phaser code
+  const isPhaserCode = currentCode && (
+    currentCode.includes('Phaser.Game') ||
+    currentCode.includes('Phaser.AUTO') ||
+    currentCode.includes('phaser.min.js')
+  );
+  if (isPhaserCode) {
+    dynamicParts.push(PHASER_GAME_RULES);
   }
 
   // Detect platformer code
   const isPlatformerCode = currentCode && (
     currentCode.includes('generateInitialLevel') ||
     currentCode.includes('createPlatform') ||
-    currentCode.includes('generateChunk')
+    currentCode.includes('generateChunk') ||
+    currentCode.includes('setGravityY') ||
+    currentCode.includes('touching.down')
   );
   if (gameGenre === 'platformer' || isPlatformerCode) {
     dynamicParts.push(PLATFORMER_SAFETY_RULES);

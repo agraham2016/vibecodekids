@@ -1,74 +1,67 @@
 /**
- * 2D Physics Snippet
- * Reusable gravity, friction, bounce, and collision detection patterns.
- * The AI injects this as reference when building platformers, action games, etc.
+ * 2D Physics Snippet (Phaser.js)
+ * Arcade physics patterns for platformers, action games, top-down games.
+ * The AI injects this as reference when building physics-based games.
  */
 
 export const PHYSICS_2D_SNIPPET = `
-// ===== 2D PHYSICS ENGINE (copy/adapt these patterns) =====
+// ===== PHASER ARCADE PHYSICS PATTERNS =====
 
-// --- Gravity & Jumping ---
-// In your game loop:
-//   player.vy += GRAVITY * dt;
-//   player.y += player.vy * dt;
-//   if (player.y >= groundY) { player.y = groundY; player.vy = 0; player.onGround = true; }
-// To jump:
-//   if (player.onGround) { player.vy = -JUMP_FORCE; player.onGround = false; }
+// --- Platformer Setup (gravity + platforms) ---
+// In config: physics: { default: 'arcade', arcade: { gravity: { y: 800 } } }
+//
+// In create():
+//   player = this.physics.add.sprite(100, 400, 'player');
+//   player.setCollideWorldBounds(true);
+//   player.setBounce(0.1);
+//
+//   platforms = this.physics.add.staticGroup();
+//   platforms.create(400, 580, 'ground').setScale(10, 1).refreshBody();
+//   platforms.create(300, 400, 'platform');
+//   platforms.create(600, 300, 'platform');
+//
+//   this.physics.add.collider(player, platforms);
 
-const GRAVITY = 1200;      // pixels/sec^2 — tune this for feel
-const JUMP_FORCE = 500;    // initial upward velocity
-const FRICTION = 0.85;     // multiply velocity each frame for deceleration
-const BOUNCE = 0.6;        // restitution coefficient (0 = no bounce, 1 = full bounce)
+// --- Platformer Movement (in update()) ---
+//   if (cursors.left.isDown) player.setVelocityX(-200);
+//   else if (cursors.right.isDown) player.setVelocityX(200);
+//   else player.setVelocityX(0);
+//   if (cursors.up.isDown && player.body.touching.down) player.setVelocityY(-450);
 
-// --- AABB Rectangle Collision ---
-function rectsOverlap(a, b) {
-  return a.x < b.x + b.w && a.x + a.w > b.x &&
-         a.y < b.y + b.h && a.y + a.h > b.y;
-}
+// --- Top-Down Movement (no gravity — set gravity.y: 0 in config) ---
+//   player.setVelocity(0);
+//   if (cursors.left.isDown) player.setVelocityX(-200);
+//   if (cursors.right.isDown) player.setVelocityX(200);
+//   if (cursors.up.isDown) player.setVelocityY(-200);
+//   if (cursors.down.isDown) player.setVelocityY(200);
 
-// --- Circle Collision ---
-function circlesOverlap(a, b) {
-  const dx = a.x - b.x, dy = a.y - b.y;
-  const dist = Math.sqrt(dx * dx + dy * dy);
-  return dist < a.radius + b.radius;
-}
+// --- Projectile / Bullet Pattern ---
+//   bullets = this.physics.add.group({ defaultKey: 'bullet' });
+//   // Fire:
+//   const b = bullets.create(player.x, player.y - 16, 'bullet');
+//   b.setVelocityY(-400);
+//   b.body.setAllowGravity(false);
+//   // Cleanup off-screen:
+//   bullets.children.each(b => { if (b.active && b.y < -10) b.destroy(); });
 
-// --- Circle vs Rectangle Collision ---
-function circleRectOverlap(circle, rect) {
-  const closestX = Math.max(rect.x, Math.min(circle.x, rect.x + rect.w));
-  const closestY = Math.max(rect.y, Math.min(circle.y, rect.y + rect.h));
-  const dx = circle.x - closestX, dy = circle.y - closestY;
-  return (dx * dx + dy * dy) < (circle.radius * circle.radius);
-}
+// --- Overlap (triggers — coins, powerups, enemy hits) ---
+//   this.physics.add.overlap(player, coins, (p, coin) => {
+//     coin.destroy();
+//     score += 10;
+//   }, null, this);
 
-// --- Platformer Collision Resolution ---
-// Call after moving player. Checks each platform and pushes player out.
-function resolvePlatformCollisions(player, platforms) {
-  for (const plat of platforms) {
-    if (!rectsOverlap(player, plat)) continue;
-    // Falling down onto platform top
-    const overlapBottom = (player.y + player.h) - plat.y;
-    if (overlapBottom > 0 && overlapBottom < 20 && player.vy >= 0) {
-      player.y = plat.y - player.h;
-      player.vy = 0;
-      player.onGround = true;
-    }
-  }
-}
+// --- Collider (solid — walls, platforms) ---
+//   this.physics.add.collider(player, walls);
+//   this.physics.add.collider(enemies, platforms);
 
-// --- Velocity-based Movement with Friction ---
-function updateMovement(obj, dt) {
-  obj.x += obj.vx * dt;
-  obj.y += obj.vy * dt;
-  obj.vx *= FRICTION;
-  if (Math.abs(obj.vx) < 0.5) obj.vx = 0;
-}
+// --- Bounce & Drag ---
+//   player.setBounce(0.2);               // bouncy collisions
+//   player.setDrag(200);                  // gradual slowdown
+//   player.setMaxVelocity(300, 500);      // speed limits
 
-// --- Bounce off walls ---
-function bounceOffWalls(obj, canvasW, canvasH) {
-  if (obj.x <= 0 || obj.x + obj.w >= canvasW) { obj.vx *= -BOUNCE; }
-  if (obj.y <= 0 || obj.y + obj.h >= canvasH) { obj.vy *= -BOUNCE; }
-  obj.x = Math.max(0, Math.min(obj.x, canvasW - obj.w));
-  obj.y = Math.max(0, Math.min(obj.y, canvasH - obj.h));
-}
+// --- Moving Platforms ---
+//   const movPlat = this.physics.add.image(300, 350, 'platform');
+//   movPlat.setImmovable(true); movPlat.body.setAllowGravity(false);
+//   this.tweens.add({ targets: movPlat, x: 500, duration: 2000, yoyo: true, repeat: -1 });
+//   this.physics.add.collider(player, movPlat);
 `;

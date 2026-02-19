@@ -1,95 +1,71 @@
 /**
- * Camera Systems Snippet
- * Chase cam, top-down follow, side-scroll, parallax, smooth lerp.
+ * Camera Systems Snippet (Phaser.js)
+ * Follow cam, bounds, parallax, zoom, and effects.
  * Essential for any game with a world larger than one screen.
  */
 
 export const CAMERA_SYSTEMS_SNIPPET = `
-// ===== CAMERA SYSTEMS =====
+// ===== PHASER CAMERA PATTERNS =====
 
-// --- Smooth Follow Camera (2D) ---
-// Camera position lerps toward the player. Feels smooth and professional.
-var camera = { x: 0, y: 0 };
-var CAMERA_LERP = 0.08; // 0.01 = very smooth/slow, 0.2 = snappy
+// --- Basic Follow Camera ---
+//   // In create():
+//   this.cameras.main.startFollow(player, true, 0.1, 0.1);
+//   this.cameras.main.setBounds(0, 0, worldWidth, worldHeight);
+//   this.physics.world.setBounds(0, 0, worldWidth, worldHeight);
 
-function updateCamera(player, canvasW, canvasH) {
-  var targetX = player.x - canvasW / 2;
-  var targetY = player.y - canvasH / 2;
-  camera.x += (targetX - camera.x) * CAMERA_LERP;
-  camera.y += (targetY - camera.y) * CAMERA_LERP;
-}
+// --- Side-Scroll Camera (platformer — follow X more than Y) ---
+//   this.cameras.main.startFollow(player, true, 0.08, 0.05);
+//   this.cameras.main.setDeadzone(100, 50);  // player can move in center without camera moving
+//   this.cameras.main.setBounds(0, 0, levelWidth, 500);
 
-// Apply camera offset before drawing:
-//   ctx.save();
-//   ctx.translate(-camera.x, -camera.y);
-//   // ... draw all game objects ...
-//   ctx.restore();
-//   // Draw HUD after restore (HUD stays fixed on screen)
+// --- Zoom (for dramatic moments or minimap feel) ---
+//   this.cameras.main.setZoom(1.5);  // zoom in
+//   this.cameras.main.setZoom(1);    // normal
+//   // Animated zoom:
+//   this.tweens.add({
+//     targets: this.cameras.main, zoom: 1.5, duration: 300, yoyo: true
+//   });
 
-// --- Side-Scrolling Camera ---
-// Camera only follows player horizontally. Good for platformers.
-function updateSideScrollCamera(player, canvasW) {
-  camera.x += (player.x - canvasW * 0.3 - camera.x) * CAMERA_LERP;
-  // Don't scroll past world start
-  if (camera.x < 0) camera.x = 0;
-}
+// --- Camera Shake (impacts, explosions) ---
+//   this.cameras.main.shake(200, 0.01);    // mild shake
+//   this.cameras.main.shake(400, 0.03);    // heavy impact
 
-// --- Parallax Background Layers ---
-// Multiple background layers move at different speeds for depth illusion.
-// Layer 0 (farthest): 0.1x camera speed. Layer 1: 0.3x. Layer 2: 0.6x.
-var parallaxLayers = [
-  { img: null, speed: 0.1, x: 0 },  // Sky / distant mountains
-  { img: null, speed: 0.3, x: 0 },  // Mid-ground (trees, buildings)
-  { img: null, speed: 0.6, x: 0 },  // Foreground (close details)
-];
+// --- Camera Flash (damage, power-up) ---
+//   this.cameras.main.flash(100);                    // white flash
+//   this.cameras.main.flash(200, 255, 0, 0);        // red flash (damage)
+//   this.cameras.main.flash(200, 255, 255, 0);      // yellow flash (power-up)
 
-function drawParallax(ctx, canvasW, canvasH) {
-  for (var layer of parallaxLayers) {
-    var offsetX = -camera.x * layer.speed;
-    // Tile the layer to fill screen
-    ctx.fillStyle = layer.color || '#1a1a2e'; // fallback solid color
-    ctx.fillRect(0, 0, canvasW, canvasH);
-    // If using drawn shapes (no images):
-    // Draw repeated shapes at offsetX intervals
-  }
-}
+// --- Camera Fade (scene transitions) ---
+//   this.cameras.main.fadeOut(500);
+//   this.cameras.main.once('camerafadeoutcomplete', () => {
+//     this.scene.start('NextLevel');
+//   });
+//   // In next scene's create(): this.cameras.main.fadeIn(500);
 
-// --- Top-Down Camera (RPG, open world) ---
-// Camera centers on player, clamps to world bounds.
-function updateTopDownCamera(player, canvasW, canvasH, worldW, worldH) {
-  camera.x = player.x - canvasW / 2;
-  camera.y = player.y - canvasH / 2;
-  // Clamp to world bounds
-  camera.x = Math.max(0, Math.min(camera.x, worldW - canvasW));
-  camera.y = Math.max(0, Math.min(camera.y, worldH - canvasH));
-}
+// --- Parallax Background with TileSprites ---
+//   // In create():
+//   this.bg1 = this.add.tileSprite(400, 250, 800, 500, 'sky').setScrollFactor(0);
+//   this.bg2 = this.add.tileSprite(400, 250, 800, 500, 'mountains').setScrollFactor(0);
+//   // In update():
+//   this.bg1.tilePositionX = this.cameras.main.scrollX * 0.1;
+//   this.bg2.tilePositionX = this.cameras.main.scrollX * 0.3;
 
-// --- 3D Chase Camera (Three.js) ---
-// For racing, driving, and third-person games.
-// Camera sits behind and above the player, looks forward.
-//   var chaseCamOffset = { x: 0, y: 5, z: 12 };
-//   var chaseCamLookAhead = 20;
-//
-//   function updateChaseCamera(camera, target) {
-//     camera.position.x += (target.position.x + chaseCamOffset.x - camera.position.x) * 0.1;
-//     camera.position.y += (target.position.y + chaseCamOffset.y - camera.position.y) * 0.05;
-//     camera.position.z = target.position.z + chaseCamOffset.z;
-//     camera.lookAt(target.position.x, target.position.y + 1, target.position.z - chaseCamLookAhead);
+// --- Parallax with Plain Colors (no images needed) ---
+//   // In create(): draw colored rectangles at different scroll factors
+//   this.add.rectangle(400, 480, 800, 80, 0x2d5a1e).setScrollFactor(0.2);  // distant hills
+//   this.add.rectangle(400, 490, 800, 60, 0x3a7a28).setScrollFactor(0.5);  // mid hills
+//   // Main game objects at default scrollFactor (1.0)
+
+// --- Camera Bounds for Rooms/Levels ---
+//   // Switch camera bounds when entering a new room:
+//   function enterRoom(scene, rx, ry, rw, rh) {
+//     scene.cameras.main.setBounds(rx, ry, rw, rh);
+//     scene.cameras.main.fadeIn(300);
 //   }
 
-// --- Camera Zoom (for dramatic moments) ---
-var targetZoom = 1.0;
-var currentZoom = 1.0;
-
-function setZoom(z) { targetZoom = z; }
-
-function updateZoom(ctx, canvasW, canvasH) {
-  currentZoom += (targetZoom - currentZoom) * 0.05;
-  ctx.save();
-  ctx.translate(canvasW / 2, canvasH / 2);
-  ctx.scale(currentZoom, currentZoom);
-  ctx.translate(-canvasW / 2, -canvasH / 2);
-  // ... draw scene ...
-  // ctx.restore(); after drawing
-}
+// --- 3D Chase Camera (Three.js — for 3D games only) ---
+//   // Camera sits behind and above the player:
+//   // camera.position.set(player.x, 5, player.z + 10);
+//   // camera.lookAt(player.x, 1, player.z - 20);
+//   // See THREE_D_RACING_RULES for full 3D racing camera pattern.
 `;

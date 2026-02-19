@@ -1,135 +1,82 @@
 /**
- * Particle System Snippet
- * Explosions, trails, sparkles, confetti, screen shake.
+ * Particle System Snippet (Phaser.js)
+ * Explosions, trails, sparkles, screen shake, floating text.
  * Makes games feel "juicy" and satisfying.
  */
 
 export const PARTICLE_SYSTEM_SNIPPET = `
-// ===== PARTICLE SYSTEM (game juice / visual effects) =====
+// ===== PHASER PARTICLE & EFFECTS PATTERNS =====
 
-// --- Particle Pool ---
-var particles = [];
+// --- Generate a Particle Texture (in preload) ---
+//   const pg = this.make.graphics({ add: false });
+//   pg.fillStyle(0xffffff); pg.fillCircle(4, 4, 4);
+//   pg.generateTexture('particle', 8, 8); pg.destroy();
 
-function spawnParticle(x, y, options = {}) {
-  particles.push({
-    x, y,
-    vx: (Math.random() - 0.5) * (options.spread || 200),
-    vy: (Math.random() - 0.5) * (options.spread || 200) - (options.upward || 0),
-    life: options.life || 1.0,   // seconds remaining
-    maxLife: options.life || 1.0,
-    size: options.size || (4 + Math.random() * 6),
-    color: options.color || '#ffaa00',
-    gravity: options.gravity || 0,
-    shrink: options.shrink !== false,
-  });
-}
+// --- Explosion Effect (one-shot burst) ---
+//   function explode(scene, x, y) {
+//     scene.add.particles(x, y, 'particle', {
+//       speed: { min: 80, max: 250 },
+//       lifespan: 400,
+//       quantity: 20,
+//       scale: { start: 1.2, end: 0 },
+//       tint: [0xff4400, 0xffaa00, 0xffff00],
+//       emitting: false
+//     }).explode();
+//   }
 
-function updateParticles(dt) {
-  for (var i = particles.length - 1; i >= 0; i--) {
-    var p = particles[i];
-    p.x += p.vx * dt;
-    p.y += p.vy * dt;
-    p.vy += p.gravity * dt;
-    p.life -= dt;
-    if (p.life <= 0) particles.splice(i, 1);
-  }
-}
+// --- Confetti Burst (celebration) ---
+//   function confetti(scene, x, y) {
+//     scene.add.particles(x, y, 'particle', {
+//       speed: { min: 100, max: 350 },
+//       lifespan: 1200,
+//       quantity: 40,
+//       scale: { start: 1, end: 0.3 },
+//       tint: [0xff4444, 0x44ff44, 0x4444ff, 0xffff44, 0xff44ff],
+//       gravityY: 200,
+//       emitting: false
+//     }).explode();
+//   }
 
-function drawParticles(ctx) {
-  for (var p of particles) {
-    var alpha = p.life / p.maxLife;
-    var size = p.shrink ? p.size * alpha : p.size;
-    ctx.globalAlpha = alpha;
-    ctx.fillStyle = p.color;
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, Math.max(0.5, size), 0, Math.PI * 2);
-    ctx.fill();
-  }
-  ctx.globalAlpha = 1;
-}
-
-// --- Explosion Effect ---
-function spawnExplosion(x, y, count, color) {
-  count = count || 30;
-  color = color || '#ff6600';
-  var colors = [color, '#ffaa00', '#ff4400', '#ffff00'];
-  for (var i = 0; i < count; i++) {
-    spawnParticle(x, y, {
-      spread: 300,
-      life: 0.4 + Math.random() * 0.6,
-      size: 3 + Math.random() * 8,
-      color: colors[Math.floor(Math.random() * colors.length)],
-      gravity: 200,
-    });
-  }
-}
-
-// --- Confetti Burst ---
-function spawnConfetti(x, y) {
-  var colors = ['#ff4444', '#44ff44', '#4444ff', '#ffff44', '#ff44ff', '#44ffff'];
-  for (var i = 0; i < 50; i++) {
-    spawnParticle(x, y, {
-      spread: 400,
-      upward: 200,
-      life: 1.0 + Math.random() * 1.5,
-      size: 4 + Math.random() * 4,
-      color: colors[Math.floor(Math.random() * colors.length)],
-      gravity: 300,
-      shrink: false,
-    });
-  }
-}
-
-// --- Trail Effect (call each frame behind moving object) ---
-function spawnTrail(x, y, color) {
-  spawnParticle(x, y, {
-    spread: 20,
-    life: 0.3,
-    size: 3 + Math.random() * 3,
-    color: color || '#8888ff',
-    gravity: 0,
-  });
-}
+// --- Trail Effect (continuous, follow a sprite) ---
+//   const trail = scene.add.particles(0, 0, 'particle', {
+//     speed: 15,
+//     lifespan: 300,
+//     scale: { start: 0.6, end: 0 },
+//     tint: 0x8888ff,
+//     follow: player,
+//     quantity: 1,
+//     frequency: 30
+//   });
 
 // --- Screen Shake ---
-var shakeAmount = 0;
-var shakeDuration = 0;
+//   this.cameras.main.shake(200, 0.01);     // mild
+//   this.cameras.main.shake(300, 0.03);     // strong (boss hit)
 
-function startScreenShake(intensity, duration) {
-  shakeAmount = intensity || 8;
-  shakeDuration = duration || 0.3;
-}
+// --- Screen Flash ---
+//   this.cameras.main.flash(100, 255, 255, 255);   // white flash
+//   this.cameras.main.flash(200, 255, 0, 0);       // red flash (damage)
 
-function updateScreenShake(dt, gameContainer) {
-  if (shakeDuration > 0) {
-    shakeDuration -= dt;
-    var offsetX = (Math.random() - 0.5) * shakeAmount * 2;
-    var offsetY = (Math.random() - 0.5) * shakeAmount * 2;
-    gameContainer.style.transform = 'translate(' + offsetX + 'px,' + offsetY + 'px)';
-  } else {
-    gameContainer.style.transform = '';
-  }
-}
+// --- Floating Score Text ("+100" that drifts up and fades) ---
+//   function floatingText(scene, x, y, text, color) {
+//     const txt = scene.add.text(x, y, text, {
+//       fontSize: '22px', fill: color || '#ffff00',
+//       stroke: '#000', strokeThickness: 3
+//     }).setOrigin(0.5);
+//     scene.tweens.add({
+//       targets: txt, y: y - 50, alpha: 0, duration: 800,
+//       ease: 'Cubic.easeOut',
+//       onComplete: () => txt.destroy()
+//     });
+//   }
 
-// --- Floating Text ("+100!", "COMBO!", etc.) ---
-var floatingTexts = [];
+// --- Scale Pulse (satisfying click/collect feedback) ---
+//   scene.tweens.add({
+//     targets: sprite,
+//     scaleX: 1.3, scaleY: 1.3,
+//     duration: 80, yoyo: true, ease: 'Quad.easeOut'
+//   });
 
-function spawnFloatingText(x, y, text, color) {
-  floatingTexts.push({ x, y, text, color: color || '#fff', life: 1.0, vy: -80 });
-}
-
-function updateFloatingTexts(dt, ctx) {
-  for (var i = floatingTexts.length - 1; i >= 0; i--) {
-    var ft = floatingTexts[i];
-    ft.y += ft.vy * dt;
-    ft.life -= dt;
-    if (ft.life <= 0) { floatingTexts.splice(i, 1); continue; }
-    ctx.globalAlpha = ft.life;
-    ctx.fillStyle = ft.color;
-    ctx.font = 'bold 20px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText(ft.text, ft.x, ft.y);
-  }
-  ctx.globalAlpha = 1;
-}
+// --- Slow-Motion Effect (brief) ---
+//   scene.time.timeScale = 0.3;  // slow
+//   scene.time.delayedCall(500, () => { scene.time.timeScale = 1; });  // restore
 `;

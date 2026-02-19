@@ -233,16 +233,31 @@ COMMON 3D SHOOTER MISTAKES TO AVOID:
 - Forgetting to remove old projectiles - causes memory leaks and slowdown
 `;
 
-// Platformer safety rules
+// Platformer safety rules (Phaser-based)
 export const PLATFORMER_SAFETY_RULES = `
-PLATFORMER GAME - CRITICAL RULES (never break these when customizing):
-- The player element MUST exist and be visible - do NOT remove, hide, or break the player
-- Level generation MUST run: generateInitialLevel() and generateChunk() must be called - platforms will NOT appear without them
-- The createPlatform, createCoin, createSpike helpers MUST stay and be used - they spawn the actual game objects
-- The game loop MUST keep: cameraX advance, world transform, platform collision, player physics, key handling
-- DO NOT remove the world container or the procedural generation - or the screen will be empty
-- When changing theme (space, mushrooms, candy, etc.): ONLY change colors, emojis, CSS, and text - keep ALL the generation and physics logic intact
-- If you change variable names, update ALL references - broken references = game won't start
-- Always call generateInitialLevel() and requestAnimationFrame(gameLoop) at the end of the script
-- The player needs e.preventDefault() for ArrowLeft, ArrowRight, ArrowUp, Space so movement works
+PLATFORMER GAME (Phaser) - CRITICAL RULES (never break these when customizing):
+- The player sprite MUST exist and have arcade physics enabled
+- Platforms MUST be in a staticGroup with a collider against the player
+- Gravity MUST be set (either in config or via player.setGravityY(800))
+- Jumping MUST check player.body.touching.down or player.body.onFloor() before allowing jump
+- Camera MUST follow the player: this.cameras.main.startFollow(player)
+- Level generation functions (createPlatforms, spawnCoins, etc.) MUST be called in create()
+- When changing theme: ONLY change colors, texture generation, and text — keep ALL physics, colliders, and spawn logic intact
+- If you rename variables, update ALL references — broken references = game won't start
+- DO NOT remove physics.add.collider() calls — the player will fall through platforms
+- DO NOT remove setCollideWorldBounds(true) — the player will leave the screen
+`;
+
+// Phaser 2D game rules (general, injected when Phaser code is detected)
+export const PHASER_GAME_RULES = `
+PHASER 2D GAME - IMPORTANT RULES:
+- ALWAYS generate textures procedurally in preload() using this.make.graphics() + generateTexture()
+- NEVER reference external image files — they won't load
+- ALWAYS use arcade physics for movement and collision — never write custom collision math
+- Use this.physics.add.collider() for solid walls/platforms, this.physics.add.overlap() for triggers
+- Clean up off-screen objects to prevent memory leaks: check bounds and call destroy()
+- Use Phaser.Math.Between() for random values, Phaser.Math.Clamp() for clamping
+- For game over: display text overlay and this.input.keyboard.once('keydown-SPACE', () => this.scene.restart())
+- ALWAYS output the COMPLETE HTML file from <!DOCTYPE html> to </html> with the Phaser CDN script tag
+- The Phaser CDN tag MUST be: <script src="https://cdn.jsdelivr.net/npm/phaser@3.86.0/dist/phaser.min.js"><\/script>
 `;

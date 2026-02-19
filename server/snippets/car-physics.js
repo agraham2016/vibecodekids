@@ -1,86 +1,75 @@
 /**
- * Car Physics Snippet
- * Steering, acceleration, drift, top-down and 3D driving mechanics.
- * Used for racing games, street racing, driving sims.
+ * Car Physics Snippet (Phaser.js)
+ * Top-down driving, lane-based racing, and drift mechanics.
+ * Used for racing games, driving sims, street racing.
  */
 
 export const CAR_PHYSICS_SNIPPET = `
-// ===== CAR PHYSICS (for racing / driving games) =====
+// ===== PHASER CAR / RACING PATTERNS =====
 
-// --- Top-Down Car (bird's-eye view) ---
-// Car has position (x, y), angle, speed
-// ArrowUp = accelerate, ArrowDown = brake/reverse, Left/Right = steer
-function updateTopDownCar(car, keys, dt) {
-  const ACCEL = 300;
-  const BRAKE = 400;
-  const MAX_SPEED = 500;
-  const STEER_SPEED = 3.0;   // radians/sec
-  const DRAG = 0.98;
+// --- Top-Down Scrolling Racer (obstacles scroll toward player) ---
+// Player car at bottom, dodges obstacles. Road scrolls downward.
+//
+// In create():
+//   player = this.physics.add.sprite(400, 450, 'car');
+//   player.setCollideWorldBounds(true);
+//   obstacles = this.physics.add.group();
+//   this.physics.add.overlap(player, obstacles, crashHandler, null, this);
+//
+//   // Spawn obstacles on a timer
+//   this.time.addEvent({
+//     delay: 1200, loop: true,
+//     callback: () => {
+//       const lane = Phaser.Math.Between(0, 2);
+//       const x = 200 + lane * 200;
+//       const ob = obstacles.create(x, -40, 'obstacle');
+//       ob.setVelocityY(speed);
+//       ob.body.setAllowGravity(false);
+//     }
+//   });
 
-  if (keys.ArrowUp) car.speed = Math.min(car.speed + ACCEL * dt, MAX_SPEED);
-  else if (keys.ArrowDown) car.speed = Math.max(car.speed - BRAKE * dt, -MAX_SPEED * 0.3);
-  else car.speed *= DRAG;
+// In update():
+//   if (cursors.left.isDown) player.setVelocityX(-300);
+//   else if (cursors.right.isDown) player.setVelocityX(300);
+//   else player.setVelocityX(0);
+//
+//   // Speed up over time
+//   speed = Math.min(speed + 0.02, 500);
+//
+//   // Destroy off-screen obstacles
+//   obstacles.children.each(ob => { if (ob.y > 550) { ob.destroy(); score++; } });
 
-  // Steering only works when moving
-  if (Math.abs(car.speed) > 10) {
-    if (keys.ArrowLeft) car.angle -= STEER_SPEED * dt * (car.speed > 0 ? 1 : -1);
-    if (keys.ArrowRight) car.angle += STEER_SPEED * dt * (car.speed > 0 ? 1 : -1);
-  }
+// --- Road Visual (scrolling dashed lines) ---
+// Use a tileSprite for scrolling road markings:
+//   roadLines = this.add.tileSprite(400, 250, 4, 500, 'dash');
+//   // In update(): roadLines.tilePositionY -= speed * delta / 1000;
 
-  car.x += Math.sin(car.angle) * car.speed * dt;
-  car.y -= Math.cos(car.angle) * car.speed * dt;
-}
+// --- Top-Down Free Roam (angle-based steering) ---
+// For open-world driving where the car rotates:
+//   // In update():
+//   if (cursors.up.isDown) {
+//     this.physics.velocityFromRotation(player.rotation - Math.PI/2, 300, player.body.velocity);
+//   } else {
+//     player.setVelocity(0);
+//   }
+//   if (cursors.left.isDown) player.setAngularVelocity(-200);
+//   else if (cursors.right.isDown) player.setAngularVelocity(200);
+//   else player.setAngularVelocity(0);
 
-// Draw top-down car on canvas
-function drawTopDownCar(ctx, car) {
-  ctx.save();
-  ctx.translate(car.x, car.y);
-  ctx.rotate(car.angle);
-  ctx.fillStyle = car.color || '#ff4444';
-  ctx.fillRect(-15, -25, 30, 50);  // Car body
-  ctx.fillStyle = '#222';
-  ctx.fillRect(-12, -28, 8, 10);   // Left headlight
-  ctx.fillRect(4, -28, 8, 10);     // Right headlight
-  ctx.fillStyle = '#ff8800';
-  ctx.fillRect(-12, 18, 8, 8);     // Left taillight
-  ctx.fillRect(4, 18, 8, 8);       // Right taillight
-  ctx.restore();
-}
+// --- Garage / Car Selection ---
+// Show car options as clickable sprites:
+//   const cars = [
+//     { name: 'Racer', color: 0xff4444, speed: 300, handling: 0.8 },
+//     { name: 'Muscle', color: 0x4488ff, speed: 400, handling: 0.5 },
+//     { name: 'Drift King', color: 0x44ff88, speed: 250, handling: 1.0 },
+//   ];
+//   cars.forEach((c, i) => {
+//     const btn = this.add.rectangle(200 + i * 200, 300, 80, 120, c.color).setInteractive();
+//     this.add.text(200 + i * 200, 370, c.name, { fontSize: '14px' }).setOrigin(0.5);
+//     btn.on('pointerdown', () => selectCar(c));
+//   });
 
 // --- 3D Racing (Three.js, endless road style) ---
 // Car stays at fixed Z, world scrolls toward camera.
-// See THREE_D_RACING_RULES for full pattern.
-//
-// Key variables:
-//   var speed = 0, maxSpeed = 80, accel = 40, brakeForce = 60;
-//   var steerSpeed = 50, carX = 0, roadWidth = 10;
-//
-// In game loop:
-//   if (keys.ArrowUp) speed = Math.min(speed + accel * dt, maxSpeed);
-//   if (keys.ArrowDown) speed = Math.max(speed - brakeForce * dt, 0);
-//   if (!keys.ArrowUp && !keys.ArrowDown) speed *= 0.97; // coast
-//   if (keys.ArrowLeft) carX = Math.max(carX - steerSpeed * dt, -roadWidth);
-//   if (keys.ArrowRight) carX = Math.min(carX + steerSpeed * dt, roadWidth);
-//   car.position.x = carX;
-//
-// Scenery scrolling:
-//   for (var obj of scenery) {
-//     obj.position.z += speed * dt;
-//     if (obj.position.z > 20) obj.position.z -= totalRoadLength;
-//   }
-
-// --- Drift Mechanic (optional fun addition) ---
-// When turning at high speed, add sideways slide:
-//   var driftFactor = (Math.abs(car.speed) > MAX_SPEED * 0.7 && (keys.ArrowLeft || keys.ArrowRight)) ? 0.3 : 0;
-//   car.x += Math.cos(car.angle) * car.speed * driftFactor * dt;
-//   // Draw skid marks: small grey circles at rear wheel positions
-
-// --- Garage / Car Selection Pattern ---
-// Show a grid of car options. Each car has: name, color, stats (speed, handling, accel).
-// On click/select, store the choice and use it in the race.
-//   var cars = [
-//     { name: 'Street Racer', color: '#ff4444', maxSpeed: 500, handling: 0.8, accel: 300 },
-//     { name: 'Muscle Car', color: '#4488ff', maxSpeed: 600, handling: 0.5, accel: 250 },
-//     { name: 'Drift King', color: '#44ff88', maxSpeed: 450, handling: 1.0, accel: 280 },
-//   ];
+// See THREE_D_RACING_RULES for full Three.js pattern.
 `;

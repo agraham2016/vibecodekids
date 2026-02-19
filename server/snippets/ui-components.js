@@ -1,122 +1,91 @@
 /**
- * UI Components Snippet
- * HUD, health bars, menus, shop/garage screens, score displays.
+ * UI Components Snippet (Phaser.js)
+ * HUD, health bars, menus, shop screens, score displays.
  * Common UI patterns every game needs.
  */
 
 export const UI_COMPONENTS_SNIPPET = `
-// ===== GAME UI COMPONENTS =====
+// ===== PHASER UI COMPONENT PATTERNS =====
 
-// --- HUD Overlay (score, health, level — HTML on top of canvas) ---
-// Create an HTML div positioned over the game canvas.
-// Pattern:
-//   <div id="hud" style="position:absolute; top:0; left:0; right:0; padding:10px;
-//     display:flex; justify-content:space-between; color:white; font-family:sans-serif;
-//     font-size:18px; font-weight:bold; text-shadow:2px 2px 4px rgba(0,0,0,0.8);
-//     pointer-events:none; z-index:10;">
-//     <span id="hud-score">Score: 0</span>
-//     <span id="hud-level">Level 1</span>
-//     <span id="hud-lives">❤️❤️❤️</span>
-//   </div>
+// --- Score Text (stays fixed to camera) ---
+//   scoreText = this.add.text(16, 16, 'Score: 0', {
+//     fontSize: '28px', fill: '#ffffff',
+//     stroke: '#000000', strokeThickness: 4
+//   }).setScrollFactor(0).setDepth(100);
 //
-// Update in game loop:
-//   document.getElementById('hud-score').textContent = 'Score: ' + score;
+//   // Update: scoreText.setText('Score: ' + score);
 
-// --- Health Bar (Canvas-drawn) ---
-function drawHealthBar(ctx, x, y, width, height, current, max, color) {
-  var pct = current / max;
-  // Background
-  ctx.fillStyle = '#333';
-  ctx.fillRect(x, y, width, height);
-  // Fill
-  ctx.fillStyle = pct > 0.5 ? (color || '#44ff44') : pct > 0.25 ? '#ffaa00' : '#ff4444';
-  ctx.fillRect(x + 1, y + 1, (width - 2) * pct, height - 2);
-  // Border
-  ctx.strokeStyle = '#fff';
-  ctx.lineWidth = 1;
-  ctx.strokeRect(x, y, width, height);
-}
+// --- Health Bar (graphics-based, follows camera) ---
+//   function createHealthBar(scene, x, y) {
+//     const bg = scene.add.rectangle(x, y, 200, 20, 0x333333).setScrollFactor(0).setDepth(100);
+//     const fill = scene.add.rectangle(x - 98, y, 196, 16, 0x44ff44)
+//       .setOrigin(0, 0.5).setScrollFactor(0).setDepth(101);
+//     return { bg, fill, update(hp, maxHp) {
+//       const pct = hp / maxHp;
+//       fill.width = 196 * pct;
+//       fill.fillColor = pct > 0.5 ? 0x44ff44 : pct > 0.25 ? 0xffaa00 : 0xff4444;
+//     }};
+//   }
+//   const hpBar = createHealthBar(this, 120, 30);
+//   // In update or damage callback: hpBar.update(player.hp, player.maxHp);
 
-// --- Title Screen / Menu ---
-// Pattern: Draw centered text + buttons. Listen for click/key to start.
-function drawTitleScreen(ctx, w, h, title, subtitle) {
-  ctx.fillStyle = 'rgba(0,0,0,0.7)';
-  ctx.fillRect(0, 0, w, h);
-  ctx.fillStyle = '#fff';
-  ctx.font = 'bold 48px sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillText(title, w / 2, h / 2 - 40);
-  ctx.font = '20px sans-serif';
-  ctx.fillStyle = '#aaa';
-  ctx.fillText(subtitle || 'Press Space or Click to Start', w / 2, h / 2 + 20);
-}
+// --- Lives Display (emoji/text) ---
+//   livesText = this.add.text(780, 16, '❤️❤️❤️', { fontSize: '24px' })
+//     .setOrigin(1, 0).setScrollFactor(0).setDepth(100);
+//   // Update: livesText.setText('❤️'.repeat(lives));
 
-// --- Game Over Screen ---
-function drawGameOver(ctx, w, h, score, highScore) {
-  ctx.fillStyle = 'rgba(0,0,0,0.8)';
-  ctx.fillRect(0, 0, w, h);
-  ctx.fillStyle = '#ff4444';
-  ctx.font = 'bold 48px sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillText('GAME OVER', w / 2, h / 2 - 50);
-  ctx.fillStyle = '#fff';
-  ctx.font = '24px sans-serif';
-  ctx.fillText('Score: ' + score, w / 2, h / 2 + 10);
-  if (score >= highScore) {
-    ctx.fillStyle = '#ffff00';
-    ctx.fillText('NEW HIGH SCORE!', w / 2, h / 2 + 45);
-  }
-  ctx.fillStyle = '#aaa';
-  ctx.font = '18px sans-serif';
-  ctx.fillText('Click or press Space to play again', w / 2, h / 2 + 90);
-}
+// --- Game Over Overlay ---
+//   function showGameOver(scene, score) {
+//     const overlay = scene.add.rectangle(400, 250, 800, 500, 0x000000, 0.7)
+//       .setScrollFactor(0).setDepth(200);
+//     scene.add.text(400, 180, 'GAME OVER', {
+//       fontSize: '48px', fill: '#ff4444', stroke: '#000', strokeThickness: 5
+//     }).setOrigin(0.5).setScrollFactor(0).setDepth(201);
+//     scene.add.text(400, 250, 'Score: ' + score, {
+//       fontSize: '28px', fill: '#ffffff'
+//     }).setOrigin(0.5).setScrollFactor(0).setDepth(201);
+//     scene.add.text(400, 320, 'Press SPACE to play again', {
+//       fontSize: '20px', fill: '#aaaaaa'
+//     }).setOrigin(0.5).setScrollFactor(0).setDepth(201);
+//     scene.input.keyboard.once('keydown-SPACE', () => scene.scene.restart());
+//   }
 
-// --- Shop / Garage Screen (HTML-based) ---
-// Pattern: Show a grid of items/cars. Each has name, image/emoji, stats, price.
-//   <div class="shop-grid">
-//     <div class="shop-item" onclick="buyItem(0)">
-//       <div class="shop-icon">🏎️</div>
-//       <div class="shop-name">Street Racer</div>
-//       <div class="shop-stats">Speed: ⭐⭐⭐⭐</div>
-//       <div class="shop-price">$500</div>
-//     </div>
-//   </div>
-//
-// Use CSS grid: display:grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap:10px;
+// --- Title Screen ---
+//   function showTitle(scene, title) {
+//     const bg = scene.add.rectangle(400, 250, 800, 500, 0x000000, 0.8).setDepth(200);
+//     const t = scene.add.text(400, 180, title, {
+//       fontSize: '52px', fill: '#ffcc00', stroke: '#000', strokeThickness: 6
+//     }).setOrigin(0.5).setDepth(201);
+//     const sub = scene.add.text(400, 280, 'Press SPACE to Start', {
+//       fontSize: '22px', fill: '#ffffff'
+//     }).setOrigin(0.5).setDepth(201);
+//     scene.tweens.add({ targets: sub, alpha: 0.3, duration: 800, yoyo: true, repeat: -1 });
+//     scene.input.keyboard.once('keydown-SPACE', () => { bg.destroy(); t.destroy(); sub.destroy(); });
+//   }
 
-// --- Minimap (for open-world / RPG games) ---
-function drawMinimap(ctx, x, y, size, player, objects, worldSize) {
-  var scale = size / worldSize;
-  ctx.fillStyle = 'rgba(0,0,0,0.5)';
-  ctx.fillRect(x, y, size, size);
-  ctx.strokeStyle = '#fff';
-  ctx.strokeRect(x, y, size, size);
-  // Player dot
-  ctx.fillStyle = '#44ff44';
-  ctx.beginPath();
-  ctx.arc(x + player.x * scale, y + player.y * scale, 3, 0, Math.PI * 2);
-  ctx.fill();
-  // Objects (enemies, items, etc.)
-  for (var obj of objects) {
-    ctx.fillStyle = obj.color || '#ff4444';
-    ctx.fillRect(x + obj.x * scale - 1, y + obj.y * scale - 1, 3, 3);
-  }
-}
+// --- Shop / Upgrade Buttons ---
+//   function createShopButton(scene, x, y, label, cost, onBuy) {
+//     const btn = scene.add.rectangle(x, y, 180, 50, 0x334466).setInteractive().setDepth(100);
+//     const txt = scene.add.text(x, y, label + ' ($' + cost + ')', {
+//       fontSize: '14px', fill: '#fff'
+//     }).setOrigin(0.5).setDepth(101);
+//     btn.on('pointerover', () => btn.setFillStyle(0x446688));
+//     btn.on('pointerout', () => btn.setFillStyle(0x334466));
+//     btn.on('pointerdown', () => { if (score >= cost) { score -= cost; onBuy(); } });
+//     return { btn, txt, updateLabel(l) { txt.setText(l); } };
+//   }
 
 // --- Combo Counter ---
-var comboCount = 0;
-var comboTimer = 0;
-var COMBO_TIMEOUT = 2.0; // seconds
-
-function addCombo() {
-  comboCount++;
-  comboTimer = COMBO_TIMEOUT;
-  // Display: "3x COMBO!" centered on screen
-}
-function updateCombo(dt) {
-  if (comboCount > 0) {
-    comboTimer -= dt;
-    if (comboTimer <= 0) comboCount = 0;
-  }
-}
+//   let combo = 0, comboTimer = null;
+//   function addCombo(scene) {
+//     combo++;
+//     if (comboTimer) comboTimer.remove();
+//     comboTimer = scene.time.delayedCall(2000, () => { combo = 0; });
+//     if (combo >= 3) {
+//       const txt = scene.add.text(400, 200, combo + 'x COMBO!', {
+//         fontSize: '36px', fill: '#ffff00', stroke: '#000', strokeThickness: 4
+//       }).setOrigin(0.5).setDepth(150);
+//       scene.tweens.add({ targets: txt, y: 150, alpha: 0, duration: 1000, onComplete: () => txt.destroy() });
+//     }
+//   }
 `;
