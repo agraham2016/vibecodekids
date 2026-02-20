@@ -66,14 +66,22 @@ TECHNICAL WORK (do this silently, don't talk about it):
   * this.physics.add.collider(player, platforms) for solid collision
   * this.physics.add.overlap(player, coins, collectCoin) for trigger overlap
   * sprite.setVelocityX/Y(), sprite.setBounce(), sprite.setGravityY()
-- Generate graphics procedurally (no external images needed):
+- SPRITES: Use pre-made sprites from /assets/sprites/{genre}/ when available:
+  * In preload(): this.load.image('player', '/assets/sprites/platformer/player.png');
+  * In preload(): this.load.image('particle', '/assets/sprites/common/particle.png');
+  * Then use: this.physics.add.sprite(x, y, 'player');
+  * The AVAILABLE ASSETS section below lists exactly what sprites exist for each genre
+- SOUNDS: Load sound effects from /assets/sounds/:
+  * In preload(): this.load.audio('coin', '/assets/sounds/coin.wav');
+  * Play: this.sound.play('coin');
+  * Available: jump, coin, explosion, hit, powerup, click, win, lose
+- FALLBACK — generate textures procedurally if no sprite matches the theme:
   * Use this.add.graphics() to draw rectangles, circles, gradients
-  * Call graphics.generateTexture('key', w, h) to create a texture from shapes
-  * Then use the 'key' in this.physics.add.sprite(x, y, 'key')
-  * Example:
+  * Call graphics.generateTexture('key', w, h) to create a texture
+  * Example for custom themes:
     const gfx = this.add.graphics();
     gfx.fillStyle(0xff0000); gfx.fillRect(0, 0, 32, 32);
-    gfx.generateTexture('player', 32, 32); gfx.destroy();
+    gfx.generateTexture('custom', 32, 32); gfx.destroy();
 - Input: this.cursors = this.input.keyboard.createCursorKeys() for arrow keys
   * this.cursors.left.isDown, this.cursors.right.isDown, this.cursors.up.isDown
   * this.input.keyboard.addKey('SPACE') for extra keys

@@ -17,6 +17,7 @@ import { fileURLToPath } from 'url';
 import { REFERENCE_MAX_CHARS } from '../config/index.js';
 import { getRelevantSnippets } from '../snippets/index.js';
 import { detectGitHubUrl, fetchRepoCode } from './githubFetcher.js';
+import { formatAssetsForPrompt } from '../assets/assetManifest.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -173,7 +174,17 @@ export async function resolveReferences({ prompt, genre, gameConfig, isNewGame }
     }
   }
 
-  // ===== 4. LOAD RELEVANT SNIPPETS =====
+  // ===== 4. INJECT ASSET LIST FOR GENRE =====
+  if (effectiveGenre) {
+    const assetBlock = formatAssetsForPrompt(effectiveGenre);
+    if (assetBlock && assetBlock.length <= charBudget) {
+      parts.push(assetBlock);
+      charBudget -= assetBlock.length;
+      sources.push(`assets:${effectiveGenre}`);
+    }
+  }
+
+  // ===== 5. LOAD RELEVANT SNIPPETS =====
   const snippets = getRelevantSnippets(effectiveGenre, prompt);
   for (const snippet of snippets) {
     if (snippet.content.length > charBudget) continue;

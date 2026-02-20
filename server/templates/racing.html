@@ -36,6 +36,13 @@ const W = 800, H = 500, CW = 44, CH = 64;
 const RL = 175, RR = 625, LANES = [250, 400, 550];
 
 class Race extends Phaser.Scene {
+  preload() {
+    this.load.image('car-player', '/assets/sprites/racing/car-player.png');
+    this.load.image('car-obstacle', '/assets/sprites/racing/car-obstacle.png');
+    this.load.audio('hitSfx', '/assets/sounds/hit.wav');
+    this.load.audio('explosionSfx', '/assets/sounds/explosion.wav');
+  }
+
   create() {
     this.speed = 3;
     this.score = 0;
@@ -43,7 +50,6 @@ class Race extends Phaser.Scene {
     this.spawnCD = 0;
     this.elapsed = 0;
 
-    this.buildTextures();
     this.buildRoad();
 
     this.dashes = [];
@@ -52,7 +58,7 @@ class Race extends Phaser.Scene {
         this.dashes.push(this.add.rectangle(x, y, 5, 28, 0xffffff));
     });
 
-    this.player = this.physics.add.sprite(400, H - 70, 'pcar');
+    this.player = this.physics.add.sprite(400, H - 70, 'car-player');
     this.player.setCollideWorldBounds(true);
     this.player.body.setSize(CW - 12, CH - 12);
 
@@ -69,24 +75,6 @@ class Race extends Phaser.Scene {
     this.subTxt = this.add.text(W / 2, H / 2 + 28, '', s).setOrigin(0.5);
   }
 
-  buildTextures() {
-    if (this.textures.exists('pcar')) return;
-    const g = this.make.graphics({ add: false });
-    const drawCar = (col, key) => {
-      g.fillStyle(0x222222);
-      [8, 42].forEach(ty => { g.fillRect(1, ty, 8, 14); g.fillRect(35, ty, 8, 14); });
-      g.fillStyle(col);
-      g.fillRoundedRect(6, 0, 32, CH, 8);
-      g.fillStyle(0x88ddff);
-      g.fillRoundedRect(11, 10, 22, 14, 3);
-      g.generateTexture(key, CW, CH);
-      g.clear();
-    };
-    drawCar(0xff2244, 'pcar');
-    [0x3366ff, 0xff44cc, 0x44ccbb, 0xffaa22, 0x55dd44].forEach((c, i) => drawCar(c, 'o' + i));
-    g.destroy();
-  }
-
   buildRoad() {
     const g = this.add.graphics();
     g.fillStyle(0x228833);
@@ -101,6 +89,7 @@ class Race extends Phaser.Scene {
   crash() {
     if (!this.alive) return;
     this.alive = false;
+    this.sound.play('explosionSfx');
     this.player.setTint(0xff0000);
     this.cameras.main.shake(250, 0.015);
     this.cameras.main.flash(200, 255, 60, 0);
@@ -133,7 +122,7 @@ class Race extends Phaser.Scene {
     this.spawnCD += dt;
     const diff = 1 + this.elapsed / 12000;
     if (this.spawnCD > Math.max(350, 1300 / diff)) {
-      const o = this.obs.create(Phaser.Math.RND.pick(LANES), -CH, 'o' + Phaser.Math.Between(0, 4));
+      const o = this.obs.create(Phaser.Math.RND.pick(LANES), -CH, 'car-obstacle');
       o.body.setSize(CW - 12, CH - 12);
       this.spawnCD = 0;
     }

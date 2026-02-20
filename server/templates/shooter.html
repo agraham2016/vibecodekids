@@ -19,34 +19,33 @@
   <div class="hint">Arrow keys to move &bull; SPACE to shoot</div>
   <script>
   class ShooterScene extends Phaser.Scene {
+    preload() {
+      this.load.image('ship', '/assets/sprites/shooter/ship.png');
+      this.load.image('enemy', '/assets/sprites/shooter/enemy.png');
+      this.load.image('bullet', '/assets/sprites/shooter/bullet.png');
+      this.load.spritesheet('explosion', '/assets/sprites/shooter/explosion.png', { frameWidth: 64, frameHeight: 64 });
+      this.load.image('particle', '/assets/sprites/common/particle.png');
+      this.load.audio('hitSfx', '/assets/sounds/hit.wav');
+      this.load.audio('explosionSfx', '/assets/sounds/explosion.wav');
+    }
+
     create() {
       this.score = 0; this.lives = 3; this.wave = 1;
       this.gameOver = false; this.lastFired = 0;
       this.waveKills = 0; this.enemiesPerWave = 8;
       this.enemySpeed = 90; this.spawnDelay = 1200;
 
+      // starfield background (procedural — no asset needed for stars)
       const g = this.make.graphics({ add: false });
-      // starfield background
       g.fillStyle(0x060618); g.fillRect(0, 0, 800, 500);
       for (let i = 0; i < 120; i++) {
         const b = Phaser.Math.Between(80, 255);
         g.fillStyle(Phaser.Display.Color.GetColor(b, b, b));
         g.fillRect(Phaser.Math.Between(0, 800), Phaser.Math.Between(0, 500), Math.random() < .15 ? 2 : 1, 1);
       }
-      g.generateTexture('bg', 800, 500);
-      // cyan ship
-      g.clear(); g.fillStyle(0x00ffff);
-      g.beginPath(); g.moveTo(16,0); g.lineTo(32,32); g.lineTo(0,32); g.closePath(); g.fillPath();
-      g.fillStyle(0x0088cc); g.fillRect(6,24,20,6); g.generateTexture('ship', 32, 32);
-      // yellow bullet
-      g.clear(); g.fillStyle(0xffff00); g.fillRect(0,0,4,12); g.generateTexture('bullet', 4, 12);
-      // red enemy
-      g.clear(); g.fillStyle(0xff2244);
-      g.beginPath(); g.moveTo(14,0); g.lineTo(28,14); g.lineTo(14,28); g.lineTo(0,14); g.closePath(); g.fillPath();
-      g.fillStyle(0xff6688); g.fillCircle(14,14,5); g.generateTexture('enemy', 28, 28);
-      // particle
-      g.clear(); g.fillStyle(0xffffff); g.fillRect(0,0,4,4); g.generateTexture('particle', 4, 4);
-      g.destroy();
+      g.generateTexture('bg', 800, 500); g.destroy();
+
+      this.anims.create({ key: 'explode', frames: this.anims.generateFrameNumbers('explosion', { start: 0, end: 3 }), frameRate: 12, repeat: 0 });
 
       this.add.image(400, 250, 'bg');
       this.player = this.physics.add.sprite(400, 460, 'ship').setCollideWorldBounds(true);
@@ -104,7 +103,10 @@
     }
 
     hitEnemy(bullet, enemy) {
+      this.sound.play('explosionSfx');
       this.exploder.emitParticleAt(enemy.x, enemy.y);
+      const exp = this.add.sprite(enemy.x, enemy.y, 'explosion').play('explode');
+      exp.once('animationcomplete', () => exp.destroy());
       bullet.destroy(); enemy.destroy();
       this.score += 10 * this.wave;
       this.scoreText.setText('Score: ' + this.score);
@@ -112,7 +114,10 @@
     }
 
     hitPlayer(_player, enemy) {
+      this.sound.play('hitSfx');
       this.exploder.emitParticleAt(enemy.x, enemy.y);
+      const exp = this.add.sprite(enemy.x, enemy.y, 'explosion').play('explode');
+      exp.once('animationcomplete', () => exp.destroy());
       enemy.destroy(); this.loseLife();
     }
 

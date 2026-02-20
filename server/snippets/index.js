@@ -12,6 +12,7 @@ import { SOUND_ENGINE_SNIPPET } from './sound-engine.js';
 import { AI_ENEMIES_SNIPPET } from './ai-enemies.js';
 import { UI_COMPONENTS_SNIPPET } from './ui-components.js';
 import { CAMERA_SYSTEMS_SNIPPET } from './camera-systems.js';
+import { SPRITE_LOADER_SNIPPET } from './sprite-loader.js';
 
 /**
  * Each snippet has:
@@ -69,6 +70,13 @@ export const SNIPPET_LIBRARY = [
     genres: ['platformer', 'rpg', 'racing', 'endless-runner', 'street-racing'],
     keywords: ['camera', 'scroll', 'parallax', 'follow', 'chase cam', 'zoom', 'side scroll'],
     charCount: CAMERA_SYSTEMS_SNIPPET.length,
+  },
+  {
+    name: 'sprite-loader',
+    content: SPRITE_LOADER_SNIPPET,
+    genres: ['platformer', 'shooter', 'racing', 'rpg', 'puzzle', 'clicker', 'frogger', 'endless-runner', 'fighting', 'tower-defense'],
+    keywords: ['sprite', 'image', 'texture', 'sound', 'audio', 'asset', 'load', 'preload'],
+    charCount: SPRITE_LOADER_SNIPPET.length,
   },
 ];
 

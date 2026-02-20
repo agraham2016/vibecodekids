@@ -20,8 +20,17 @@ const ups=[
 ];
 
 class Game extends Phaser.Scene{
+  preload(){
+    this.load.image('gem','/assets/sprites/clicker/gem.png');
+    this.load.image('sparkle','/assets/sprites/clicker/sparkle.png');
+    this.load.audio('clickSfx','/assets/sounds/click.wav');
+    this.load.audio('coinSfx','/assets/sounds/coin.wav');
+  }
+
   create(){
-    this.genTex();
+    const g=this.make.graphics({add:false});
+    g.fillStyle(0xffffff,1);g.fillCircle(6,6,6);
+    g.generateTexture('dot',12,12);g.destroy();
     this.add.particles(0,0,'sparkle',{
       x:{min:0,max:540},y:{min:0,max:500},
       scale:{start:0.4,end:0},alpha:{start:0.5,end:0},
@@ -61,29 +70,6 @@ class Game extends Phaser.Scene{
     }});
   }
 
-  genTex(){
-    let g=this.make.graphics({add:false});
-    g.fillGradientStyle(0xffd700,0xffaa00,0xff69b4,0xaa44ff,1);
-    g.fillCircle(64,64,56);
-    const sp=8,or=60,ir=30;
-    g.fillStyle(0xffeedd,0.9);g.beginPath();
-    for(let i=0;i<sp*2;i++){
-      const r=i%2===0?or:ir,a=i*Math.PI/sp-Math.PI/2;
-      i===0?g.moveTo(64+Math.cos(a)*r,64+Math.sin(a)*r):g.lineTo(64+Math.cos(a)*r,64+Math.sin(a)*r);
-    }
-    g.closePath();g.fillPath();
-    g.fillStyle(0xffffff,0.25);g.fillCircle(52,48,18);
-    g.generateTexture('gem',128,128);g.destroy();
-
-    g=this.make.graphics({add:false});
-    g.fillStyle(0xffffff,1);g.fillCircle(6,6,6);
-    g.generateTexture('dot',12,12);g.destroy();
-
-    g=this.make.graphics({add:false});
-    g.fillStyle(0xddccff,0.8);g.fillCircle(3,3,3);
-    g.generateTexture('sparkle',6,6);g.destroy();
-  }
-
   fxText(u){
     if(u.key==='click')return'+'+Math.max(1,u.lvl+1)+' per click';
     if(u.key==='auto')return'+'+(u.lvl+1)+'/sec';
@@ -107,6 +93,7 @@ class Game extends Phaser.Scene{
   }
 
   onClick(){
+    this.sound.play('clickSfx');
     const earned=clickPow*mult;
     score+=earned;this.refresh();
     this.tweens.add({targets:this.gem,scaleX:1.4,scaleY:1.4,duration:70,yoyo:true,ease:'Back.easeOut'});

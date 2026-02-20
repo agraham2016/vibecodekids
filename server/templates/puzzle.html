@@ -23,21 +23,19 @@ const COLOR_NAMES = ['red', 'blue', 'green', 'orange', 'purple', 'cyan'];
 class Match extends Phaser.Scene {
   constructor() { super('Match'); }
 
+  preload() {
+    this.load.spritesheet('gems', '/assets/sprites/puzzle/gems.png', { frameWidth: 32, frameHeight: 32 });
+    this.load.audio('coinSfx', '/assets/sounds/coin.wav');
+    this.load.audio('clickSfx', '/assets/sounds/click.wav');
+  }
+
   create() {
     this.score = 0; this.selected = null;
     this.canInput = true; this.grid = [];
 
-    if (!this.textures.exists('tile_0')) {
-      COLORS.forEach((c, i) => {
-        const g = this.make.graphics({ add: false });
-        g.fillStyle(c); g.fillRoundedRect(2, 2, TILE - 4, TILE - 4, 8);
-        g.fillStyle(0xffffff, 0.3); g.fillRoundedRect(6, 6, TILE - 16, 14, 4);
-        g.generateTexture('tile_' + i, TILE, TILE); g.destroy();
-      });
-      const sg = this.make.graphics({ add: false });
-      sg.lineStyle(3, 0xffffff); sg.strokeRoundedRect(2, 2, TILE - 4, TILE - 4, 8);
-      sg.generateTexture('sel', TILE, TILE); sg.destroy();
-    }
+    const sg = this.make.graphics({ add: false });
+    sg.lineStyle(3, 0xffffff); sg.strokeRoundedRect(2, 2, TILE - 4, TILE - 4, 8);
+    sg.generateTexture('sel', TILE, TILE); sg.destroy();
 
     this.add.rectangle(GW / 2, GH / 2, GW, GH, 0x1a0a2e);
     this.scoreText = this.add.text(GW / 2, 18, 'Score: 0', { fontSize: '24px', fill: '#ffcc00', stroke: '#000', strokeThickness: 3 }).setOrigin(0.5).setDepth(10);
@@ -59,6 +57,7 @@ class Match extends Phaser.Scene {
       if (!this.selected) {
         this.selected = { row, col };
         this.selBox.setPosition(obj.x, obj.y);
+        this.sound.play('clickSfx');
       } else {
         const dr = Math.abs(this.selected.row - row);
         const dc = Math.abs(this.selected.col - col);
@@ -81,7 +80,7 @@ class Match extends Phaser.Scene {
   }
 
   createTile(r, c, type) {
-    const t = this.add.image(this.tileX(c), this.tileY(r), 'tile_' + type).setInteractive().setDepth(2);
+    const t = this.add.image(this.tileX(c), this.tileY(r), 'gems', type).setDisplaySize(TILE, TILE).setInteractive().setDepth(2);
     t.tileData = { row: r, col: c, type };
     return t;
   }
@@ -132,6 +131,7 @@ class Match extends Phaser.Scene {
   processMatches(matches) {
     this.score += matches.length * 50;
     this.scoreText.setText('Score: ' + this.score);
+    this.sound.play('coinSfx');
 
     matches.forEach(({ r, c }) => {
       const tile = this.grid[r][c];

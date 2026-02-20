@@ -21,24 +21,17 @@ const W = COLS * CELL, H = ROWS * CELL;
 class Frog extends Phaser.Scene {
   constructor() { super('Frog'); }
 
+  preload() {
+    this.load.image('frog', '/assets/sprites/frogger/frog.png');
+    this.load.image('car1', '/assets/sprites/frogger/car.png');
+    this.load.image('car2', '/assets/sprites/frogger/car.png');
+    this.load.image('truck', '/assets/sprites/frogger/truck.png');
+    this.load.audio('jumpSfx', '/assets/sounds/jump.wav');
+    this.load.audio('hitSfx', '/assets/sounds/hit.wav');
+  }
+
   create() {
     this.score = 0; this.lives = 3; this.round = 1; this.moving = false;
-    if (!this.textures.exists('frog')) {
-      const g = this.make.graphics({ add: false });
-      g.fillStyle(0x44cc44); g.fillCircle(12, 14, 12);
-      g.fillStyle(0x228822); g.fillCircle(6, 8, 4); g.fillCircle(18, 8, 4);
-      g.fillStyle(0xffffff); g.fillCircle(6, 7, 2); g.fillCircle(18, 7, 2);
-      g.generateTexture('frog', 26, 26); g.destroy();
-      const c = this.make.graphics({ add: false });
-      c.fillStyle(0xdd3333); c.fillRect(0, 0, 60, 28); c.fillStyle(0xffcc00); c.fillRect(2, 10, 8, 8);
-      c.generateTexture('car1', 60, 28); c.destroy();
-      const c2 = this.make.graphics({ add: false });
-      c2.fillStyle(0x3355dd); c2.fillRect(0, 0, 50, 26); c2.fillStyle(0xaaddff); c2.fillRect(8, 4, 34, 10);
-      c2.generateTexture('car2', 50, 26); c2.destroy();
-      const c3 = this.make.graphics({ add: false });
-      c3.fillStyle(0xff8800); c3.fillRect(0, 0, 80, 30); c3.fillStyle(0xffdd00); c3.fillRect(2, 2, 10, 10);
-      c3.generateTexture('truck', 80, 30); c3.destroy();
-    }
 
     this.add.rectangle(W / 2, H / 2, W, H, 0x555555);
     [0, 4, ROWS - 1].forEach(r => this.add.rectangle(W / 2, r * CELL + CELL / 2, W, CELL, 0x44aa44));
@@ -86,6 +79,7 @@ class Frog extends Phaser.Scene {
 
   hitCar() {
     if (this.gameOver) return;
+    this.sound.play('hitSfx');
     this.lives--;
     this.livesText.setText('Lives: ' + this.lives);
     if (this.lives <= 0) {
@@ -114,6 +108,7 @@ class Frog extends Phaser.Scene {
     else if (Phaser.Input.Keyboard.JustDown(this.cursors.down)) dy = CELL;
 
     if (dx !== 0 || dy !== 0) {
+      this.sound.play('jumpSfx');
       const nx = Phaser.Math.Clamp(this.player.x + dx, CELL / 2, W - CELL / 2);
       const ny = Phaser.Math.Clamp(this.player.y + dy, CELL / 2, H - CELL / 2);
       this.moving = true;
