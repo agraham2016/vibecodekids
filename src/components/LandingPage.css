@@ -190,6 +190,106 @@
   margin-top: 10px;
 }
 
+/* Template Showcase */
+.template-showcase {
+  width: 100%;
+  text-align: center;
+  padding: 40px 0 20px;
+}
+
+.showcase-title {
+  font-size: 2.2rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, #fff 0%, #a78bfa 60%, #f472b6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0 0 8px;
+}
+
+.showcase-subtitle {
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 1.05rem;
+  margin: 0 0 32px;
+}
+
+.template-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+}
+
+.template-card {
+  all: unset;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  border-radius: 16px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.template-card:hover {
+  transform: translateY(-6px) scale(1.03);
+  box-shadow: 0 12px 40px rgba(139, 92, 246, 0.35);
+  border-color: rgba(139, 92, 246, 0.4);
+}
+
+.template-card-bg {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 140px;
+  overflow: hidden;
+}
+
+.template-card-sprite {
+  width: 64px;
+  height: 64px;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.5));
+  z-index: 1;
+}
+
+.template-card-emoji {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  font-size: 1.6rem;
+  opacity: 0.5;
+}
+
+.template-card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px 16px;
+  text-align: left;
+}
+
+.template-card-genre {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #a78bfa;
+}
+
+.template-card-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.template-card-desc {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.55);
+  line-height: 1.4;
+}
+
 /* Preview Section */
 .landing-preview {
   width: 100%;
@@ -322,6 +422,12 @@
 }
 
 /* Responsive */
+@media (max-width: 1024px) {
+  .template-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
 @media (max-width: 768px) {
   .title-text {
     font-size: 2.5rem;
@@ -361,5 +467,24 @@
   
   .preview-game {
     min-height: 150px;
+  }
+
+  .template-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+  }
+
+  .showcase-title {
+    font-size: 1.6rem;
+  }
+
+  .template-card-bg {
+    height: 110px;
+  }
+}
+
+@media (max-width: 480px) {
+  .template-grid {
+    grid-template-columns: 1fr;
   }
 }

@@ -5,6 +5,65 @@ interface LandingPageProps {
   onSignupClick: () => void
 }
 
+const GAME_TEMPLATES = [
+  {
+    title: 'Jump & Run',
+    genre: 'Platformer',
+    description: 'Hop across platforms and collect coins',
+    gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)',
+    sprite: '/assets/sprites/platformer/player.png',
+    emoji: '🏃',
+  },
+  {
+    title: 'Space Blaster',
+    genre: 'Shooter',
+    description: 'Blast aliens and dodge enemy fire',
+    gradient: 'linear-gradient(180deg, #0a0a20 0%, #1a0a50 100%)',
+    sprite: '/assets/sprites/shooter/ship.png',
+    emoji: '🚀',
+  },
+  {
+    title: 'Speed Racer',
+    genre: 'Racing',
+    description: 'Dodge traffic and race to the finish',
+    gradient: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
+    sprite: '/assets/sprites/racing/car-player.png',
+    emoji: '🏎️',
+  },
+  {
+    title: 'Road Crosser',
+    genre: 'Frogger',
+    description: 'Hop across busy lanes to safety',
+    gradient: 'linear-gradient(135deg, #1a472a 0%, #2d6a4f 50%, #40916c 100%)',
+    sprite: '/assets/sprites/frogger/frog.png',
+    emoji: '🐸',
+  },
+  {
+    title: 'Gem Match',
+    genre: 'Puzzle',
+    description: 'Match colorful gems to score big',
+    gradient: 'linear-gradient(135deg, #4a1a6b 0%, #2a1040 50%, #6b21a8 100%)',
+    sprite: '/assets/sprites/puzzle/gems.png',
+    emoji: '💎',
+  },
+  {
+    title: 'Tap Frenzy',
+    genre: 'Clicker',
+    description: 'Click the gem, buy upgrades, go wild',
+    gradient: 'linear-gradient(135deg, #1a0533 0%, #2d1b69 50%, #4c1d95 100%)',
+    sprite: '/assets/sprites/clicker/gem.png',
+    emoji: '👆',
+  },
+  {
+    title: 'Adventure Quest',
+    genre: 'RPG',
+    description: 'Explore, find treasure, talk to NPCs',
+    gradient: 'linear-gradient(135deg, #1b4332 0%, #2d6a4f 50%, #52b788 100%)',
+    sprite: '/assets/sprites/rpg/hero.png',
+    emoji: '⚔️',
+  },
+]
+
 export default function LandingPage({ onLoginClick, onSignupClick }: LandingPageProps) {
   return (
     <div className="landing-page">
@@ -61,6 +120,38 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
           <p className="hero-note">
             Free account includes 3 games/month and 30 prompts/day
           </p>
+        </div>
+
+        {/* Template Showcase */}
+        <div className="template-showcase">
+          <h2 className="showcase-title">Pick a Game to Start Building</h2>
+          <p className="showcase-subtitle">Choose a style and our AI builds it in seconds</p>
+          <div className="template-grid">
+            {GAME_TEMPLATES.map((tmpl) => (
+              <button
+                key={tmpl.genre}
+                className="template-card"
+                onClick={onSignupClick}
+              >
+                <div
+                  className="template-card-bg"
+                  style={{ background: tmpl.gradient }}
+                >
+                  <img
+                    src={tmpl.sprite}
+                    alt={tmpl.title}
+                    className="template-card-sprite"
+                  />
+                  <span className="template-card-emoji">{tmpl.emoji}</span>
+                </div>
+                <div className="template-card-info">
+                  <span className="template-card-genre">{tmpl.genre}</span>
+                  <span className="template-card-title">{tmpl.title}</span>
+                  <span className="template-card-desc">{tmpl.description}</span>
+                </div>
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Preview section */}
