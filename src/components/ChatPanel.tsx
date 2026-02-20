@@ -65,6 +65,16 @@ const MODEL_INFO: Record<AIModel, { name: string; icon: string; color: string }>
   grok: { name: 'VibeGrok', icon: '🚀', color: 'grok' },
 }
 
+const GAME_STARTERS = [
+  { genre: 'Platformer', emoji: '🏃', label: 'Jump & Run', prompt: 'Make me a platformer game where I jump across platforms and collect coins!' },
+  { genre: 'Shooter', emoji: '🚀', label: 'Space Blaster', prompt: 'Make me a space shooter game where I blast aliens and dodge enemy fire!' },
+  { genre: 'Racing', emoji: '🏎️', label: 'Speed Racer', prompt: 'Make me a racing game where I dodge traffic and race to the finish!' },
+  { genre: 'Frogger', emoji: '🐸', label: 'Road Crosser', prompt: 'Make me a frogger game where I hop across busy roads and rivers to get home!' },
+  { genre: 'Puzzle', emoji: '💎', label: 'Gem Match', prompt: 'Make me a puzzle game where I match colorful gems to score big!' },
+  { genre: 'Clicker', emoji: '👆', label: 'Tap Frenzy', prompt: 'Make me a clicker game where I tap a gem to earn points and buy upgrades!' },
+  { genre: 'RPG', emoji: '⚔️', label: 'Adventure Quest', prompt: 'Make me an RPG adventure game where I explore, find treasure, and talk to NPCs!' },
+]
+
 export default function ChatPanel({ 
   messages, 
   onSendMessage, 
@@ -375,6 +385,24 @@ export default function ChatPanel({
                   <span className="buddy-card-desc">Hype buddy. Makes things EPIC and fun!</span>
                 </div>
               )}
+            </div>
+
+            {/* Game template starters */}
+            <div className="game-starters">
+              <p className="game-starters-label">Or pick a game to start building:</p>
+              <div className="game-starters-grid">
+                {GAME_STARTERS.map((g) => (
+                  <button
+                    key={g.genre}
+                    className="game-starter-btn"
+                    onClick={() => onSendMessage(g.prompt)}
+                    disabled={isLoading}
+                  >
+                    <span className="game-starter-emoji">{g.emoji}</span>
+                    <span className="game-starter-label">{g.label}</span>
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         ) : (

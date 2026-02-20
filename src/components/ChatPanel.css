@@ -162,6 +162,64 @@
   line-height: 1.3;
 }
 
+/* ========== GAME STARTER CARDS ========== */
+
+.game-starters {
+  margin-top: 18px;
+  width: 100%;
+}
+
+.game-starters-label {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.5);
+  margin: 0 0 10px;
+  text-align: center;
+}
+
+.game-starters-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.game-starter-btn {
+  all: unset;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 4px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.game-starter-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  background: rgba(139, 92, 246, 0.15);
+  border-color: rgba(139, 92, 246, 0.35);
+  box-shadow: 0 4px 16px rgba(139, 92, 246, 0.2);
+}
+
+.game-starter-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.game-starter-emoji {
+  font-size: 1.4rem;
+}
+
+.game-starter-label {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.75);
+  text-align: center;
+  line-height: 1.2;
+}
+
 /* ========== GAME CONFIG BADGE ========== */
 
 .game-config-badge {
@@ -939,6 +997,10 @@
   .buddy-intro-cards {
     flex-direction: column;
   }
+
+  .game-starters-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
 
 @media (max-width: 768px) {
@@ -986,6 +1048,19 @@
   .buddy-intro-cards {
     flex-direction: column;
     gap: 6px;
+  }
+
+  .game-starters-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+  }
+
+  .game-starter-emoji {
+    font-size: 1.2rem;
+  }
+
+  .game-starter-label {
+    font-size: 0.6rem;
   }
 
   .model-badge {
