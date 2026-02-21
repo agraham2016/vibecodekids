@@ -651,70 +651,69 @@
     
     @media (max-width: 768px) {
       .play-header {
-        padding: 8px 10px;
-        gap: 6px;
+        padding: 4px 8px;
+        gap: 0;
         flex-shrink: 0;
+        flex-wrap: nowrap;
+        align-items: center;
       }
       
       .project-info {
         flex-direction: row;
         align-items: center;
-        gap: 8px;
+        gap: 6px;
         flex-wrap: nowrap;
         overflow: hidden;
-        width: 100%;
+        flex: 1;
+        min-width: 0;
       }
 
       .project-title {
-        font-size: 0.9rem;
+        font-size: 0.85rem;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
       }
 
-      .project-creator {
-        display: none;
-      }
-
+      .project-creator,
       .project-stats {
-        font-size: 0.75rem;
-        gap: 8px;
-        flex-shrink: 0;
+        display: none;
       }
       
       .header-actions {
         display: flex;
-        gap: 6px;
+        gap: 4px;
         flex-wrap: nowrap;
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-        width: 100%;
-      }
-
-      .action-btn {
-        padding: 8px 12px;
-        font-size: 0.78rem;
-        min-height: 44px;
-        white-space: nowrap;
         flex-shrink: 0;
       }
 
+      .action-btn {
+        padding: 6px 8px;
+        font-size: 0.7rem;
+        min-height: 36px;
+        white-space: nowrap;
+        flex-shrink: 0;
+        border-radius: 8px;
+      }
+
+      .action-btn .btn-emoji {
+        display: none;
+      }
+
       .play-content {
-        padding: 4px;
+        padding: 0;
         flex: 1;
         min-height: 0;
       }
 
       .project-iframe {
-        border-radius: 8px;
+        border-radius: 0;
         width: 100%;
         height: 100%;
       }
 
       .play-footer {
-        padding: 6px 10px;
-        font-size: 0.7rem;
-        flex-shrink: 0;
+        display: none;
       }
       
       .multiplayer-panel {
@@ -736,18 +735,9 @@
     }
     
     @media (max-width: 480px) {
-      .play-header {
-        padding: 6px 8px;
-        gap: 4px;
-      }
-
-      .project-stats {
-        display: none;
-      }
-
       .action-btn {
-        padding: 8px 10px;
-        font-size: 0.72rem;
+        padding: 6px 6px;
+        font-size: 0.65rem;
       }
     }
   </style>
@@ -780,16 +770,16 @@
       </div>
       <div class="header-actions">
         <button class="action-btn like" onclick="likeProject()">
-          ❤️ Like
+          <span class="btn-emoji">❤️</span> Like
         </button>
         <button class="action-btn fullscreen-btn" onclick="toggleFullscreen()">
-          🖥️ Fullscreen
+          <span class="btn-emoji">🖥️</span> Fullscreen
         </button>
         <a href="/gallery" class="action-btn">
-          🎮 More Games
+          <span class="btn-emoji">🎮</span> More
         </a>
         <a href="/" class="action-btn primary">
-          🚀 Open Studio
+          <span class="btn-emoji">🚀</span> Studio
         </a>
       </div>
     </header>
