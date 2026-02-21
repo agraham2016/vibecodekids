@@ -290,6 +290,134 @@
   line-height: 1.4;
 }
 
+/* ─── Vibecode From Scratch ─── */
+
+.scratch-section {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px 0 40px;
+}
+
+.scratch-divider {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  width: 100%;
+  max-width: 500px;
+  margin-bottom: 28px;
+}
+
+.scratch-divider-line {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+}
+
+.scratch-divider-text {
+  color: rgba(255, 255, 255, 0.35);
+  font-weight: 800;
+  font-size: 0.85rem;
+  letter-spacing: 3px;
+}
+
+.scratch-title {
+  font-size: 2.2rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, #f472b6 0%, #a78bfa 50%, #38bdf8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0 0 10px;
+  text-align: center;
+}
+
+.scratch-subtitle {
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 1.05rem;
+  margin: 0 0 30px;
+  text-align: center;
+  max-width: 540px;
+  line-height: 1.6;
+}
+
+.scratch-examples {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  width: 100%;
+  max-width: 900px;
+}
+
+.scratch-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 18px 20px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.scratch-card:hover {
+  background: rgba(139, 92, 246, 0.12);
+  border-color: rgba(139, 92, 246, 0.35);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(139, 92, 246, 0.15);
+}
+
+.scratch-card-icon {
+  font-size: 1.8rem;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.scratch-card-quote {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.5;
+  font-style: italic;
+}
+
+.scratch-card:hover .scratch-card-quote {
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.scratch-bottom {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  margin-top: 30px;
+}
+
+.scratch-hint {
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.scratch-cta {
+  padding: 16px 40px;
+  background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%);
+  border: none;
+  border-radius: 14px;
+  color: #fff;
+  font-weight: 700;
+  font-size: 1.05rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 6px 24px rgba(236, 72, 153, 0.3);
+}
+
+.scratch-cta:hover {
+  transform: translateY(-3px) scale(1.03);
+  box-shadow: 0 10px 35px rgba(236, 72, 153, 0.45);
+}
+
 /* ─── Live Demo Section ─── */
 
 .live-demo-section {
@@ -772,6 +900,15 @@
     gap: 14px;
   }
 
+  .scratch-title {
+    font-size: 1.6rem;
+  }
+
+  .scratch-examples {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
   .showcase-title {
     font-size: 1.6rem;
   }
@@ -783,6 +920,10 @@
 
 @media (max-width: 480px) {
   .template-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .scratch-examples {
     grid-template-columns: 1fr;
   }
 }

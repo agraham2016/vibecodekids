@@ -283,7 +283,7 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
             <span className="title-text">Vibe Code Kidz</span>
           </h1>
           <p className="hero-subtitle">
-            Create awesome games just by describing them!
+            Vibecode awesome games just by describing them!
             <br />
             No coding experience needed.
           </p>
@@ -320,7 +320,7 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
         {/* Live Demo — Before & After */}
         <div className="live-demo-section">
           <h2 className="demo-section-title">See It In Action</h2>
-          <p className="demo-section-subtitle">Describe a game. Watch it come to life.</p>
+          <p className="demo-section-subtitle">Describe a game. Vibecode it to life.</p>
 
           <div className="demo-tabs">
             {DEMO_SCENARIOS.map((s, i) => (
@@ -409,8 +409,8 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
 
         {/* Template Showcase */}
         <div className="template-showcase">
-          <h2 className="showcase-title">18 Game Types to Choose From</h2>
-          <p className="showcase-subtitle">Pick a style and our AI builds it in seconds</p>
+          <h2 className="showcase-title">18 Game Types to Vibecode</h2>
+          <p className="showcase-subtitle">Pick a template and vibecode it into your own game in seconds</p>
           <div className="template-grid">
             {GAME_TEMPLATES.map((tmpl) => (
               <button
@@ -436,6 +436,54 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
                 </div>
               </button>
             ))}
+          </div>
+        </div>
+
+        {/* Vibecode From Scratch */}
+        <div className="scratch-section">
+          <div className="scratch-divider">
+            <span className="scratch-divider-line" />
+            <span className="scratch-divider-text">OR</span>
+            <span className="scratch-divider-line" />
+          </div>
+
+          <h2 className="scratch-title">Vibecode Something From Scratch</h2>
+          <p className="scratch-subtitle">
+            Don't see what you want? Just describe it. Your AI buddy will vibecode any game you can imagine.
+          </p>
+
+          <div className="scratch-examples">
+            <div className="scratch-card" onClick={onSignupClick}>
+              <span className="scratch-card-icon">🏰</span>
+              <span className="scratch-card-quote">"A castle defense game with dragons and wizards"</span>
+            </div>
+            <div className="scratch-card" onClick={onSignupClick}>
+              <span className="scratch-card-icon">🧟</span>
+              <span className="scratch-card-quote">"Zombie survival where I build walls and craft weapons"</span>
+            </div>
+            <div className="scratch-card" onClick={onSignupClick}>
+              <span className="scratch-card-icon">🐱</span>
+              <span className="scratch-card-quote">"A cat cafe simulator where customers order treats"</span>
+            </div>
+            <div className="scratch-card" onClick={onSignupClick}>
+              <span className="scratch-card-icon">🌌</span>
+              <span className="scratch-card-quote">"An asteroid mining game in outer space"</span>
+            </div>
+            <div className="scratch-card" onClick={onSignupClick}>
+              <span className="scratch-card-icon">🎃</span>
+              <span className="scratch-card-quote">"A haunted house escape room with puzzles"</span>
+            </div>
+            <div className="scratch-card" onClick={onSignupClick}>
+              <span className="scratch-card-icon">🏴‍☠️</span>
+              <span className="scratch-card-quote">"A pirate ship battle game on the ocean"</span>
+            </div>
+          </div>
+
+          <div className="scratch-bottom">
+            <p className="scratch-hint">Type anything you want — the only limit is your imagination</p>
+            <button className="scratch-cta" onClick={onSignupClick}>
+              Start Vibecoding — Free
+            </button>
           </div>
         </div>
       </div>
