@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    :root {
+      --game-primary: #0984e3;
+      --game-secondary: #6c5ce7;
+      --game-bg: #00cec9;
+      --game-text: #ffffff;
+      --game-accent: #ffeaa7;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #0984e3 0%, #6c5ce7 50%, #00cec9 100%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    #game-container {
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    }
+    .hint { margin-top: 14px; color: rgba(255,255,255,0.55); font-size: 14px; }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.86.0/dist/phaser.min.js"></script>
+</head>
+<body>
+  <!-- GAME_TITLE -->Falling Blocks<!-- /GAME_TITLE -->
+  <!-- PLAYER_CHARACTER -->blocks<!-- /PLAYER_CHARACTER -->
+  <!-- OBSTACLES -->stack<!-- /OBSTACLES -->
+  <div id="game"></div>
+  <div class="hint">Arrow keys: ← → move · ↓ soft drop · ↑ rotate</div>
+  <script>
+  class FallingBlocksScene extends Phaser.Scene {
+    preload() {
+      this.load.audio('clickSfx', '/assets/sounds/click.wav');
+      this.load.audio('coinSfx', '/assets/sounds/coin.wav');
+      this.load.audio('winSfx', '/assets/sounds/win.wav');
+      this.load.audio('loseSfx', '/assets/sounds/lose.wav');
+    }
+
+    create() {
+      this.COLS = 10;
+      this.ROWS = 20;
+      this.CELL = 28;
+      this.GRID_X = 8;
+      this.GRID_Y = 10;
+      this.SIDEBAR_X = this.GRID_X + this.COLS * this.CELL + 8;
+      this.SIDEBAR_CX = this.SIDEBAR_X + (400 - this.SIDEBAR_X - 4) / 2;
+
+      this.PIECES = {
+        I: { shape: [[0,0,0,0],[1,1,1,1],[0,0,0,0],[0,0,0,0]], color: 0x00d2d3 },
+        O: { shape: [[1,1],[1,1]],                               color: 0xfeca57 },
+        T: { shape: [[0,1,0],[1,1,1],[0,0,0]],                   color: 0xa29bfe },
+        S: { shape: [[0,1,1],[1,1,0],[0,0,0]],                   color: 0x55efc4 },
+        Z: { shape: [[1,1,0],[0,1,1],[0,0,0]],                   color: 0xff6b6b },
+        J: { shape: [[1,0,0],[1,1,1],[0,0,0]],                   color: 0x0984e3 },
+        L: { shape: [[0,0,1],[1,1,1],[0,0,0]],                   color: 0xe17055 }
+      };
+      this.PIECE_KEYS = ['I','O','T','S','Z','J','L'];
+
+      this.generateTextures();
+      this.drawBackground();
+      this.createUI();
+
+      this.grid = Array.from({ length: this.ROWS }, () => Array(this.COLS).fill(0));
+      this.score = 0;
+      this.level = 1;
+      this.lines = 0;
+      this.isOver = false;
+
+      this.boardSprites = [];
+      this.activeSprites = [];
+      this.ghostSprites = [];
+      this.previewSprites = [];
+
+      this.bag = [];
+      this.nextType = this.pullFromBag();
+      this.spawnPiece();
+
+      this.input.keyboard.on('keydown', this.onKey, this);
+
+      this.fallDelay = this.calcFallDelay();
+      this.fallTimer = this.time.addEvent({
+        delay: this.fallDelay, callback: this.tick, callbackScope: this, loop: true
+      });
+    }
+
+    /* ── Texture generation ── */
+
+    generateTextures() {
+      const g = this.make.graphics({ add: false });
+      const cs = this.CELL;
+
+      for (const key of this.PIECE_KEYS) {
+        const texKey = 'block_' + key;
+        if (this.textures.exists(texKey) && this.textures.get(texKey).key !== '__MISSING') continue;
+
+        const base = Phaser.Display.Color.IntegerToColor(this.PIECES[key].color);
+        const light = base.clone().lighten(35).color;
+        const dark  = base.clone().darken(35).color;
+
+        g.clear();
+        g.fillStyle(base.color); g.fillRect(1, 1, cs - 2, cs - 2);
+        g.fillStyle(light, 0.55); g.fillRect(1, 1, cs - 2, 3); g.fillRect(1, 1, 3, cs - 2);
+        g.fillStyle(dark, 0.55);  g.fillRect(1, cs - 4, cs - 2, 3); g.fillRect(cs - 4, 1, 3, cs - 2);
+        g.fillStyle(0xffffff, 0.12); g.fillRect(5, 5, cs - 10, cs - 10);
+        g.generateTexture(texKey, cs, cs);
+      }
+
+      if (!this.textures.exists('block_ghost') || this.textures.get('block_ghost').key === '__MISSING') {
+        g.clear();
+        g.fillStyle(0xffffff, 0.1); g.fillRect(1, 1, cs - 2, cs - 2);
+        g.lineStyle(1, 0xffffff, 0.25); g.strokeRect(1, 1, cs - 2, cs - 2);
+        g.generateTexture('block_ghost', cs, cs);
+      }
+      g.destroy();
+    }
+
+    /* ── Static visuals ── */
+
+    drawBackground() {
+      const bg = this.add.graphics();
+      bg.fillStyle(0x12122a); bg.fillRect(0, 0, 400, 600);
+
+      bg.fillStyle(0x0a0a1e);
+      bg.fillRect(this.GRID_X, this.GRID_Y, this.COLS * this.CELL, this.ROWS * this.CELL);
+
+      bg.lineStyle(1, 0xffffff, 0.04);
+      for (let c = 1; c < this.COLS; c++) {
+        const x = this.GRID_X + c * this.CELL;
+        bg.lineBetween(x, this.GRID_Y, x, this.GRID_Y + this.ROWS * this.CELL);
+      }
+      for (let r = 1; r < this.ROWS; r++) {
+        const y = this.GRID_Y + r * this.CELL;
+        bg.lineBetween(this.GRID_X, y, this.GRID_X + this.COLS * this.CELL, y);
+      }
+
+      bg.lineStyle(2, 0x0984e3, 0.5);
+      bg.strokeRect(this.GRID_X - 1, this.GRID_Y - 1,
+        this.COLS * this.CELL + 2, this.ROWS * this.CELL + 2);
+
+      bg.fillStyle(0x0a0a1e, 0.6);
+      bg.fillRoundedRect(this.SIDEBAR_X, this.GRID_Y, 400 - this.SIDEBAR_X - 4, this.ROWS * this.CELL, 6);
+    }
+
+    createUI() {
+      const cx = this.SIDEBAR_CX;
+      const label = { fontFamily: 'Segoe UI', fontSize: '11px', fill: '#6c7a89', align: 'center' };
+      const value = { fontFamily: 'Segoe UI', fontSize: '17px', fill: '#ffffff', fontStyle: 'bold', align: 'center' };
+
+      this.add.text(cx, this.GRID_Y + 12, 'NEXT', label).setOrigin(0.5);
+      this.previewY = this.GRID_Y + 60;
+
+      this.add.text(cx, this.GRID_Y + 130, 'SCORE', label).setOrigin(0.5);
+      this.scoreText = this.add.text(cx, this.GRID_Y + 150, '0', value).setOrigin(0.5);
+
+      this.add.text(cx, this.GRID_Y + 195, 'LEVEL', label).setOrigin(0.5);
+      this.levelText = this.add.text(cx, this.GRID_Y + 215, '1', value).setOrigin(0.5);
+
+      this.add.text(cx, this.GRID_Y + 260, 'LINES', label).setOrigin(0.5);
+      this.linesText = this.add.text(cx, this.GRID_Y + 280, '0', value).setOrigin(0.5);
+    }
+
+    /* ── Bag randomiser ── */
+
+    pullFromBag() {
+      if (this.bag.length === 0) {
+        this.bag = Phaser.Utils.Array.Shuffle([...this.PIECE_KEYS]);
+      }
+      return this.bag.pop();
+    }
+
+    /* ── Piece lifecycle ── */
+
+    spawnPiece() {
+      this.curType = this.nextType;
+      this.nextType = this.pullFromBag();
+      this.curMatrix = this.PIECES[this.curType].shape.map(r => [...r]);
+      this.curX = Math.floor((this.COLS - this.curMatrix[0].length) / 2);
+      this.curY = 0;
+
+      if (!this.valid(this.curMatrix, this.curX, this.curY)) {
+        this.renderActive();
+        this.endGame();
+        return;
+      }
+
+      this.renderPreview();
+      this.renderGhost();
+      this.renderActive();
+    }
+
+    valid(matrix, ox, oy) {
+      for (let r = 0; r < matrix.length; r++) {
+        for (let c = 0; c < matrix[r].length; c++) {
+          if (!matrix[r][c]) continue;
+          const nx = ox + c, ny = oy + r;
+          if (nx < 0 || nx >= this.COLS || ny >= this.ROWS) return false;
+          if (ny >= 0 && this.grid[ny][nx]) return false;
+        }
+      }
+      return true;
+    }
+
+    rotateCW(matrix) {
+      const rows = matrix.length, cols = matrix[0].length;
+      const out = Array.from({ length: cols }, () => Array(rows).fill(0));
+      for (let r = 0; r < rows; r++)
+        for (let c = 0; c < cols; c++)
+          out[c][rows - 1 - r] = matrix[r][c];
+      return out;
+    }
+
+    /* ── Rendering helpers ── */
+
+    renderBoard() {
+      this.boardSprites.forEach(s => s.destroy());
+      this.boardSprites = [];
+      for (let r = 0; r < this.ROWS; r++) {
+        for (let c = 0; c < this.COLS; c++) {
+          const t = this.grid[r][c];
+          if (!t) continue;
+          const px = this.GRID_X + c * this.CELL + this.CELL / 2;
+          const py = this.GRID_Y + r * this.CELL + this.CELL / 2;
+          this.boardSprites.push(this.add.image(px, py, 'block_' + t).setDepth(3));
+        }
+      }
+    }
+
+    renderActive() {
+      this.activeSprites.forEach(s => s.destroy());
+      this.activeSprites = [];
+      const tex = 'block_' + this.curType;
+      for (let r = 0; r < this.curMatrix.length; r++) {
+        for (let c = 0; c < this.curMatrix[r].length; c++) {
+          if (!this.curMatrix[r][c]) continue;
+          const px = this.GRID_X + (this.curX + c) * this.CELL + this.CELL / 2;
+          const py = this.GRID_Y + (this.curY + r) * this.CELL + this.CELL / 2;
+          this.activeSprites.push(this.add.image(px, py, tex).setDepth(5));
+        }
+      }
+    }
+
+    renderGhost() {
+      this.ghostSprites.forEach(s => s.destroy());
+      this.ghostSprites = [];
+      let gy = this.curY;
+      while (this.valid(this.curMatrix, this.curX, gy + 1)) gy++;
+      if (gy === this.curY) return;
+      for (let r = 0; r < this.curMatrix.length; r++) {
+        for (let c = 0; c < this.curMatrix[r].length; c++) {
+          if (!this.curMatrix[r][c]) continue;
+          const px = this.GRID_X + (this.curX + c) * this.CELL + this.CELL / 2;
+          const py = this.GRID_Y + (gy + r) * this.CELL + this.CELL / 2;
+          this.ghostSprites.push(this.add.image(px, py, 'block_ghost').setDepth(2));
+        }
+      }
+    }
+
+    renderPreview() {
+      this.previewSprites.forEach(s => s.destroy());
+      this.previewSprites = [];
+      const mat = this.PIECES[this.nextType].shape;
+      const tex = 'block_' + this.nextType;
+      const ps = 18;
+      const ox = this.SIDEBAR_CX - (mat[0].length * ps) / 2;
+      const oy = this.previewY - (mat.length * ps) / 2;
+      for (let r = 0; r < mat.length; r++) {
+        for (let c = 0; c < mat[r].length; c++) {
+          if (!mat[r][c]) continue;
+          this.previewSprites.push(
+            this.add.image(ox + c * ps + ps / 2, oy + r * ps + ps / 2, tex)
+              .setDisplaySize(ps - 1, ps - 1).setDepth(10)
+          );
+        }
+      }
+    }
+
+    /* ── Input ── */
+
+    onKey(ev) {
+      if (this.isOver) return;
+      switch (ev.code) {
+        case 'ArrowLeft':  this.shift(-1); ev.preventDefault(); break;
+        case 'ArrowRight': this.shift(1);  ev.preventDefault(); break;
+        case 'ArrowDown':  this.softDrop(); ev.preventDefault(); break;
+        case 'ArrowUp':    this.rotate();   ev.preventDefault(); break;
+      }
+    }
+
+    shift(dx) {
+      if (this.valid(this.curMatrix, this.curX + dx, this.curY)) {
+        this.curX += dx;
+        this.sfx('clickSfx');
+        this.renderActive();
+        this.renderGhost();
+      }
+    }
+
+    softDrop() {
+      if (this.valid(this.curMatrix, this.curX, this.curY + 1)) {
+        this.curY++;
+        this.score += 1;
+        this.scoreText.setText(String(this.score));
+        this.renderActive();
+        this.renderGhost();
+        this.resetTimer();
+      }
+    }
+
+    rotate() {
+      if (this.curType === 'O') return;
+      const rotated = this.rotateCW(this.curMatrix);
+      const kicks = [0, -1, 1, -2, 2];
+      for (const dx of kicks) {
+        if (this.valid(rotated, this.curX + dx, this.curY)) {
+          this.curMatrix = rotated;
+          this.curX += dx;
+          this.sfx('clickSfx');
+          this.renderActive();
+          this.renderGhost();
+          return;
+        }
+      }
+    }
+
+    /* ── Game loop ── */
+
+    tick() {
+      if (this.isOver) return;
+      if (this.valid(this.curMatrix, this.curX, this.curY + 1)) {
+        this.curY++;
+        this.renderActive();
+        this.renderGhost();
+      } else {
+        this.lockPiece();
+      }
+    }
+
+    lockPiece() {
+      for (let r = 0; r < this.curMatrix.length; r++) {
+        for (let c = 0; c < this.curMatrix[r].length; c++) {
+          if (!this.curMatrix[r][c]) continue;
+          const gy = this.curY + r, gx = this.curX + c;
+          if (gy >= 0 && gy < this.ROWS && gx >= 0 && gx < this.COLS) {
+            this.grid[gy][gx] = this.curType;
+          }
+        }
+      }
+
+      this.activeSprites.forEach(s => s.destroy());
+      this.activeSprites = [];
+      this.ghostSprites.forEach(s => s.destroy());
+      this.ghostSprites = [];
+
+      this.clearLines();
+      this.renderBoard();
+      this.spawnPiece();
+    }
+
+    clearLines() {
+      const full = [];
+      for (let r = 0; r < this.ROWS; r++) {
+        if (this.grid[r].every(v => v !== 0)) full.push(r);
+      }
+      if (full.length === 0) return;
+
+      const flash = this.add.graphics().setDepth(15);
+      flash.fillStyle(0xffffff, 0.7);
+      for (const r of full) {
+        flash.fillRect(this.GRID_X, this.GRID_Y + r * this.CELL, this.COLS * this.CELL, this.CELL);
+      }
+      this.time.delayedCall(120, () => flash.destroy());
+
+      for (const r of full) {
+        this.grid.splice(r, 1);
+        this.grid.unshift(Array(this.COLS).fill(0));
+      }
+
+      const pts = [0, 100, 300, 500, 800];
+      this.score += (pts[full.length] || 800) * this.level;
+      this.lines += full.length;
+      this.level = Math.floor(this.lines / 10) + 1;
+
+      this.scoreText.setText(String(this.score));
+      this.levelText.setText(String(this.level));
+      this.linesText.setText(String(this.lines));
+
+      this.sfx(full.length >= 4 ? 'winSfx' : 'coinSfx');
+      this.updateSpeed();
+    }
+
+    /* ── Timing ── */
+
+    calcFallDelay() {
+      return Math.max(80, 800 - (this.level - 1) * 72);
+    }
+
+    updateSpeed() {
+      const d = this.calcFallDelay();
+      if (d !== this.fallDelay) {
+        this.fallDelay = d;
+        this.fallTimer.remove();
+        this.fallTimer = this.time.addEvent({
+          delay: this.fallDelay, callback: this.tick, callbackScope: this, loop: true
+        });
+      }
+    }
+
+    resetTimer() {
+      this.fallTimer.remove();
+      this.fallTimer = this.time.addEvent({
+        delay: this.fallDelay, callback: this.tick, callbackScope: this, loop: true
+      });
+    }
+
+    /* ── Utility ── */
+
+    sfx(key) {
+      if (this.cache.audio.exists(key)) this.sound.play(key, { volume: 0.3 });
+    }
+
+    /* ── Game over ── */
+
+    endGame() {
+      this.isOver = true;
+      this.fallTimer.remove();
+      this.sfx('loseSfx');
+
+      this.tweens.add({
+        targets: [...this.boardSprites, ...this.activeSprites],
+        alpha: 0.25, duration: 500, ease: 'Power2'
+      });
+
+      this.add.rectangle(200, 300, 400, 600, 0x000000, 0.75).setDepth(20);
+      this.add.text(200, 220, 'GAME OVER', {
+        fontSize: '38px', fill: '#ff6b6b', fontFamily: 'Segoe UI', fontStyle: 'bold',
+        stroke: '#000', strokeThickness: 5
+      }).setOrigin(0.5).setDepth(21);
+      this.add.text(200, 275, 'Score: ' + this.score, {
+        fontSize: '22px', fill: '#fff', fontFamily: 'Segoe UI'
+      }).setOrigin(0.5).setDepth(21);
+      this.add.text(200, 310, 'Level ' + this.level + '  ·  ' + this.lines + ' lines', {
+        fontSize: '15px', fill: '#a29bfe', fontFamily: 'Segoe UI'
+      }).setOrigin(0.5).setDepth(21);
+      this.add.text(200, 370, 'Click to Restart', {
+        fontSize: '18px', fill: '#0984e3', fontFamily: 'Segoe UI'
+      }).setOrigin(0.5).setDepth(21);
+
+      this.input.once('pointerdown', () => this.scene.restart());
+    }
+  }
+
+  new Phaser.Game({
+    type: Phaser.AUTO, width: 400, height: 600, parent: 'game',
+    backgroundColor: '#12122a',
+    scene: FallingBlocksScene
+  });
+  </script>
+</body>
+</html>

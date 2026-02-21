@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    :root { --game-primary:#fd79a8; --game-secondary:#6c5ce7; }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:'Segoe UI',sans-serif; background:linear-gradient(135deg,#fd79a8 0%,#e84393 50%,#6c5ce7 100%);
+      min-height:100vh; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+    #game { border-radius:12px; overflow:hidden; box-shadow:0 8px 32px rgba(0,0,0,0.4); }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.86.0/dist/phaser.min.js"></script>
+</head>
+<body>
+<div id="game"></div>
+<script>
+const COLS = 10, ROWS = 12, R = 18, COLORS = 6;
+const GW = COLS * R * 2 + R, GH = 600;
+
+class BubbleScene extends Phaser.Scene {
+  constructor() { super('BubbleScene'); }
+
+  preload() {
+    this.load.audio('hitSfx', '/assets/sounds/hit.wav');
+    this.load.audio('coinSfx', '/assets/sounds/coin.wav');
+    this.load.audio('explosionSfx', '/assets/sounds/explosion.wav');
+  }
+
+  create() {
+    const g = this.make.graphics({ add: false });
+    const colors = [0xff4466, 0x44aaff, 0x44dd44, 0xffaa22, 0xdd44ff, 0x44ffdd];
+    for (let i = 0; i < COLORS; i++) {
+      g.clear();
+      g.fillStyle(colors[i]); g.fillCircle(R, R, R - 2);
+      const r = (colors[i] >> 16) & 0xff, gv = (colors[i] >> 8) & 0xff, b = colors[i] & 0xff;
+      g.fillStyle(Phaser.Display.Color.GetColor(Math.min(255, r + 60), Math.min(255, gv + 60), Math.min(255, b + 60)));
+      g.fillCircle(R - 4, R - 4, 5);
+      g.generateTexture('bubble_' + i, R * 2, R * 2);
+    }
+    g.clear();
+    g.fillStyle(0xffffff); g.fillCircle(4, 4, 3);
+    g.generateTexture('particle', 8, 8); g.destroy();
+
+    this.score = 0; this.gameOver = false;
+    this.grid = [];
+    this.bubbleGroup = this.add.group();
+
+    this.add.rectangle(GW / 2, GH / 2, GW, GH, 0x1a0a2e);
+
+    for (let row = 0; row < 6; row++) {
+      this.grid[row] = [];
+      for (let col = 0; col < COLS - (row % 2 ? 1 : 0); col++) {
+        const type = Phaser.Math.Between(0, COLORS - 1);
+        const pos = this.gridToPos(row, col);
+        const spr = this.add.image(pos.x, pos.y, 'bubble_' + type).setScale(0.9);
+        spr.bData = { row, col, type };
+        this.grid[row][col] = spr;
+        this.bubbleGroup.add(spr);
+      }
+    }
+    for (let row = 6; row < ROWS + 4; row++) this.grid[row] = [];
+
+    this.scoreText = this.add.text(GW / 2, GH - 30, 'Score: 0', {
+      fontSize: '20px', fill: '#fff', stroke: '#000', strokeThickness: 3
+    }).setOrigin(0.5).setDepth(10);
+
+    this.nextType = Phaser.Math.Between(0, COLORS - 1);
+    this.shooterBubble = null;
+    this.shooting = false;
+    this.loadShooter();
+
+    this.aimLine = this.add.graphics().setDepth(5);
+
+    this.input.on('pointermove', (p) => {
+      if (this.shooting || this.gameOver) return;
+      this.drawAim(p.x, p.y);
+    });
+
+    this.input.on('pointerdown', (p) => {
+      if (this.shooting || this.gameOver) return;
+      if (p.y >= GH - 50) return;
+      const angle = Phaser.Math.Angle.Between(GW / 2, GH - 70, p.x, p.y);
+      if (angle > -0.15) return;
+      this.shooting = true;
+      this.aimLine.clear();
+      const speed = 600;
+      this.shotVx = Math.cos(angle) * speed;
+      this.shotVy = Math.sin(angle) * speed;
+    });
+
+    this.pushTimer = this.time.addEvent({ delay: 25000, callback: () => this.pushNewRow(), loop: true });
+  }
+
+  gridToPos(row, col) {
+    const offsetX = (row % 2) ? R : 0;
+    return { x: R + col * R * 2 + offsetX, y: R + row * (R * 1.73) };
+  }
+
+  posToGrid(x, y) {
+    let row = Math.round((y - R) / (R * 1.73));
+    row = Math.max(0, row);
+    const offsetX = (row % 2) ? R : 0;
+    let col = Math.round((x - R - offsetX) / (R * 2));
+    const maxCol = COLS - (row % 2 ? 1 : 0) - 1;
+    col = Phaser.Math.Clamp(col, 0, maxCol);
+    return { row, col };
+  }
+
+  loadShooter() {
+    this.currentType = this.nextType;
+    this.nextType = Phaser.Math.Between(0, COLORS - 1);
+    this.shooterBubble = this.add.image(GW / 2, GH - 70, 'bubble_' + this.currentType).setScale(0.9).setDepth(8);
+    this.shooting = false;
+  }
+
+  drawAim(px, py) {
+    this.aimLine.clear();
+    const angle = Phaser.Math.Angle.Between(GW / 2, GH - 70, px, py);
+    if (angle > -0.15) return;
+    this.aimLine.lineStyle(2, 0xffffff, 0.4);
+    this.aimLine.beginPath();
+    this.aimLine.moveTo(GW / 2, GH - 70);
+    this.aimLine.lineTo(GW / 2 + Math.cos(angle) * 200, GH - 70 + Math.sin(angle) * 200);
+    this.aimLine.strokePath();
+  }
+
+  update(time, delta) {
+    if (this.gameOver || !this.shooting || !this.shooterBubble) return;
+    const dt = delta / 1000;
+    let nx = this.shooterBubble.x + this.shotVx * dt;
+    let ny = this.shooterBubble.y + this.shotVy * dt;
+
+    if (nx < R) { nx = R; this.shotVx = Math.abs(this.shotVx); }
+    if (nx > GW - R) { nx = GW - R; this.shotVx = -Math.abs(this.shotVx); }
+
+    this.shooterBubble.x = nx;
+    this.shooterBubble.y = ny;
+
+    if (ny <= R) { this.snapBubble(); return; }
+
+    for (const row of this.grid) {
+      for (const b of row) {
+        if (!b) continue;
+        const dist = Phaser.Math.Distance.Between(nx, ny, b.x, b.y);
+        if (dist < R * 1.8) { this.snapBubble(); return; }
+      }
+    }
+  }
+
+  snapBubble() {
+    const { row, col } = this.posToGrid(this.shooterBubble.x, this.shooterBubble.y);
+    if (this.grid[row] && this.grid[row][col]) {
+      const maxCol = COLS - (row % 2 ? 1 : 0);
+      for (let c = 0; c < maxCol; c++) {
+        if (!this.grid[row][c]) {
+          this.grid[row][c] = this.shooterBubble;
+          const pos = this.gridToPos(row, c);
+          this.shooterBubble.setPosition(pos.x, pos.y);
+          this.shooterBubble.bData = { row, col: c, type: this.currentType };
+          this.checkMatches(row, c);
+          this.loadShooter();
+          return;
+        }
+      }
+      this.endGame(); return;
+    }
+    if (!this.grid[row]) this.grid[row] = [];
+    this.grid[row][col] = this.shooterBubble;
+    const pos = this.gridToPos(row, col);
+    this.shooterBubble.setPosition(pos.x, pos.y);
+    this.shooterBubble.bData = { row, col, type: this.currentType };
+    this.checkMatches(row, col);
+
+    if (row >= ROWS) { this.endGame(); return; }
+    this.loadShooter();
+  }
+
+  checkMatches(row, col) {
+    const type = this.currentType;
+    const visited = new Set();
+    const matches = [];
+    const stack = [[row, col]];
+    while (stack.length) {
+      const [r, c] = stack.pop();
+      const key = r + ',' + c;
+      if (visited.has(key)) continue;
+      visited.add(key);
+      if (!this.grid[r] || !this.grid[r][c]) continue;
+      if (this.grid[r][c].bData.type !== type) continue;
+      matches.push([r, c]);
+      const neighbors = this.getNeighbors(r, c);
+      for (const [nr, nc] of neighbors) stack.push([nr, nc]);
+    }
+    if (matches.length >= 3) {
+      for (const [r, c] of matches) {
+        if (this.grid[r][c]) {
+          this.grid[r][c].destroy();
+          this.grid[r][c] = null;
+          this.score += 10;
+        }
+      }
+      try { this.sound.play('coinSfx'); } catch(e) {}
+      this.removeFloating();
+      this.scoreText.setText('Score: ' + this.score);
+    }
+  }
+
+  getNeighbors(r, c) {
+    const even = r % 2 === 0;
+    const offsets = even
+      ? [[-1, -1], [-1, 0], [0, -1], [0, 1], [1, -1], [1, 0]]
+      : [[-1, 0], [-1, 1], [0, -1], [0, 1], [1, 0], [1, 1]];
+    return offsets.map(([dr, dc]) => [r + dr, c + dc]).filter(([nr, nc]) => {
+      return nr >= 0 && nc >= 0 && this.grid[nr] && nc < (COLS - (nr % 2 ? 1 : 0));
+    });
+  }
+
+  removeFloating() {
+    const connected = new Set();
+    const stack = [];
+    if (this.grid[0]) {
+      for (let c = 0; c < this.grid[0].length; c++) {
+        if (this.grid[0][c]) stack.push([0, c]);
+      }
+    }
+    while (stack.length) {
+      const [r, c] = stack.pop();
+      const key = r + ',' + c;
+      if (connected.has(key)) continue;
+      connected.add(key);
+      const neighbors = this.getNeighbors(r, c);
+      for (const [nr, nc] of neighbors) {
+        if (this.grid[nr] && this.grid[nr][nc]) stack.push([nr, nc]);
+      }
+    }
+    for (let r = 0; r < this.grid.length; r++) {
+      if (!this.grid[r]) continue;
+      for (let c = 0; c < this.grid[r].length; c++) {
+        if (this.grid[r][c] && !connected.has(r + ',' + c)) {
+          this.grid[r][c].destroy();
+          this.grid[r][c] = null;
+          this.score += 5;
+        }
+      }
+    }
+    this.scoreText.setText('Score: ' + this.score);
+  }
+
+  pushNewRow() {
+    if (this.gameOver) return;
+    for (let r = this.grid.length - 1; r >= 1; r--) {
+      this.grid[r] = this.grid[r - 1] || [];
+      for (const b of this.grid[r]) {
+        if (b) { b.y += R * 1.73; b.bData.row = r; }
+      }
+    }
+    this.grid[0] = [];
+    for (let c = 0; c < COLS; c++) {
+      const type = Phaser.Math.Between(0, COLORS - 1);
+      const pos = this.gridToPos(0, c);
+      const spr = this.add.image(pos.x, pos.y, 'bubble_' + type).setScale(0.9);
+      spr.bData = { row: 0, col: c, type };
+      this.grid[0][c] = spr;
+    }
+    for (const row of this.grid) {
+      for (const b of (row || [])) {
+        if (b && b.y > GH - 80) { this.endGame(); return; }
+      }
+    }
+  }
+
+  endGame() {
+    this.gameOver = true;
+    this.shooting = false;
+    if (this.shooterBubble) this.shooterBubble.setVisible(false);
+    this.add.rectangle(GW / 2, GH / 2, GW, GH, 0x000000, 0.7).setDepth(20);
+    this.add.text(GW / 2, GH / 2 - 30, 'Game Over!', {
+      fontSize: '36px', fill: '#fff', stroke: '#000', strokeThickness: 4
+    }).setOrigin(0.5).setDepth(21);
+    this.add.text(GW / 2, GH / 2 + 20, 'Score: ' + this.score, {
+      fontSize: '24px', fill: '#fdcb6e'
+    }).setOrigin(0.5).setDepth(21);
+    this.add.text(GW / 2, GH / 2 + 60, 'Click to restart', {
+      fontSize: '16px', fill: '#aaa'
+    }).setOrigin(0.5).setDepth(21);
+    this.input.once('pointerdown', () => this.scene.restart());
+  }
+}
+
+new Phaser.Game({
+  type: Phaser.AUTO, width: GW, height: GH, parent: 'game',
+  backgroundColor: '#1a0a2e', scene: BubbleScene
+});
+</script>
+</body>
+</html>

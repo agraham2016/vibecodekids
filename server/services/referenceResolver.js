@@ -81,10 +81,19 @@ const GENRE_TEMPLATE_MAP = {
   'puzzle': 'puzzle.html',
   'clicker': 'clicker.html',
   'rpg': 'rpg.html',
-  'endless-runner': 'platformer.html', // Closest match
-  'fighting': 'shooter.html',          // Closest match
-  'tower-defense': 'shooter.html',     // Closest match
-  'card': 'puzzle.html',               // Closest match
+  'endless-runner': 'endless-runner.html',
+  'fighting': 'fighting.html',
+  'tower-defense': 'tower-defense.html',
+  'card': 'puzzle.html',
+  'snake': 'snake.html',
+  'sports': 'sports.html',
+  'brick-breaker': 'brick-breaker.html',
+  'flappy': 'flappy.html',
+  'bubble-shooter': 'bubble-shooter.html',
+  'falling-blocks': 'falling-blocks.html',
+  'rhythm': 'rhythm.html',
+  'pet-sim': 'pet-sim.html',
+  'simulation': 'pet-sim.html',
 };
 
 /**

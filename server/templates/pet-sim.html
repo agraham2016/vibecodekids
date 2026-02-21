@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    :root { --game-primary:#fdcb6e; --game-secondary:#e17055; }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:'Segoe UI',sans-serif; background:linear-gradient(135deg,#fdcb6e 0%,#f39c12 50%,#e17055 100%);
+      min-height:100vh; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+    #game { border-radius:12px; overflow:hidden; box-shadow:0 8px 32px rgba(0,0,0,0.3); }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.86.0/dist/phaser.min.js"></script>
+</head>
+<body>
+<div id="game"></div>
+<script>
+const GW = 500, GH = 500;
+
+class PetScene extends Phaser.Scene {
+  constructor() { super('PetScene'); }
+
+  preload() {
+    this.load.image('pet', '/assets/sprites/pet-sim/pet.png');
+    this.load.image('heart', '/assets/sprites/pet-sim/heart.png');
+    this.load.image('food', '/assets/sprites/pet-sim/food.png');
+    this.load.image('toy', '/assets/sprites/pet-sim/toy.png');
+    this.load.image('particle', '/assets/sprites/common/particle.png');
+    this.load.audio('clickSfx', '/assets/sounds/click.wav');
+    this.load.audio('coinSfx', '/assets/sounds/coin.wav');
+    this.load.audio('powerupSfx', '/assets/sounds/powerup.wav');
+  }
+
+  create() {
+    if (!this.textures.exists('pet') || this.textures.get('pet').key === '__MISSING') {
+      const g = this.make.graphics({ add: false });
+      g.fillStyle(0xdcb478); g.fillCircle(24, 28, 16);
+      g.fillStyle(0xe0c890); g.fillCircle(24, 24, 14); g.fillCircle(24, 16, 12);
+      g.fillStyle(0x333333); g.fillRect(19, 13, 3, 3); g.fillRect(27, 13, 3, 3);
+      g.fillCircle(24, 18, 2);
+      g.fillStyle(0xe0c890); g.fillCircle(14, 8, 5); g.fillCircle(34, 8, 5);
+      g.generateTexture('pet', 48, 48); g.clear();
+      g.fillStyle(0xff6b6b); g.fillCircle(8, 10, 6); g.fillCircle(16, 10, 6);
+      g.fillTriangle(4, 12, 20, 12, 12, 20);
+      g.generateTexture('heart', 24, 24); g.clear();
+      g.fillStyle(0xe67e22); g.fillRect(4, 8, 16, 12); g.fillRect(2, 6, 20, 4);
+      g.generateTexture('food', 24, 24); g.clear();
+      g.fillStyle(0x3498db); g.fillCircle(12, 12, 10);
+      g.generateTexture('toy', 24, 24); g.clear();
+      g.fillStyle(0xffffff); g.fillCircle(4, 4, 3);
+      g.generateTexture('particle', 8, 8); g.destroy();
+    }
+
+    this.add.rectangle(GW / 2, GH / 2, GW, GH, 0xfff5e1);
+
+    this.hunger = 80; this.happiness = 80; this.energy = 80;
+    this.gameOver = false;
+    this.day = 1; this.dayTimer = 0;
+    this.feedCooldown = 0; this.playCooldown = 0; this.sleepCooldown = 0;
+
+    this.dayText = this.add.text(GW / 2, 15, 'Day 1', {
+      fontSize: '18px', fill: '#8B4513', fontStyle: 'bold'
+    }).setOrigin(0.5).setDepth(5);
+
+    this.createBar(70, 42, 0x27ae60, 'hunger');
+    this.createBar(70, 62, 0xf1c40f, 'happiness');
+    this.createBar(70, 82, 0x3498db, 'energy');
+
+    this.add.text(15, 38, '🍎', { fontSize: '14px' });
+    this.add.text(15, 58, '😊', { fontSize: '14px' });
+    this.add.text(15, 78, '💤', { fontSize: '14px' });
+
+    this.pet = this.add.image(GW / 2, GH / 2 - 20, 'pet').setScale(3).setDepth(3);
+    this.moodText = this.add.text(GW / 2, GH / 2 - 100, 'Happy!', {
+      fontSize: '20px', fill: '#27ae60', fontStyle: 'bold', stroke: '#fff', strokeThickness: 2
+    }).setOrigin(0.5).setDepth(5);
+
+    this.emitter = this.add.particles(0, 0, 'particle', {
+      speed: { min: 40, max: 100 }, lifespan: 600, scale: { start: 1.5, end: 0 },
+      emitting: false, quantity: 6, gravityY: -50
+    }).setDepth(8);
+
+    this.createButton(GW / 2 - 130, GH - 70, '🍎 Feed', 'feed', 0x27ae60);
+    this.createButton(GW / 2, GH - 70, '🎾 Play', 'play', 0xf1c40f);
+    this.createButton(GW / 2 + 130, GH - 70, '💤 Sleep', 'sleep', 0x3498db);
+
+    this.depletionRate = 3;
+  }
+
+  createBar(x, y, color, key) {
+    this.add.rectangle(x + 100, y + 6, 200, 12, 0xdddddd).setOrigin(0, 0.5);
+    this[key + 'Bar'] = this.add.rectangle(x + 100, y + 6, 200 * (this[key] / 100), 12, color).setOrigin(0, 0.5).setDepth(2);
+    this[key + 'Text'] = this.add.text(x + 310, y + 1, Math.round(this[key]) + '%', {
+      fontSize: '12px', fill: '#555'
+    }).setDepth(2);
+  }
+
+  updateBar(key, color) {
+    const val = Math.max(0, Math.min(100, this[key]));
+    this[key + 'Bar'].width = 200 * (val / 100);
+    this[key + 'Text'].setText(Math.round(val) + '%');
+  }
+
+  createButton(x, y, label, action, color) {
+    const bg = this.add.rectangle(x, y, 110, 44, color, 0.85).setInteractive({ useHandCursor: true })
+      .setDepth(5);
+    const txt = this.add.text(x, y, label, {
+      fontSize: '15px', fill: '#fff', fontStyle: 'bold', stroke: '#000', strokeThickness: 1
+    }).setOrigin(0.5).setDepth(6);
+    const cdOverlay = this.add.rectangle(x, y, 110, 44, 0x000000, 0).setDepth(7);
+    this[action + 'Overlay'] = cdOverlay;
+
+    bg.on('pointerdown', () => {
+      if (this.gameOver || this[action + 'Cooldown'] > 0) return;
+      this.doAction(action, x);
+    });
+  }
+
+  doAction(action, x) {
+    try { this.sound.play('clickSfx'); } catch(e) {}
+    if (action === 'feed') {
+      this.hunger = Math.min(100, this.hunger + 25);
+      this.updateBar('hunger');
+      this.feedCooldown = 3;
+      this.floatEmoji('🍎', x);
+      this.emitter.setPosition(GW / 2, GH / 2 - 20);
+      this.emitter.setParticleTint(0x27ae60);
+      this.emitter.explode();
+    } else if (action === 'play') {
+      this.happiness = Math.min(100, this.happiness + 25);
+      this.updateBar('happiness');
+      this.playCooldown = 3;
+      this.floatEmoji('⭐', x);
+      this.tweens.add({
+        targets: this.pet, angle: { from: -10, to: 10 }, duration: 100, yoyo: true, repeat: 3,
+        onComplete: () => this.pet.angle = 0
+      });
+      try { this.sound.play('coinSfx'); } catch(e) {}
+    } else if (action === 'sleep') {
+      this.energy = Math.min(100, this.energy + 30);
+      this.updateBar('energy');
+      this.sleepCooldown = 3;
+      this.floatEmoji('💤', x);
+      this.tweens.add({
+        targets: this.pet, scaleX: 2.8, scaleY: 3.2, duration: 500, yoyo: true
+      });
+      try { this.sound.play('powerupSfx'); } catch(e) {}
+    }
+  }
+
+  floatEmoji(emoji, x) {
+    const txt = this.add.text(x, GH / 2, emoji, { fontSize: '28px' }).setOrigin(0.5).setDepth(10);
+    this.tweens.add({
+      targets: txt, y: GH / 2 - 80, alpha: 0, duration: 800,
+      onComplete: () => txt.destroy()
+    });
+  }
+
+  update(time, delta) {
+    if (this.gameOver) return;
+    const dt = delta / 1000;
+
+    this.hunger -= this.depletionRate * dt;
+    this.happiness -= (this.depletionRate * 0.8) * dt;
+    this.energy -= (this.depletionRate * 0.6) * dt;
+
+    this.hunger = Math.max(0, this.hunger);
+    this.happiness = Math.max(0, this.happiness);
+    this.energy = Math.max(0, this.energy);
+
+    this.updateBar('hunger');
+    this.updateBar('happiness');
+    this.updateBar('energy');
+
+    for (const action of ['feed', 'play', 'sleep']) {
+      if (this[action + 'Cooldown'] > 0) {
+        this[action + 'Cooldown'] -= dt;
+        this[action + 'Overlay'].fillAlpha = 0.4;
+      } else {
+        this[action + 'Overlay'].fillAlpha = 0;
+      }
+    }
+
+    const avg = (this.hunger + this.happiness + this.energy) / 3;
+    if (avg > 60) {
+      this.moodText.setText('Happy!').setColor('#27ae60');
+      this.pet.setScale(3 + Math.sin(time / 300) * 0.1);
+    } else if (avg > 30) {
+      this.moodText.setText('Content').setColor('#f39c12');
+      this.pet.setScale(3);
+    } else {
+      this.moodText.setText('Sad...').setColor('#e74c3c');
+      this.pet.setScale(2.8 + Math.sin(time / 500) * 0.05);
+    }
+
+    this.dayTimer += dt;
+    if (this.dayTimer >= 60) {
+      this.dayTimer -= 60;
+      this.day++;
+      this.dayText.setText('Day ' + this.day);
+      this.depletionRate += 0.3;
+    }
+
+    if (this.hunger <= 0 || this.happiness <= 0 || this.energy <= 0) {
+      this.endGame();
+    }
+  }
+
+  endGame() {
+    this.gameOver = true;
+    let reason = 'hungry';
+    if (this.happiness <= 0) reason = 'lonely';
+    if (this.energy <= 0) reason = 'tired';
+
+    this.add.rectangle(GW / 2, GH / 2, GW, GH, 0x000000, 0.7).setDepth(20);
+    this.add.text(GW / 2, GH / 2 - 50, 'Your pet got too ' + reason + '!', {
+      fontSize: '24px', fill: '#e74c3c', stroke: '#000', strokeThickness: 3
+    }).setOrigin(0.5).setDepth(21);
+    this.add.text(GW / 2, GH / 2, 'You survived ' + this.day + ' days', {
+      fontSize: '22px', fill: '#fff'
+    }).setOrigin(0.5).setDepth(21);
+    this.add.text(GW / 2, GH / 2 + 50, 'Click to try again', {
+      fontSize: '16px', fill: '#aaa'
+    }).setOrigin(0.5).setDepth(21);
+    this.input.once('pointerdown', () => this.scene.restart());
+  }
+}
+
+new Phaser.Game({
+  type: Phaser.AUTO, width: GW, height: GH, parent: 'game',
+  backgroundColor: '#fff5e1', scene: PetScene
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    :root {
+      --game-primary: #27ae60;
+      --game-secondary: #2ecc71;
+      --game-bg: #1a8a4a;
+      --game-text: #ffffff;
+      --game-accent: #f1c40f;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #27ae60 0%, #2ecc71 50%, #1abc9c 100%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    #game-container {
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    }
+  </style>
+</head>
+<body>
+  <div id="game-container"></div>
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.86.0/dist/phaser.min.js"></script>
+  <script>
+    const W = 800, H = 500;
+    const FIELD_PAD = 40;
+    const GOAL_W = 12, GOAL_H = 100;
+    const MATCH_TIME = 60;
+    const PLAYER_SPEED = 220, AI_SPEED = 170;
+    const KICK_POWER = 400, BALL_DRAG = 120, BALL_MAX = 500;
+
+    let player, opponent, ball, cursors, spaceKey;
+    let playerScore = 0, aiScore = 0;
+    let scoreText, timerText, msgText;
+    let timeLeft = MATCH_TIME, timerEvent;
+    let goalLeft, goalRight;
+    let gameOver = false, kickCooldown = 0;
+
+    const config = {
+      type: Phaser.AUTO,
+      width: W,
+      height: H,
+      parent: 'game-container',
+      backgroundColor: '#1a8a4a',
+      physics: { default: 'arcade', arcade: { gravity: { y: 0 }, debug: false } },
+      scene: { preload, create, update }
+    };
+
+    function preload() {
+      this.load.image('player', '/assets/sprites/sports/player.png');
+      this.load.image('opponent', '/assets/sprites/sports/opponent.png');
+      this.load.image('ball', '/assets/sprites/sports/ball.png');
+      this.load.image('goal', '/assets/sprites/sports/goal.png');
+      this.load.image('particle', '/assets/sprites/common/particle.png');
+      this.load.audio('hitSfx', '/assets/sounds/hit.wav');
+      this.load.audio('goalSfx', '/assets/sounds/coin.wav');
+    }
+
+    function create() {
+      const g = this.make.graphics({ x: 0, y: 0, add: false });
+
+      if (!this.textures.exists('player') || this.textures.get('player').key === '__MISSING') {
+        g.fillStyle(0x3498db);
+        g.fillCircle(16, 16, 14);
+        g.fillStyle(0x2980b9);
+        g.fillCircle(16, 16, 10);
+        g.fillStyle(0xffffff);
+        g.fillRect(12, 8, 3, 3);
+        g.fillRect(18, 8, 3, 3);
+        g.fillStyle(0xe74c3c);
+        g.fillRect(13, 15, 6, 2);
+        g.generateTexture('player', 32, 32);
+        g.clear();
+      }
+
+      if (!this.textures.exists('opponent') || this.textures.get('opponent').key === '__MISSING') {
+        g.fillStyle(0xe74c3c);
+        g.fillCircle(16, 16, 14);
+        g.fillStyle(0xc0392b);
+        g.fillCircle(16, 16, 10);
+        g.fillStyle(0xffffff);
+        g.fillRect(12, 8, 3, 3);
+        g.fillRect(18, 8, 3, 3);
+        g.fillStyle(0x2c3e50);
+        g.fillRect(13, 15, 6, 2);
+        g.generateTexture('opponent', 32, 32);
+        g.clear();
+      }
+
+      if (!this.textures.exists('ball') || this.textures.get('ball').key === '__MISSING') {
+        g.fillStyle(0xffffff);
+        g.fillCircle(8, 8, 8);
+        g.fillStyle(0x2c3e50);
+        g.fillCircle(8, 5, 3);
+        g.fillCircle(4, 10, 2);
+        g.fillCircle(12, 10, 2);
+        g.generateTexture('ball', 16, 16);
+        g.clear();
+      }
+
+      if (!this.textures.exists('particle') || this.textures.get('particle').key === '__MISSING') {
+        g.fillStyle(0xffffff);
+        g.fillCircle(4, 4, 4);
+        g.generateTexture('particle', 8, 8);
+        g.clear();
+      }
+
+      g.destroy();
+
+      drawField(this);
+
+      goalLeft = this.add.rectangle(FIELD_PAD - GOAL_W / 2, H / 2, GOAL_W, GOAL_H, 0xffffff, 0.35);
+      this.physics.add.existing(goalLeft, true);
+      goalRight = this.add.rectangle(W - FIELD_PAD + GOAL_W / 2, H / 2, GOAL_W, GOAL_H, 0xffffff, 0.35);
+      this.physics.add.existing(goalRight, true);
+
+      const wallThick = 10;
+      const walls = this.physics.add.staticGroup();
+      walls.add(this.add.rectangle(W / 2, -wallThick / 2, W, wallThick, 0x000000, 0).setOrigin(0.5));
+      walls.add(this.add.rectangle(W / 2, H + wallThick / 2, W, wallThick, 0x000000, 0).setOrigin(0.5));
+      walls.add(this.add.rectangle(-wallThick / 2, H / 2, wallThick, H, 0x000000, 0).setOrigin(0.5));
+      walls.add(this.add.rectangle(W + wallThick / 2, H / 2, wallThick, H, 0x000000, 0).setOrigin(0.5));
+
+      player = this.physics.add.sprite(200, H / 2, 'player');
+      player.setCollideWorldBounds(true);
+      player.setDrag(400);
+      player.setCircle(14, 2, 2);
+
+      opponent = this.physics.add.sprite(600, H / 2, 'opponent');
+      opponent.setCollideWorldBounds(true);
+      opponent.setDrag(400);
+      opponent.setCircle(14, 2, 2);
+
+      ball = this.physics.add.sprite(W / 2, H / 2, 'ball');
+      ball.setCollideWorldBounds(true);
+      ball.setBounce(0.7);
+      ball.setDrag(BALL_DRAG);
+      ball.setMaxVelocity(BALL_MAX);
+      ball.setCircle(8);
+
+      this.physics.add.collider(player, walls);
+      this.physics.add.collider(opponent, walls);
+      this.physics.add.collider(ball, walls);
+      this.physics.add.collider(player, opponent);
+      this.physics.add.collider(player, ball, onPlayerHitBall, null, this);
+      this.physics.add.collider(opponent, ball, onAIHitBall, null, this);
+
+      this.physics.add.overlap(ball, goalLeft, () => goalScored(this, 'ai'), null, this);
+      this.physics.add.overlap(ball, goalRight, () => goalScored(this, 'player'), null, this);
+
+      scoreText = this.add.text(W / 2, 14, 'Player 0 - 0 AI', {
+        fontSize: '20px', fontFamily: 'Segoe UI', fill: '#fff', stroke: '#000', strokeThickness: 3
+      }).setOrigin(0.5, 0).setDepth(10);
+
+      timerText = this.add.text(W / 2, 38, '60', {
+        fontSize: '16px', fontFamily: 'Segoe UI', fill: '#f1c40f', stroke: '#000', strokeThickness: 2
+      }).setOrigin(0.5, 0).setDepth(10);
+
+      msgText = this.add.text(W / 2, H / 2, '', {
+        fontSize: '32px', fontFamily: 'Segoe UI', fill: '#fff', stroke: '#000', strokeThickness: 4, align: 'center'
+      }).setOrigin(0.5).setDepth(20).setVisible(false);
+
+      cursors = this.input.keyboard.createCursorKeys();
+      spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+
+      timeLeft = MATCH_TIME;
+      timerEvent = this.time.addEvent({
+        delay: 1000, callback: () => {
+          if (gameOver) return;
+          timeLeft--;
+          timerText.setText(String(timeLeft));
+          if (timeLeft <= 0) endMatch(this);
+        }, loop: true
+      });
+
+      this.input.keyboard.on('keydown-SPACE', () => {
+        if (gameOver) {
+          gameOver = false;
+          playerScore = 0;
+          aiScore = 0;
+          timeLeft = MATCH_TIME;
+          this.scene.restart();
+        }
+      });
+    }
+
+    function drawField(scene) {
+      const fg = scene.add.graphics();
+      fg.fillStyle(0x2d8a4e);
+      fg.fillRect(FIELD_PAD, FIELD_PAD, W - FIELD_PAD * 2, H - FIELD_PAD * 2);
+      fg.fillStyle(0x34a85a);
+      for (let i = 0; i < 8; i++) {
+        if (i % 2 === 0) fg.fillRect(FIELD_PAD + i * 90, FIELD_PAD, 90, H - FIELD_PAD * 2);
+      }
+      fg.lineStyle(2, 0xffffff, 0.7);
+      fg.strokeRect(FIELD_PAD, FIELD_PAD, W - FIELD_PAD * 2, H - FIELD_PAD * 2);
+      fg.strokeCircle(W / 2, H / 2, 50);
+      fg.lineBetween(W / 2, FIELD_PAD, W / 2, H - FIELD_PAD);
+      fg.fillStyle(0xffffff, 0.7);
+      fg.fillCircle(W / 2, H / 2, 4);
+
+      const penW = 60, penH = 150;
+      fg.strokeRect(FIELD_PAD, H / 2 - penH / 2, penW, penH);
+      fg.strokeRect(W - FIELD_PAD - penW, H / 2 - penH / 2, penW, penH);
+
+      fg.lineStyle(4, 0xffffff, 0.9);
+      fg.strokeRect(FIELD_PAD - GOAL_W, H / 2 - GOAL_H / 2, GOAL_W, GOAL_H);
+      fg.strokeRect(W - FIELD_PAD, H / 2 - GOAL_H / 2, GOAL_W, GOAL_H);
+
+      fg.lineStyle(2, 0xffffff, 0.3);
+      fg.strokeRect(0, 0, W, H);
+    }
+
+    function onPlayerHitBall(p, b) {
+      if (this.cache.audio.exists('hitSfx')) this.sound.play('hitSfx', { volume: 0.4 });
+      sparkAt(this, b.x, b.y, 0x3498db);
+    }
+
+    function onAIHitBall(o, b) {
+      if (this.cache.audio.exists('hitSfx')) this.sound.play('hitSfx', { volume: 0.3 });
+      sparkAt(this, b.x, b.y, 0xe74c3c);
+    }
+
+    function sparkAt(scene, x, y, color) {
+      for (let i = 0; i < 5; i++) {
+        const p = scene.add.circle(x, y, Phaser.Math.Between(2, 5), color, 0.8);
+        scene.tweens.add({
+          targets: p,
+          x: x + Phaser.Math.Between(-30, 30),
+          y: y + Phaser.Math.Between(-30, 30),
+          alpha: 0, scale: 0.2, duration: 300,
+          onComplete: () => p.destroy()
+        });
+      }
+    }
+
+    function goalScored(scene, who) {
+      if (gameOver) return;
+      if (who === 'player') playerScore++;
+      else aiScore++;
+      scoreText.setText('Player ' + playerScore + ' - ' + aiScore + ' AI');
+      if (scene.cache.audio.exists('goalSfx')) scene.sound.play('goalSfx');
+
+      msgText.setText('GOAL!').setVisible(true);
+      scene.time.delayedCall(1200, () => { msgText.setVisible(false); });
+
+      for (let i = 0; i < 12; i++) {
+        const c = scene.add.circle(ball.x, ball.y, Phaser.Math.Between(3, 8), Phaser.Math.Between(0xf1c40f, 0xffffff), 0.9);
+        scene.tweens.add({
+          targets: c,
+          x: ball.x + Phaser.Math.Between(-60, 60),
+          y: ball.y + Phaser.Math.Between(-60, 60),
+          alpha: 0, scale: 0, duration: 600,
+          onComplete: () => c.destroy()
+        });
+      }
+
+      resetPositions();
+    }
+
+    function resetPositions() {
+      ball.setPosition(W / 2, H / 2);
+      ball.setVelocity(0, 0);
+      player.setPosition(200, H / 2);
+      player.setVelocity(0, 0);
+      opponent.setPosition(600, H / 2);
+      opponent.setVelocity(0, 0);
+    }
+
+    function endMatch(scene) {
+      gameOver = true;
+      ball.setVelocity(0, 0);
+      player.setVelocity(0, 0);
+      opponent.setVelocity(0, 0);
+      let result = playerScore > aiScore ? 'YOU WIN!' : playerScore < aiScore ? 'AI WINS!' : 'DRAW!';
+      msgText.setText(result + '\n' + playerScore + ' - ' + aiScore + '\nPress SPACE to restart').setVisible(true);
+    }
+
+    function update(time, delta) {
+      if (gameOver) return;
+      kickCooldown -= delta;
+
+      player.setVelocity(0, 0);
+      if (cursors.left.isDown) player.setVelocityX(-PLAYER_SPEED);
+      else if (cursors.right.isDown) player.setVelocityX(PLAYER_SPEED);
+      if (cursors.up.isDown) player.setVelocityY(-PLAYER_SPEED);
+      else if (cursors.down.isDown) player.setVelocityY(PLAYER_SPEED);
+
+      if (spaceKey.isDown && kickCooldown <= 0) {
+        const dist = Phaser.Math.Distance.Between(player.x, player.y, ball.x, ball.y);
+        if (dist < 40) {
+          const angle = Phaser.Math.Angle.Between(player.x, player.y, ball.x, ball.y);
+          ball.setVelocity(Math.cos(angle) * KICK_POWER, Math.sin(angle) * KICK_POWER);
+          kickCooldown = 300;
+          if (this.cache.audio.exists('hitSfx')) this.sound.play('hitSfx', { volume: 0.6 });
+          sparkAt(this, ball.x, ball.y, 0xf1c40f);
+        }
+      }
+
+      updateAI(delta);
+    }
+
+    function updateAI(delta) {
+      const distToBall = Phaser.Math.Distance.Between(opponent.x, opponent.y, ball.x, ball.y);
+      const goalTargetX = FIELD_PAD + GOAL_W;
+      const goalTargetY = H / 2;
+
+      let targetX, targetY;
+
+      if (ball.x > W / 2 - 50) {
+        targetX = ball.x;
+        targetY = ball.y;
+      } else {
+        targetX = W * 0.65;
+        targetY = H / 2;
+      }
+
+      const angle = Phaser.Math.Angle.Between(opponent.x, opponent.y, targetX, targetY);
+      const dist = Phaser.Math.Distance.Between(opponent.x, opponent.y, targetX, targetY);
+
+      if (dist > 5) {
+        opponent.setVelocity(Math.cos(angle) * AI_SPEED, Math.sin(angle) * AI_SPEED);
+      }
+
+      if (distToBall < 36) {
+        const kickAngle = Phaser.Math.Angle.Between(opponent.x, opponent.y, goalTargetX, goalTargetY);
+        const spread = (Math.random() - 0.5) * 0.4;
+        ball.setVelocity(
+          Math.cos(kickAngle + spread) * (KICK_POWER * 0.85),
+          Math.sin(kickAngle + spread) * (KICK_POWER * 0.85)
+        );
+      }
+    }
+
+    const game = new Phaser.Game(config);
+  </script>
+</body>
+</html>

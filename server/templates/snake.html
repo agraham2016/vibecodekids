@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    :root {
+      --game-primary: #00b894;
+      --game-secondary: #00cec9;
+      --game-bg: #0984e3;
+      --game-text: #ffffff;
+      --game-accent: #ffeaa7;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #00b894 0%, #00cec9 50%, #0984e3 100%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    #game-container {
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    }
+    .hint { margin-top: 14px; color: rgba(255,255,255,0.55); font-size: 14px; }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.86.0/dist/phaser.min.js"></script>
+</head>
+<body>
+  <!-- GAME_TITLE -->Snake<!-- /GAME_TITLE -->
+  <!-- PLAYER_CHARACTER -->snake<!-- /PLAYER_CHARACTER -->
+  <!-- OBSTACLES -->walls<!-- /OBSTACLES -->
+  <div id="game-container"></div>
+  <div class="hint">Arrow keys to change direction</div>
+  <script>
+  class SnakeScene extends Phaser.Scene {
+    preload() {
+      this.load.image('head', '/assets/sprites/snake/head.png');
+      this.load.image('body', '/assets/sprites/snake/body.png');
+      this.load.image('food', '/assets/sprites/snake/food.png');
+      this.load.image('particle', '/assets/sprites/common/particle.png');
+      this.load.audio('coinSfx', '/assets/sounds/coin.wav');
+      this.load.audio('hitSfx', '/assets/sounds/hit.wav');
+    }
+
+    create() {
+      const g = this.make.graphics({ add: false });
+
+      if (!this.textures.exists('head') || this.textures.get('head').key === '__MISSING') {
+        g.fillStyle(0x00b894); g.fillRect(0, 0, 20, 20);
+        g.fillStyle(0x00d2a0); g.fillRect(2, 2, 16, 16);
+        g.fillStyle(0xffffff); g.fillCircle(7, 7, 3); g.fillCircle(14, 7, 3);
+        g.fillStyle(0x2d3436); g.fillCircle(7, 7, 1.5); g.fillCircle(14, 7, 1.5);
+        g.generateTexture('head', 20, 20); g.clear();
+      }
+      if (!this.textures.exists('body') || this.textures.get('body').key === '__MISSING') {
+        g.fillStyle(0x00cec9); g.fillRect(0, 0, 20, 20);
+        g.fillStyle(0x55efc4); g.fillRect(2, 2, 16, 16);
+        g.generateTexture('body', 20, 20); g.clear();
+      }
+      if (!this.textures.exists('food') || this.textures.get('food').key === '__MISSING') {
+        g.fillStyle(0xe17055); g.fillCircle(10, 10, 9);
+        g.fillStyle(0xd63031); g.fillCircle(10, 10, 6);
+        g.fillStyle(0xfab1a0); g.fillCircle(8, 7, 3);
+        g.generateTexture('food', 20, 20); g.clear();
+      }
+      if (!this.textures.exists('particle') || this.textures.get('particle').key === '__MISSING') {
+        g.fillStyle(0xffffff); g.fillCircle(4, 4, 4);
+        g.generateTexture('particle', 8, 8); g.clear();
+      }
+      g.destroy();
+
+      this.tileSize = 20;
+      this.gridW = Math.floor(800 / this.tileSize);
+      this.gridH = Math.floor(500 / this.tileSize);
+      this.gameOver = false;
+      this.score = 0;
+      this.baseSpeed = 150;
+      this.moveInterval = this.baseSpeed;
+      this.direction = { x: 1, y: 0 };
+      this.nextDirection = { x: 1, y: 0 };
+      this.inputQueue = [];
+
+      const bg = this.add.graphics();
+      bg.fillStyle(0x1e272e); bg.fillRect(0, 0, 800, 500);
+      for (let gx = 0; gx < this.gridW; gx++) {
+        for (let gy = 0; gy < this.gridH; gy++) {
+          const shade = (gx + gy) % 2 === 0 ? 0x2d3436 : 0x2c3e50;
+          bg.fillStyle(shade);
+          bg.fillRect(gx * this.tileSize, gy * this.tileSize, this.tileSize, this.tileSize);
+        }
+      }
+
+      bg.lineStyle(2, 0x00b894, 0.5);
+      bg.strokeRect(0, 0, this.gridW * this.tileSize, this.gridH * this.tileSize);
+
+      this.snake = [];
+      const startX = Math.floor(this.gridW / 4);
+      const startY = Math.floor(this.gridH / 2);
+      for (let i = 0; i < 3; i++) {
+        const seg = this.add.image(
+          (startX - i) * this.tileSize + this.tileSize / 2,
+          startY * this.tileSize + this.tileSize / 2,
+          i === 0 ? 'head' : 'body'
+        ).setDepth(5);
+        seg.gridX = startX - i;
+        seg.gridY = startY;
+        this.snake.push(seg);
+      }
+      this.colorizeSnake();
+
+      this.foodSprite = this.add.image(0, 0, 'food').setDepth(4);
+      this.placeFood();
+
+      this.foodGlow = this.add.circle(this.foodSprite.x, this.foodSprite.y, 12, 0xffeaa7, 0.25).setDepth(3);
+      this.tweens.add({
+        targets: this.foodGlow, scale: 1.5, alpha: 0.05, duration: 800,
+        yoyo: true, repeat: -1, ease: 'Sine.easeInOut'
+      });
+
+      this.particles = this.add.particles(0, 0, 'particle', {
+        speed: { min: 40, max: 140 }, lifespan: 350, scale: { start: 1.2, end: 0 },
+        emitting: false, quantity: 10, tint: [0x00b894, 0x00cec9, 0xffeaa7]
+      });
+
+      const ts = { fontFamily: 'Segoe UI', fontSize: '20px', fill: '#fff', stroke: '#000', strokeThickness: 3 };
+      this.scoreText = this.add.text(12, 8, 'Score: 3', ts).setDepth(10);
+      this.speedText = this.add.text(788, 8, 'Speed: 1', { ...ts, fontSize: '16px', fill: '#ffeaa7' })
+        .setOrigin(1, 0).setDepth(10);
+
+      this.cursors = this.input.keyboard.createCursorKeys();
+
+      this.input.keyboard.on('keydown', (e) => {
+        const map = {
+          ArrowUp: { x: 0, y: -1 }, ArrowDown: { x: 0, y: 1 },
+          ArrowLeft: { x: -1, y: 0 }, ArrowRight: { x: 1, y: 0 }
+        };
+        const nd = map[e.key];
+        if (!nd) return;
+        if (this.inputQueue.length < 3) this.inputQueue.push(nd);
+      });
+
+      this.moveTimer = this.time.addEvent({
+        delay: this.moveInterval, callback: this.moveSnake, callbackScope: this, loop: true
+      });
+    }
+
+    processNextInput() {
+      while (this.inputQueue.length > 0) {
+        const nd = this.inputQueue.shift();
+        if (nd.x + this.direction.x !== 0 || nd.y + this.direction.y !== 0) {
+          this.nextDirection = nd;
+          return;
+        }
+      }
+    }
+
+    moveSnake() {
+      if (this.gameOver) return;
+
+      this.processNextInput();
+      this.direction = { ...this.nextDirection };
+
+      const head = this.snake[0];
+      const newX = head.gridX + this.direction.x;
+      const newY = head.gridY + this.direction.y;
+
+      if (newX < 0 || newX >= this.gridW || newY < 0 || newY >= this.gridH) {
+        return this.showGameOver();
+      }
+      for (let i = 0; i < this.snake.length; i++) {
+        if (this.snake[i].gridX === newX && this.snake[i].gridY === newY) {
+          return this.showGameOver();
+        }
+      }
+
+      const ateFood = (newX === this.foodX && newY === this.foodY);
+      let tail;
+      if (ateFood) {
+        tail = this.add.image(0, 0, 'body').setDepth(5);
+      } else {
+        tail = this.snake.pop();
+      }
+
+      tail.gridX = newX;
+      tail.gridY = newY;
+      tail.x = newX * this.tileSize + this.tileSize / 2;
+      tail.y = newY * this.tileSize + this.tileSize / 2;
+      tail.setTexture('head');
+      head.setTexture('body');
+      this.snake.unshift(tail);
+
+      this.colorizeSnake();
+      this.setHeadRotation();
+
+      if (ateFood) {
+        this.score = this.snake.length;
+        this.scoreText.setText('Score: ' + this.score);
+        if (this.cache.audio.exists('coinSfx')) this.sound.play('coinSfx');
+        this.particles.emitParticleAt(this.foodSprite.x, this.foodSprite.y);
+        this.placeFood();
+
+        const speedLevel = Math.floor((this.snake.length - 3) / 3) + 1;
+        const newDelay = Math.max(50, this.baseSpeed - (speedLevel - 1) * 10);
+        if (newDelay !== this.moveInterval) {
+          this.moveInterval = newDelay;
+          this.moveTimer.remove();
+          this.moveTimer = this.time.addEvent({
+            delay: this.moveInterval, callback: this.moveSnake, callbackScope: this, loop: true
+          });
+          this.speedText.setText('Speed: ' + speedLevel);
+        }
+      }
+    }
+
+    colorizeSnake() {
+      const len = this.snake.length;
+      for (let i = 0; i < len; i++) {
+        const t = len > 1 ? i / (len - 1) : 0;
+        const r = Phaser.Math.Linear(0x00, 0x09, t);
+        const g2 = Phaser.Math.Linear(0xb8, 0x84, t);
+        const b = Phaser.Math.Linear(0x94, 0xe3, t);
+        this.snake[i].setTint(Phaser.Display.Color.GetColor(
+          Math.round(r * 255) || Math.round(r),
+          Math.round(g2),
+          Math.round(b)
+        ));
+      }
+      this.snake[0].setTint(0x00b894);
+      if (len > 1) this.snake[len - 1].setTint(0x0984e3);
+    }
+
+    setHeadRotation() {
+      const head = this.snake[0];
+      if (this.direction.x === 1) head.setAngle(0);
+      else if (this.direction.x === -1) head.setAngle(180);
+      else if (this.direction.y === -1) head.setAngle(270);
+      else if (this.direction.y === 1) head.setAngle(90);
+    }
+
+    placeFood() {
+      const occupied = new Set(this.snake.map(s => s.gridX + ',' + s.gridY));
+      let fx, fy;
+      do {
+        fx = Phaser.Math.Between(1, this.gridW - 2);
+        fy = Phaser.Math.Between(1, this.gridH - 2);
+      } while (occupied.has(fx + ',' + fy));
+
+      this.foodX = fx; this.foodY = fy;
+      this.foodSprite.setPosition(fx * this.tileSize + this.tileSize / 2, fy * this.tileSize + this.tileSize / 2);
+      if (this.foodGlow) {
+        this.foodGlow.setPosition(this.foodSprite.x, this.foodSprite.y);
+      }
+    }
+
+    showGameOver() {
+      this.gameOver = true;
+      if (this.cache.audio.exists('hitSfx')) this.sound.play('hitSfx');
+
+      this.snake[0].setTint(0xff0000);
+      this.tweens.add({
+        targets: this.snake, alpha: 0.3, duration: 400, ease: 'Power2'
+      });
+
+      this.add.rectangle(400, 250, 800, 500, 0x000000, 0.75).setDepth(20);
+      this.add.text(400, 170, 'GAME OVER', {
+        fontSize: '52px', fill: '#e17055', fontFamily: 'Segoe UI', fontStyle: 'bold',
+        stroke: '#000', strokeThickness: 5
+      }).setOrigin(0.5).setDepth(21);
+      this.add.text(400, 240, 'Score: ' + this.score, {
+        fontSize: '28px', fill: '#fff', fontFamily: 'Segoe UI'
+      }).setOrigin(0.5).setDepth(21);
+      this.add.text(400, 280, 'Length: ' + this.snake.length, {
+        fontSize: '18px', fill: '#00cec9', fontFamily: 'Segoe UI'
+      }).setOrigin(0.5).setDepth(21);
+      this.add.text(400, 340, 'Click to Restart', {
+        fontSize: '20px', fill: '#00b894', fontFamily: 'Segoe UI'
+      }).setOrigin(0.5).setDepth(21);
+
+      this.input.once('pointerdown', () => this.scene.restart());
+    }
+  }
+
+  new Phaser.Game({
+    type: Phaser.AUTO, width: 800, height: 500, parent: 'game-container',
+    backgroundColor: '#1e272e',
+    scene: SnakeScene
+  });
+  </script>
+</body>
+</html>

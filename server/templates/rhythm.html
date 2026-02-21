@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    :root { --game-primary:#e84393; --game-secondary:#fdcb6e; }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:'Segoe UI',sans-serif; background:linear-gradient(135deg,#e84393 0%,#fd79a8 50%,#fdcb6e 100%);
+      min-height:100vh; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+    #game { border-radius:12px; overflow:hidden; box-shadow:0 8px 32px rgba(0,0,0,0.4); }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.86.0/dist/phaser.min.js"></script>
+</head>
+<body>
+<div id="game"></div>
+<script>
+const GW = 500, GH = 600, LANES = 4, LANE_W = 80;
+const LANE_X = (i) => GW / 2 - (LANES / 2 - 0.5) * LANE_W + i * LANE_W;
+const TARGET_Y = GH - 80;
+const ARROW_COLORS = [0xff4466, 0x44dd44, 0x44aaff, 0xffaa22];
+const ARROW_KEYS = ['LEFT', 'DOWN', 'UP', 'RIGHT'];
+const ARROW_LABELS = ['←', '↓', '↑', '→'];
+const TOTAL_ARROWS = 50;
+
+class RhythmScene extends Phaser.Scene {
+  constructor() { super('RhythmScene'); }
+
+  preload() {
+    this.load.audio('hitSfx', '/assets/sounds/hit.wav');
+    this.load.audio('coinSfx', '/assets/sounds/coin.wav');
+    this.load.audio('clickSfx', '/assets/sounds/click.wav');
+  }
+
+  create() {
+    const g = this.make.graphics({ add: false });
+    for (let i = 0; i < LANES; i++) {
+      g.clear();
+      const c = ARROW_COLORS[i];
+      g.fillStyle(c); g.fillTriangle(20, 4, 4, 28, 36, 28);
+      g.fillStyle(c, 0.6); g.fillRect(14, 24, 12, 14);
+      g.generateTexture('arrow_' + i, 40, 40);
+    }
+    g.clear();
+    g.lineStyle(3, 0xffffff, 0.8); g.strokeCircle(24, 24, 20);
+    g.lineStyle(1, 0xffffff, 0.3); g.strokeCircle(24, 24, 12);
+    g.generateTexture('target', 48, 48);
+    g.clear();
+    g.fillStyle(0xffffff); g.fillCircle(4, 4, 3);
+    g.generateTexture('particle', 8, 8);
+    g.destroy();
+
+    this.add.rectangle(GW / 2, GH / 2, GW, GH, 0x1a0a2e);
+
+    for (let i = 0; i < LANES; i++) {
+      this.add.rectangle(LANE_X(i), GH / 2, LANE_W - 4, GH, 0x222244, 0.4);
+      this.add.image(LANE_X(i), TARGET_Y, 'target').setAlpha(0.6).setDepth(1);
+      this.add.text(LANE_X(i), TARGET_Y, ARROW_LABELS[i], {
+        fontSize: '18px', fill: '#fff', fontStyle: 'bold'
+      }).setOrigin(0.5).setAlpha(0.4).setDepth(2);
+    }
+
+    this.score = 0; this.combo = 0; this.maxCombo = 0; this.hits = 0; this.misses = 0;
+    this.arrowsSpawned = 0; this.gameOver = false;
+    this.arrows = [];
+    this.scrollSpeed = 200;
+
+    this.scoreText = this.add.text(10, 10, 'Score: 0', { fontSize: '20px', fill: '#fff', stroke: '#000', strokeThickness: 2 }).setDepth(10);
+    this.comboText = this.add.text(GW - 10, 10, '', { fontSize: '18px', fill: '#fdcb6e', stroke: '#000', strokeThickness: 2 }).setOrigin(1, 0).setDepth(10);
+    this.feedbackText = this.add.text(GW / 2, TARGET_Y - 50, '', { fontSize: '24px', fill: '#fff', fontStyle: 'bold', stroke: '#000', strokeThickness: 3 }).setOrigin(0.5).setDepth(10);
+    this.progressText = this.add.text(GW / 2, GH - 20, '', { fontSize: '14px', fill: '#aaa' }).setOrigin(0.5).setDepth(10);
+
+    this.emitter = this.add.particles(0, 0, 'particle', {
+      speed: { min: 50, max: 150 }, lifespan: 300, scale: { start: 1, end: 0 },
+      emitting: false, quantity: 8
+    }).setDepth(8);
+
+    this.spawnTimer = this.time.addEvent({
+      delay: 700, callback: () => this.spawnArrow(), loop: true
+    });
+
+    for (let i = 0; i < LANES; i++) {
+      this.input.keyboard.on('keydown-' + ARROW_KEYS[i], () => this.hitLane(i));
+    }
+  }
+
+  spawnArrow() {
+    if (this.gameOver || this.arrowsSpawned >= TOTAL_ARROWS) return;
+    const lane = Phaser.Math.Between(0, LANES - 1);
+    const spr = this.add.image(LANE_X(lane), -20, 'arrow_' + lane).setDepth(5);
+    spr.lane = lane;
+    spr.hit = false;
+    this.arrows.push(spr);
+    this.arrowsSpawned++;
+    this.progressText.setText(this.arrowsSpawned + ' / ' + TOTAL_ARROWS);
+
+    if (this.arrowsSpawned % 10 === 0) this.scrollSpeed += 20;
+  }
+
+  hitLane(lane) {
+    if (this.gameOver) return;
+    let best = null, bestDist = 999;
+    for (const a of this.arrows) {
+      if (a.lane !== lane || a.hit) continue;
+      const dist = Math.abs(a.y - TARGET_Y);
+      if (dist < bestDist) { bestDist = dist; best = a; }
+    }
+    if (!best || bestDist > 80) {
+      this.combo = 0;
+      this.comboText.setText('');
+      return;
+    }
+
+    best.hit = true;
+    let grade, points, color;
+    if (bestDist < 25) { grade = 'PERFECT!'; points = 100; color = '#fdcb6e'; }
+    else if (bestDist < 55) { grade = 'GOOD'; points = 50; color = '#55efc4'; }
+    else { grade = 'OK'; points = 25; color = '#74b9ff'; }
+
+    this.combo++;
+    if (this.combo > this.maxCombo) this.maxCombo = this.combo;
+    this.hits++;
+    const mult = Math.min(4, 1 + Math.floor(this.combo / 5));
+    this.score += points * mult;
+    this.scoreText.setText('Score: ' + this.score);
+    if (this.combo >= 3) this.comboText.setText(this.combo + 'x COMBO!');
+
+    this.feedbackText.setText(grade).setColor(color).setAlpha(1);
+    this.tweens.add({ targets: this.feedbackText, alpha: 0, y: TARGET_Y - 80, duration: 500, onComplete: () => { this.feedbackText.y = TARGET_Y - 50; } });
+
+    this.emitter.setPosition(best.x, best.y);
+    this.emitter.explode();
+    try { this.sound.play('coinSfx'); } catch(e) {}
+
+    this.tweens.add({ targets: best, scale: 1.5, alpha: 0, duration: 200, onComplete: () => best.destroy() });
+  }
+
+  update(time, delta) {
+    if (this.gameOver) return;
+    const dt = delta / 1000;
+    for (let i = this.arrows.length - 1; i >= 0; i--) {
+      const a = this.arrows[i];
+      if (a.hit) continue;
+      a.y += this.scrollSpeed * dt;
+      if (a.y > GH + 20) {
+        a.destroy();
+        this.arrows.splice(i, 1);
+        this.misses++;
+        this.combo = 0;
+        this.comboText.setText('');
+        this.feedbackText.setText('MISS').setColor('#ff4466').setAlpha(1);
+        this.tweens.add({ targets: this.feedbackText, alpha: 0, duration: 400 });
+      }
+    }
+
+    if (this.arrowsSpawned >= TOTAL_ARROWS && this.arrows.filter(a => !a.hit).length === 0) {
+      this.endGame();
+    }
+  }
+
+  endGame() {
+    this.gameOver = true;
+    this.spawnTimer.remove();
+    const pct = this.hits / TOTAL_ARROWS;
+    let rank = 'C';
+    if (pct >= 0.95) rank = 'S';
+    else if (pct >= 0.85) rank = 'A';
+    else if (pct >= 0.7) rank = 'B';
+
+    this.add.rectangle(GW / 2, GH / 2, GW, GH, 0x000000, 0.75).setDepth(20);
+    this.add.text(GW / 2, GH / 2 - 80, 'Song Complete!', {
+      fontSize: '32px', fill: '#fdcb6e', stroke: '#000', strokeThickness: 4
+    }).setOrigin(0.5).setDepth(21);
+    this.add.text(GW / 2, GH / 2 - 30, 'Rank: ' + rank, {
+      fontSize: '48px', fill: rank === 'S' ? '#fdcb6e' : rank === 'A' ? '#55efc4' : '#74b9ff', fontStyle: 'bold'
+    }).setOrigin(0.5).setDepth(21);
+    this.add.text(GW / 2, GH / 2 + 20, 'Score: ' + this.score, { fontSize: '22px', fill: '#fff' }).setOrigin(0.5).setDepth(21);
+    this.add.text(GW / 2, GH / 2 + 50, 'Max Combo: ' + this.maxCombo + '  |  Hits: ' + this.hits + '/' + TOTAL_ARROWS, {
+      fontSize: '16px', fill: '#aaa'
+    }).setOrigin(0.5).setDepth(21);
+    this.add.text(GW / 2, GH / 2 + 90, 'Click to play again', { fontSize: '16px', fill: '#aaa' }).setOrigin(0.5).setDepth(21);
+    this.input.once('pointerdown', () => this.scene.restart());
+  }
+}
+
+new Phaser.Game({
+  type: Phaser.AUTO, width: GW, height: GH, parent: 'game',
+  backgroundColor: '#1a0a2e', scene: RhythmScene
+});
+</script>
+</body>
+</html>

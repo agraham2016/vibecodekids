@@ -73,6 +73,17 @@ const GAME_STARTERS = [
   { genre: 'Puzzle', emoji: '💎', label: 'Gem Match', prompt: 'Make me a puzzle game where I match colorful gems to score big!' },
   { genre: 'Clicker', emoji: '👆', label: 'Tap Frenzy', prompt: 'Make me a clicker game where I tap a gem to earn points and buy upgrades!' },
   { genre: 'RPG', emoji: '⚔️', label: 'Adventure Quest', prompt: 'Make me an RPG adventure game where I explore, find treasure, and talk to NPCs!' },
+  { genre: 'Runner', emoji: '🏃‍♂️', label: 'Endless Runner', prompt: 'Make me an endless runner game where I run, jump over obstacles, and collect coins!' },
+  { genre: 'Strategy', emoji: '🏰', label: 'Tower Defense', prompt: 'Make me a tower defense game where I place towers to stop waves of enemies!' },
+  { genre: 'Fighting', emoji: '🥊', label: 'Beat Em Up', prompt: 'Make me a fighting game where I punch and kick enemies in waves!' },
+  { genre: 'Classic', emoji: '🐍', label: 'Snake', prompt: 'Make me a snake game where I eat food and grow longer without hitting my tail!' },
+  { genre: 'Sports', emoji: '⚽', label: 'Soccer', prompt: 'Make me a soccer game where I play against an AI opponent and try to score goals!' },
+  { genre: 'Arcade', emoji: '🧱', label: 'Brick Breaker', prompt: 'Make me a brick breaker game with a paddle, bouncing ball, and colorful bricks to smash!' },
+  { genre: 'Casual', emoji: '🐦', label: 'Flappy Bird', prompt: 'Make me a flappy bird game where I tap to fly through pipes!' },
+  { genre: 'Puzzle', emoji: '🫧', label: 'Bubble Pop', prompt: 'Make me a bubble shooter game where I aim and pop matching colored bubbles!' },
+  { genre: 'Puzzle', emoji: '🟦', label: 'Block Stack', prompt: 'Make me a falling blocks game like Tetris where I stack pieces and clear lines!' },
+  { genre: 'Music', emoji: '🎵', label: 'Rhythm Beats', prompt: 'Make me a rhythm game where I tap arrows to the beat of the music!' },
+  { genre: 'Sim', emoji: '🐾', label: 'Pet Buddy', prompt: 'Make me a virtual pet game where I feed, play with, and take care of a cute pet!' },
 ]
 
 export default function ChatPanel({ 

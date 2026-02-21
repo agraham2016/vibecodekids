@@ -63,6 +63,94 @@ export const ASSET_MANIFEST = {
     ],
     sounds: ['jump', 'hit', 'win', 'lose'],
   },
+  'endless-runner': {
+    sprites: [
+      { key: 'player', path: '/assets/sprites/endless-runner/player.png', w: 32, h: 32 },
+      { key: 'obstacle', path: '/assets/sprites/endless-runner/obstacle.png', w: 32, h: 32 },
+      { key: 'coin', path: '/assets/sprites/endless-runner/coin.png', w: 16, h: 16 },
+      { key: 'ground', path: '/assets/sprites/endless-runner/ground.png', w: 64, h: 32 },
+    ],
+    sounds: ['jump', 'coin', 'hit', 'win', 'lose'],
+  },
+  'tower-defense': {
+    sprites: [
+      { key: 'tower', path: '/assets/sprites/tower-defense/tower.png', w: 32, h: 32 },
+      { key: 'enemy', path: '/assets/sprites/tower-defense/enemy.png', w: 24, h: 24 },
+      { key: 'bullet', path: '/assets/sprites/tower-defense/bullet.png', w: 8, h: 8 },
+      { key: 'path', path: '/assets/sprites/tower-defense/path.png', w: 40, h: 40 },
+    ],
+    sounds: ['hit', 'explosion', 'coin', 'win', 'lose'],
+  },
+  fighting: {
+    sprites: [
+      { key: 'fighter', path: '/assets/sprites/fighting/fighter.png', w: 32, h: 40 },
+      { key: 'enemy', path: '/assets/sprites/fighting/enemy.png', w: 32, h: 40 },
+      { key: 'punch', path: '/assets/sprites/fighting/punch.png', w: 16, h: 16 },
+    ],
+    sounds: ['hit', 'explosion', 'win', 'lose'],
+  },
+  snake: {
+    sprites: [
+      { key: 'head', path: '/assets/sprites/snake/head.png', w: 20, h: 20 },
+      { key: 'body', path: '/assets/sprites/snake/body.png', w: 20, h: 20 },
+      { key: 'food', path: '/assets/sprites/snake/food.png', w: 20, h: 20 },
+    ],
+    sounds: ['coin', 'hit', 'win', 'lose'],
+  },
+  sports: {
+    sprites: [
+      { key: 'player', path: '/assets/sprites/sports/player.png', w: 24, h: 24 },
+      { key: 'opponent', path: '/assets/sprites/sports/opponent.png', w: 24, h: 24 },
+      { key: 'ball', path: '/assets/sprites/sports/ball.png', w: 16, h: 16 },
+      { key: 'goal', path: '/assets/sprites/sports/goal.png', w: 16, h: 48 },
+    ],
+    sounds: ['hit', 'coin', 'win', 'lose'],
+  },
+  'brick-breaker': {
+    sprites: [
+      { key: 'paddle', path: '/assets/sprites/brick-breaker/paddle.png', w: 64, h: 12 },
+      { key: 'ball', path: '/assets/sprites/brick-breaker/ball.png', w: 12, h: 12 },
+      { key: 'brick', path: '/assets/sprites/brick-breaker/brick.png', w: 48, h: 16 },
+      { key: 'powerup', path: '/assets/sprites/brick-breaker/powerup.png', w: 16, h: 16 },
+    ],
+    sounds: ['hit', 'coin', 'explosion', 'win', 'lose'],
+  },
+  flappy: {
+    sprites: [
+      { key: 'bird', path: '/assets/sprites/flappy/bird.png', w: 24, h: 24 },
+      { key: 'pipe', path: '/assets/sprites/flappy/pipe.png', w: 48, h: 200 },
+    ],
+    sounds: ['jump', 'hit', 'coin', 'win', 'lose'],
+  },
+  'bubble-shooter': {
+    sprites: [
+      { key: 'bubbles', path: '/assets/sprites/bubble-shooter/bubbles.png', w: 32, h: 32, note: 'spritesheet: 6 colored bubbles (192x32), frameWidth: 32' },
+      { key: 'arrow', path: '/assets/sprites/bubble-shooter/arrow.png', w: 16, h: 48 },
+    ],
+    sounds: ['hit', 'coin', 'explosion', 'win', 'lose'],
+  },
+  'falling-blocks': {
+    sprites: [
+      { key: 'blocks', path: '/assets/sprites/falling-blocks/blocks.png', w: 28, h: 28, note: 'spritesheet: 7 colored blocks (196x32), frameWidth: 28' },
+    ],
+    sounds: ['click', 'coin', 'win', 'lose'],
+  },
+  rhythm: {
+    sprites: [
+      { key: 'arrows', path: '/assets/sprites/rhythm/arrows.png', w: 32, h: 32, note: 'spritesheet: 4 colored arrows (128x32), frameWidth: 32' },
+      { key: 'target', path: '/assets/sprites/rhythm/target.png', w: 32, h: 32 },
+    ],
+    sounds: ['hit', 'coin', 'click', 'win', 'lose'],
+  },
+  'pet-sim': {
+    sprites: [
+      { key: 'pet', path: '/assets/sprites/pet-sim/pet.png', w: 48, h: 48 },
+      { key: 'heart', path: '/assets/sprites/pet-sim/heart.png', w: 24, h: 24 },
+      { key: 'food', path: '/assets/sprites/pet-sim/food.png', w: 24, h: 24 },
+      { key: 'toy', path: '/assets/sprites/pet-sim/toy.png', w: 24, h: 24 },
+    ],
+    sounds: ['click', 'coin', 'powerup', 'win', 'lose'],
+  },
   common: {
     sprites: [
       { key: 'heart', path: '/assets/sprites/common/heart.png', w: 16, h: 16 },

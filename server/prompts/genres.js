@@ -18,7 +18,14 @@ export const GENRE_KEYWORDS = {
   'tower-defense': ['tower defense', 'td game', 'defend the base', 'tower game', 'place towers', 'defense game', 'castle defense'],
   card: ['card game', 'cards', 'solitaire', 'poker', 'blackjack', 'uno', 'card battle', 'deck building', 'trading card'],
   sports: ['sports', 'soccer', 'football', 'basketball', 'baseball', 'tennis', 'golf', 'hockey', 'bowling'],
-  simulation: ['simulation', 'simulator', 'tycoon', 'farm', 'city builder', 'restaurant', 'pet simulator', 'life sim'],
+  simulation: ['simulation', 'simulator', 'tycoon', 'farm', 'city builder', 'restaurant', 'life sim'],
+  snake: ['snake', 'snake game', 'grow longer', 'worm game', 'slither'],
+  'brick-breaker': ['breakout', 'brick breaker', 'brick', 'arkanoid', 'paddle ball', 'paddle game', 'break bricks'],
+  flappy: ['flappy', 'flappy bird', 'tap to fly', 'fly through pipes', 'bird game'],
+  'bubble-shooter': ['bubble shooter', 'bubble pop', 'bubble game', 'pop bubbles', 'aim and shoot bubbles'],
+  'falling-blocks': ['tetris', 'falling blocks', 'block stacking', 'stack blocks', 'falling pieces', 'clear lines'],
+  rhythm: ['rhythm', 'music game', 'dance game', 'beat game', 'tap to the beat', 'rhythm game', 'guitar hero'],
+  'pet-sim': ['pet simulator', 'virtual pet', 'pet game', 'tamagotchi', 'take care of pet', 'feed pet', 'pet sim'],
 };
 
 /**
