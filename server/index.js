@@ -52,6 +52,11 @@ console.log(`💾 Storage backend: ${USE_POSTGRES ? 'PostgreSQL' : 'JSON files'}
 app.use(securityHeaders());
 app.use(requestLogger());
 app.use(cors());
+
+// Stripe webhooks need the raw body for signature verification —
+// must be registered BEFORE the global JSON parser
+app.use('/api/stripe/webhook', express.raw({ type: 'application/json' }));
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 

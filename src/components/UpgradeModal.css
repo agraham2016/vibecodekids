@@ -233,6 +233,14 @@
 }
 
 /* Footer */
+.upgrade-error {
+  text-align: center;
+  color: #ff6b6b;
+  font-size: 14px;
+  margin: 8px 0 0;
+  padding: 0 20px;
+}
+
 .upgrade-footer {
   text-align: center;
 }

@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { TierInfo } from '../types'
 import './UpgradeModal.css'
 
@@ -6,24 +7,57 @@ interface UpgradeModalProps {
   onClose: () => void
   currentTier: 'free' | 'creator' | 'pro'
   tiers: Record<string, TierInfo>
-  isWelcomePrompt?: boolean  // Show special messaging for first login
+  isWelcomePrompt?: boolean
 }
 
 export default function UpgradeModal({ 
   isOpen, 
   onClose, 
   currentTier, 
-  tiers: _tiers, // Reserved for dynamic tier display
+  tiers: _tiers,
   isWelcomePrompt = false
 }: UpgradeModalProps) {
-  void _tiers // Suppress unused variable warning
+  void _tiers
+  const [loading, setLoading] = useState<string | null>(null)
+  const [error, setError] = useState('')
+
   if (!isOpen) return null
 
   const handleUpgrade = async (selectedTier: string) => {
-    void selectedTier // Will be used for Stripe integration
-    // TODO: Integrate with Stripe
-    alert(`Payment coming soon! For now, enjoy the free tier. 🚀`)
-    onClose()
+    setLoading(selectedTier)
+    setError('')
+    try {
+      const token = localStorage.getItem('authToken')
+      if (!token) {
+        setError('Please log in first')
+        setLoading(null)
+        return
+      }
+      const response = await fetch('/api/stripe/upgrade', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ tier: selectedTier })
+      })
+
+      const contentType = response.headers.get('content-type')
+      if (!contentType?.includes('application/json')) {
+        throw new Error('Server error — please try again later')
+      }
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Could not start checkout')
+      }
+
+      window.location.href = data.checkoutUrl
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Something went wrong'
+      setError(message)
+      setLoading(null)
+    }
   }
 
   const handleMaybeLater = async () => {
@@ -96,7 +130,7 @@ export default function UpgradeModal({
             <div className="tier-icon">🚀</div>
             <h3 className="tier-name">Creator</h3>
             <div className="tier-price">
-              <span className="price">$5</span>
+              <span className="price">$7</span>
               <span className="period">/month</span>
             </div>
             <ul className="tier-features">
@@ -108,8 +142,8 @@ export default function UpgradeModal({
               <li>✅ Premium Assets</li>
             </ul>
             {currentTier === 'free' && (
-              <button className="tier-btn primary" onClick={() => handleUpgrade('creator')}>
-                🚀 Upgrade to Creator
+              <button className="tier-btn primary" onClick={() => handleUpgrade('creator')} disabled={loading !== null}>
+                {loading === 'creator' ? 'Redirecting...' : '🚀 Upgrade to Creator'}
               </button>
             )}
             {currentTier === 'creator' && (
@@ -125,7 +159,7 @@ export default function UpgradeModal({
             <div className="tier-icon">👑</div>
             <h3 className="tier-name">Pro</h3>
             <div className="tier-price">
-              <span className="price">$10</span>
+              <span className="price">$14</span>
               <span className="period">/month</span>
             </div>
             <ul className="tier-features">
@@ -137,8 +171,8 @@ export default function UpgradeModal({
               <li>✅ Premium Assets</li>
             </ul>
             {currentTier !== 'pro' && (
-              <button className="tier-btn secondary" onClick={() => handleUpgrade('pro')}>
-                👑 Upgrade to Pro
+              <button className="tier-btn secondary" onClick={() => handleUpgrade('pro')} disabled={loading !== null}>
+                {loading === 'pro' ? 'Redirecting...' : '👑 Upgrade to Pro'}
               </button>
             )}
             {currentTier === 'pro' && (
@@ -149,6 +183,8 @@ export default function UpgradeModal({
           </div>
         </div>
 
+        {error && <p className="upgrade-error">{error}</p>}
+
         {/* Footer */}
         <div className="upgrade-footer">
           {isWelcomePrompt && (
@@ -157,7 +193,7 @@ export default function UpgradeModal({
             </button>
           )}
           <p className="footer-note">
-            💳 Secure payment powered by Stripe (coming soon)
+            💳 Secure payment powered by Stripe
           </p>
         </div>
       </div>
