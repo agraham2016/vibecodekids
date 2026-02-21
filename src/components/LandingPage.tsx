@@ -288,6 +288,12 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
             No coding experience needed.
           </p>
 
+          <p className="hero-explainer">
+            <strong>Vibecoding</strong> is a new way to build games — just tell our AI what you want
+            in plain English, and it writes the code for you. No syntax, no tutorials, no frustration.
+            You dream it, the AI builds it.
+          </p>
+
           <div className="hero-features">
             <div className="feature">
               <span className="feature-icon">💬</span>

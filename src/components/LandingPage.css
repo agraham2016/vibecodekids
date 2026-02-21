@@ -111,6 +111,20 @@
   max-width: 500px;
 }
 
+.hero-explainer {
+  max-width: 520px;
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.55);
+  line-height: 1.7;
+  margin: 0;
+  text-align: center;
+}
+
+.hero-explainer strong {
+  color: #a78bfa;
+  font-weight: 700;
+}
+
 /* Features */
 .hero-features {
   display: flex;
