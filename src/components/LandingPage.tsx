@@ -1,9 +1,67 @@
+import { useState, useEffect, useCallback } from 'react'
 import './LandingPage.css'
 
 interface LandingPageProps {
   onLoginClick: () => void
   onSignupClick: () => void
 }
+
+const DEMO_SCENARIOS = [
+  {
+    prompt: 'Make me a platformer with a dinosaur that collects gems!',
+    aiReply: "Let's build it! Here's your dino platformer with gem collecting, jumping physics, and a score counter!",
+    label: 'Platformer',
+    bg: 'linear-gradient(180deg, #87CEEB 0%, #87CEEB 60%, #5B8C3E 60%, #4a7a30 100%)',
+    elements: [
+      { emoji: '🦕', className: 'demo-player demo-bounce', style: { bottom: '42%', left: '22%', fontSize: '2.4rem' } },
+      { emoji: '💎', className: 'demo-item demo-float', style: { bottom: '62%', left: '55%', fontSize: '1.4rem' } },
+      { emoji: '💎', className: 'demo-item demo-float-delay', style: { bottom: '72%', left: '75%', fontSize: '1.4rem' } },
+      { emoji: '💎', className: 'demo-item demo-float', style: { bottom: '55%', left: '35%', fontSize: '1.2rem' } },
+      { emoji: '☁️', className: 'demo-cloud demo-drift', style: { top: '10%', left: '15%', fontSize: '2rem' } },
+      { emoji: '☁️', className: 'demo-cloud demo-drift-delay', style: { top: '5%', left: '65%', fontSize: '1.6rem' } },
+    ],
+    platforms: [
+      { style: { bottom: '38%', left: '10%', width: '30%' } },
+      { style: { bottom: '50%', left: '45%', width: '25%' } },
+      { style: { bottom: '62%', left: '68%', width: '22%' } },
+    ],
+    scoreText: 'GEMS: 3  LIVES: 3',
+  },
+  {
+    prompt: 'I want a space shooter where I blast aliens!',
+    aiReply: "Launching your space shooter! Fly your ship, blast alien waves, and rack up your high score!",
+    label: 'Space Shooter',
+    bg: 'linear-gradient(180deg, #0a0a20 0%, #1a0a40 100%)',
+    elements: [
+      { emoji: '🚀', className: 'demo-player demo-hover', style: { bottom: '15%', left: '45%', fontSize: '2.4rem' } },
+      { emoji: '👾', className: 'demo-enemy demo-sway', style: { top: '15%', left: '20%', fontSize: '1.8rem' } },
+      { emoji: '👾', className: 'demo-enemy demo-sway-delay', style: { top: '12%', left: '50%', fontSize: '1.8rem' } },
+      { emoji: '👾', className: 'demo-enemy demo-sway', style: { top: '18%', left: '75%', fontSize: '1.8rem' } },
+      { emoji: '✦', className: 'demo-star demo-twinkle', style: { top: '30%', left: '10%', fontSize: '0.5rem', color: '#fff' } },
+      { emoji: '✦', className: 'demo-star demo-twinkle-delay', style: { top: '50%', left: '80%', fontSize: '0.4rem', color: '#fff' } },
+      { emoji: '✦', className: 'demo-star demo-twinkle', style: { top: '70%', left: '30%', fontSize: '0.3rem', color: '#fff' } },
+      { emoji: '✦', className: 'demo-star demo-twinkle-delay', style: { top: '25%', left: '90%', fontSize: '0.6rem', color: '#fff' } },
+    ],
+    platforms: [],
+    scoreText: 'SCORE: 2400  WAVE: 3',
+  },
+  {
+    prompt: 'Make a snake game where I eat apples and grow!',
+    aiReply: "Classic snake coming up! Arrow keys to move, eat apples to grow longer, and don't hit your tail!",
+    label: 'Snake',
+    bg: 'linear-gradient(180deg, #0f1923 0%, #1a2a3a 100%)',
+    elements: [
+      { emoji: '🟢', className: 'demo-static', style: { top: '40%', left: '35%', fontSize: '1.2rem' } },
+      { emoji: '🟢', className: 'demo-static', style: { top: '40%', left: '40%', fontSize: '1.2rem' } },
+      { emoji: '🟢', className: 'demo-static', style: { top: '40%', left: '45%', fontSize: '1.2rem' } },
+      { emoji: '🟢', className: 'demo-static', style: { top: '40%', left: '50%', fontSize: '1.2rem' } },
+      { emoji: '🟩', className: 'demo-static', style: { top: '40%', left: '55%', fontSize: '1.3rem' } },
+      { emoji: '🍎', className: 'demo-item demo-pulse', style: { top: '25%', left: '70%', fontSize: '1.4rem' } },
+    ],
+    platforms: [],
+    scoreText: 'LENGTH: 5  SCORE: 40',
+  },
+]
 
 const GAME_TEMPLATES = [
   {
@@ -153,9 +211,59 @@ const GAME_TEMPLATES = [
 ]
 
 export default function LandingPage({ onLoginClick, onSignupClick }: LandingPageProps) {
+  const [demoIndex, setDemoIndex] = useState(0)
+  const [typedPrompt, setTypedPrompt] = useState('')
+  const [showAiReply, setShowAiReply] = useState(false)
+  const [typedReply, setTypedReply] = useState('')
+  const [phase, setPhase] = useState<'typing' | 'building' | 'done'>('typing')
+
+  const scenario = DEMO_SCENARIOS[demoIndex]
+
+  const startScenario = useCallback((index: number) => {
+    setDemoIndex(index)
+    setTypedPrompt('')
+    setTypedReply('')
+    setShowAiReply(false)
+    setPhase('typing')
+  }, [])
+
+  useEffect(() => {
+    const prompt = DEMO_SCENARIOS[demoIndex].prompt
+    if (phase !== 'typing') return
+    if (typedPrompt.length < prompt.length) {
+      const speed = 25 + Math.random() * 20
+      const timer = setTimeout(() => setTypedPrompt(prompt.slice(0, typedPrompt.length + 1)), speed)
+      return () => clearTimeout(timer)
+    }
+    const timer = setTimeout(() => {
+      setShowAiReply(true)
+      setPhase('building')
+    }, 400)
+    return () => clearTimeout(timer)
+  }, [typedPrompt, phase, demoIndex])
+
+  useEffect(() => {
+    const reply = DEMO_SCENARIOS[demoIndex].aiReply
+    if (phase !== 'building') return
+    if (typedReply.length < reply.length) {
+      const speed = 18 + Math.random() * 12
+      const timer = setTimeout(() => setTypedReply(reply.slice(0, typedReply.length + 1)), speed)
+      return () => clearTimeout(timer)
+    }
+    const timer = setTimeout(() => setPhase('done'), 300)
+    return () => clearTimeout(timer)
+  }, [typedReply, phase, demoIndex])
+
+  useEffect(() => {
+    if (phase !== 'done') return
+    const timer = setTimeout(() => {
+      startScenario((demoIndex + 1) % DEMO_SCENARIOS.length)
+    }, 5000)
+    return () => clearTimeout(timer)
+  }, [phase, demoIndex, startScenario])
+
   return (
     <div className="landing-page">
-      {/* Animated background */}
       <div className="landing-bg">
         <div className="floating-shapes">
           <div className="shape shape-1">🎮</div>
@@ -167,7 +275,6 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
         </div>
       </div>
 
-      {/* Main content */}
       <div className="landing-content">
         <div className="landing-hero">
           <div className="hero-badge">For Kids Ages 7-18</div>
@@ -180,7 +287,7 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
             <br />
             No coding experience needed.
           </p>
-          
+
           <div className="hero-features">
             <div className="feature">
               <span className="feature-icon">💬</span>
@@ -210,14 +317,104 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
           </p>
         </div>
 
+        {/* Live Demo — Before & After */}
+        <div className="live-demo-section">
+          <h2 className="demo-section-title">See It In Action</h2>
+          <p className="demo-section-subtitle">Describe a game. Watch it come to life.</p>
+
+          <div className="demo-tabs">
+            {DEMO_SCENARIOS.map((s, i) => (
+              <button
+                key={s.label}
+                className={`demo-tab ${i === demoIndex ? 'active' : ''}`}
+                onClick={() => startScenario(i)}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="demo-window">
+            <div className="demo-window-header">
+              <div className="preview-dots">
+                <span></span><span></span><span></span>
+              </div>
+              <span className="preview-title">vibe-code-studio</span>
+            </div>
+
+            <div className="demo-split">
+              {/* Left: Chat */}
+              <div className="demo-chat-panel">
+                <div className="demo-chat-label">Your Idea</div>
+                <div className="demo-chat-messages">
+                  <div className="demo-bubble demo-bubble-user">
+                    <span className="demo-avatar">🧒</span>
+                    <div className="demo-bubble-text">
+                      {typedPrompt}
+                      {phase === 'typing' && <span className="demo-cursor">|</span>}
+                    </div>
+                  </div>
+
+                  {showAiReply && (
+                    <div className="demo-bubble demo-bubble-ai">
+                      <span className="demo-avatar">🤖</span>
+                      <div className="demo-bubble-text">
+                        {typedReply}
+                        {phase === 'building' && <span className="demo-cursor">|</span>}
+                      </div>
+                    </div>
+                  )}
+
+                  {phase === 'building' && typedReply.length < 3 && (
+                    <div className="demo-building">
+                      <div className="demo-spinner" />
+                      <span>Building your game...</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Right: Game preview */}
+              <div className="demo-game-panel" style={{ background: scenario.bg }}>
+                <div className={`demo-game-scene ${phase === 'done' ? 'demo-scene-active' : 'demo-scene-building'}`}>
+                  {phase !== 'done' && (
+                    <div className="demo-game-loading">
+                      <div className="demo-loader-ring" />
+                      <span>Generating...</span>
+                    </div>
+                  )}
+                  {phase === 'done' && (
+                    <>
+                      <div className="demo-hud">{scenario.scoreText}</div>
+                      {scenario.platforms.map((p, i) => (
+                        <div key={i} className="demo-platform" style={p.style} />
+                      ))}
+                      {scenario.elements.map((el, i) => (
+                        <span key={i} className={el.className} style={el.style}>
+                          {el.emoji}
+                        </span>
+                      ))}
+                      <div className="demo-game-badge">Playable Game</div>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <button className="demo-cta" onClick={onSignupClick}>
+            Try It Yourself — Free
+          </button>
+        </div>
+
         {/* Template Showcase */}
         <div className="template-showcase">
-          <h2 className="showcase-title">Pick a Game to Start Building</h2>
-          <p className="showcase-subtitle">Choose a style and our AI builds it in seconds</p>
+          <h2 className="showcase-title">18 Game Types to Choose From</h2>
+          <p className="showcase-subtitle">Pick a style and our AI builds it in seconds</p>
           <div className="template-grid">
             {GAME_TEMPLATES.map((tmpl) => (
               <button
-                key={tmpl.genre}
+                key={tmpl.title}
                 className="template-card"
                 onClick={onSignupClick}
               >
@@ -241,37 +438,8 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
             ))}
           </div>
         </div>
-
-        {/* Preview section */}
-        <div className="landing-preview">
-          <div className="preview-window">
-            <div className="preview-header">
-              <div className="preview-dots">
-                <span></span><span></span><span></span>
-              </div>
-              <span className="preview-title">my-awesome-game.kidvibe.code</span>
-            </div>
-            <div className="preview-content">
-              <div className="preview-chat">
-                <div className="chat-bubble user">
-                  "Make me a space shooter game with aliens!"
-                </div>
-                <div className="chat-bubble ai">
-                  "Awesome idea! I'm creating a space shooter with your ship at the bottom, aliens coming from above, and laser blasts!"
-                </div>
-              </div>
-              <div className="preview-game">
-                <div className="game-placeholder">
-                  <span className="game-icon">🚀</span>
-                  <span className="game-text">Your Game Here!</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
 
-      {/* Footer */}
       <div className="landing-footer">
         <a href="/gallery" className="footer-link">
           <span>🕹️</span> Browse the Arcade
