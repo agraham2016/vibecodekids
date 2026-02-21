@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <style>
     :root {
       --game-primary: #27ae60;
@@ -19,7 +20,7 @@
       align-items: center;
       justify-content: center;
       overflow: hidden;
-    }
+     touch-action: none; }
     #game-container {
       border-radius: 12px;
       overflow: hidden;
@@ -52,6 +53,7 @@
       parent: 'game-container',
       backgroundColor: '#1a8a4a',
       physics: { default: 'arcade', arcade: { gravity: { y: 0 }, debug: false } },
+      scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
       scene: { preload, create, update }
     };
 

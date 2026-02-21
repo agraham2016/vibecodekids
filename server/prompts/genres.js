@@ -267,4 +267,14 @@ PHASER 2D GAME - IMPORTANT RULES:
 - For game over: display text overlay and this.input.keyboard.once('keydown-SPACE', () => this.scene.restart())
 - ALWAYS output the COMPLETE HTML file from <!DOCTYPE html> to </html> with the Phaser CDN script tag
 - The Phaser CDN tag MUST be: <script src="https://cdn.jsdelivr.net/npm/phaser@3.86.0/dist/phaser.min.js"><\/script>
+
+MOBILE / RESPONSIVE RULES (MANDATORY for every game):
+- ALWAYS include scale config: scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH }
+- ALWAYS add <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"> in <head>
+- ALWAYS add body { touch-action: none; } to prevent browser swipe/pinch interference
+- For ANY game that uses keyboard input: MUST add on-screen virtual touch buttons visible only on touch devices
+- Detect touch with: if ('ontouchstart' in window) { /* create virtual buttons */ }
+- Virtual buttons: semi-transparent rectangles with setScrollFactor(0) and high setDepth() so they overlay the game
+- In update(), always check BOTH keyboard AND touch flags: if (cursors.left.isDown || touchLeft) ...
+- Minimum touch button size: 80x80 pixels, placed in bottom corners of the screen
 `;

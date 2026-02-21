@@ -228,6 +228,7 @@
       display: flex;
       justify-content: center;
       align-items: center;
+      min-height: 0;
     }
     
     .project-iframe {
@@ -239,6 +240,15 @@
       border-radius: 20px;
       background: white;
       box-shadow: 0 25px 80px rgba(0, 0, 0, 0.5);
+    }
+    
+    .action-btn.fullscreen-btn {
+      background: linear-gradient(135deg, rgba(52, 211, 153, 0.6) 0%, rgba(56, 189, 248, 0.6) 100%);
+      border-color: rgba(255, 255, 255, 0.25);
+    }
+    
+    .action-btn.fullscreen-btn:hover {
+      box-shadow: 0 4px 20px rgba(52, 211, 153, 0.3);
     }
     
     .play-footer {
@@ -630,19 +640,49 @@
     @media (max-width: 768px) {
       .play-header {
         flex-direction: column;
-        gap: 16px;
-        padding: 16px;
+        gap: 10px;
+        padding: 10px 12px;
       }
       
       .project-info {
         flex-direction: column;
         text-align: center;
-        gap: 8px;
+        gap: 4px;
+      }
+
+      .project-title {
+        font-size: 1rem;
       }
       
       .header-actions {
         flex-wrap: wrap;
         justify-content: center;
+        gap: 8px;
+      }
+
+      .action-btn {
+        padding: 12px 16px;
+        font-size: 0.85rem;
+        min-height: 44px;
+      }
+
+      .play-content {
+        padding: 8px;
+      }
+
+      .project-iframe {
+        min-height: 0;
+        flex: 1;
+        border-radius: 12px;
+      }
+
+      .play-footer {
+        padding: 10px 12px;
+        font-size: 0.8rem;
+      }
+
+      .project-stats {
+        font-size: 0.8rem;
       }
       
       .multiplayer-panel {
@@ -659,6 +699,34 @@
         top: auto;
         bottom: 20px;
         right: 20px;
+        min-height: 44px;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      .play-header {
+        padding: 8px;
+        gap: 8px;
+      }
+
+      .header-actions {
+        width: 100%;
+      }
+
+      .action-btn {
+        flex: 1;
+        justify-content: center;
+        text-align: center;
+        padding: 10px 8px;
+        font-size: 0.78rem;
+      }
+
+      .play-content {
+        padding: 4px;
+      }
+
+      .project-iframe {
+        border-radius: 8px;
       }
     }
   </style>
@@ -693,7 +761,7 @@
         <button class="action-btn like" onclick="likeProject()">
           ❤️ Like
         </button>
-        <button class="action-btn" onclick="toggleFullscreen()">
+        <button class="action-btn fullscreen-btn" onclick="toggleFullscreen()">
           🖥️ Fullscreen
         </button>
         <a href="/gallery" class="action-btn">
@@ -890,13 +958,40 @@
       }
     }
     
-    // Toggle fullscreen
+    // Toggle fullscreen (uses Fullscreen API on mobile for immersive play)
     function toggleFullscreen() {
       const container = document.getElementById('play');
-      container.classList.toggle('fullscreen');
+      const isFullscreen = container.classList.contains('fullscreen');
+
+      if (!isFullscreen) {
+        container.classList.add('fullscreen');
+        if (container.requestFullscreen) {
+          container.requestFullscreen().catch(() => {});
+        } else if (container.webkitRequestFullscreen) {
+          container.webkitRequestFullscreen();
+        }
+      } else {
+        container.classList.remove('fullscreen');
+        if (document.exitFullscreen) {
+          document.exitFullscreen().catch(() => {});
+        } else if (document.webkitExitFullscreen) {
+          document.webkitExitFullscreen();
+        }
+      }
     }
     
-    // Handle escape key
+    // Sync CSS class with native fullscreen exit (Escape key, swipe gesture)
+    document.addEventListener('fullscreenchange', () => {
+      if (!document.fullscreenElement) {
+        document.getElementById('play').classList.remove('fullscreen');
+      }
+    });
+    document.addEventListener('webkitfullscreenchange', () => {
+      if (!document.webkitFullscreenElement) {
+        document.getElementById('play').classList.remove('fullscreen');
+      }
+    });
+    
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
         document.getElementById('play').classList.remove('fullscreen');

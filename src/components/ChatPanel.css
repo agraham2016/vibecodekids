@@ -31,9 +31,9 @@
 }
 
 .model-toggle-btn {
-  width: 32px;
-  height: 28px;
-  border-radius: 16px;
+  width: 40px;
+  height: 36px;
+  border-radius: 18px;
   border: 1px solid transparent;
   background: transparent;
   font-size: 1rem;
@@ -702,8 +702,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
+  width: 44px;
+  height: 44px;
   background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
@@ -746,7 +746,7 @@
   border-radius: var(--radius-sm);
   font-weight: 700;
   font-size: 0.8rem;
-  height: 34px;
+  height: 44px;
   transition: all 0.2s ease;
 }
 
@@ -788,8 +788,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
+  width: 44px;
+  height: 44px;
   background: rgba(251, 191, 36, 0.15);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
@@ -815,8 +815,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
+  width: 44px;
+  height: 44px;
   background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);

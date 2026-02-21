@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <style>
     :root {
       --game-primary: #00b894;
@@ -19,7 +20,7 @@
       align-items: center;
       justify-content: center;
       overflow: hidden;
-    }
+     touch-action: none; }
     #game-container {
       border-radius: 12px;
       overflow: hidden;
@@ -142,6 +143,23 @@
         if (!nd) return;
         if (this.inputQueue.length < 3) this.inputQueue.push(nd);
       });
+
+      if ('ontouchstart' in window) {
+        const ba = 0.25, bd = 1000, cx = 90, cy = 410;
+        const bU = this.add.rectangle(cx, cy - 50, 60, 60, 0xffffff, ba).setDepth(bd).setInteractive();
+        const bD = this.add.rectangle(cx, cy + 50, 60, 60, 0xffffff, ba).setDepth(bd).setInteractive();
+        const bL = this.add.rectangle(cx - 50, cy, 60, 60, 0xffffff, ba).setDepth(bd).setInteractive();
+        const bR = this.add.rectangle(cx + 50, cy, 60, 60, 0xffffff, ba).setDepth(bd).setInteractive();
+        this.add.text(cx, cy - 50, '\u25B2', { fontSize: '24px', fill: '#fff' }).setOrigin(0.5).setDepth(bd + 1);
+        this.add.text(cx, cy + 50, '\u25BC', { fontSize: '24px', fill: '#fff' }).setOrigin(0.5).setDepth(bd + 1);
+        this.add.text(cx - 50, cy, '\u25C0', { fontSize: '24px', fill: '#fff' }).setOrigin(0.5).setDepth(bd + 1);
+        this.add.text(cx + 50, cy, '\u25B6', { fontSize: '24px', fill: '#fff' }).setOrigin(0.5).setDepth(bd + 1);
+        const queueDir = (d) => { if (this.inputQueue.length < 3) this.inputQueue.push(d); };
+        bU.on('pointerdown', () => queueDir({ x: 0, y: -1 }));
+        bD.on('pointerdown', () => queueDir({ x: 0, y: 1 }));
+        bL.on('pointerdown', () => queueDir({ x: -1, y: 0 }));
+        bR.on('pointerdown', () => queueDir({ x: 1, y: 0 }));
+      }
 
       this.moveTimer = this.time.addEvent({
         delay: this.moveInterval, callback: this.moveSnake, callbackScope: this, loop: true
@@ -287,6 +305,7 @@
   new Phaser.Game({
     type: Phaser.AUTO, width: 800, height: 500, parent: 'game-container',
     backgroundColor: '#1e272e',
+    scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
     scene: SnakeScene
   });
   </script>

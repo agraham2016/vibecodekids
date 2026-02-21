@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <style>
     :root {
       --game-primary: #0984e3;
@@ -19,7 +20,7 @@
       align-items: center;
       justify-content: center;
       overflow: hidden;
-    }
+     touch-action: none; }
     #game-container {
       border-radius: 12px;
       overflow: hidden;
@@ -460,6 +461,7 @@
   new Phaser.Game({
     type: Phaser.AUTO, width: 400, height: 600, parent: 'game',
     backgroundColor: '#12122a',
+    scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
     scene: FallingBlocksScene
   });
   </script>

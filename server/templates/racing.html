@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <style>
     :root {
       --game-primary: #ff4444;
@@ -19,7 +20,7 @@
       align-items: center;
       justify-content: center;
       overflow: hidden;
-    }
+     touch-action: none; }
     canvas { border-radius: 8px; box-shadow: 0 0 30px rgba(0,0,0,0.5); }
     .controls-hint { margin-top: 16px; color: rgba(255,255,255,0.55); font-size: 13px; }
   </style>
@@ -34,6 +35,8 @@
 <script>
 const W = 800, H = 500, CW = 44, CH = 64;
 const RL = 175, RR = 625, LANES = [250, 400, 550];
+
+let touchLeft = false, touchRight = false, touchUp = false, touchDown = false;
 
 class Race extends Phaser.Scene {
   preload() {
@@ -68,6 +71,23 @@ class Race extends Phaser.Scene {
     this.cursors = this.input.keyboard.createCursorKeys();
     this.spaceKey = this.input.keyboard.addKey('SPACE');
 
+    if ('ontouchstart' in window) {
+      const ba = 0.25, bd = 1000;
+      const bL = this.add.rectangle(50, H - 50, 80, 80, 0xffffff, ba).setScrollFactor(0).setDepth(bd).setInteractive();
+      const bR = this.add.rectangle(150, H - 50, 80, 80, 0xffffff, ba).setScrollFactor(0).setDepth(bd).setInteractive();
+      const bU = this.add.rectangle(W - 50, H - 130, 80, 80, 0xffffff, ba).setScrollFactor(0).setDepth(bd).setInteractive();
+      const bD = this.add.rectangle(W - 50, H - 50, 80, 80, 0xffffff, ba).setScrollFactor(0).setDepth(bd).setInteractive();
+      this.add.text(50, H - 50, '\u25C0', { fontSize: '28px', fill: '#fff' }).setOrigin(0.5).setScrollFactor(0).setDepth(bd + 1);
+      this.add.text(150, H - 50, '\u25B6', { fontSize: '28px', fill: '#fff' }).setOrigin(0.5).setScrollFactor(0).setDepth(bd + 1);
+      this.add.text(W - 50, H - 130, '\u25B2', { fontSize: '28px', fill: '#0f0' }).setOrigin(0.5).setScrollFactor(0).setDepth(bd + 1);
+      this.add.text(W - 50, H - 50, '\u25BC', { fontSize: '28px', fill: '#f44' }).setOrigin(0.5).setScrollFactor(0).setDepth(bd + 1);
+      bL.on('pointerdown', () => { touchLeft = true; }); bL.on('pointerup', () => { touchLeft = false; }); bL.on('pointerout', () => { touchLeft = false; });
+      bR.on('pointerdown', () => { touchRight = true; }); bR.on('pointerup', () => { touchRight = false; }); bR.on('pointerout', () => { touchRight = false; });
+      bU.on('pointerdown', () => { touchUp = true; }); bU.on('pointerup', () => { touchUp = false; }); bU.on('pointerout', () => { touchUp = false; });
+      bD.on('pointerdown', () => { touchDown = true; }); bD.on('pointerup', () => { touchDown = false; }); bD.on('pointerout', () => { touchDown = false; });
+      this.input.on('pointerdown', () => { if (!this.alive) this.scene.restart(); });
+    }
+
     const s = { fontFamily: 'Arial', fontSize: '18px', color: '#fff', stroke: '#000', strokeThickness: 3 };
     this.scoreTxt = this.add.text(16, 10, 'Distance: 0', s);
     this.spdTxt = this.add.text(W - 16, 10, '60 km/h', { ...s, color: '#00ff88' }).setOrigin(1, 0);
@@ -100,14 +120,15 @@ class Race extends Phaser.Scene {
   update(_, dt) {
     if (!this.alive) {
       if (Phaser.Input.Keyboard.JustDown(this.spaceKey)) this.scene.restart();
+      touchLeft = false; touchRight = false; touchUp = false; touchDown = false;
       return;
     }
 
-    if (this.cursors.up.isDown) this.speed = Math.min(this.speed + 0.05, 9);
-    else if (this.cursors.down.isDown) this.speed = Math.max(this.speed - 0.1, 1.5);
+    if (this.cursors.up.isDown || touchUp) this.speed = Math.min(this.speed + 0.05, 9);
+    else if (this.cursors.down.isDown || touchDown) this.speed = Math.max(this.speed - 0.1, 1.5);
 
-    if (this.cursors.left.isDown) this.player.x -= 4.5;
-    if (this.cursors.right.isDown) this.player.x += 4.5;
+    if (this.cursors.left.isDown || touchLeft) this.player.x -= 4.5;
+    if (this.cursors.right.isDown || touchRight) this.player.x += 4.5;
     this.player.x = Phaser.Math.Clamp(this.player.x, RL + CW / 2 + 6, RR - CW / 2 - 6);
 
     const scroll = this.speed * 3;
@@ -140,6 +161,7 @@ new Phaser.Game({
   parent: 'game',
   backgroundColor: '#228833',
   physics: { default: 'arcade' },
+  scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
   scene: Race
 });
 </script>

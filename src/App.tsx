@@ -46,6 +46,10 @@ function App() {
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login')
   const [showVersionHistory, setShowVersionHistory] = useState(false)
 
+  // Mobile/tablet navigation
+  const [mobileTab, setMobileTab] = useState<'chat' | 'game' | 'projects'>('chat')
+  const [drawerOpen, setDrawerOpen] = useState(false)
+
   // Chat with AI generation callbacks (dual-model)
   const { 
     messages, isLoading, sendMessage, clearMessages,
@@ -190,28 +194,34 @@ function App() {
         membership={membership}
         onLogout={handleLogout}
         onUpgradeClick={handleUpgradeClick}
+        onDrawerToggle={() => setDrawerOpen(prev => !prev)}
       />
 
-      <main className="main-content">
-        <ProjectsPanel
-          userProjects={userProjects}
-          isLoadingProjects={isLoadingProjects}
-          currentProjectId={currentProject.id}
-          projectName={currentProject.name}
-          onLoadProject={handleLoadProject}
-          onNewProject={handleNewProject}
-          onSave={saveProject}
-          onShare={() => setShowShareModal(true)}
-          onOpenVersionHistory={() => setShowVersionHistory(true)}
-          onStartOver={handleStartOver}
-          onDeleteProject={deleteProject}
-          isSaving={isSaving}
-          hasUnsavedChanges={hasUnsavedChanges}
-          isLoggedIn={!!user}
-          lastAutoSavedAt={lastAutoSavedAt}
-        />
+      {/* Drawer overlay for tablet/mobile */}
+      {drawerOpen && <div className="drawer-backdrop" onClick={() => setDrawerOpen(false)} />}
 
-        <div className="chat-panel-container">
+      <main className={`main-content ${drawerOpen ? 'drawer-open' : ''}`}>
+        <div className={`projects-drawer ${drawerOpen ? 'open' : ''}`}>
+          <ProjectsPanel
+            userProjects={userProjects}
+            isLoadingProjects={isLoadingProjects}
+            currentProjectId={currentProject.id}
+            projectName={currentProject.name}
+            onLoadProject={(id) => { handleLoadProject(id); setDrawerOpen(false); }}
+            onNewProject={() => { handleNewProject(); setDrawerOpen(false); }}
+            onSave={saveProject}
+            onShare={() => setShowShareModal(true)}
+            onOpenVersionHistory={() => setShowVersionHistory(true)}
+            onStartOver={handleStartOver}
+            onDeleteProject={deleteProject}
+            isSaving={isSaving}
+            hasUnsavedChanges={hasUnsavedChanges}
+            isLoggedIn={!!user}
+            lastAutoSavedAt={lastAutoSavedAt}
+          />
+        </div>
+
+        <div className={`chat-panel-container mobile-panel ${mobileTab === 'chat' ? 'mobile-active' : ''}`}>
           <ChatPanel
             messages={messages}
             onSendMessage={handleSendMessage}
@@ -224,7 +234,7 @@ function App() {
           />
         </div>
 
-        <div className="preview-code-container">
+        <div className={`preview-code-container mobile-panel ${mobileTab === 'game' ? 'mobile-active' : ''}`}>
           <div className="view-toggle-bar">
             <button
               className={`view-toggle-btn ${!showCode ? 'active' : ''}`}
@@ -248,6 +258,22 @@ function App() {
           </div>
         </div>
       </main>
+
+      {/* Bottom tab bar for mobile */}
+      <nav className="mobile-tab-bar">
+        <button className={`mobile-tab ${mobileTab === 'chat' ? 'active' : ''}`} onClick={() => setMobileTab('chat')}>
+          <span className="mobile-tab-icon">💬</span>
+          <span className="mobile-tab-label">Chat</span>
+        </button>
+        <button className={`mobile-tab ${mobileTab === 'game' ? 'active' : ''}`} onClick={() => setMobileTab('game')}>
+          <span className="mobile-tab-icon">🎮</span>
+          <span className="mobile-tab-label">Game</span>
+        </button>
+        <button className={`mobile-tab ${mobileTab === 'projects' ? 'active' : ''}`} onClick={() => { setMobileTab('projects'); setDrawerOpen(true); }}>
+          <span className="mobile-tab-icon">📁</span>
+          <span className="mobile-tab-label">Projects</span>
+        </button>
+      </nav>
     </div>
   )
 }

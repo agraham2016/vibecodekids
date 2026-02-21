@@ -6,6 +6,7 @@ interface HeaderProps {
   membership: MembershipUsage | null
   onLogout: () => void
   onUpgradeClick: () => void
+  onDrawerToggle?: () => void
 }
 
 export default function Header({ 
@@ -13,14 +14,20 @@ export default function Header({
   membership: _membership,
   onLogout,
   onUpgradeClick,
+  onDrawerToggle,
 }: HeaderProps) {
   void _membership
   const tier = user?.membershipTier || 'free'
   
   return (
     <header className="header">
-      {/* Left: Logo */}
+      {/* Left: Logo + drawer toggle */}
       <div className="header-left">
+        {onDrawerToggle && (
+          <button className="drawer-toggle-btn" onClick={onDrawerToggle} aria-label="Toggle projects">
+            <span>☰</span>
+          </button>
+        )}
         <a href="/gallery" className="logo">
           <span className="logo-icon">🕹️</span>
           <span className="logo-text">Vibe Code Kidz</span>

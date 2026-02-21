@@ -1,11 +1,12 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <style>
     :root { --game-primary:#fdcb6e; --game-secondary:#e17055; }
     * { margin:0; padding:0; box-sizing:border-box; }
     body { font-family:'Segoe UI',sans-serif; background:linear-gradient(135deg,#fdcb6e 0%,#f39c12 50%,#e17055 100%);
-      min-height:100vh; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+      min-height:100vh; display:flex; align-items:center; justify-content:center; overflow:hidden;  touch-action: none; }
     #game { border-radius:12px; overflow:hidden; box-shadow:0 8px 32px rgba(0,0,0,0.3); }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.86.0/dist/phaser.min.js"></script>
@@ -226,7 +227,8 @@ class PetScene extends Phaser.Scene {
 
 new Phaser.Game({
   type: Phaser.AUTO, width: GW, height: GH, parent: 'game',
-  backgroundColor: '#fff5e1', scene: PetScene
+  backgroundColor: '#fff5e1', scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
+ scene: PetScene
 });
 </script>
 </body>

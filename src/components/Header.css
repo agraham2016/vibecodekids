@@ -153,8 +153,15 @@
   }
   
   .btn-upgrade {
-    padding: 3px 8px;
-    font-size: 0.65rem;
+    padding: 6px 12px;
+    font-size: 0.7rem;
+    min-height: 44px;
+  }
+
+  .btn-logout {
+    padding: 6px 12px;
+    font-size: 0.7rem;
+    min-height: 44px;
   }
 }
 

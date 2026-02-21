@@ -1,11 +1,12 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <style>
     :root { --game-primary:#fd79a8; --game-secondary:#6c5ce7; }
     * { margin:0; padding:0; box-sizing:border-box; }
     body { font-family:'Segoe UI',sans-serif; background:linear-gradient(135deg,#fd79a8 0%,#e84393 50%,#6c5ce7 100%);
-      min-height:100vh; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+      min-height:100vh; display:flex; align-items:center; justify-content:center; overflow:hidden;  touch-action: none; }
     #game { border-radius:12px; overflow:hidden; box-shadow:0 8px 32px rgba(0,0,0,0.4); }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.86.0/dist/phaser.min.js"></script>
@@ -288,7 +289,8 @@ class BubbleScene extends Phaser.Scene {
 
 new Phaser.Game({
   type: Phaser.AUTO, width: GW, height: GH, parent: 'game',
-  backgroundColor: '#1a0a2e', scene: BubbleScene
+  backgroundColor: '#1a0a2e', scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
+ scene: BubbleScene
 });
 </script>
 </body>

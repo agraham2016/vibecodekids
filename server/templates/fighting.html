@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <style>
     :root {
       --game-primary: #d63031;
@@ -19,7 +20,7 @@
       align-items: center;
       justify-content: center;
       overflow: hidden;
-    }
+     touch-action: none; }
     #game-container {
       border-radius: 12px;
       overflow: hidden;
@@ -79,6 +80,12 @@
         g.generateTexture('particle', 8, 8); g.clear();
       }
       g.destroy();
+
+      this.touchLeft = false;
+      this.touchRight = false;
+      this.touchJump = false;
+      this.touchPunch = false;
+      this.touchKick = false;
 
       this.score = 0;
       this.combo = 0;
@@ -141,6 +148,27 @@
       this.cursors = this.input.keyboard.createCursorKeys();
       this.shiftKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
 
+      if ('ontouchstart' in window) {
+        const ba = 0.3, bd = 1000;
+        const bL = this.add.rectangle(50, 460, 70, 70, 0xffffff, ba).setScrollFactor(0).setDepth(bd).setInteractive();
+        const bR = this.add.rectangle(140, 460, 70, 70, 0xffffff, ba).setScrollFactor(0).setDepth(bd).setInteractive();
+        const bJ = this.add.rectangle(140, 380, 70, 70, 0xffffff, ba).setScrollFactor(0).setDepth(bd).setInteractive();
+        const bP = this.add.rectangle(660, 460, 70, 70, 0xfdcb6e, ba).setScrollFactor(0).setDepth(bd).setInteractive();
+        const bK = this.add.rectangle(750, 460, 70, 70, 0xff7675, ba).setScrollFactor(0).setDepth(bd).setInteractive();
+        this.add.text(50, 460, '\u25C0', { fontSize: '24px', fill: '#fff' }).setOrigin(0.5).setScrollFactor(0).setDepth(bd + 1);
+        this.add.text(140, 460, '\u25B6', { fontSize: '24px', fill: '#fff' }).setOrigin(0.5).setScrollFactor(0).setDepth(bd + 1);
+        this.add.text(140, 380, '\u25B2', { fontSize: '24px', fill: '#fff' }).setOrigin(0.5).setScrollFactor(0).setDepth(bd + 1);
+        this.add.text(660, 460, '\uD83E\uDD4A', { fontSize: '24px' }).setOrigin(0.5).setScrollFactor(0).setDepth(bd + 1);
+        this.add.text(750, 460, '\uD83E\uDDB6', { fontSize: '24px' }).setOrigin(0.5).setScrollFactor(0).setDepth(bd + 1);
+        const bind = (btn, prop) => {
+          btn.on('pointerdown', () => { this[prop] = true; });
+          btn.on('pointerup', () => { this[prop] = false; });
+          btn.on('pointerout', () => { this[prop] = false; });
+        };
+        bind(bL, 'touchLeft'); bind(bR, 'touchRight'); bind(bJ, 'touchJump');
+        bind(bP, 'touchPunch'); bind(bK, 'touchKick');
+      }
+
       this.spawnTimer = this.time.addEvent({
         delay: 1800, callback: this.spawnEnemy, callbackScope: this, loop: true
       });
@@ -168,23 +196,26 @@
       if (this.gameOver) return;
 
       const speed = 220;
-      if (this.cursors.left.isDown) {
+      if (this.cursors.left.isDown || this.touchLeft) {
         this.player.setVelocityX(-speed); this.facingRight = false; this.player.setFlipX(true);
-      } else if (this.cursors.right.isDown) {
+      } else if (this.cursors.right.isDown || this.touchRight) {
         this.player.setVelocityX(speed); this.facingRight = true; this.player.setFlipX(false);
       } else {
         this.player.setVelocityX(0);
       }
-      if (this.cursors.up.isDown && this.player.body.touching.down) {
+      if ((this.cursors.up.isDown || this.touchJump) && this.player.body.touching.down) {
         this.player.setVelocityY(-380);
+        this.touchJump = false;
       }
 
       if (this.attackCooldown > 0) this.attackCooldown -= delta;
 
-      if (this.cursors.space.isDown && this.attackCooldown <= 0 && !this.attacking) {
+      if ((this.cursors.space.isDown || this.touchPunch) && this.attackCooldown <= 0 && !this.attacking) {
         this.performAttack('punch', 15, 250);
-      } else if (this.shiftKey.isDown && this.attackCooldown <= 0 && !this.attacking) {
+        this.touchPunch = false;
+      } else if ((this.shiftKey.isDown || this.touchKick) && this.attackCooldown <= 0 && !this.attacking) {
         this.performAttack('kick', 25, 400);
+        this.touchKick = false;
       }
 
       if (this.comboTimer > 0) {
@@ -369,6 +400,7 @@
     type: Phaser.AUTO, width: 800, height: 500, parent: 'game-container',
     backgroundColor: '#2d3436',
     physics: { default: 'arcade', arcade: { gravity: { y: 600 }, debug: false } },
+    scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
     scene: FightScene
   });
   </script>

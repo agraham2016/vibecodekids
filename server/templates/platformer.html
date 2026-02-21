@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <style>
     :root {
       --game-primary: #ff6b6b;
@@ -19,7 +20,7 @@
       align-items: center;
       justify-content: center;
       overflow: hidden;
-    }
+     touch-action: none; }
     #game-container {
       border-radius: 12px;
       overflow: hidden;
@@ -38,10 +39,12 @@
       parent: 'game-container',
       backgroundColor: '#87CEEB',
       physics: { default: 'arcade', arcade: { gravity: { y: 800 }, debug: false } },
+      scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
       scene: { preload, create, update }
     };
 
     let player, cursors, coins, enemies, platforms, scoreText, score = 0, gameOver = false;
+    let touchLeft = false, touchRight = false, touchJump = false;
 
     function preload() {
       this.load.image('player', '/assets/sprites/platformer/player.png');
@@ -134,16 +137,37 @@
       this.input.keyboard.on('keydown-SPACE', () => {
         if (gameOver) { gameOver = false; score = 0; this.scene.restart(); }
       });
+
+      if ('ontouchstart' in window) {
+        const bw = 80, bh = 80, ba = 0.25, bd = 1000;
+        const btnL = this.add.rectangle(50, 460, bw, bh, 0xffffff, ba).setScrollFactor(0).setDepth(bd).setInteractive();
+        const btnR = this.add.rectangle(150, 460, bw, bh, 0xffffff, ba).setScrollFactor(0).setDepth(bd).setInteractive();
+        const btnJ = this.add.rectangle(750, 460, bw, bh, 0xffffff, ba).setScrollFactor(0).setDepth(bd).setInteractive();
+        this.add.text(50, 460, '\u25C0', { fontSize: '28px', fill: '#fff' }).setOrigin(0.5).setScrollFactor(0).setDepth(bd + 1);
+        this.add.text(150, 460, '\u25B6', { fontSize: '28px', fill: '#fff' }).setOrigin(0.5).setScrollFactor(0).setDepth(bd + 1);
+        this.add.text(750, 460, '\u25B2', { fontSize: '28px', fill: '#fff' }).setOrigin(0.5).setScrollFactor(0).setDepth(bd + 1);
+        btnL.on('pointerdown', () => { touchLeft = true; });
+        btnL.on('pointerup', () => { touchLeft = false; });
+        btnL.on('pointerout', () => { touchLeft = false; });
+        btnR.on('pointerdown', () => { touchRight = true; });
+        btnR.on('pointerup', () => { touchRight = false; });
+        btnR.on('pointerout', () => { touchRight = false; });
+        btnJ.on('pointerdown', () => { touchJump = true; });
+        btnJ.on('pointerup', () => { touchJump = false; });
+        btnJ.on('pointerout', () => { touchJump = false; });
+        this.input.on('pointerdown', () => { if (gameOver) { gameOver = false; score = 0; this.scene.restart(); } });
+      }
     }
 
     function update() {
       if (gameOver) return;
-      if (cursors.left.isDown) { player.setVelocityX(-200); player.setFlipX(true); }
-      else if (cursors.right.isDown) { player.setVelocityX(200); player.setFlipX(false); }
+      if (cursors.left.isDown || touchLeft) { player.setVelocityX(-200); player.setFlipX(true); }
+      else if (cursors.right.isDown || touchRight) { player.setVelocityX(200); player.setFlipX(false); }
       else { player.setVelocityX(0); }
-      if (cursors.up.isDown && player.body.touching.down) {
+      if ((cursors.up.isDown || touchJump) && player.body.touching.down) {
         player.setVelocityY(-420);
         if (this.cache.audio.exists('jumpSfx')) this.sound.play('jumpSfx');
+        touchJump = false;
       }
       enemies.children.iterate(e => {
         if (!e || !e.active) return;

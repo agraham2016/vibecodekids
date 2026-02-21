@@ -1,13 +1,14 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       background: linear-gradient(135deg, #1a472a 0%, #2d6a4f 50%, #1a472a 100%);
       min-height: 100vh; display: flex; align-items: center; justify-content: center;
       font-family: 'Segoe UI', sans-serif;
-    }
+     touch-action: none; }
     #game { border-radius: 12px; overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.86.0/dist/phaser.min.js"></script>
@@ -138,6 +139,7 @@ new Phaser.Game({
   type: Phaser.AUTO, width: W, height: H, parent: 'game',
   backgroundColor: '#555555',
   physics: { default: 'arcade', arcade: { gravity: { y: 0 }, debug: false } },
+  scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
   scene: Frog
 });
 </script>

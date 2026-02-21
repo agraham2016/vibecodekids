@@ -1,11 +1,12 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <style>
     :root { --game-primary:#00ffff; --game-secondary:#4400ff; --game-bg:#0a0a20; --game-text:#fff; --game-accent:#0f0; }
     * { margin:0; padding:0; box-sizing:border-box; }
     body { font-family:'Segoe UI',sans-serif; background:linear-gradient(180deg,#0a0a20,#1a0a30); min-height:100vh;
-      display:flex; flex-direction:column; align-items:center; justify-content:center; overflow:hidden; }
+      display:flex; flex-direction:column; align-items:center; justify-content:center; overflow:hidden;  touch-action: none; }
     canvas { border-radius:10px; box-shadow:0 0 30px rgba(0,255,255,.25); }
     .hint { margin-top:14px; color:rgba(255,255,255,.5); font-size:14px; }
   </style>
@@ -153,6 +154,7 @@
     type: Phaser.AUTO, width: 800, height: 500, parent: 'game',
     backgroundColor: '#060618',
     physics: { default: 'arcade', arcade: { gravity: { y: 0 } } },
+    scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
     scene: ShooterScene
   });
   </script>

@@ -171,8 +171,27 @@
   min-height: 0;
 }
 
+/* ========== PROJECTS DRAWER (tablet/mobile overlay) ========== */
+
+.projects-drawer {
+  display: contents;
+}
+
+.drawer-backdrop {
+  display: none;
+}
+
+.mobile-tab-bar {
+  display: none;
+}
+
+.drawer-toggle-btn {
+  display: none;
+}
+
 /* ========== RESPONSIVE ========== */
 
+/* Tablet: 768px - 1024px */
 @media (max-width: 1024px) {
   .main-content {
     gap: 6px;
@@ -183,38 +202,193 @@
     width: 300px;
     min-width: 240px;
   }
-}
 
-@media (max-width: 768px) {
-  .main-content {
-    flex-direction: column;
-    gap: 4px;
-    padding: 4px;
+  /* Hide the static projects panel; use drawer instead */
+  .projects-drawer {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 280px;
+    height: 100vh;
+    z-index: 500;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
   }
 
-  .projects-panel {
-    display: none;
+  .projects-drawer.open {
+    transform: translateX(0);
   }
 
-  .chat-panel-container {
+  .projects-drawer .projects-panel {
     width: 100%;
     max-width: none;
-    height: 45%;
+    min-width: 0;
+    height: 100%;
+    border-radius: 0;
+    border-left: none;
+  }
+
+  .drawer-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 499;
+    animation: fadeIn 0.2s ease;
+  }
+
+  .drawer-toggle-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+    color: white;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
     flex-shrink: 0;
   }
 
-  .preview-code-container {
-    flex: 1;
+  .drawer-toggle-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+  }
+}
+
+/* Phone: < 768px */
+@media (max-width: 768px) {
+  .main-content {
+    flex-direction: column;
+    gap: 0;
+    padding: 0;
+    position: relative;
+  }
+
+  /* Each panel fills full space but is hidden unless active */
+  .mobile-panel {
+    display: none !important;
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    height: 100% !important;
+    flex: 1 1 auto !important;
+    flex-shrink: 1 !important;
+  }
+
+  .mobile-panel.mobile-active {
+    display: flex !important;
+  }
+
+  .chat-panel-container.mobile-active {
+    flex-direction: column;
+  }
+
+  .preview-code-container.mobile-active {
+    flex-direction: column;
+  }
+
+  /* Drawer for projects (same as tablet, but also triggered by tab bar) */
+  .projects-drawer {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 85vw;
+    max-width: 320px;
+    height: 100vh;
+    z-index: 500;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+  }
+
+  .projects-drawer.open {
+    transform: translateX(0);
+  }
+
+  .projects-drawer .projects-panel {
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+    height: 100%;
+    border-radius: 0;
+  }
+
+  .drawer-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 499;
+  }
+
+  /* Bottom tab bar */
+  .mobile-tab-bar {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    padding: 6px 0;
+    padding-bottom: max(6px, env(safe-area-inset-bottom));
+    background: rgba(15, 15, 30, 0.95);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    flex-shrink: 0;
+    z-index: 100;
+  }
+
+  .mobile-tab {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 8px 16px;
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.5);
+    cursor: pointer;
+    border-radius: 10px;
+    transition: all 0.2s ease;
+    min-width: 70px;
+    min-height: 44px;
+  }
+
+  .mobile-tab.active {
+    color: white;
+    background: rgba(139, 92, 246, 0.2);
+  }
+
+  .mobile-tab-icon {
+    font-size: 1.3rem;
+  }
+
+  .mobile-tab-label {
+    font-size: 0.65rem;
+    font-weight: 700;
+  }
+
+  /* View toggle bar: smaller on mobile */
+  .view-toggle-bar {
+    padding: 4px 6px;
+  }
+
+  .view-toggle-btn {
+    padding: 6px 12px;
+    font-size: 0.75rem;
   }
 }
 
 @media (max-width: 600px) {
-  .main-content {
-    padding: 2px;
-    gap: 2px;
+  .mobile-tab {
+    padding: 6px 12px;
+    min-width: 60px;
   }
+}
 
-  .chat-panel-container {
-    height: 50%;
-  }
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }

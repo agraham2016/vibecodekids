@@ -1,13 +1,14 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       background: linear-gradient(135deg, #4a1a6b 0%, #2a1040 50%, #1a0830 100%);
       min-height: 100vh; display: flex; align-items: center; justify-content: center;
       font-family: 'Segoe UI', sans-serif;
-    }
+     touch-action: none; }
     #game { border-radius: 12px; overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.86.0/dist/phaser.min.js"></script>
@@ -187,7 +188,8 @@ class Match extends Phaser.Scene {
 
 new Phaser.Game({
   type: Phaser.AUTO, width: GW, height: GH, parent: 'game',
-  backgroundColor: '#1a0a2e', scene: Match
+  backgroundColor: '#1a0a2e', scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
+ scene: Match
 });
 </script>
 </body>

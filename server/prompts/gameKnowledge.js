@@ -159,10 +159,60 @@ PHASER.JS GAME DESIGN PATTERNS AND TECHNIQUES:
     ];
     // Loop through and place tiles as staticGroup members
 
-14. TOUCH / MOBILE SUPPORT:
-    - Phaser handles touch automatically for pointer events
-    - For virtual buttons: this.add.rectangle().setInteractive() with pointerdown/pointerup
-    - this.input.on('pointerdown', callback) for tap anywhere
+14. MOBILE / TOUCH SUPPORT (REQUIRED FOR ALL GAMES):
+
+    A) SCALE MANAGER — include in EVERY Phaser config:
+       scale: {
+         mode: Phaser.Scale.FIT,
+         autoCenter: Phaser.Scale.CENTER_BOTH
+       }
+       This auto-scales the canvas to fill the device screen while preserving aspect ratio.
+
+    B) VIEWPORT META — include in <head> of EVERY game HTML:
+       <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    C) TOUCH-ACTION CSS — add to body style in EVERY game:
+       body { touch-action: none; }
+       This prevents browser swipe/pinch gestures from interfering with gameplay.
+
+    D) VIRTUAL TOUCH BUTTONS — for any game using keyboard controls, add on-screen buttons:
+       // Only show on touch devices:
+       if ('ontouchstart' in window) {
+         const btnLeft = this.add.rectangle(70, height - 60, 80, 80, 0xffffff, 0.25)
+           .setScrollFactor(0).setDepth(1000).setInteractive();
+         const btnRight = this.add.rectangle(170, height - 60, 80, 80, 0xffffff, 0.25)
+           .setScrollFactor(0).setDepth(1000).setInteractive();
+         const btnJump = this.add.rectangle(width - 70, height - 60, 80, 80, 0xffffff, 0.25)
+           .setScrollFactor(0).setDepth(1000).setInteractive();
+
+         // Add arrow/label text on each button
+         this.add.text(70, height - 60, '◀', { fontSize: '28px' }).setOrigin(0.5).setScrollFactor(0).setDepth(1001);
+         this.add.text(170, height - 60, '▶', { fontSize: '28px' }).setOrigin(0.5).setScrollFactor(0).setDepth(1001);
+         this.add.text(width - 70, height - 60, '▲', { fontSize: '28px' }).setOrigin(0.5).setScrollFactor(0).setDepth(1001);
+
+         // Wire button events to the same variables keyboard uses:
+         btnLeft.on('pointerdown', () => { touchLeft = true; });
+         btnLeft.on('pointerup', () => { touchLeft = false; });
+         btnLeft.on('pointerout', () => { touchLeft = false; });
+         btnRight.on('pointerdown', () => { touchRight = true; });
+         btnRight.on('pointerup', () => { touchRight = false; });
+         btnRight.on('pointerout', () => { touchRight = false; });
+         btnJump.on('pointerdown', () => { touchJump = true; });
+         btnJump.on('pointerup', () => { touchJump = false; });
+         btnJump.on('pointerout', () => { touchJump = false; });
+       }
+
+       // In update(), check BOTH keyboard and touch:
+       if (cursors.left.isDown || touchLeft) player.setVelocityX(-200);
+       if (cursors.up.isDown || touchJump) player.setVelocityY(-400);
+
+    E) POINTER EVENTS (games controlled by tap/click):
+       - Phaser handles touch automatically for pointer events (pointerdown, pointerup, pointermove)
+       - this.input.on('pointerdown', callback) works for both mouse click and touch tap
+       - For drag: use this.input.on('pointermove', callback) — works on touch too
+       - No extra code needed for clicker, puzzle, bubble-shooter, etc.
+
+    F) BUTTON SIZING — touch buttons must be at least 44x44 pixels for fingers
 
 FALLBACK: RAW CANVAS / WEB AUDIO (only for non-game projects):
 - Canvas API: ctx.fillRect, ctx.drawImage, ctx.arc for 2D drawing
