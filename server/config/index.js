@@ -137,6 +137,20 @@ export const MEMBERSHIP_TIERS = {
   }
 };
 
+// ========== CLASSWALLET / ESA ==========
+
+export const CLASSWALLET_API_KEY = process.env.CLASSWALLET_API_KEY || null;
+export const CLASSWALLET_VENDOR_ID = process.env.CLASSWALLET_VENDOR_ID || null;
+export const CLASSWALLET_ENABLED = !!CLASSWALLET_API_KEY;
+export const CLASSWALLET_BASE_URL = process.env.CLASSWALLET_BASE_URL || 'https://app.classwallet.com';
+
+export const ESA_PRICING = {
+  creator_quarterly: { tier: 'creator', amount: 2100, label: '$21 / quarter', months: 3 },
+  creator_annual:    { tier: 'creator', amount: 8400, label: '$84 / year',    months: 12 },
+  pro_quarterly:     { tier: 'pro',     amount: 4200, label: '$42 / quarter', months: 3 },
+  pro_annual:        { tier: 'pro',     amount: 16800, label: '$168 / year',  months: 12 },
+};
+
 // ========== RATE LIMITS ==========
 
 export const RATE_LIMITS = {

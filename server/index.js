@@ -32,6 +32,7 @@ import createBillingRouter from './routes/billing.js';
 import galleryRouter from './routes/gallery.js';
 import adminRouter from './routes/admin.js';
 import parentRouter from './routes/parent.js';
+import createEsaRouter from './routes/esa.js';
 import { initMultiplayer, getRoomInfo, getActiveRooms } from './multiplayer.js';
 
 // ========== INIT ==========
@@ -93,6 +94,7 @@ app.get('/sitemap.xml', async (_req, res) => {
     xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
     xml += `  <url><loc>${BASE_URL}/</loc><priority>1.0</priority></url>\n`;
     xml += `  <url><loc>${BASE_URL}/gallery</loc><priority>0.8</priority></url>\n`;
+    xml += `  <url><loc>${BASE_URL}/esa</loc><priority>0.7</priority></url>\n`;
     xml += `  <url><loc>${BASE_URL}/privacy</loc><priority>0.3</priority></url>\n`;
     xml += `  <url><loc>${BASE_URL}/terms</loc><priority>0.3</priority></url>\n`;
     for (const p of publicProjects) {
@@ -149,6 +151,7 @@ app.get('/gallery', (_req, res) => res.sendFile(path.join(PUBLIC_DIR, 'gallery.h
 app.get('/admin', (_req, res) => res.sendFile(path.join(PUBLIC_DIR, 'admin.html')));
 app.get('/privacy', (_req, res) => res.sendFile(path.join(PUBLIC_DIR, 'privacy.html')));
 app.get('/terms', (_req, res) => res.sendFile(path.join(PUBLIC_DIR, 'terms.html')));
+app.get('/esa', (_req, res) => res.sendFile(path.join(PUBLIC_DIR, 'esa.html')));
 
 // ========== API ROUTES ==========
 
@@ -208,6 +211,10 @@ app.use('/api/gallery', galleryRouter);
 const billingRouter = createBillingRouter(sessions);
 app.use('/api/stripe', billingRouter);
 app.use('/api/membership', billingRouter);
+
+// ESA / ClassWallet routes (public checkout + admin order management)
+const esaRouter = createEsaRouter(sessions);
+app.use('/api/esa', esaRouter);
 
 // Admin routes (protected)
 app.use('/api/admin', requireAdmin(sessions), adminRouter);

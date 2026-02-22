@@ -117,6 +117,36 @@ CREATE TABLE IF NOT EXISTS parental_consents (
 CREATE INDEX IF NOT EXISTS idx_consent_token ON parental_consents(token);
 CREATE INDEX IF NOT EXISTS idx_consent_user ON parental_consents(user_id);
 
+-- ========== ESA / CLASSWALLET ==========
+
+ALTER TABLE users ADD COLUMN IF NOT EXISTS payment_method TEXT NOT NULL DEFAULT 'stripe';
+ALTER TABLE users ADD COLUMN IF NOT EXISTS classwallet_order_id TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS esa_billing_period TEXT;
+
+CREATE TABLE IF NOT EXISTS esa_orders (
+    id              SERIAL PRIMARY KEY,
+    order_ref       TEXT UNIQUE NOT NULL,
+    user_id         TEXT REFERENCES users(id) ON DELETE SET NULL,
+    tier            TEXT NOT NULL,
+    billing_period  TEXT NOT NULL,
+    amount_cents    INT NOT NULL,
+    status          TEXT NOT NULL DEFAULT 'pending',
+    classwallet_txn TEXT,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    confirmed_at    TIMESTAMPTZ,
+    paid_at         TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_esa_orders_ref ON esa_orders(order_ref);
+CREATE INDEX IF NOT EXISTS idx_esa_orders_user ON esa_orders(user_id);
+CREATE INDEX IF NOT EXISTS idx_esa_orders_status ON esa_orders(status);
+
+CREATE TABLE IF NOT EXISTS esa_waitlist (
+    id          SERIAL PRIMARY KEY,
+    email       TEXT NOT NULL,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 -- ========== CLEANUP ==========
 -- Automatic cleanup of expired sessions and old rate limit entries.
 -- Run these periodically via a cron job or scheduled task.

@@ -561,6 +561,9 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
         <a href="/gallery" className="footer-link">
           <span>🕹️</span> Browse the Arcade
         </a>
+        <a href="/esa" className="footer-link">
+          <span>🎓</span> ESA Families
+        </a>
       </div>
     </div>
   )

@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Arizona ESA Payments - VibeCodeKidz</title>
+  <meta name="description" content="Use your Arizona Empowerment Scholarship Account (ESA) funds to pay for VibeCodeKidz coding classes for kids. ClassWallet accepted.">
+  <meta property="og:title" content="Pay with Arizona ESA Funds - VibeCodeKidz">
+  <meta property="og:description" content="VibeCodeKidz accepts Arizona ESA funds via ClassWallet. AI-powered game coding for kids ages 6-16.">
+  <meta property="og:url" content="https://vibecodekidz.org/esa">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="canonical" href="https://vibecodekidz.org/esa">
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(180deg, #0d0221 0%, #1a0a3e 30%, #2d1b69 60%, #1a0a3e 100%);
+      background-attachment: fixed;
+      color: #e0e0e0;
+      min-height: 100vh;
+      line-height: 1.7;
+    }
+
+    .coming-soon-banner {
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      color: #1a0a3e;
+      text-align: center;
+      padding: 14px 20px;
+      font-weight: 700;
+      font-size: 0.95rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .coming-soon-banner a { color: #1a0a3e; text-decoration: underline; }
+
+    .container { max-width: 960px; margin: 0 auto; padding: 40px 24px; }
+
+    .nav-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 48px;
+    }
+    .nav-logo {
+      font-size: 1.4rem;
+      font-weight: 800;
+      color: #fff;
+      text-decoration: none;
+    }
+    .nav-logo span { color: #a78bfa; }
+    .nav-links { display: flex; gap: 16px; }
+    .nav-links a {
+      color: rgba(255,255,255,0.7);
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 0.9rem;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: #fff; }
+
+    .hero { text-align: center; margin-bottom: 56px; }
+    .hero-badge {
+      display: inline-block;
+      background: rgba(167,139,250,0.2);
+      border: 1px solid rgba(167,139,250,0.4);
+      border-radius: 20px;
+      padding: 6px 18px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #a78bfa;
+      margin-bottom: 20px;
+    }
+    .hero h1 {
+      font-size: 2.6rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, #fff 0%, #a78bfa 60%, #f472b6 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 16px;
+      line-height: 1.2;
+    }
+    .hero p {
+      font-size: 1.15rem;
+      color: rgba(255,255,255,0.7);
+      max-width: 600px;
+      margin: 0 auto 28px;
+    }
+
+    .card {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 20px;
+      padding: 32px;
+      margin-bottom: 28px;
+    }
+
+    .section-title {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 8px;
+    }
+    .section-subtitle {
+      color: rgba(255,255,255,0.6);
+      margin-bottom: 24px;
+      font-size: 0.95rem;
+    }
+
+    /* Qualifications */
+    .qual-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    .qual-item {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+    }
+    .qual-item .icon { font-size: 2rem; margin-bottom: 8px; }
+    .qual-item h4 { font-size: 0.95rem; color: #a78bfa; margin-bottom: 4px; }
+    .qual-item p { font-size: 0.85rem; color: rgba(255,255,255,0.6); }
+
+    /* Pricing */
+    .pricing-toggle {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 28px;
+    }
+    .toggle-btn {
+      padding: 10px 24px;
+      border: 1px solid rgba(255,255,255,0.2);
+      background: rgba(255,255,255,0.05);
+      color: rgba(255,255,255,0.7);
+      border-radius: 8px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .toggle-btn.active {
+      background: #6366f1;
+      border-color: #6366f1;
+      color: #fff;
+    }
+
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    .pricing-card {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 16px;
+      padding: 28px;
+      text-align: center;
+      transition: transform 0.2s, border-color 0.2s;
+    }
+    .pricing-card:hover {
+      transform: translateY(-4px);
+      border-color: rgba(167,139,250,0.5);
+    }
+    .pricing-card.featured {
+      border-color: #a78bfa;
+      box-shadow: 0 0 30px rgba(167,139,250,0.15);
+    }
+    .pricing-card h3 { font-size: 1.3rem; color: #fff; margin-bottom: 4px; }
+    .pricing-card .price {
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: #a78bfa;
+      margin: 12px 0 4px;
+    }
+    .pricing-card .period { color: rgba(255,255,255,0.5); font-size: 0.85rem; margin-bottom: 16px; }
+    .pricing-card .monthly { color: rgba(255,255,255,0.4); font-size: 0.8rem; margin-bottom: 16px; }
+    .pricing-card ul {
+      list-style: none;
+      text-align: left;
+      margin-bottom: 20px;
+    }
+    .pricing-card ul li {
+      padding: 6px 0;
+      font-size: 0.9rem;
+      color: rgba(255,255,255,0.7);
+    }
+    .pricing-card ul li::before {
+      content: '\2713';
+      color: #34d399;
+      margin-right: 8px;
+      font-weight: 700;
+    }
+
+    /* How It Works */
+    .steps-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 20px;
+    }
+    .step {
+      text-align: center;
+      padding: 20px 12px;
+    }
+    .step-number {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #6366f1, #a78bfa);
+      color: #fff;
+      font-weight: 800;
+      font-size: 1.2rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 12px;
+    }
+    .step h4 { color: #fff; margin-bottom: 6px; font-size: 1rem; }
+    .step p { color: rgba(255,255,255,0.6); font-size: 0.85rem; }
+
+    /* FAQ */
+    .faq-item {
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      padding: 20px 0;
+    }
+    .faq-item:last-child { border-bottom: none; }
+    .faq-q {
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 8px;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .faq-q::after { content: '+'; font-size: 1.3rem; color: #a78bfa; }
+    .faq-q.open::after { content: '\2212'; }
+    .faq-a {
+      color: rgba(255,255,255,0.6);
+      font-size: 0.9rem;
+      line-height: 1.6;
+      display: none;
+    }
+    .faq-a.open { display: block; }
+    .faq-a a { color: #a78bfa; }
+
+    /* Waitlist form */
+    .waitlist-card {
+      background: linear-gradient(135deg, rgba(99,102,241,0.15), rgba(167,139,250,0.1));
+      border: 1px solid rgba(167,139,250,0.3);
+      text-align: center;
+    }
+    .waitlist-card h2 {
+      font-size: 1.4rem;
+      color: #fff;
+      margin-bottom: 8px;
+    }
+    .waitlist-card p {
+      color: rgba(255,255,255,0.6);
+      margin-bottom: 20px;
+      font-size: 0.95rem;
+    }
+    .waitlist-form {
+      display: flex;
+      gap: 10px;
+      max-width: 440px;
+      margin: 0 auto;
+    }
+    .waitlist-form input {
+      flex: 1;
+      padding: 14px 16px;
+      background: rgba(0,0,0,0.3);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 10px;
+      color: #fff;
+      font-size: 1rem;
+      font-family: inherit;
+    }
+    .waitlist-form input::placeholder { color: rgba(255,255,255,0.4); }
+    .waitlist-form input:focus { outline: none; border-color: #6366f1; }
+    .waitlist-form button {
+      padding: 14px 24px;
+      background: linear-gradient(135deg, #6366f1, #4f46e5);
+      border: none;
+      border-radius: 10px;
+      color: #fff;
+      font-weight: 700;
+      font-size: 0.95rem;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: transform 0.2s;
+    }
+    .waitlist-form button:hover { transform: translateY(-2px); }
+    .waitlist-msg {
+      margin-top: 12px;
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+    .waitlist-msg.success { color: #34d399; }
+    .waitlist-msg.error { color: #ef4444; }
+
+    /* Success/error banners from query params */
+    .alert {
+      padding: 16px 24px;
+      border-radius: 12px;
+      margin-bottom: 24px;
+      font-weight: 600;
+      text-align: center;
+    }
+    .alert-success {
+      background: rgba(34,197,94,0.15);
+      border: 1px solid rgba(34,197,94,0.3);
+      color: #34d399;
+    }
+    .alert-error {
+      background: rgba(239,68,68,0.15);
+      border: 1px solid rgba(239,68,68,0.3);
+      color: #ef4444;
+    }
+
+    /* Resources */
+    .resources-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+    }
+    .resource-link {
+      display: block;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px;
+      padding: 20px;
+      text-decoration: none;
+      color: #fff;
+      transition: all 0.2s;
+    }
+    .resource-link:hover {
+      background: rgba(255,255,255,0.1);
+      transform: translateY(-2px);
+    }
+    .resource-link .icon { font-size: 1.5rem; margin-bottom: 8px; }
+    .resource-link h4 { font-size: 0.95rem; margin-bottom: 4px; }
+    .resource-link p { font-size: 0.8rem; color: rgba(255,255,255,0.5); }
+
+    .footer {
+      text-align: center;
+      padding: 40px 20px;
+      color: rgba(255,255,255,0.4);
+      font-size: 0.85rem;
+    }
+    .footer a { color: rgba(255,255,255,0.5); text-decoration: none; }
+    .footer a:hover { color: #fff; }
+
+    @media (max-width: 640px) {
+      .hero h1 { font-size: 1.8rem; }
+      .pricing-grid { grid-template-columns: 1fr; }
+      .waitlist-form { flex-direction: column; }
+      .steps-grid { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="coming-soon-banner">
+    🎓 ESA Payments Coming Soon! We're finalizing our ClassWallet integration.
+    <a href="#waitlist">Get notified when we go live.</a>
+  </div>
+
+  <div class="container">
+
+    <nav class="nav-bar">
+      <a href="/" class="nav-logo">Vibe<span>Code</span>Kidz</a>
+      <div class="nav-links">
+        <a href="/">Home</a>
+        <a href="/gallery">Arcade</a>
+        <a href="/#pricing">Pricing</a>
+      </div>
+    </nav>
+
+    <div id="alertArea"></div>
+
+    <!-- Hero -->
+    <div class="hero">
+      <div class="hero-badge">Arizona ESA Accepted</div>
+      <h1>Pay for VibeCodeKidz with Your ESA Funds</h1>
+      <p>
+        VibeCodeKidz is an AI-powered game coding platform for kids ages 6-16.
+        Arizona ESA families can use their Empowerment Scholarship funds to pay
+        for Creator and Pro plans through ClassWallet.
+      </p>
+    </div>
+
+    <!-- What qualifies -->
+    <div class="card">
+      <h2 class="section-title">Why VibeCodeKidz Qualifies</h2>
+      <p class="section-subtitle">Our platform falls under multiple approved ESA spending categories</p>
+      <div class="qual-grid">
+        <div class="qual-item">
+          <div class="icon">📚</div>
+          <h4>Curriculum</h4>
+          <p>Interactive coding curriculum aligned with STEM education goals</p>
+        </div>
+        <div class="qual-item">
+          <div class="icon">💻</div>
+          <h4>Online Learning</h4>
+          <p>Non-public online learning program for coding and game design</p>
+        </div>
+        <div class="qual-item">
+          <div class="icon">🎮</div>
+          <h4>Educational Tech</h4>
+          <p>AI-assisted educational technology platform for creative learning</p>
+        </div>
+        <div class="qual-item">
+          <div class="icon">🛡️</div>
+          <h4>COPPA Compliant</h4>
+          <p>Built with children's privacy and safety as a top priority</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pricing -->
+    <div class="card" id="pricing">
+      <h2 class="section-title">ESA Pricing</h2>
+      <p class="section-subtitle">Aligned with ESA quarterly disbursement schedule</p>
+
+      <div class="pricing-toggle">
+        <button class="toggle-btn active" onclick="setPeriod('quarterly')">Quarterly</button>
+        <button class="toggle-btn" onclick="setPeriod('annual')">Annual (Save 3 months free!)</button>
+      </div>
+
+      <div class="pricing-grid" id="pricingGrid">
+        <!-- Filled by JS -->
+      </div>
+    </div>
+
+    <!-- How It Works -->
+    <div class="card">
+      <h2 class="section-title">How It Works</h2>
+      <p class="section-subtitle">Get started in four simple steps</p>
+      <div class="steps-grid">
+        <div class="step">
+          <div class="step-number">1</div>
+          <h4>Apply for ESA</h4>
+          <p>If you haven't already, apply through the AZ Dept. of Education ESA portal</p>
+        </div>
+        <div class="step">
+          <div class="step-number">2</div>
+          <h4>Choose a Plan</h4>
+          <p>Select Creator or Pro and pick quarterly or annual billing</p>
+        </div>
+        <div class="step">
+          <div class="step-number">3</div>
+          <h4>Pay with ClassWallet</h4>
+          <p>Use your ClassWallet ESA funds at checkout -- no out-of-pocket cost</p>
+        </div>
+        <div class="step">
+          <div class="step-number">4</div>
+          <h4>Start Creating!</h4>
+          <p>Your child can start vibecoding games immediately</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Waitlist -->
+    <div class="card waitlist-card" id="waitlist">
+      <h2>Get Notified When ESA Payments Go Live</h2>
+      <p>We're finalizing our ClassWallet vendor integration. Enter your email and we'll let you know the moment ESA payments are accepted.</p>
+      <form class="waitlist-form" id="waitlistForm">
+        <input type="email" id="waitlistEmail" placeholder="your.email@example.com" required>
+        <button type="submit">Notify Me</button>
+      </form>
+      <div id="waitlistMsg" class="waitlist-msg"></div>
+    </div>
+
+    <!-- FAQ -->
+    <div class="card">
+      <h2 class="section-title">Frequently Asked Questions</h2>
+      <p class="section-subtitle">Common questions from ESA families</p>
+
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">What is the Arizona ESA program?</div>
+        <div class="faq-a">
+          The Arizona Empowerment Scholarship Account (ESA) program provides state funds to K-12 students for educational expenses including private school tuition, curriculum, online learning, tutoring, and educational technology. Families typically receive $6,000-$7,000 per year per student.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">How does ClassWallet work?</div>
+        <div class="faq-a">
+          ClassWallet is the digital payment platform used by the Arizona Department of Education to manage ESA funds. Parents can pay approved vendors directly through ClassWallet using their ESA balance. When you choose to pay with ClassWallet on VibeCodeKidz, you'll be redirected to confirm the purchase, and the funds are deducted from your ESA account.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">Does VibeCodeKidz qualify as an approved ESA expense?</div>
+        <div class="faq-a">
+          Yes. VibeCodeKidz falls under approved categories including "Curriculum," "Non-public online learning programs," and "Educational technology." Other coding platforms like CodaKid and Coco Coders are already approved ESA vendors for similar services.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">How much does it cost, and which plan should I pick?</div>
+        <div class="faq-a">
+          We offer two plans: <strong>Creator</strong> ($21/quarter or $84/year) for kids getting started with game coding, and <strong>Pro</strong> ($42/quarter or $168/year) for advanced creators who want more games, AI features, and premium assets. Both are well within typical ESA allocations. Annual plans save the equivalent of 3 months free.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">Is VibeCodeKidz safe for my child?</div>
+        <div class="faq-a">
+          Absolutely. We are fully COPPA compliant with parental consent verification for users under 13, content filtering, and privacy protections. We never collect more data than necessary and parents can request data access or deletion at any time.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">Can I use a combination of ESA funds and a credit card?</div>
+        <div class="faq-a">
+          ClassWallet allows users to supplement their ESA balance with a personal credit card if needed. However, our plans are priced well within typical ESA allocations, so most families can cover the full cost with ESA funds.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">When will ESA payments be available?</div>
+        <div class="faq-a">
+          We are currently completing our ClassWallet vendor registration. We expect ESA payments to be live within a few weeks. <a href="#waitlist">Join our waitlist</a> to be notified the moment payments go live.
+        </div>
+      </div>
+    </div>
+
+    <!-- Resources -->
+    <div class="card">
+      <h2 class="section-title">Helpful Resources</h2>
+      <p class="section-subtitle">Official links for Arizona ESA families</p>
+      <div class="resources-grid">
+        <a href="https://www.azed.gov/esa" target="_blank" rel="noopener noreferrer" class="resource-link">
+          <div class="icon">🏛️</div>
+          <h4>AZ Dept. of Education</h4>
+          <p>Official ESA program information</p>
+        </a>
+        <a href="https://classwallet.com/arizona-esa/" target="_blank" rel="noopener noreferrer" class="resource-link">
+          <div class="icon">💳</div>
+          <h4>ClassWallet for AZ ESA</h4>
+          <p>Vendor and parent resources</p>
+        </a>
+        <a href="https://www.arizonalearning.org/esa-vendor-database" target="_blank" rel="noopener noreferrer" class="resource-link">
+          <div class="icon">📋</div>
+          <h4>ESA Vendor Database</h4>
+          <p>Browse approved vendors</p>
+        </a>
+        <a href="https://arizonaempowermentscholarship.org/how-to-apply/" target="_blank" rel="noopener noreferrer" class="resource-link">
+          <div class="icon">📝</div>
+          <h4>How to Apply</h4>
+          <p>ESA application guide</p>
+        </a>
+      </div>
+    </div>
+
+    <div class="footer">
+      <p>&copy; 2026 VibeCodeKidz. All rights reserved.</p>
+      <p style="margin-top: 8px;">
+        <a href="/">Home</a> &middot;
+        <a href="/gallery">Arcade</a> &middot;
+        <a href="/privacy">Privacy Policy</a> &middot;
+        <a href="/terms">Terms of Service</a>
+      </p>
+    </div>
+
+  </div>
+
+  <script>
+    const PRICING = {
+      quarterly: [
+        {
+          key: 'creator_quarterly',
+          name: 'Creator',
+          price: '$21',
+          period: 'per quarter',
+          monthly: '$7/mo equivalent',
+          features: [
+            '25 games per month',
+            '150 AI prompts per day',
+            'Unlimited plays',
+            '5 AI game covers per month',
+            'Premium asset library'
+          ]
+        },
+        {
+          key: 'pro_quarterly',
+          name: 'Pro',
+          price: '$42',
+          period: 'per quarter',
+          monthly: '$14/mo equivalent',
+          featured: true,
+          features: [
+            '50 games per month',
+            '300 AI prompts per day',
+            'Unlimited plays',
+            '20 AI game covers per month',
+            '10 AI sprites per month',
+            'Premium asset library'
+          ]
+        }
+      ],
+      annual: [
+        {
+          key: 'creator_annual',
+          name: 'Creator',
+          price: '$84',
+          period: 'per year',
+          monthly: '$7/mo \u2014 save $21 vs quarterly',
+          features: [
+            '25 games per month',
+            '150 AI prompts per day',
+            'Unlimited plays',
+            '5 AI game covers per month',
+            'Premium asset library'
+          ]
+        },
+        {
+          key: 'pro_annual',
+          name: 'Pro',
+          price: '$168',
+          period: 'per year',
+          monthly: '$14/mo \u2014 save $42 vs quarterly',
+          featured: true,
+          features: [
+            '50 games per month',
+            '300 AI prompts per day',
+            'Unlimited plays',
+            '20 AI game covers per month',
+            '10 AI sprites per month',
+            'Premium asset library'
+          ]
+        }
+      ]
+    };
+
+    let activePeriod = 'quarterly';
+
+    function setPeriod(period) {
+      activePeriod = period;
+      document.querySelectorAll('.toggle-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.textContent.toLowerCase().includes(period));
+      });
+      renderPricing();
+    }
+
+    function renderPricing() {
+      const grid = document.getElementById('pricingGrid');
+      grid.innerHTML = PRICING[activePeriod].map(plan => `
+        <div class="pricing-card ${plan.featured ? 'featured' : ''}">
+          <h3>${plan.name}</h3>
+          <div class="price">${plan.price}</div>
+          <div class="period">${plan.period}</div>
+          <div class="monthly">${plan.monthly}</div>
+          <ul>
+            ${plan.features.map(f => `<li>${f}</li>`).join('')}
+          </ul>
+        </div>
+      `).join('');
+    }
+
+    renderPricing();
+
+    // FAQ toggle
+    function toggleFaq(el) {
+      el.classList.toggle('open');
+      const answer = el.nextElementSibling;
+      answer.classList.toggle('open');
+    }
+
+    // Waitlist form
+    document.getElementById('waitlistForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('waitlistEmail').value.trim();
+      const msgEl = document.getElementById('waitlistMsg');
+
+      try {
+        const res = await fetch('/api/esa/waitlist', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          msgEl.className = 'waitlist-msg success';
+          msgEl.textContent = data.message || 'You\'re on the list!';
+          document.getElementById('waitlistEmail').value = '';
+        } else {
+          msgEl.className = 'waitlist-msg error';
+          msgEl.textContent = data.error || 'Something went wrong';
+        }
+      } catch {
+        msgEl.className = 'waitlist-msg error';
+        msgEl.textContent = 'Could not connect to server. Please try again.';
+      }
+    });
+
+    // Show alert from query params
+    (function() {
+      const params = new URLSearchParams(window.location.search);
+      const alertArea = document.getElementById('alertArea');
+      if (params.get('success') === 'true') {
+        alertArea.innerHTML = '<div class="alert alert-success">Payment confirmed! Your VibeCodeKidz account is now active. <a href="/" style="color:#22c55e;text-decoration:underline;">Go to Studio</a></div>';
+      } else if (params.get('cancelled') === 'true') {
+        alertArea.innerHTML = '<div class="alert alert-error">Payment was cancelled. You can try again anytime.</div>';
+      } else if (params.get('error')) {
+        alertArea.innerHTML = '<div class="alert alert-error">Something went wrong. Please try again or contact support.</div>';
+      }
+    })();
+  </script>
+</body>
+</html>

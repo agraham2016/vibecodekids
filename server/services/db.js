@@ -87,6 +87,10 @@ function rowToUser(row) {
     dataDeletionRequested: row.data_deletion_requested || false,
     dataDeletionAt: row.data_deletion_at?.toISOString() || null,
     privacyAcceptedAt: row.privacy_accepted_at?.toISOString() || null,
+    // ESA / ClassWallet fields
+    paymentMethod: row.payment_method || 'stripe',
+    classwalletOrderId: row.classwallet_order_id || null,
+    esaBillingPeriod: row.esa_billing_period || null,
     // Rate limit requests are stored in a separate table for Postgres
     recentRequests: [],
   };
@@ -126,6 +130,10 @@ function userToRow(user) {
     denied_at: user.deniedAt || null,
     created_at: user.createdAt || new Date().toISOString(),
     last_login_at: user.lastLoginAt || null,
+    // ESA / ClassWallet fields
+    payment_method: user.paymentMethod || 'stripe',
+    classwallet_order_id: user.classwalletOrderId || null,
+    esa_billing_period: user.esaBillingPeriod || null,
   };
 }
 
@@ -178,7 +186,8 @@ export async function writeUser(userId, userData) {
       rate_limited_until, has_seen_upgrade_prompt, project_count,
       age_bracket, parent_email, parental_consent_status, parental_consent_at,
       data_deletion_requested, data_deletion_at, privacy_accepted_at,
-      approved_at, denied_at, created_at, last_login_at
+      approved_at, denied_at, created_at, last_login_at,
+      payment_method, classwallet_order_id, esa_billing_period
     ) VALUES (
       $1, $2, $3, $4, $5, $6,
       $7, $8, $9, $10,
@@ -187,7 +196,8 @@ export async function writeUser(userId, userData) {
       $18, $19, $20,
       $21, $22, $23, $24,
       $25, $26, $27,
-      $28, $29, $30, $31
+      $28, $29, $30, $31,
+      $32, $33, $34
     )
     ON CONFLICT (id) DO UPDATE SET
       username = EXCLUDED.username,
@@ -218,7 +228,10 @@ export async function writeUser(userId, userData) {
       privacy_accepted_at = EXCLUDED.privacy_accepted_at,
       approved_at = EXCLUDED.approved_at,
       denied_at = EXCLUDED.denied_at,
-      last_login_at = EXCLUDED.last_login_at
+      last_login_at = EXCLUDED.last_login_at,
+      payment_method = EXCLUDED.payment_method,
+      classwallet_order_id = EXCLUDED.classwallet_order_id,
+      esa_billing_period = EXCLUDED.esa_billing_period
   `, [
     r.id, r.username, r.display_name, r.password_hash, r.status, r.is_admin,
     r.membership_tier, r.membership_expires, r.stripe_customer_id, r.stripe_subscription_id,
@@ -227,7 +240,8 @@ export async function writeUser(userId, userData) {
     r.rate_limited_until, r.has_seen_upgrade_prompt, r.project_count,
     r.age_bracket, r.parent_email, r.parental_consent_status, r.parental_consent_at,
     r.data_deletion_requested, r.data_deletion_at, r.privacy_accepted_at,
-    r.approved_at, r.denied_at, r.created_at, r.last_login_at
+    r.approved_at, r.denied_at, r.created_at, r.last_login_at,
+    r.payment_method, r.classwallet_order_id, r.esa_billing_period
   ]);
 }
 
@@ -346,6 +360,68 @@ export async function listProjects() {
   const db = getPool();
   const { rows } = await db.query('SELECT * FROM projects ORDER BY created_at DESC');
   return rows.map(rowToProject);
+}
+
+// ========== ESA ORDER OPERATIONS ==========
+
+export async function createEsaOrder({ orderRef, userId, tier, billingPeriod, amountCents }) {
+  const db = getPool();
+  await db.query(
+    `INSERT INTO esa_orders (order_ref, user_id, tier, billing_period, amount_cents)
+     VALUES ($1, $2, $3, $4, $5)`,
+    [orderRef, userId, tier, billingPeriod, amountCents]
+  );
+}
+
+export async function getEsaOrder(orderRef) {
+  const db = getPool();
+  const { rows } = await db.query('SELECT * FROM esa_orders WHERE order_ref = $1', [orderRef]);
+  return rows[0] || null;
+}
+
+export async function updateEsaOrderStatus(orderRef, status, extra = {}) {
+  const db = getPool();
+  const sets = ['status = $2'];
+  const vals = [orderRef, status];
+  let idx = 3;
+  if (status === 'confirmed') { sets.push(`confirmed_at = $${idx++}`); vals.push(new Date().toISOString()); }
+  if (status === 'paid')      { sets.push(`paid_at = $${idx++}`);      vals.push(new Date().toISOString()); }
+  if (extra.classwalletTxn)   { sets.push(`classwallet_txn = $${idx++}`); vals.push(extra.classwalletTxn); }
+  await db.query(`UPDATE esa_orders SET ${sets.join(', ')} WHERE order_ref = $1`, vals);
+}
+
+export async function listEsaOrders(statusFilter) {
+  const db = getPool();
+  let query = 'SELECT * FROM esa_orders ORDER BY created_at DESC';
+  const vals = [];
+  if (statusFilter) {
+    query = 'SELECT * FROM esa_orders WHERE status = $1 ORDER BY created_at DESC';
+    vals.push(statusFilter);
+  }
+  const { rows } = await db.query(query, vals);
+  return rows;
+}
+
+// ========== ESA WAITLIST OPERATIONS ==========
+
+export async function addEsaWaitlist(email) {
+  const db = getPool();
+  await db.query(
+    'INSERT INTO esa_waitlist (email) VALUES ($1) ON CONFLICT DO NOTHING',
+    [email]
+  );
+}
+
+export async function listEsaWaitlist() {
+  const db = getPool();
+  const { rows } = await db.query('SELECT * FROM esa_waitlist ORDER BY created_at DESC');
+  return rows;
+}
+
+export async function countEsaWaitlist() {
+  const db = getPool();
+  const { rows } = await db.query('SELECT COUNT(*)::int AS count FROM esa_waitlist');
+  return rows[0].count;
 }
 
 // ========== DATA DIRECTORY SETUP (no-op for Postgres) ==========

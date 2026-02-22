@@ -744,6 +744,9 @@
         <button class="tab-btn" onclick="switchTab('projects')">
           🎨 Projects
         </button>
+        <button class="tab-btn" onclick="switchTab('esa')">
+          🎓 ESA Orders
+        </button>
       </div>
 
       <!-- Tab Content: Pending Users -->
@@ -840,6 +843,45 @@
               <tbody id="projectsBody"></tbody>
             </table>
           </div>
+        </div>
+      </div>
+
+      <!-- Tab Content: ESA Orders -->
+      <div id="tab-esa" class="tab-content">
+        <div class="panel" style="margin-bottom: 20px;">
+          <div class="panel-header">
+            🎓 ESA / ClassWallet Orders
+            <span id="esaWaitlistBadge" style="margin-left:auto;background:rgba(167,139,250,0.2);color:#a78bfa;padding:4px 12px;border-radius:20px;font-size:0.8rem;font-weight:700;"></span>
+          </div>
+          <div class="panel-content">
+            <div id="esaOrdersLoading" class="loading">
+              <div class="spinner"></div>
+              <p>Loading ESA orders...</p>
+            </div>
+            <div id="esaOrdersEmpty" class="empty-state hidden">
+              <div class="icon">🎓</div>
+              <p>No ESA orders yet.</p>
+            </div>
+            <table id="esaOrdersTable" class="data-table hidden">
+              <thead>
+                <tr>
+                  <th>Order Ref</th>
+                  <th>User</th>
+                  <th>Tier</th>
+                  <th>Period</th>
+                  <th>Amount</th>
+                  <th>Status</th>
+                  <th>Created</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="esaOrdersBody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;">
+          <button class="btn btn-primary btn-sm" onclick="exportWaitlist()">📧 Export Waitlist CSV</button>
+          <a href="/esa" target="_blank" class="btn btn-sm" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:white;text-decoration:none;">🌐 View ESA Page</a>
         </div>
       </div>
     </div>
@@ -947,6 +989,7 @@
       loadPendingUsers();
       loadAllUsers();
       loadProjects();
+      loadEsaOrders();
     }
 
     // Tab switching
@@ -1295,6 +1338,117 @@
       const div = document.createElement('div');
       div.textContent = text;
       return div.innerHTML;
+    }
+
+    // Load ESA orders
+    async function loadEsaOrders() {
+      const loading = document.getElementById('esaOrdersLoading');
+      const empty = document.getElementById('esaOrdersEmpty');
+      const table = document.getElementById('esaOrdersTable');
+      const tbody = document.getElementById('esaOrdersBody');
+      const badge = document.getElementById('esaWaitlistBadge');
+
+      loading.classList.remove('hidden');
+      empty.classList.add('hidden');
+      table.classList.add('hidden');
+
+      try {
+        const response = await adminFetch('/api/esa/orders');
+        const data = await response.json();
+        const orders = data.orders || [];
+
+        badge.textContent = `${data.waitlistCount || 0} on waitlist`;
+
+        loading.classList.add('hidden');
+
+        if (orders.length === 0) {
+          empty.classList.remove('hidden');
+        } else {
+          table.classList.remove('hidden');
+          tbody.innerHTML = orders.map(order => {
+            const statusMap = {
+              pending:   '<span class="badge badge-pending">PENDING</span>',
+              confirmed: '<span class="badge" style="background:rgba(99,102,241,0.2);color:#818cf8;">CONFIRMED</span>',
+              paid:      '<span class="badge badge-approved">PAID</span>',
+              cancelled: '<span class="badge badge-denied">CANCELLED</span>'
+            };
+            const statusBadge = statusMap[order.status] || order.status;
+            const amount = '$' + (order.amount_cents / 100).toFixed(2);
+            const canConfirm = order.status === 'pending' || order.status === 'confirmed';
+
+            return `
+              <tr>
+                <td><code style="font-size:0.75rem;">${escapeHtml(order.order_ref)}</code></td>
+                <td>${escapeHtml(order.user_id || 'N/A')}</td>
+                <td>${escapeHtml((order.tier || '').toUpperCase())}</td>
+                <td>${escapeHtml(order.billing_period || '')}</td>
+                <td><strong>${amount}</strong></td>
+                <td>${statusBadge}</td>
+                <td>${formatDate(order.created_at)}</td>
+                <td class="actions">
+                  ${canConfirm ? `<button class="btn btn-success btn-sm" onclick="confirmEsaOrder('${escapeHtml(order.order_ref)}')">💰 Mark Paid</button>` : ''}
+                </td>
+              </tr>
+            `;
+          }).join('');
+        }
+      } catch (error) {
+        console.error('Failed to load ESA orders:', error);
+        loading.classList.add('hidden');
+        empty.classList.remove('hidden');
+        empty.innerHTML = '<div class="icon">⚠️</div><p>Failed to load ESA orders</p>';
+      }
+    }
+
+    async function confirmEsaOrder(orderRef) {
+      showConfirmModal(
+        'Confirm ESA Payment',
+        'Mark this order as paid? This will activate the user account.',
+        async () => {
+          try {
+            const response = await adminFetch(`/api/esa/orders/${orderRef}/confirm`, { method: 'POST' });
+            if (response.ok) {
+              showToast('ESA order confirmed and user activated!', 'success');
+              loadEsaOrders();
+              loadStats();
+            } else {
+              throw new Error('Failed to confirm order');
+            }
+          } catch (error) {
+            showToast('Failed to confirm ESA order', 'error');
+          }
+        },
+        'btn-success'
+      );
+    }
+
+    async function exportWaitlist() {
+      try {
+        const response = await adminFetch('/api/esa/waitlist');
+        const data = await response.json();
+        const list = data.waitlist || [];
+
+        if (list.length === 0) {
+          showToast('Waitlist is empty', 'error');
+          return;
+        }
+
+        let csv = 'Email,Signed Up\n';
+        list.forEach(entry => {
+          csv += `${entry.email},${entry.created_at}\n`;
+        });
+
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `esa-waitlist-${new Date().toISOString().slice(0,10)}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast(`Exported ${list.length} waitlist entries`, 'success');
+      } catch (error) {
+        showToast('Failed to export waitlist', 'error');
+      }
     }
 
     // Initialize

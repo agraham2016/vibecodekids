@@ -84,6 +84,71 @@ export async function listProjects() {
   return projects;
 }
 
+// ========== ESA ORDER OPERATIONS (file-based) ==========
+
+const ESA_ORDERS_FILE = path.join(path.dirname(USERS_DIR), 'esa_orders.json');
+const ESA_WAITLIST_FILE = path.join(path.dirname(USERS_DIR), 'esa_waitlist.json');
+
+async function readJsonFile(filePath, fallback = []) {
+  try {
+    const data = await fs.readFile(filePath, 'utf-8');
+    return JSON.parse(data);
+  } catch { return fallback; }
+}
+
+async function writeJsonFile(filePath, data) {
+  await fs.writeFile(filePath, JSON.stringify(data, null, 2));
+}
+
+export async function createEsaOrder({ orderRef, userId, tier, billingPeriod, amountCents }) {
+  const orders = await readJsonFile(ESA_ORDERS_FILE);
+  orders.push({
+    order_ref: orderRef, user_id: userId, tier, billing_period: billingPeriod,
+    amount_cents: amountCents, status: 'pending', classwallet_txn: null,
+    created_at: new Date().toISOString(), confirmed_at: null, paid_at: null,
+  });
+  await writeJsonFile(ESA_ORDERS_FILE, orders);
+}
+
+export async function getEsaOrder(orderRef) {
+  const orders = await readJsonFile(ESA_ORDERS_FILE);
+  return orders.find(o => o.order_ref === orderRef) || null;
+}
+
+export async function updateEsaOrderStatus(orderRef, status, extra = {}) {
+  const orders = await readJsonFile(ESA_ORDERS_FILE);
+  const order = orders.find(o => o.order_ref === orderRef);
+  if (!order) return;
+  order.status = status;
+  if (status === 'confirmed') order.confirmed_at = new Date().toISOString();
+  if (status === 'paid') order.paid_at = new Date().toISOString();
+  if (extra.classwalletTxn) order.classwallet_txn = extra.classwalletTxn;
+  await writeJsonFile(ESA_ORDERS_FILE, orders);
+}
+
+export async function listEsaOrders(statusFilter) {
+  const orders = await readJsonFile(ESA_ORDERS_FILE);
+  const filtered = statusFilter ? orders.filter(o => o.status === statusFilter) : orders;
+  return filtered.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+}
+
+export async function addEsaWaitlist(email) {
+  const list = await readJsonFile(ESA_WAITLIST_FILE);
+  if (list.some(e => e.email === email)) return;
+  list.push({ email, created_at: new Date().toISOString() });
+  await writeJsonFile(ESA_WAITLIST_FILE, list);
+}
+
+export async function listEsaWaitlist() {
+  const list = await readJsonFile(ESA_WAITLIST_FILE);
+  return list.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+}
+
+export async function countEsaWaitlist() {
+  const list = await readJsonFile(ESA_WAITLIST_FILE);
+  return list.length;
+}
+
 // ========== DATA DIRECTORY SETUP ==========
 
 export async function ensureDataDirs() {

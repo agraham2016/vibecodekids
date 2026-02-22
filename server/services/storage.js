@@ -32,3 +32,12 @@ export const writeProject   = backend.writeProject;
 export const deleteProject  = backend.deleteProject;
 export const listProjects   = backend.listProjects;
 export const ensureDataDirs = backend.ensureDataDirs;
+
+// ESA / ClassWallet helpers
+export const createEsaOrder        = backend.createEsaOrder;
+export const getEsaOrder           = backend.getEsaOrder;
+export const updateEsaOrderStatus  = backend.updateEsaOrderStatus;
+export const listEsaOrders         = backend.listEsaOrders;
+export const addEsaWaitlist        = backend.addEsaWaitlist;
+export const listEsaWaitlist       = backend.listEsaWaitlist;
+export const countEsaWaitlist      = backend.countEsaWaitlist;
