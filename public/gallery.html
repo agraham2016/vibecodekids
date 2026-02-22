@@ -1021,22 +1021,22 @@
       }
 
       document.querySelectorAll('.games-grid').forEach(function(grid) {
-        grid.addEventListener('mouseenter', function(e) {
+        grid.addEventListener('mouseover', function(e) {
           const card = e.target.closest('.game-card');
-          if (!card) return;
+          if (!card || !grid.contains(card)) return;
           if (card === activeCard) return;
           clearTimeout(hoverTimeout);
           hoverTimeout = setTimeout(function() { startPreview(card); }, 300);
-        }, true);
+        });
 
-        grid.addEventListener('mouseleave', function(e) {
+        grid.addEventListener('mouseout', function(e) {
           const card = e.target.closest('.game-card');
           if (!card) return;
           const related = e.relatedTarget;
           if (related && card.contains(related)) return;
           clearTimeout(hoverTimeout);
-          cleanupPreview();
-        }, true);
+          if (activeCard === card) cleanupPreview();
+        });
       });
     }
 
