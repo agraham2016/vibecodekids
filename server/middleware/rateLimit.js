@@ -60,6 +60,7 @@ export async function checkRateLimits(userId) {
 
   try {
     let user = await readUser(userId);
+    if (user.membershipTier === 'tester') return { allowed: true };
     const now = Date.now();
 
     // Check cooldown
@@ -120,6 +121,7 @@ export async function checkTierLimits(userId, action) {
 
   try {
     let user = await readUser(userId);
+    if (user.membershipTier === 'tester') return { allowed: true, user };
     user = checkAndResetCounters(user);
     const limits = getUserLimits(user);
 

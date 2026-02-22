@@ -144,7 +144,7 @@ router.post('/users/:id/set-tier', async (req, res) => {
     const { tier, months = 1 } = req.body;
 
     if (!/^[a-zA-Z0-9_-]+$/.test(id)) return res.status(400).json({ error: 'Invalid user ID' });
-    if (!['free', 'creator', 'pro'].includes(tier)) return res.status(400).json({ error: 'Invalid tier' });
+    if (!['free', 'creator', 'pro', 'tester'].includes(tier)) return res.status(400).json({ error: 'Invalid tier' });
 
     const user = await readUser(id);
     user.membershipTier = tier;

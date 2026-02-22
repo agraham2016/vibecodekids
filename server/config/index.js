@@ -124,6 +124,16 @@ export const MEMBERSHIP_TIERS = {
     aiSpritesPerMonth: 10,
     canAccessPremiumAssets: true,
     stripePriceId: STRIPE_PRICES.pro
+  },
+  tester: {
+    name: "Tester",
+    price: 0,
+    gamesPerMonth: Infinity,
+    promptsPerDay: Infinity,
+    playsPerDay: Infinity,
+    aiCoversPerMonth: Infinity,
+    aiSpritesPerMonth: Infinity,
+    canAccessPremiumAssets: true
   }
 };
 
