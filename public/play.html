@@ -3,7 +3,23 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Loading... - Kid Vibe Code</title>
+  <title>Play Game - VibeCodeKidz</title>
+  <meta name="description" content="Play this game built by a kid on VibeCodeKidz — the AI-powered game creation platform for ages 7-18." />
+  <meta name="theme-color" content="#1a1a2e" />
+
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Play Game - VibeCodeKidz" />
+  <meta property="og:description" content="Play this game built by a kid on VibeCodeKidz — the AI-powered game creation platform." />
+  <meta property="og:image" content="https://vibecodekidz.org/og-image.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Play Game - VibeCodeKidz" />
+  <meta name="twitter:description" content="Play this game built by a kid on VibeCodeKidz." />
+  <meta name="twitter:image" content="https://vibecodekidz.org/og-image.png" />
+
+  <link rel="icon" type="image/svg+xml" href="/rocket.svg" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+  <link rel="manifest" href="/manifest.json" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Orbitron:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
@@ -786,7 +802,7 @@
         </div>
       </div>
       <div class="header-actions">
-        <button class="action-btn like" onclick="likeProject()">
+        <button class="action-btn like" onclick="likeProject(event)">
           <span class="btn-emoji">❤️</span> Like
         </button>
         <button class="action-btn fullscreen-btn" onclick="toggleFullscreen()">
@@ -802,7 +818,7 @@
     </header>
     
     <main class="play-content">
-      <iframe id="projectIframe" class="project-iframe" sandbox="allow-scripts allow-same-origin allow-pointer-lock"></iframe>
+      <iframe id="projectIframe" class="project-iframe" sandbox="allow-scripts allow-same-origin allow-pointer-lock" title="Game player"></iframe>
     </main>
     
     <footer class="play-footer">
@@ -899,6 +915,15 @@
       return match ? match[1] : null;
     }
     
+    const isPreviewMode = new URLSearchParams(window.location.search).has('preview');
+
+    // In preview mode, hide all UI except the game iframe
+    if (isPreviewMode) {
+      document.querySelectorAll('.mobile-header, .play-info, .play-sidebar, .multiplayer-section, .play-footer, .back-link').forEach(
+        el => { if (el) el.style.display = 'none'; }
+      );
+    }
+
     // Load project
     async function loadProject() {
       const projectId = getProjectId();
@@ -983,8 +1008,9 @@
       document.getElementById('loading').style.display = 'none';
       document.getElementById('play').style.display = 'flex';
       
-      // Initialize multiplayer if enabled
-      initMultiplayer();
+      if (!isPreviewMode) {
+        initMultiplayer();
+      }
     }
     
     // Show error
@@ -994,7 +1020,7 @@
     }
     
     // Like project
-    async function likeProject() {
+    async function likeProject(event) {
       if (!currentProject) return;
       
       try {
@@ -1097,16 +1123,24 @@
       ws.onopen = () => {
         updateStatus(WS_STATUS.CONNECTED);
         hideError();
+        startPingInterval();
       };
       
       ws.onmessage = (event) => {
-        const message = JSON.parse(event.data);
+        let message;
+        try {
+          message = JSON.parse(event.data);
+        } catch (err) {
+          console.error('Failed to parse WebSocket message:', err);
+          return;
+        }
         handleWebSocketMessage(message);
       };
       
       ws.onclose = () => {
         updateStatus(WS_STATUS.DISCONNECTED);
         ws = null;
+        stopPingInterval();
         
         // Reset room state
         if (currentRoomCode) {
@@ -1117,7 +1151,7 @@
       
       ws.onerror = (error) => {
         console.error('WebSocket error:', error);
-        showError('Connection error. Please try again.');
+        showMpError('Connection error. Please try again.');
         updateStatus(WS_STATUS.DISCONNECTED);
       };
     }
@@ -1135,6 +1169,7 @@
           showRoom();
           updatePlayerList();
           addChatMessage('System', `Room created! Share code: ${message.roomCode}`);
+          injectMultiplayerHelper();
           break;
           
         case 'room_joined':
@@ -1194,7 +1229,7 @@
           break;
           
         case 'error':
-          showError(message.message);
+          showMpError(message.message);
           break;
           
         case 'pong':
@@ -1209,7 +1244,7 @@
       if (!name) return;
       
       if (!ws || ws.readyState !== WebSocket.OPEN) {
-        showError('Not connected. Please try again.');
+        showMpError('Not connected. Please try again.');
         connectWebSocket();
         return;
       }
@@ -1228,12 +1263,12 @@
       
       const code = document.getElementById('roomCode').value.trim().toUpperCase();
       if (!code || code.length !== 4) {
-        showError('Please enter a 4-character room code.');
+        showMpError('Please enter a 4-character room code.');
         return;
       }
       
       if (!ws || ws.readyState !== WebSocket.OPEN) {
-        showError('Not connected. Please try again.');
+        showMpError('Not connected. Please try again.');
         connectWebSocket();
         return;
       }
@@ -1259,7 +1294,7 @@
     function getPlayerName() {
       const name = document.getElementById('playerName').value.trim();
       if (!name) {
-        showError('Please enter your name first!');
+        showMpError('Please enter your name first!');
         return null;
       }
       localStorage.setItem('playerName', name);
@@ -1293,14 +1328,33 @@
         
         const div = document.createElement('div');
         div.className = 'player-item';
-        div.innerHTML = `
-          <div class="player-avatar">${initials}</div>
-          <div class="player-info">
-            <span class="player-name">${player.name}</span>
-          </div>
-          ${player.isHost ? '<span class="player-badge">HOST</span>' : ''}
-          ${isMe ? '<span class="player-badge you">YOU</span>' : ''}
-        `;
+
+        const avatar = document.createElement('div');
+        avatar.className = 'player-avatar';
+        avatar.textContent = initials;
+        div.appendChild(avatar);
+
+        const info = document.createElement('div');
+        info.className = 'player-info';
+        const nameSpan = document.createElement('span');
+        nameSpan.className = 'player-name';
+        nameSpan.textContent = player.name;
+        info.appendChild(nameSpan);
+        div.appendChild(info);
+
+        if (player.isHost) {
+          const hostBadge = document.createElement('span');
+          hostBadge.className = 'player-badge';
+          hostBadge.textContent = 'HOST';
+          div.appendChild(hostBadge);
+        }
+        if (isMe) {
+          const youBadge = document.createElement('span');
+          youBadge.className = 'player-badge you';
+          youBadge.textContent = 'YOU';
+          div.appendChild(youBadge);
+        }
+
         list.appendChild(div);
       });
       
@@ -1335,8 +1389,8 @@
       }
     }
     
-    // Show error message
-    function showError(msg) {
+    // Show multiplayer error message
+    function showMpError(msg) {
       const el = document.getElementById('mpError');
       el.textContent = msg;
       el.style.display = 'block';
@@ -1371,7 +1425,11 @@
       const chat = document.getElementById('mpChat');
       const div = document.createElement('div');
       div.className = 'mp-chat-message';
-      div.innerHTML = `<span class="sender">${sender}:</span> ${message}`;
+      const senderSpan = document.createElement('span');
+      senderSpan.className = 'sender';
+      senderSpan.textContent = sender + ':';
+      div.appendChild(senderSpan);
+      div.appendChild(document.createTextNode(' ' + message));
       chat.appendChild(div);
       chat.scrollTop = chat.scrollHeight;
     }
@@ -1404,8 +1462,8 @@
             onPlayerLeft: null,
             
             // Player info
-            playerId: '${myPlayerId}',
-            players: ${JSON.stringify(players)}
+            playerId: '${myPlayerId.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}',
+            players: ${JSON.stringify(players).replace(/<\/script>/gi, '<\\/script>')}
           };
           
           // Listen for messages from parent
@@ -1454,11 +1512,21 @@
     });
     
     // Keep WebSocket alive with ping
-    setInterval(() => {
-      if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ type: 'ping' }));
+    let pingIntervalId = null;
+    function startPingInterval() {
+      stopPingInterval();
+      pingIntervalId = setInterval(() => {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ type: 'ping' }));
+        }
+      }, 30000);
+    }
+    function stopPingInterval() {
+      if (pingIntervalId !== null) {
+        clearInterval(pingIntervalId);
+        pingIntervalId = null;
       }
-    }, 30000);
+    }
   </script>
 </body>
 </html>

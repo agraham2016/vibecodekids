@@ -7,15 +7,13 @@
 import { Router } from 'express';
 import Stripe from 'stripe';
 import bcrypt from 'bcrypt';
-import { STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, BASE_URL, MEMBERSHIP_TIERS, BCRYPT_ROUNDS } from '../config/index.js';
-import { readUser, writeUser, userExists } from '../services/storage.js';
+import { STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, BASE_URL, MEMBERSHIP_TIERS, BCRYPT_ROUNDS, COPPA_AGE_THRESHOLD } from '../config/index.js';
+import { readUser, writeUser, userExists, findUserBySubscriptionId } from '../services/storage.js';
 import { checkAndResetCounters, calculateUsageRemaining } from '../middleware/rateLimit.js';
+import { getAgeBracket, requiresParentalConsent, createConsentRequest, sendConsentEmail } from '../services/consent.js';
+import { filterContent } from '../middleware/contentFilter.js';
 
 const stripe = STRIPE_SECRET_KEY ? new Stripe(STRIPE_SECRET_KEY) : null;
-
-function hashPassword(password) {
-  return bcrypt.hashSync(password, BCRYPT_ROUNDS);
-}
 
 export default function createBillingRouter(sessions) {
   const router = Router();
@@ -48,11 +46,47 @@ export default function createBillingRouter(sessions) {
   // Create Stripe checkout for new signup
   router.post('/checkout', async (req, res) => {
     try {
-      const { tier, username, displayName, password } = req.body;
+      const { tier, username, displayName, password, age, parentEmail, privacyAccepted } = req.body;
 
       if (!stripe) return res.status(500).json({ error: 'Payment system not configured' });
       if (!['creator', 'pro'].includes(tier)) return res.status(400).json({ error: 'Invalid tier' });
       if (!username || !password || !displayName) return res.status(400).json({ error: 'Missing required fields' });
+
+      if (!/^[a-zA-Z0-9_]{3,20}$/.test(username)) {
+        return res.status(400).json({ error: 'Username must be 3-20 characters (letters, numbers, underscore only)' });
+      }
+      if (password.length < 4) {
+        return res.status(400).json({ error: 'Password must be at least 4 characters' });
+      }
+      if (displayName.length < 1 || displayName.length > 30) {
+        return res.status(400).json({ error: 'Display name must be 1-30 characters' });
+      }
+
+      const usernameCheck = filterContent(username);
+      const displayNameCheck = filterContent(displayName);
+      if (usernameCheck.blocked || displayNameCheck.blocked) {
+        return res.status(400).json({ error: 'Please choose a different username or display name' });
+      }
+
+      if (typeof age !== 'number' || age < 5 || age > 120) {
+        return res.status(400).json({ error: 'Please enter a valid age' });
+      }
+      if (!privacyAccepted) {
+        return res.status(400).json({ error: 'You must accept the privacy policy to create an account' });
+      }
+
+      const ageBracket = getAgeBracket(age);
+      const needsConsent = requiresParentalConsent(ageBracket);
+
+      if (needsConsent && !parentEmail) {
+        return res.status(400).json({ error: 'A parent or guardian email is required for users under 13', requiresParentEmail: true });
+      }
+      if (needsConsent && parentEmail) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(parentEmail)) {
+          return res.status(400).json({ error: 'Please enter a valid parent email address' });
+        }
+      }
 
       const userId = `user_${username.toLowerCase()}`;
       if (await userExists(userId)) {
@@ -70,8 +104,12 @@ export default function createBillingRouter(sessions) {
         metadata: {
           username: username.toLowerCase(),
           displayName: displayName.trim(),
-          passwordHash: hashPassword(password),
-          tier
+          password,
+          tier,
+          age: String(age),
+          parentEmail: needsConsent ? parentEmail.toLowerCase().trim() : '',
+          privacyAccepted: 'true',
+          ageBracket
         }
       });
 
@@ -92,12 +130,16 @@ export default function createBillingRouter(sessions) {
       const session = await stripe.checkout.sessions.retrieve(session_id);
       if (session.payment_status !== 'paid') return res.redirect('/?error=payment_incomplete');
 
-      const { username, displayName, passwordHash, tier } = session.metadata;
+      const { username, displayName, password, tier, age, parentEmail, ageBracket } = session.metadata;
       const userId = `user_${username}`;
 
       if (await userExists(userId)) {
         return res.redirect('/?signup=success&message=Account already exists, please log in');
       }
+
+      const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
+      const ageNum = parseInt(age, 10);
+      const needsConsent = ageBracket === 'under13';
 
       const now = new Date();
       const expireDate = new Date();
@@ -108,7 +150,7 @@ export default function createBillingRouter(sessions) {
         username,
         displayName,
         passwordHash,
-        status: 'approved',
+        status: needsConsent ? 'pending' : 'approved',
         createdAt: now.toISOString(),
         projectCount: 0,
         membershipTier: tier,
@@ -125,11 +167,24 @@ export default function createBillingRouter(sessions) {
         recentRequests: [],
         rateLimitedUntil: null,
         hasSeenUpgradePrompt: true,
-        lastLoginAt: null
+        lastLoginAt: null,
+        ageBracket: ageBracket || 'unknown',
+        parentEmail: parentEmail || null,
+        parentalConsentStatus: needsConsent ? 'pending' : 'not_required',
+        parentalConsentAt: null,
+        privacyAcceptedAt: now.toISOString(),
       };
 
       await writeUser(userId, user);
       console.log('✅ User account created:', userId);
+
+      if (needsConsent && parentEmail) {
+        const consentToken = await createConsentRequest(userId, parentEmail, 'consent');
+        await sendConsentEmail(parentEmail, username, consentToken, 'consent');
+        console.log(`👶 Under-13 paid signup: ${username} → consent email sent to ${parentEmail}`);
+        return res.redirect('/?signup=pending_consent&tier=' + tier);
+      }
+
       res.redirect('/?signup=success&tier=' + tier);
     } catch (error) {
       console.error('❌ Stripe success handler error:', error);
@@ -155,18 +210,15 @@ export default function createBillingRouter(sessions) {
       case 'customer.subscription.deleted': {
         const subscription = event.data.object;
         try {
-          const users = await (await import('../services/storage.js')).listUsers();
-          for (const user of users) {
-            if (user.stripeSubscriptionId === subscription.id) {
-              if (subscription.status === 'active') {
-                user.membershipExpires = new Date(subscription.current_period_end * 1000).toISOString();
-              } else if (['canceled', 'unpaid', 'past_due'].includes(subscription.status)) {
-                user.membershipTier = 'free';
-                user.membershipExpires = null;
-              }
-              await writeUser(user.id, user);
-              break;
+          const user = await findUserBySubscriptionId(subscription.id);
+          if (user) {
+            if (subscription.status === 'active') {
+              user.membershipExpires = new Date(subscription.current_period_end * 1000).toISOString();
+            } else if (['canceled', 'unpaid', 'past_due'].includes(subscription.status)) {
+              user.membershipTier = 'free';
+              user.membershipExpires = null;
             }
+            await writeUser(user.id, user);
           }
         } catch (err) {
           console.error('Error updating subscription:', err);
@@ -197,7 +249,7 @@ export default function createBillingRouter(sessions) {
         payment_method_types: ['card'],
         line_items: [{ price: priceId, quantity: 1 }],
         mode: 'subscription',
-        success_url: `${BASE_URL}/api/stripe/upgrade-success?session_id={CHECKOUT_SESSION_ID}&user_id=${session.userId}`,
+        success_url: `${BASE_URL}/api/stripe/upgrade-success?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${BASE_URL}/?upgrade_cancelled=true`,
         customer_email: user.email || undefined,
         metadata: { userId: session.userId, tier }
@@ -213,13 +265,14 @@ export default function createBillingRouter(sessions) {
   // Upgrade success
   router.get('/upgrade-success', async (req, res) => {
     try {
-      const { session_id, user_id } = req.query;
-      if (!stripe || !session_id || !user_id) return res.redirect('/?error=upgrade_failed');
+      const { session_id } = req.query;
+      if (!stripe || !session_id) return res.redirect('/?error=upgrade_failed');
 
       const session = await stripe.checkout.sessions.retrieve(session_id);
       if (session.payment_status !== 'paid') return res.redirect('/?error=payment_incomplete');
 
-      const { tier } = session.metadata;
+      const { tier, userId: user_id } = session.metadata;
+      if (!user_id) return res.redirect('/?error=upgrade_failed');
       const user = await readUser(user_id);
 
       const expireDate = new Date();

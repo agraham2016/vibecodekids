@@ -251,6 +251,11 @@
   border-color: rgba(139, 92, 246, 0.4);
 }
 
+.template-card:focus-visible {
+  outline: 2px solid #a78bfa;
+  outline-offset: 2px;
+}
+
 .template-card-bg {
   position: relative;
   display: flex;
@@ -330,7 +335,7 @@
 }
 
 .scratch-divider-text {
-  color: rgba(255, 255, 255, 0.35);
+  color: rgba(255, 255, 255, 0.6);
   font-weight: 800;
   font-size: 0.85rem;
   letter-spacing: 3px;
@@ -409,7 +414,7 @@
 }
 
 .scratch-hint {
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.6);
   font-size: 0.9rem;
   margin: 0;
 }
@@ -548,7 +553,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 1.5px;
-  color: rgba(255, 255, 255, 0.35);
+  color: rgba(255, 255, 255, 0.6);
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
@@ -622,7 +627,7 @@
   align-items: center;
   gap: 10px;
   padding: 8px 0;
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.6);
   font-size: 0.82rem;
 }
 
@@ -1042,5 +1047,26 @@
 
   .scratch-examples {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .template-card,
+  .template-card:hover,
+  .scratch-card,
+  .scratch-card:hover,
+  .roadmap-card,
+  .roadmap-card:hover,
+  .demo-phone,
+  .hero-cta,
+  .hero-cta:hover,
+  .roadmap-cta,
+  .roadmap-cta:hover,
+  .scratch-cta,
+  .scratch-cta:hover,
+  .demo-step:hover {
+    transition: none !important;
+    animation: none !important;
+    transform: none !important;
   }
 }

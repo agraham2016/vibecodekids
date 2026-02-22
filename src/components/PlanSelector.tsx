@@ -75,6 +75,9 @@ export default function PlanSelector({ selectedPlan, onSelectPlan, onContinue, o
             key={plan.id}
             className={`plan-card ${selectedPlan === plan.id ? 'selected' : ''} ${plan.popular ? 'popular' : ''}`}
             onClick={() => onSelectPlan(plan.id)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelectPlan(plan.id); } }}
           >
             {plan.popular && <span className="popular-badge">MOST POPULAR</span>}
             

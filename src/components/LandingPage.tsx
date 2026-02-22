@@ -137,7 +137,7 @@ const GAME_TEMPLATES = [
     emoji: '🏰',
   },
   {
-    title: 'Beat Em Up',
+    title: "Beat 'Em Up",
     genre: 'Fighting',
     description: 'Punch and kick your way through enemies',
     gradient: 'linear-gradient(135deg, #d63031 0%, #e17055 50%, #2d3436 100%)',
@@ -433,7 +433,7 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
                     alt={tmpl.title}
                     className="template-card-sprite"
                   />
-                  <span className="template-card-emoji">{tmpl.emoji}</span>
+                  <span className="template-card-emoji" aria-hidden="true">{tmpl.emoji}</span>
                 </div>
                 <div className="template-card-info">
                   <span className="template-card-genre">{tmpl.genre}</span>
@@ -459,28 +459,64 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
           </p>
 
           <div className="scratch-examples">
-            <div className="scratch-card" onClick={onSignupClick}>
-              <span className="scratch-card-icon">🏰</span>
+            <div
+              className="scratch-card"
+              role="button"
+              tabIndex={0}
+              onClick={onSignupClick}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSignupClick(); } }}
+            >
+              <span className="scratch-card-icon" aria-hidden="true">🏰</span>
               <span className="scratch-card-quote">"A castle defense game with dragons and wizards"</span>
             </div>
-            <div className="scratch-card" onClick={onSignupClick}>
-              <span className="scratch-card-icon">🧟</span>
+            <div
+              className="scratch-card"
+              role="button"
+              tabIndex={0}
+              onClick={onSignupClick}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSignupClick(); } }}
+            >
+              <span className="scratch-card-icon" aria-hidden="true">🧟</span>
               <span className="scratch-card-quote">"Zombie survival where I build walls and craft weapons"</span>
             </div>
-            <div className="scratch-card" onClick={onSignupClick}>
-              <span className="scratch-card-icon">🐱</span>
+            <div
+              className="scratch-card"
+              role="button"
+              tabIndex={0}
+              onClick={onSignupClick}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSignupClick(); } }}
+            >
+              <span className="scratch-card-icon" aria-hidden="true">🐱</span>
               <span className="scratch-card-quote">"A cat cafe simulator where customers order treats"</span>
             </div>
-            <div className="scratch-card" onClick={onSignupClick}>
-              <span className="scratch-card-icon">🌌</span>
+            <div
+              className="scratch-card"
+              role="button"
+              tabIndex={0}
+              onClick={onSignupClick}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSignupClick(); } }}
+            >
+              <span className="scratch-card-icon" aria-hidden="true">🌌</span>
               <span className="scratch-card-quote">"An asteroid mining game in outer space"</span>
             </div>
-            <div className="scratch-card" onClick={onSignupClick}>
-              <span className="scratch-card-icon">🎃</span>
+            <div
+              className="scratch-card"
+              role="button"
+              tabIndex={0}
+              onClick={onSignupClick}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSignupClick(); } }}
+            >
+              <span className="scratch-card-icon" aria-hidden="true">🎃</span>
               <span className="scratch-card-quote">"A haunted house escape room with puzzles"</span>
             </div>
-            <div className="scratch-card" onClick={onSignupClick}>
-              <span className="scratch-card-icon">🏴‍☠️</span>
+            <div
+              className="scratch-card"
+              role="button"
+              tabIndex={0}
+              onClick={onSignupClick}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSignupClick(); } }}
+            >
+              <span className="scratch-card-icon" aria-hidden="true">🏴‍☠️</span>
               <span className="scratch-card-quote">"A pirate ship battle game on the ocean"</span>
             </div>
           </div>
@@ -500,17 +536,17 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
 
         <div className="roadmap-grid">
           <div className="roadmap-card">
-            <span className="roadmap-icon">📱</span>
+            <span className="roadmap-icon" aria-hidden="true">📱</span>
             <h3 className="roadmap-card-title">App Store Launch</h3>
             <p className="roadmap-card-desc">Play and create on any device — iPhone, iPad, Android</p>
           </div>
           <div className="roadmap-card">
-            <span className="roadmap-icon">🎨</span>
+            <span className="roadmap-icon" aria-hidden="true">🎨</span>
             <h3 className="roadmap-card-title">Creator Mode 2.0</h3>
             <p className="roadmap-card-desc">Build your own characters, worlds, and stories from scratch</p>
           </div>
           <div className="roadmap-card">
-            <span className="roadmap-icon">🔄</span>
+            <span className="roadmap-icon" aria-hidden="true">🔄</span>
             <h3 className="roadmap-card-title">Community Remix</h3>
             <p className="roadmap-card-desc">Share your creations and remix what others have built</p>
           </div>

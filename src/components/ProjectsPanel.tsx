@@ -66,8 +66,8 @@ export default function ProjectsPanel({
       </div>
 
       {/* New Project Button */}
-      <button className="pp-new-btn" onClick={onNewProject}>
-        <span className="pp-new-icon">➕</span>
+      <button className="pp-new-btn" onClick={onNewProject} aria-label="Create new project">
+        <span className="pp-new-icon" aria-hidden="true">➕</span>
         <span>New Project</span>
       </button>
 
@@ -126,8 +126,9 @@ export default function ProjectsPanel({
                   onDeleteProject(project.id)
                 }}
                 title="Delete this project (removes from Arcade too)"
+                aria-label={`Delete project ${project.title || 'Untitled'}`}
               >
-                🗑️
+                <span aria-hidden="true">🗑️</span>
               </button>
             </div>
           ))

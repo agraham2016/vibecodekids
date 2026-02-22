@@ -1,0 +1,21 @@
+{
+  "name": "VibeCodeKidz",
+  "short_name": "VibeCodeKidz",
+  "description": "Kids build games by talking to AI. Ages 7-18.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1a1a2e",
+  "theme_color": "#6366f1",
+  "icons": [
+    {
+      "src": "/favicon-32x32.png",
+      "sizes": "32x32",
+      "type": "image/png"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ]
+}

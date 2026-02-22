@@ -236,23 +236,40 @@ Questions? Contact us at ${SUPPORT_EMAIL}
 - The ${SITE_NAME} Team
 `;
 
-  // ===== EMAIL DELIVERY =====
-  // Replace this block with your email provider:
-  //
-  // Example with SendGrid:
-  //   await sgMail.send({ to: parentEmail, from: SUPPORT_EMAIL, subject, text: body });
-  //
-  // Example with AWS SES:
-  //   await ses.sendEmail({ ... }).promise();
+  const RESEND_API_KEY = process.env.RESEND_API_KEY;
 
-  console.log('═══════════════════════════════════════════');
-  console.log(`📧 CONSENT EMAIL (would be sent to: ${parentEmail})`);
-  console.log(`   Subject: ${subject}`);
-  console.log(`   Approve: ${consentUrl}`);
-  console.log(`   Deny:    ${denyUrl}`);
-  console.log('═══════════════════════════════════════════');
+  if (RESEND_API_KEY) {
+    try {
+      const resp = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          from: `${SITE_NAME} <${SUPPORT_EMAIL}>`,
+          to: [parentEmail],
+          subject,
+          text: body,
+        }),
+      });
+      if (!resp.ok) {
+        const errBody = await resp.text();
+        console.error('📧 Email delivery failed:', resp.status, errBody);
+      } else {
+        console.log(`📧 Consent email sent to ${parentEmail}`);
+      }
+    } catch (err) {
+      console.error('📧 Email delivery error:', err.message);
+    }
+  } else {
+    console.log('═══════════════════════════════════════════');
+    console.log(`📧 CONSENT EMAIL (RESEND_API_KEY not set — logging only)`);
+    console.log(`   To: ${parentEmail}`);
+    console.log(`   Subject: ${subject}`);
+    console.log(`   Approve: ${consentUrl}`);
+    console.log(`   Deny:    ${denyUrl}`);
+    console.log('═══════════════════════════════════════════');
+  }
 
-  return { sent: true, to: parentEmail, consentUrl, denyUrl };
+  return { sent: !!RESEND_API_KEY, to: parentEmail, consentUrl, denyUrl };
 }
 
 // ========== USER DATA EXPORT (COPPA Right to Access) ==========

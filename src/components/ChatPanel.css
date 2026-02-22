@@ -31,9 +31,9 @@
 }
 
 .model-toggle-btn {
-  width: 40px;
-  height: 36px;
-  border-radius: 18px;
+  width: 44px;
+  height: 44px;
+  border-radius: 22px;
   border: 1px solid transparent;
   background: transparent;
   font-size: 1rem;
@@ -206,6 +206,11 @@
 .game-starter-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.game-starter-btn:focus-visible {
+  outline: 2px solid #a78bfa;
+  outline-offset: 2px;
 }
 
 .game-starter-emoji {
@@ -557,6 +562,7 @@
   width: 10px;
   height: 10px;
   border-radius: 50%;
+  background: linear-gradient(135deg, #a78bfa 0%, #f472b6 100%);
   animation: typing 1.4s infinite;
 }
 
@@ -568,11 +574,6 @@
 /* Grok typing: orange/fire dots */
 .typing-grok span {
   background: linear-gradient(135deg, #fb923c 0%, #ea580c 100%);
-}
-
-/* Default typing dots */
-.typing-indicator span {
-  background: linear-gradient(135deg, #a78bfa 0%, #f472b6 100%);
 }
 
 .typing-indicator span:nth-child(2) {
@@ -854,10 +855,10 @@
 
 .remove-image-btn {
   position: absolute;
-  top: -8px;
-  right: -8px;
-  width: 22px;
-  height: 22px;
+  top: -12px;
+  right: -12px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   background: linear-gradient(135deg, rgba(239, 68, 68, 0.9) 0%, rgba(220, 38, 38, 0.9) 100%);
   border: 2px solid white;
@@ -900,100 +901,10 @@
 
 /* ========== TEMPLATE BUTTONS (if still used) ========== */
 
-.template-section {
-  width: 100%;
-  margin-bottom: 20px;
-}
-
-.template-label {
-  font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.8);
-  margin-bottom: 10px;
-  font-weight: 600;
-}
-
-.template-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-  gap: 8px;
-  margin-bottom: 8px;
-}
-
-.template-btn {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 12px 8px;
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 2px solid rgba(255, 255, 255, 0.15);
-  border-radius: 12px;
-  color: white;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  position: relative;
-  overflow: hidden;
-}
-
-.template-btn::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.3) 0%, rgba(236, 72, 153, 0.3) 100%);
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.template-btn:hover:not(:disabled)::before {
-  opacity: 1;
-}
-
-.template-btn:hover:not(:disabled) {
-  transform: translateY(-3px) scale(1.02);
-  border-color: rgba(139, 92, 246, 0.6);
-  box-shadow: 
-    0 6px 20px rgba(139, 92, 246, 0.3),
-    0 0 30px rgba(139, 92, 246, 0.1);
-}
-
-.template-btn:active:not(:disabled) {
-  transform: translateY(-1px) scale(0.98);
-}
-
-.template-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.template-icon {
-  font-size: 1.6rem;
-  z-index: 1;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
-}
-
-.template-name {
-  font-size: 0.7rem;
-  font-weight: 700;
-  z-index: 1;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-}
-
-.template-hint {
-  font-size: 0.7rem;
-  color: rgba(255, 255, 255, 0.5);
-  font-style: italic;
-}
 
 /* ========== RESPONSIVE ========== */
 
 @media (max-width: 1024px) {
-  .template-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-
   .buddy-intro-cards {
     flex-direction: column;
   }
@@ -1006,23 +917,6 @@
 @media (max-width: 768px) {
   .chat-messages {
     padding: 12px;
-  }
-
-  .template-grid {
-    grid-template-columns: repeat(auto-fit, minmax(85px, 1fr));
-    gap: 6px;
-  }
-
-  .template-btn {
-    padding: 10px 6px;
-  }
-
-  .template-icon {
-    font-size: 1.3rem;
-  }
-
-  .template-name {
-    font-size: 0.65rem;
   }
 
   .quick-actions {
@@ -1090,7 +984,7 @@
 
 .loading-sublabel {
   font-size: 0.62rem;
-  color: rgba(255, 255, 255, 0.35);
+  color: rgba(255, 255, 255, 0.6);
   padding: 0 6px 4px;
   font-style: italic;
 }

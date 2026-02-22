@@ -65,7 +65,7 @@ export default function UpgradeModal({
     try {
       const token = localStorage.getItem('authToken')
       if (token) {
-        await fetch('/api/membership/dismiss-prompt', {
+        await fetch('/api/stripe/dismiss-prompt', {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${token}` }
         })

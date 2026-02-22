@@ -46,6 +46,11 @@ export async function listUsers() {
   return users;
 }
 
+export async function findUserBySubscriptionId(subscriptionId) {
+  const users = await listUsers();
+  return users.find(u => u.stripeSubscriptionId === subscriptionId) || null;
+}
+
 // ========== PROJECT OPERATIONS ==========
 
 export async function readProject(projectId) {

@@ -3,7 +3,25 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>🕹️ Vibe Code Arcade</title>
+  <title>VibeCodeKidz Arcade - Play Games Built by Kids</title>
+  <meta name="description" content="Play games built by kids using AI on VibeCodeKidz. Browse platformers, shooters, puzzles, RPGs and more — all created by young game makers." />
+  <link rel="canonical" href="https://vibecodekidz.org/gallery" />
+  <meta name="theme-color" content="#0d0221" />
+
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="VibeCodeKidz Arcade - Play Games Built by Kids" />
+  <meta property="og:description" content="Play games built by kids using AI. Browse platformers, shooters, puzzles, RPGs and more." />
+  <meta property="og:image" content="https://vibecodekidz.org/og-image.png" />
+  <meta property="og:url" content="https://vibecodekidz.org/gallery" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="VibeCodeKidz Arcade - Play Games Built by Kids" />
+  <meta name="twitter:description" content="Play games built by kids using AI. Browse platformers, shooters, puzzles, RPGs and more." />
+  <meta name="twitter:image" content="https://vibecodekidz.org/og-image.png" />
+
+  <link rel="icon" type="image/svg+xml" href="/rocket.svg" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+  <link rel="manifest" href="/manifest.json" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Orbitron:wght@400;500;600;700;800;900&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
   <style>
@@ -765,16 +783,16 @@
     </div>
     
     <!-- Filters -->
-    <div class="filters">
-      <button class="filter-btn active" data-category="all">🎮 ALL GAMES</button>
-      <button class="filter-btn" data-category="arcade">👾 Arcade</button>
-      <button class="filter-btn" data-category="puzzle">🧩 Puzzle</button>
-      <button class="filter-btn" data-category="adventure">🗺️ Adventure</button>
-      <button class="filter-btn" data-category="rpg">⚔️ RPG</button>
-      <button class="filter-btn" data-category="strategy">🧠 Strategy</button>
-      <button class="filter-btn" data-category="racing">🏎️ Racing</button>
-      <button class="filter-btn" data-category="sports">⚽ Sports</button>
-      <button class="filter-btn" data-category="classic">🕹️ Classic</button>
+    <div class="filters" role="group" aria-label="Filter games by category">
+      <button class="filter-btn active" data-category="all" aria-pressed="true">🎮 ALL GAMES</button>
+      <button class="filter-btn" data-category="arcade" aria-pressed="false">👾 Arcade</button>
+      <button class="filter-btn" data-category="puzzle" aria-pressed="false">🧩 Puzzle</button>
+      <button class="filter-btn" data-category="adventure" aria-pressed="false">🗺️ Adventure</button>
+      <button class="filter-btn" data-category="rpg" aria-pressed="false">⚔️ RPG</button>
+      <button class="filter-btn" data-category="strategy" aria-pressed="false">🧠 Strategy</button>
+      <button class="filter-btn" data-category="racing" aria-pressed="false">🏎️ Racing</button>
+      <button class="filter-btn" data-category="sports" aria-pressed="false">⚽ Sports</button>
+      <button class="filter-btn" data-category="classic" aria-pressed="false">🕹️ Classic</button>
     </div>
     
     <!-- Loading -->
@@ -812,6 +830,9 @@
         <div class="section-line"></div>
       </div>
       <div class="gallery-grid" id="gallery"></div>
+      <div id="load-more-wrap" style="text-align:center;padding:30px 0;display:none;">
+        <button id="load-more-btn" onclick="loadMoreGames()" style="padding:14px 40px;background:linear-gradient(135deg,var(--neon-purple),var(--neon-blue));border:none;border-radius:12px;color:#fff;font-family:'Orbitron',sans-serif;font-size:0.9rem;cursor:pointer;letter-spacing:1px;transition:transform .2s,box-shadow .2s;">LOAD MORE GAMES</button>
+      </div>
     </section>
   </main>
   
@@ -835,21 +856,44 @@
     };
     
     // Load gallery
+    let galleryHasMore = false;
+    let galleryOffset = 0;
+    const GALLERY_PAGE_SIZE = 30;
+
     async function loadGallery() {
       try {
-        const response = await fetch('/api/gallery');
+        const response = await fetch('/api/gallery?limit=' + GALLERY_PAGE_SIZE + '&offset=0');
         
         if (!response.ok) {
           throw new Error('Failed to load gallery');
         }
         
-        allProjects = await response.json();
+        const data = await response.json();
+        allProjects = Array.isArray(data) ? data : (data.games || []);
+        galleryHasMore = data.hasMore || false;
+        galleryOffset = allProjects.length;
         updateStats();
         renderProjects();
       } catch (err) {
         console.error('Error loading gallery:', err);
         document.getElementById('loading').style.display = 'none';
         document.getElementById('empty').style.display = 'block';
+      }
+    }
+
+    async function loadMoreGames() {
+      try {
+        const cat = currentCategory !== 'all' ? '&category=' + currentCategory : '';
+        const response = await fetch('/api/gallery?limit=' + GALLERY_PAGE_SIZE + '&offset=' + galleryOffset + cat);
+        if (!response.ok) return;
+        const data = await response.json();
+        const newGames = Array.isArray(data) ? data : (data.games || []);
+        allProjects = allProjects.concat(newGames);
+        galleryHasMore = data.hasMore || false;
+        galleryOffset += newGames.length;
+        renderProjects();
+      } catch (err) {
+        console.error('Error loading more games:', err);
       }
     }
     
@@ -921,12 +965,15 @@
       }
       
       // Render all games
-      if (rest.length > 0 || featured.length > 3) {
+      if (rest.length > 0) {
         allGamesSection.style.display = 'block';
-        gallery.innerHTML = (rest.length > 0 ? rest : filtered).map(project => createCard(project, false)).join('');
-      } else if (featured.length <= 3 && featured.length > 0) {
+        gallery.innerHTML = rest.map(project => createCard(project, false)).join('');
+      } else {
         allGamesSection.style.display = 'none';
       }
+
+      const loadMoreWrap = document.getElementById('load-more-wrap');
+      if (loadMoreWrap) loadMoreWrap.style.display = galleryHasMore ? 'block' : 'none';
     }
     
     // Create card HTML
@@ -943,8 +990,8 @@
             </div>
           </div>
           <div class="card-content">
-            <h3 class="card-title">${escapeHtml(project.title)}</h3>
-            <p class="card-creator">by ${escapeHtml(project.creatorName)}</p>
+            <h3 class="card-title">${escapeHtml(project.title || 'Untitled')}</h3>
+            <p class="card-creator">by ${escapeHtml(project.creatorName || 'Anonymous')}</p>
             <div class="card-stats">
               <span class="card-stat stat-views">
                 <span class="icon">👁️</span>
@@ -1001,7 +1048,7 @@
         iframe.className = 'preview-frame';
         iframe.sandbox = 'allow-scripts allow-same-origin';
         iframe.loading = 'lazy';
-        iframe.src = '/play/' + gameId;
+        iframe.src = '/play/' + gameId + '?preview=1';
 
         iframe.onload = function() {
           const ld = screen.querySelector('.preview-loader');
@@ -1015,7 +1062,7 @@
         restartInterval = setInterval(function() {
           iframe.classList.remove('visible');
           setTimeout(function() {
-            iframe.src = '/play/' + gameId;
+            iframe.src = '/play/' + gameId + '?preview=1';
           }, 300);
         }, 5000);
       }
@@ -1043,8 +1090,9 @@
     // Filter click handler
     document.querySelectorAll('.filter-btn').forEach(btn => {
       btn.addEventListener('click', () => {
-        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.filter-btn').forEach(b => { b.classList.remove('active'); b.setAttribute('aria-pressed', 'false'); });
         btn.classList.add('active');
+        btn.setAttribute('aria-pressed', 'true');
         currentCategory = btn.dataset.category;
         renderProjects();
       });

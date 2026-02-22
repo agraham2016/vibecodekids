@@ -14,6 +14,29 @@ import { filterContent } from '../middleware/contentFilter.js';
 import { checkAndResetCounters, calculateUsageRemaining } from '../middleware/rateLimit.js';
 import { getAgeBracket, requiresParentalConsent, createConsentRequest, sendConsentEmail } from '../services/consent.js';
 
+const loginAttempts = new Map();
+const LOGIN_WINDOW_MS = 60 * 1000;
+const LOGIN_MAX_ATTEMPTS = 5;
+
+function checkLoginRateLimit(ip) {
+  const now = Date.now();
+  const entry = loginAttempts.get(ip);
+  if (!entry || now - entry.windowStart > LOGIN_WINDOW_MS) {
+    loginAttempts.set(ip, { windowStart: now, count: 1 });
+    return true;
+  }
+  entry.count++;
+  if (entry.count > LOGIN_MAX_ATTEMPTS) return false;
+  return true;
+}
+
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, entry] of loginAttempts) {
+    if (now - entry.windowStart > LOGIN_WINDOW_MS * 2) loginAttempts.delete(ip);
+  }
+}, 60 * 1000);
+
 export default function createAuthRouter(sessions) {
   const router = Router();
 
@@ -80,7 +103,7 @@ export default function createAuthRouter(sessions) {
         id: userId,
         username: username.toLowerCase(),
         displayName: displayName.trim(),
-        passwordHash: bcrypt.hashSync(password, BCRYPT_ROUNDS),
+        passwordHash: await bcrypt.hash(password, BCRYPT_ROUNDS),
         status: 'pending',
         createdAt: now.toISOString(),
         projectCount: 0,
@@ -125,13 +148,18 @@ export default function createAuthRouter(sessions) {
       });
     } catch (error) {
       console.error('Register error:', error);
-      res.status(500).json({ error: 'Could not create account', debug: error.message });
+      res.status(500).json({ error: 'Could not create account' });
     }
   });
 
   // Login
   router.post('/login', async (req, res) => {
     try {
+      const clientIp = req.ip || req.connection?.remoteAddress || 'unknown';
+      if (!checkLoginRateLimit(clientIp)) {
+        return res.status(429).json({ error: 'Too many login attempts. Please wait a minute and try again.' });
+      }
+
       const { username, password } = req.body;
       if (!username || !password) {
         return res.status(400).json({ error: 'Username and password are required' });
@@ -154,18 +182,15 @@ export default function createAuthRouter(sessions) {
       let passwordValid = false;
 
       if (isLegacySHA256) {
-        // Legacy SHA-256 hash: verify and auto-upgrade to bcrypt
         const sha256Hash = crypto.createHash('sha256').update(password).digest('hex');
         if (sha256Hash === user.passwordHash) {
           passwordValid = true;
-          // Silently upgrade to bcrypt
-          user.passwordHash = bcrypt.hashSync(password, BCRYPT_ROUNDS);
+          user.passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
           await writeUser(user.id, user);
           console.log(`🔄 Auto-upgraded password hash for user: ${user.username}`);
         }
       } else {
-        // bcrypt hash
-        passwordValid = bcrypt.compareSync(password, user.passwordHash);
+        passwordValid = await bcrypt.compare(password, user.passwordHash);
       }
 
       if (!passwordValid) {
@@ -223,7 +248,7 @@ export default function createAuthRouter(sessions) {
       });
     } catch (error) {
       console.error('Login error:', error);
-      res.status(500).json({ error: 'Could not log in', debug: error.message });
+      res.status(500).json({ error: 'Could not log in' });
     }
   });
 

@@ -75,7 +75,7 @@ const GAME_STARTERS = [
   { genre: 'RPG', emoji: '⚔️', label: 'Adventure Quest', prompt: 'Make me an RPG adventure game where I explore, find treasure, and talk to NPCs!' },
   { genre: 'Runner', emoji: '🏃‍♂️', label: 'Endless Runner', prompt: 'Make me an endless runner game where I run, jump over obstacles, and collect coins!' },
   { genre: 'Strategy', emoji: '🏰', label: 'Tower Defense', prompt: 'Make me a tower defense game where I place towers to stop waves of enemies!' },
-  { genre: 'Fighting', emoji: '🥊', label: 'Beat Em Up', prompt: 'Make me a fighting game where I punch and kick enemies in waves!' },
+  { genre: 'Fighting', emoji: '🥊', label: "Beat 'Em Up", prompt: 'Make me a fighting game where I punch and kick enemies in waves!' },
   { genre: 'Classic', emoji: '🐍', label: 'Snake', prompt: 'Make me a snake game where I eat food and grow longer without hitting my tail!' },
   { genre: 'Sports', emoji: '⚽', label: 'Soccer', prompt: 'Make me a soccer game where I play against an AI opponent and try to score goals!' },
   { genre: 'Arcade', emoji: '🧱', label: 'Brick Breaker', prompt: 'Make me a brick breaker game with a paddle, bouncing ball, and colorful bricks to smash!' },
@@ -375,7 +375,7 @@ export default function ChatPanel({
       </div>
       
       {/* ===== MESSAGES ===== */}
-      <div className="panel-content chat-messages">
+      <div className="panel-content chat-messages" role="log" aria-live="polite">
         {messages.length === 0 ? (
           <div className="chat-welcome">
             <div className="welcome-icon">🎮</div>
@@ -402,9 +402,9 @@ export default function ChatPanel({
             <div className="game-starters">
               <p className="game-starters-label">Or pick a game to start building:</p>
               <div className="game-starters-grid">
-                {GAME_STARTERS.map((g) => (
+                {GAME_STARTERS.map((g, idx) => (
                   <button
-                    key={g.genre}
+                    key={`${g.genre}-${idx}`}
                     className="game-starter-btn"
                     onClick={() => onSendMessage(g.prompt)}
                     disabled={isLoading}
@@ -634,8 +634,9 @@ export default function ChatPanel({
               className="tips-btn"
               onClick={() => setShowTipsModal(true)}
               title="Tips & Rules"
+              aria-label="Tips and rules"
             >
-              <span className="tips-btn-icon">💡</span>
+              <span className="tips-btn-icon" aria-hidden="true">💡</span>
             </button>
             
             {/* Image upload button */}
@@ -645,8 +646,9 @@ export default function ChatPanel({
               onClick={handleImageClick}
               disabled={isLoading}
               title="Upload a screenshot or image"
+              aria-label="Upload image"
             >
-              <span className="upload-icon">📷</span>
+              <span className="upload-icon" aria-hidden="true">📷</span>
             </button>
             
             {speechSupported && (
@@ -656,16 +658,18 @@ export default function ChatPanel({
                 onClick={toggleListening}
                 disabled={isLoading}
                 title={isListening ? 'Stop listening' : 'Speak to type'}
+                aria-label={isListening ? 'Stop listening' : 'Speak to type'}
               >
-                <span className="mic-icon">{isListening ? '🔴' : '🎤'}</span>
+                <span className="mic-icon" aria-hidden="true">{isListening ? '🔴' : '🎤'}</span>
               </button>
             )}
             <button 
               type="submit" 
               className={`send-btn send-btn-${activeModel}`}
               disabled={(!input.trim() && !uploadedImage) || isLoading}
+              aria-label="Send message"
             >
-              <span className="send-icon">{activeModel === 'grok' ? '🔥' : '🚀'}</span>
+              <span className="send-icon" aria-hidden="true">{activeModel === 'grok' ? '🔥' : '🚀'}</span>
               <span className="send-text">Send</span>
             </button>
           </div>

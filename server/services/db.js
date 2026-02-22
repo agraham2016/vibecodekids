@@ -243,6 +243,16 @@ export async function listUsers() {
   return rows.map(rowToUser);
 }
 
+export async function findUserBySubscriptionId(subscriptionId) {
+  const db = getPool();
+  const { rows } = await db.query(
+    'SELECT * FROM users WHERE stripe_subscription_id = $1 LIMIT 1',
+    [subscriptionId]
+  );
+  if (rows.length === 0) return null;
+  return rowToUser(rows[0]);
+}
+
 // ========== PROJECT OPERATIONS ==========
 
 export async function readProject(projectId) {

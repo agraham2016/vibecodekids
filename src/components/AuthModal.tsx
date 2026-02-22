@@ -78,7 +78,7 @@ export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: A
           const data = await response.json()
 
           if (!response.ok) {
-            throw new Error(data.debug ? `${data.error}: ${data.debug}` : (data.error || 'Could not create account'))
+            throw new Error(data.error || 'Could not create account')
           }
 
           setSuccess(data.message)
@@ -94,7 +94,18 @@ export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: A
             setSuccess('')
           }, data.requiresParentalConsent ? 8000 : 3000)
         } else {
-          // Paid plan: Create Stripe checkout
+          // Paid plan: Create Stripe checkout with COPPA fields
+          const ageNum = parseInt(age)
+          if (!age || isNaN(ageNum) || ageNum < 5 || ageNum > 120) {
+            throw new Error('Please enter a valid age')
+          }
+          if (ageNum < 13 && !parentEmail) {
+            throw new Error('A parent or guardian email is required for users under 13')
+          }
+          if (!privacyAccepted) {
+            throw new Error('You must accept the privacy policy to create an account')
+          }
+
           const response = await fetch('/api/stripe/checkout', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -102,7 +113,10 @@ export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: A
               tier: selectedPlan,
               username, 
               password, 
-              displayName 
+              displayName,
+              age: ageNum,
+              parentEmail: ageNum < 13 ? parentEmail : undefined,
+              privacyAccepted,
             })
           })
 
@@ -134,7 +148,7 @@ export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: A
         const data = await response.json()
 
         if (!response.ok) {
-          throw new Error(data.debug ? `${data.error}: ${data.debug}` : (data.error || 'Could not log in'))
+          throw new Error(data.error || 'Could not log in')
         }
 
         localStorage.setItem('authToken', data.token)
@@ -267,7 +281,7 @@ export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: A
               />
               <span className="input-hint">
                 We need a parent's permission for users under 13. 
-                We'll send them an approval email -- that's the only time we use it.
+                We'll send them an approval email — that's the only time we use it.
               </span>
             </div>
           )}
@@ -283,7 +297,7 @@ export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: A
               required
             />
             {mode === 'signup' && (
-              <span className="input-hint">3-20 characters, letters & numbers only</span>
+              <span className="input-hint">3-20 characters, letters, numbers & underscores</span>
             )}
           </div>
 
@@ -314,6 +328,10 @@ export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: A
                   I agree to the{' '}
                   <a href="/privacy" target="_blank" rel="noopener noreferrer">
                     Privacy Policy
+                  </a>
+                  {' '}and{' '}
+                  <a href="/terms" target="_blank" rel="noopener noreferrer">
+                    Terms of Service
                   </a>
                 </span>
               </label>

@@ -52,6 +52,11 @@
   transform: translateY(-2px);
 }
 
+.plan-card:focus-visible {
+  outline: 2px solid #a78bfa;
+  outline-offset: 2px;
+}
+
 .plan-card.selected {
   border-color: rgba(139, 92, 246, 0.8);
   background: rgba(139, 92, 246, 0.15);
