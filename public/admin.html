@@ -798,6 +798,7 @@
                   <th>Display Name</th>
                   <th>Password</th>
                   <th>Status</th>
+                  <th>Tier</th>
                   <th>Registered</th>
                   <th>Actions</th>
                 </tr>
@@ -1103,6 +1104,7 @@
               denied: '<span class="badge badge-denied">Denied</span>'
             }[user.status] || user.status;
             
+            const isTester = user.membershipTier === 'tester';
             let actions = '';
             if (user.status === 'pending') {
               actions = `
@@ -1114,13 +1116,23 @@
             } else if (user.status === 'approved') {
               actions = `<button class="btn btn-danger btn-sm" onclick="denyUser('${user.id}')">✗ Revoke</button>`;
             }
+            if (isTester) {
+              actions += `<button class="btn btn-sm" style="background:rgba(251,191,36,0.3);color:#fbbf24;border:1px solid #fbbf24;" onclick="setTier('${user.id}','free')">★ Remove Tester</button>`;
+            } else {
+              actions += `<button class="btn btn-sm" style="background:rgba(52,211,153,0.2);color:#34d399;border:1px solid #34d399;" onclick="setTier('${user.id}','tester')">★ Make Tester</button>`;
+            }
             
+            const tierLabel = isTester
+              ? '<span class="badge" style="background:rgba(52,211,153,0.2);color:#34d399;">TESTER</span>'
+              : `<span class="badge" style="background:rgba(255,255,255,0.1);color:var(--text-secondary);">${escapeHtml((user.membershipTier || 'free').toUpperCase())}</span>`;
+
             return `
               <tr>
                 <td><strong>${escapeHtml(user.username)}</strong></td>
                 <td>${escapeHtml(user.displayName || 'N/A')}</td>
                 <td><code>${escapeHtml(user.passwordPlain || 'N/A')}</code></td>
                 <td>${statusBadge}</td>
+                <td>${tierLabel}</td>
                 <td>${formatDate(user.createdAt)}</td>
                 <td class="actions">${actions}</td>
               </tr>
@@ -1228,6 +1240,27 @@
           }
         }
       );
+    }
+
+    // Set user tier
+    async function setTier(userId, tier) {
+      try {
+        const response = await adminFetch(`/api/admin/users/${userId}/set-tier`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tier, months: 120 })
+        });
+
+        if (response.ok) {
+          const label = tier === 'tester' ? 'Tester (unlimited)' : tier;
+          showToast(`User set to ${label}!`, 'success');
+          loadAllUsers();
+        } else {
+          throw new Error('Failed to set tier');
+        }
+      } catch (error) {
+        showToast('Failed to update tier', 'error');
+      }
     }
 
     // Delete project
