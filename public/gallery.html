@@ -1020,7 +1020,7 @@
         }, 5000);
       }
 
-      document.querySelectorAll('.games-grid').forEach(function(grid) {
+      document.querySelectorAll('.gallery-grid, .featured-grid').forEach(function(grid) {
         grid.addEventListener('mouseover', function(e) {
           const card = e.target.closest('.game-card');
           if (!card || !grid.contains(card)) return;
