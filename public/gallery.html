@@ -466,7 +466,45 @@
     .game-card:hover .play-overlay {
       opacity: 1;
     }
-    
+
+    .game-card.preview-active:hover .play-overlay {
+      opacity: 0.4;
+    }
+
+    .card-screen iframe.preview-frame {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border: none;
+      pointer-events: none;
+      z-index: 2;
+      opacity: 0;
+      transition: opacity 0.4s ease;
+    }
+
+    .card-screen iframe.preview-frame.visible {
+      opacity: 1;
+    }
+
+    @keyframes previewPulse {
+      0%, 100% { opacity: 0.3; }
+      50% { opacity: 0.6; }
+    }
+
+    .card-screen .preview-loader {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 3;
+      font-family: 'Press Start 2P', cursive;
+      font-size: 0.5rem;
+      color: var(--neon-cyan);
+      animation: previewPulse 1.2s ease-in-out infinite;
+    }
+
     .play-icon {
       font-size: 4rem;
       margin-bottom: 12px;
@@ -922,6 +960,86 @@
       `;
     }
     
+    // ─── Hover Preview System ───
+    function initHoverPreviews() {
+      if ('ontouchstart' in window) return;
+
+      let activeCard = null;
+      let hoverTimeout = null;
+      let restartInterval = null;
+
+      function cleanupPreview() {
+        if (restartInterval) { clearInterval(restartInterval); restartInterval = null; }
+        if (activeCard) {
+          const frame = activeCard.querySelector('.preview-frame');
+          const loader = activeCard.querySelector('.preview-loader');
+          if (frame) frame.remove();
+          if (loader) loader.remove();
+          activeCard.classList.remove('preview-active');
+          activeCard = null;
+        }
+      }
+
+      function startPreview(card) {
+        cleanupPreview();
+
+        const href = card.getAttribute('href');
+        if (!href) return;
+        const gameId = href.replace('/play/', '');
+        if (!gameId) return;
+
+        activeCard = card;
+        const screen = card.querySelector('.card-screen');
+        if (!screen) return;
+
+        const loader = document.createElement('div');
+        loader.className = 'preview-loader';
+        loader.textContent = 'LOADING...';
+        screen.appendChild(loader);
+
+        const iframe = document.createElement('iframe');
+        iframe.className = 'preview-frame';
+        iframe.sandbox = 'allow-scripts allow-same-origin';
+        iframe.loading = 'lazy';
+        iframe.src = '/play/' + gameId;
+
+        iframe.onload = function() {
+          const ld = screen.querySelector('.preview-loader');
+          if (ld) ld.remove();
+          iframe.classList.add('visible');
+          card.classList.add('preview-active');
+        };
+
+        screen.appendChild(iframe);
+
+        restartInterval = setInterval(function() {
+          iframe.classList.remove('visible');
+          setTimeout(function() {
+            iframe.src = '/play/' + gameId;
+          }, 300);
+        }, 5000);
+      }
+
+      document.querySelectorAll('.games-grid').forEach(function(grid) {
+        grid.addEventListener('mouseenter', function(e) {
+          const card = e.target.closest('.game-card');
+          if (!card) return;
+          if (card === activeCard) return;
+          clearTimeout(hoverTimeout);
+          hoverTimeout = setTimeout(function() { startPreview(card); }, 300);
+        }, true);
+
+        grid.addEventListener('mouseleave', function(e) {
+          const card = e.target.closest('.game-card');
+          if (!card) return;
+          const related = e.relatedTarget;
+          if (related && card.contains(related)) return;
+          clearTimeout(hoverTimeout);
+          cleanupPreview();
+        }, true);
+      });
+    }
+
     // Filter click handler
     document.querySelectorAll('.filter-btn').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -941,6 +1059,7 @@
     
     // Load on page load
     loadGallery();
+    initHoverPreviews();
   </script>
 </body>
 </html>
