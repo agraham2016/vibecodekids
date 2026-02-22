@@ -826,6 +826,109 @@
   box-shadow: 0 10px 35px rgba(139, 92, 246, 0.5);
 }
 
+/* ─── Roadmap Teaser ─── */
+.roadmap-teaser {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  padding: 60px 20px 50px;
+  margin-top: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.roadmap-heading {
+  font-size: 2rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, #fff 0%, #a5b4fc 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0 0 10px;
+}
+
+.roadmap-subtitle {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 1.05rem;
+  margin: 0 0 40px;
+}
+
+.roadmap-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  max-width: 900px;
+  margin: 0 auto 40px;
+}
+
+.roadmap-card {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 18px;
+  padding: 32px 24px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.roadmap-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 30px rgba(99, 102, 241, 0.2);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.roadmap-icon {
+  font-size: 2.5rem;
+  display: block;
+  margin-bottom: 16px;
+}
+
+.roadmap-card-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 8px;
+}
+
+.roadmap-card-desc {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.55);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.roadmap-cta {
+  padding: 16px 40px;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  border: none;
+  border-radius: 14px;
+  color: #fff;
+  font-size: 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 6px 24px rgba(99, 102, 241, 0.35);
+}
+
+.roadmap-cta:hover {
+  transform: translateY(-3px) scale(1.03);
+  box-shadow: 0 10px 35px rgba(99, 102, 241, 0.5);
+}
+
+@media (max-width: 768px) {
+  .roadmap-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .roadmap-heading {
+    font-size: 1.5rem;
+  }
+
+  .roadmap-card {
+    padding: 24px 20px;
+  }
+}
+
 /* Footer */
 .landing-footer {
   position: relative;

@@ -494,6 +494,33 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
         </div>
       </div>
 
+      <div className="roadmap-teaser">
+        <h2 className="roadmap-heading">What's Coming Next</h2>
+        <p className="roadmap-subtitle">We're just getting started. Here's what's on the horizon.</p>
+
+        <div className="roadmap-grid">
+          <div className="roadmap-card">
+            <span className="roadmap-icon">📱</span>
+            <h3 className="roadmap-card-title">App Store Launch</h3>
+            <p className="roadmap-card-desc">Play and create on any device — iPhone, iPad, Android</p>
+          </div>
+          <div className="roadmap-card">
+            <span className="roadmap-icon">🎨</span>
+            <h3 className="roadmap-card-title">Creator Mode 2.0</h3>
+            <p className="roadmap-card-desc">Build your own characters, worlds, and stories from scratch</p>
+          </div>
+          <div className="roadmap-card">
+            <span className="roadmap-icon">🔄</span>
+            <h3 className="roadmap-card-title">Community Remix</h3>
+            <p className="roadmap-card-desc">Share your creations and remix what others have built</p>
+          </div>
+        </div>
+
+        <button className="roadmap-cta" onClick={onSignupClick}>
+          Sign Up for Early Access
+        </button>
+      </div>
+
       <div className="landing-footer">
         <a href="/gallery" className="footer-link">
           <span>🕹️</span> Browse the Arcade
