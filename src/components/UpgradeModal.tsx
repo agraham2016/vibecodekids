@@ -112,9 +112,6 @@ export default function UpgradeModal({
               <li>✅ 3 games per month</li>
               <li>✅ 10 prompts per day</li>
               <li>✅ Share to Arcade</li>
-              <li>❌ AI Cover Art</li>
-              <li>❌ AI Game Sprites</li>
-              <li>❌ Premium Assets</li>
             </ul>
             {currentTier === 'free' && (
               <button className="tier-btn disabled" disabled>
@@ -137,8 +134,6 @@ export default function UpgradeModal({
               <li>✅ 15 games per month</li>
               <li>✅ 50 prompts per day</li>
               <li>✅ Share to Arcade</li>
-              <li>✅ 5 AI Cover Arts</li>
-              <li>❌ AI Game Sprites</li>
               <li>✅ Premium Assets</li>
             </ul>
             {currentTier === 'free' && (
@@ -166,8 +161,6 @@ export default function UpgradeModal({
               <li>✅ 40 games per month</li>
               <li>✅ 80 prompts per day</li>
               <li>✅ Share to Arcade</li>
-              <li>✅ 20 AI Cover Arts</li>
-              <li>✅ 10 AI Sprite Sets</li>
               <li>✅ Premium Assets</li>
             </ul>
             {currentTier !== 'pro' && (

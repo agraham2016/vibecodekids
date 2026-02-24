@@ -20,10 +20,7 @@ const PLANS = [
       'Share to Arcade',
       '30-day access'
     ],
-    notIncluded: [
-      'AI Cover Art',
-      'Premium Assets'
-    ]
+    notIncluded: []
   },
   {
     id: 'creator' as const,
@@ -35,13 +32,10 @@ const PLANS = [
     features: [
       '15 games per month',
       '50 prompts per day',
-      '5 AI Cover Arts',
       'Premium Assets',
       'Priority support'
     ],
-    notIncluded: [
-      'AI Game Sprites'
-    ]
+    notIncluded: []
   },
   {
     id: 'pro' as const,
@@ -52,8 +46,6 @@ const PLANS = [
     features: [
       '40 games per month',
       '80 prompts per day',
-      '20 AI Cover Arts',
-      '10 AI Sprite Sets',
       'Premium Assets',
       'Priority support'
     ],
