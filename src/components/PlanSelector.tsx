@@ -10,15 +10,15 @@ interface PlanSelectorProps {
 const PLANS = [
   {
     id: 'free' as const,
-    name: 'Free',
+    name: 'Free Trial',
     price: 0,
     icon: '⭐',
-    description: 'Perfect for getting started',
+    description: '30 days to try it out',
     features: [
       '3 games per month',
-      '30 prompts per day',
+      '10 prompts per day',
       'Share to Arcade',
-      'Basic support'
+      '30-day access'
     ],
     notIncluded: [
       'AI Cover Art',
@@ -28,13 +28,13 @@ const PLANS = [
   {
     id: 'creator' as const,
     name: 'Creator',
-    price: 7,
+    price: 13,
     icon: '🚀',
     popular: true,
     description: 'For aspiring game makers',
     features: [
-      '25 games per month',
-      '150 prompts per day',
+      '15 games per month',
+      '50 prompts per day',
       '5 AI Cover Arts',
       'Premium Assets',
       'Priority support'
@@ -46,12 +46,12 @@ const PLANS = [
   {
     id: 'pro' as const,
     name: 'Pro',
-    price: 14,
+    price: 21,
     icon: '👑',
     description: 'For serious creators',
     features: [
-      '50 games per month',
-      '300 prompts per day',
+      '40 games per month',
+      '80 prompts per day',
       '20 AI Cover Arts',
       '10 AI Sprite Sets',
       'Premium Assets',
@@ -130,7 +130,7 @@ export default function PlanSelector({ selectedPlan, onSelectPlan, onContinue, o
 
       <p className="plan-note">
         {selectedPlan === 'free' 
-          ? 'No credit card required for free plan'
+          ? 'No credit card required — 30-day free trial'
           : 'Secure payment powered by Stripe'}
       </p>
     </div>

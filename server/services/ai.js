@@ -55,10 +55,10 @@ const PRICING = {
     cacheWrite: 3.75,  // $3.75 / 1M tokens (cache write)
     cacheRead: 0.30,   // $0.30 / 1M tokens (cache hit)
   },
-  // Grok-3-fast pricing (xAI)
+  // Grok-3-fast pricing (xAI) — updated Feb 2026
   grok: {
-    input: 5.00,       // $5.00 / 1M input tokens
-    output: 25.00,     // $25.00 / 1M output tokens
+    input: 3.00,       // $3.00 / 1M input tokens
+    output: 15.00,     // $15.00 / 1M output tokens
   },
 };
 

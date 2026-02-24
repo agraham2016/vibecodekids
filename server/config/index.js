@@ -94,10 +94,11 @@ export const STRIPE_PRICES = {
 
 export const MEMBERSHIP_TIERS = {
   free: {
-    name: "Free",
+    name: "Free Trial",
     price: 0,
+    trialDays: 30,
     gamesPerMonth: 3,
-    promptsPerDay: 30,
+    promptsPerDay: 10,
     playsPerDay: 50,
     aiCoversPerMonth: 0,
     aiSpritesPerMonth: 0,
@@ -105,9 +106,9 @@ export const MEMBERSHIP_TIERS = {
   },
   creator: {
     name: "Creator",
-    price: 7,
-    gamesPerMonth: 25,
-    promptsPerDay: 150,
+    price: 13,
+    gamesPerMonth: 15,
+    promptsPerDay: 50,
     playsPerDay: Infinity,
     aiCoversPerMonth: 5,
     aiSpritesPerMonth: 0,
@@ -116,9 +117,9 @@ export const MEMBERSHIP_TIERS = {
   },
   pro: {
     name: "Pro",
-    price: 14,
-    gamesPerMonth: 50,
-    promptsPerDay: 300,
+    price: 21,
+    gamesPerMonth: 40,
+    promptsPerDay: 80,
     playsPerDay: Infinity,
     aiCoversPerMonth: 20,
     aiSpritesPerMonth: 10,
@@ -145,10 +146,10 @@ export const CLASSWALLET_ENABLED = !!CLASSWALLET_API_KEY;
 export const CLASSWALLET_BASE_URL = process.env.CLASSWALLET_BASE_URL || 'https://app.classwallet.com';
 
 export const ESA_PRICING = {
-  creator_quarterly: { tier: 'creator', amount: 2100, label: '$21 / quarter', months: 3 },
-  creator_annual:    { tier: 'creator', amount: 8400, label: '$84 / year',    months: 12 },
-  pro_quarterly:     { tier: 'pro',     amount: 4200, label: '$42 / quarter', months: 3 },
-  pro_annual:        { tier: 'pro',     amount: 16800, label: '$168 / year',  months: 12 },
+  creator_quarterly: { tier: 'creator', amount: 3900, label: '$39 / quarter', months: 3 },
+  creator_annual:    { tier: 'creator', amount: 15600, label: '$156 / year',    months: 12 },
+  pro_quarterly:     { tier: 'pro',     amount: 6300, label: '$63 / quarter', months: 3 },
+  pro_annual:        { tier: 'pro',     amount: 25200, label: '$252 / year',  months: 12 },
 };
 
 // ========== RATE LIMITS ==========

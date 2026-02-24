@@ -99,18 +99,18 @@ export default function UpgradeModal({
 
         {/* Tier Comparison */}
         <div className="tier-grid">
-          {/* Free Tier */}
+          {/* Free Trial Tier */}
           <div className={`tier-card ${currentTier === 'free' ? 'current' : ''}`}>
-            {currentTier === 'free' && <span className="current-badge">Current Plan</span>}
+            {currentTier === 'free' && <span className="current-badge">Free Trial</span>}
             <div className="tier-icon">⭐</div>
-            <h3 className="tier-name">Free</h3>
+            <h3 className="tier-name">Free Trial</h3>
             <div className="tier-price">
               <span className="price">$0</span>
-              <span className="period">/month</span>
+              <span className="period">/ 30 days</span>
             </div>
             <ul className="tier-features">
               <li>✅ 3 games per month</li>
-              <li>✅ 30 prompts per day</li>
+              <li>✅ 10 prompts per day</li>
               <li>✅ Share to Arcade</li>
               <li>❌ AI Cover Art</li>
               <li>❌ AI Game Sprites</li>
@@ -118,7 +118,7 @@ export default function UpgradeModal({
             </ul>
             {currentTier === 'free' && (
               <button className="tier-btn disabled" disabled>
-                Current Plan
+                Trial Active
               </button>
             )}
           </div>
@@ -130,12 +130,12 @@ export default function UpgradeModal({
             <div className="tier-icon">🚀</div>
             <h3 className="tier-name">Creator</h3>
             <div className="tier-price">
-              <span className="price">$7</span>
+              <span className="price">$13</span>
               <span className="period">/month</span>
             </div>
             <ul className="tier-features">
-              <li>✅ 25 games per month</li>
-              <li>✅ 150 prompts per day</li>
+              <li>✅ 15 games per month</li>
+              <li>✅ 50 prompts per day</li>
               <li>✅ Share to Arcade</li>
               <li>✅ 5 AI Cover Arts</li>
               <li>❌ AI Game Sprites</li>
@@ -159,12 +159,12 @@ export default function UpgradeModal({
             <div className="tier-icon">👑</div>
             <h3 className="tier-name">Pro</h3>
             <div className="tier-price">
-              <span className="price">$14</span>
+              <span className="price">$21</span>
               <span className="period">/month</span>
             </div>
             <ul className="tier-features">
-              <li>✅ 50 games per month</li>
-              <li>✅ 300 prompts per day</li>
+              <li>✅ 40 games per month</li>
+              <li>✅ 80 prompts per day</li>
               <li>✅ Share to Arcade</li>
               <li>✅ 20 AI Cover Arts</li>
               <li>✅ 10 AI Sprite Sets</li>

@@ -319,7 +319,7 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
           </div>
 
           <p className="hero-note">
-            Free account includes 3 games/month and 30 prompts/day
+            Start your free 30-day trial — 3 games and 10 prompts/day
           </p>
         </div>
 
