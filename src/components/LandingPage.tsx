@@ -6,6 +6,15 @@ interface LandingPageProps {
   onSignupClick: () => void
 }
 
+interface FeaturedGame {
+  id: string
+  title: string
+  creatorName?: string
+  displayName?: string
+  views?: number
+  genre?: string
+}
+
 const DEMO_SCENARIOS = [
   {
     prompt: 'Make me a platformer with a dinosaur that collects gems!',
@@ -64,149 +73,50 @@ const DEMO_SCENARIOS = [
 ]
 
 const GAME_TEMPLATES = [
+  { title: 'Jump & Run', genre: 'Platformer', description: 'Hop across platforms and collect coins', gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)', sprite: '/assets/sprites/platformer/player.png', emoji: '🏃' },
+  { title: 'Space Blaster', genre: 'Shooter', description: 'Blast aliens and dodge enemy fire', gradient: 'linear-gradient(180deg, #0a0a20 0%, #1a0a50 100%)', sprite: '/assets/sprites/shooter/ship.png', emoji: '🚀' },
+  { title: 'Speed Racer', genre: 'Racing', description: 'Dodge traffic and race to the finish', gradient: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)', sprite: '/assets/sprites/racing/car-player.png', emoji: '🏎️' },
+  { title: 'Road Crosser', genre: 'Frogger', description: 'Hop across busy lanes to safety', gradient: 'linear-gradient(135deg, #1a472a 0%, #2d6a4f 50%, #40916c 100%)', sprite: '/assets/sprites/frogger/frog.png', emoji: '🐸' },
+  { title: 'Gem Match', genre: 'Puzzle', description: 'Match colorful gems to score big', gradient: 'linear-gradient(135deg, #4a1a6b 0%, #2a1040 50%, #6b21a8 100%)', sprite: '/assets/sprites/puzzle/gems.png', emoji: '💎' },
+  { title: 'Tap Frenzy', genre: 'Clicker', description: 'Click the gem, buy upgrades, go wild', gradient: 'linear-gradient(135deg, #1a0533 0%, #2d1b69 50%, #4c1d95 100%)', sprite: '/assets/sprites/clicker/gem.png', emoji: '👆' },
+  { title: 'Adventure Quest', genre: 'RPG', description: 'Explore, find treasure, talk to NPCs', gradient: 'linear-gradient(135deg, #1b4332 0%, #2d6a4f 50%, #52b788 100%)', sprite: '/assets/sprites/rpg/hero.png', emoji: '⚔️' },
+  { title: 'Endless Runner', genre: 'Runner', description: 'Run, jump, and dodge obstacles at top speed', gradient: 'linear-gradient(135deg, #ff6b35 0%, #f7c948 50%, #1a1a2e 100%)', sprite: '/assets/sprites/endless-runner/player.png', emoji: '🏃‍♂️' },
+  { title: 'Tower Defense', genre: 'Strategy', description: 'Place towers and defend against enemy waves', gradient: 'linear-gradient(135deg, #2d3436 0%, #636e72 50%, #00b894 100%)', sprite: '/assets/sprites/tower-defense/tower.png', emoji: '🏰' },
+  { title: "Beat 'Em Up", genre: 'Fighting', description: 'Punch and kick your way through enemies', gradient: 'linear-gradient(135deg, #d63031 0%, #e17055 50%, #2d3436 100%)', sprite: '/assets/sprites/fighting/fighter.png', emoji: '🥊' },
+  { title: 'Snake', genre: 'Classic', description: 'Eat food, grow longer, avoid your tail', gradient: 'linear-gradient(135deg, #00b894 0%, #00cec9 50%, #0984e3 100%)', sprite: '/assets/sprites/snake/head.png', emoji: '🐍' },
+  { title: 'Soccer', genre: 'Sports', description: 'Score goals and beat the AI opponent', gradient: 'linear-gradient(135deg, #27ae60 0%, #2ecc71 50%, #1abc9c 100%)', sprite: '/assets/sprites/sports/ball.png', emoji: '⚽' },
+  { title: 'Brick Breaker', genre: 'Arcade', description: 'Smash bricks with a bouncing ball', gradient: 'linear-gradient(135deg, #6c5ce7 0%, #a29bfe 50%, #fd79a8 100%)', sprite: '/assets/sprites/brick-breaker/paddle.png', emoji: '🧱' },
+  { title: 'Flappy Bird', genre: 'Casual', description: 'Tap to fly through the pipes', gradient: 'linear-gradient(135deg, #74b9ff 0%, #a29bfe 50%, #55efc4 100%)', sprite: '/assets/sprites/flappy/bird.png', emoji: '🐦' },
+  { title: 'Bubble Pop', genre: 'Puzzle', description: 'Aim and pop matching colored bubbles', gradient: 'linear-gradient(135deg, #fd79a8 0%, #e84393 50%, #6c5ce7 100%)', sprite: '/assets/sprites/bubble-shooter/bubbles.png', emoji: '🫧' },
+  { title: 'Block Stack', genre: 'Puzzle', description: 'Stack falling blocks and clear full lines', gradient: 'linear-gradient(135deg, #0984e3 0%, #6c5ce7 50%, #00cec9 100%)', sprite: '/assets/sprites/falling-blocks/blocks.png', emoji: '🟦' },
+  { title: 'Rhythm Beats', genre: 'Music', description: 'Hit the arrows to the beat of the music', gradient: 'linear-gradient(135deg, #e84393 0%, #fd79a8 50%, #fdcb6e 100%)', sprite: '/assets/sprites/rhythm/arrows.png', emoji: '🎵' },
+  { title: 'Pet Buddy', genre: 'Sim', description: 'Feed, play with, and care for your pet', gradient: 'linear-gradient(135deg, #fdcb6e 0%, #f39c12 50%, #e17055 100%)', sprite: '/assets/sprites/pet-sim/pet.png', emoji: '🐾' },
+]
+
+const FAQ_ITEMS = [
   {
-    title: 'Jump & Run',
-    genre: 'Platformer',
-    description: 'Hop across platforms and collect coins',
-    gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)',
-    sprite: '/assets/sprites/platformer/player.png',
-    emoji: '🏃',
+    q: 'What is vibecoding?',
+    a: 'Vibecoding is a new way to create games using AI. Your child simply describes the game they want in plain English — "make a platformer where a cat collects fish" — and our AI writes the actual game code. No programming knowledge needed. They learn game design, logic, and creativity while having fun.',
   },
   {
-    title: 'Space Blaster',
-    genre: 'Shooter',
-    description: 'Blast aliens and dodge enemy fire',
-    gradient: 'linear-gradient(180deg, #0a0a20 0%, #1a0a50 100%)',
-    sprite: '/assets/sprites/shooter/ship.png',
-    emoji: '🚀',
+    q: 'Is this safe for my child?',
+    a: 'Absolutely. VibeCode Kids is fully COPPA compliant. We use AI content moderation to filter inappropriate requests, require parental consent for users under 13, and never collect more data than necessary. All games are limited to E-rated (Everyone) content — think Minecraft and Pokemon, not anything violent or scary.',
   },
   {
-    title: 'Speed Racer',
-    genre: 'Racing',
-    description: 'Dodge traffic and race to the finish',
-    gradient: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
-    sprite: '/assets/sprites/racing/car-player.png',
-    emoji: '🏎️',
+    q: 'What ages is this for?',
+    a: 'VibeCode Kids is designed for ages 7 to 18. Younger kids (7-10) can describe simple games and learn the basics, while older kids and teens can create increasingly complex projects. The AI adapts to their skill level.',
   },
   {
-    title: 'Road Crosser',
-    genre: 'Frogger',
-    description: 'Hop across busy lanes to safety',
-    gradient: 'linear-gradient(135deg, #1a472a 0%, #2d6a4f 50%, #40916c 100%)',
-    sprite: '/assets/sprites/frogger/frog.png',
-    emoji: '🐸',
+    q: 'Do kids actually learn to code?',
+    a: 'Yes! While the AI writes the initial code, kids can see and edit the source code of every game they create. They learn computational thinking, game design principles, debugging, and how code works — all through hands-on creation rather than boring tutorials.',
   },
   {
-    title: 'Gem Match',
-    genre: 'Puzzle',
-    description: 'Match colorful gems to score big',
-    gradient: 'linear-gradient(135deg, #4a1a6b 0%, #2a1040 50%, #6b21a8 100%)',
-    sprite: '/assets/sprites/puzzle/gems.png',
-    emoji: '💎',
+    q: 'Can I cancel anytime?',
+    a: 'Yes, you can cancel your subscription at any time from your account settings. There are no contracts or cancellation fees. Your child keeps access through the end of the billing period.',
   },
   {
-    title: 'Tap Frenzy',
-    genre: 'Clicker',
-    description: 'Click the gem, buy upgrades, go wild',
-    gradient: 'linear-gradient(135deg, #1a0533 0%, #2d1b69 50%, #4c1d95 100%)',
-    sprite: '/assets/sprites/clicker/gem.png',
-    emoji: '👆',
-  },
-  {
-    title: 'Adventure Quest',
-    genre: 'RPG',
-    description: 'Explore, find treasure, talk to NPCs',
-    gradient: 'linear-gradient(135deg, #1b4332 0%, #2d6a4f 50%, #52b788 100%)',
-    sprite: '/assets/sprites/rpg/hero.png',
-    emoji: '⚔️',
-  },
-  {
-    title: 'Endless Runner',
-    genre: 'Runner',
-    description: 'Run, jump, and dodge obstacles at top speed',
-    gradient: 'linear-gradient(135deg, #ff6b35 0%, #f7c948 50%, #1a1a2e 100%)',
-    sprite: '/assets/sprites/endless-runner/player.png',
-    emoji: '🏃‍♂️',
-  },
-  {
-    title: 'Tower Defense',
-    genre: 'Strategy',
-    description: 'Place towers and defend against enemy waves',
-    gradient: 'linear-gradient(135deg, #2d3436 0%, #636e72 50%, #00b894 100%)',
-    sprite: '/assets/sprites/tower-defense/tower.png',
-    emoji: '🏰',
-  },
-  {
-    title: "Beat 'Em Up",
-    genre: 'Fighting',
-    description: 'Punch and kick your way through enemies',
-    gradient: 'linear-gradient(135deg, #d63031 0%, #e17055 50%, #2d3436 100%)',
-    sprite: '/assets/sprites/fighting/fighter.png',
-    emoji: '🥊',
-  },
-  {
-    title: 'Snake',
-    genre: 'Classic',
-    description: 'Eat food, grow longer, avoid your tail',
-    gradient: 'linear-gradient(135deg, #00b894 0%, #00cec9 50%, #0984e3 100%)',
-    sprite: '/assets/sprites/snake/head.png',
-    emoji: '🐍',
-  },
-  {
-    title: 'Soccer',
-    genre: 'Sports',
-    description: 'Score goals and beat the AI opponent',
-    gradient: 'linear-gradient(135deg, #27ae60 0%, #2ecc71 50%, #1abc9c 100%)',
-    sprite: '/assets/sprites/sports/ball.png',
-    emoji: '⚽',
-  },
-  {
-    title: 'Brick Breaker',
-    genre: 'Arcade',
-    description: 'Smash bricks with a bouncing ball',
-    gradient: 'linear-gradient(135deg, #6c5ce7 0%, #a29bfe 50%, #fd79a8 100%)',
-    sprite: '/assets/sprites/brick-breaker/paddle.png',
-    emoji: '🧱',
-  },
-  {
-    title: 'Flappy Bird',
-    genre: 'Casual',
-    description: 'Tap to fly through the pipes',
-    gradient: 'linear-gradient(135deg, #74b9ff 0%, #a29bfe 50%, #55efc4 100%)',
-    sprite: '/assets/sprites/flappy/bird.png',
-    emoji: '🐦',
-  },
-  {
-    title: 'Bubble Pop',
-    genre: 'Puzzle',
-    description: 'Aim and pop matching colored bubbles',
-    gradient: 'linear-gradient(135deg, #fd79a8 0%, #e84393 50%, #6c5ce7 100%)',
-    sprite: '/assets/sprites/bubble-shooter/bubbles.png',
-    emoji: '🫧',
-  },
-  {
-    title: 'Block Stack',
-    genre: 'Puzzle',
-    description: 'Stack falling blocks and clear full lines',
-    gradient: 'linear-gradient(135deg, #0984e3 0%, #6c5ce7 50%, #00cec9 100%)',
-    sprite: '/assets/sprites/falling-blocks/blocks.png',
-    emoji: '🟦',
-  },
-  {
-    title: 'Rhythm Beats',
-    genre: 'Music',
-    description: 'Hit the arrows to the beat of the music',
-    gradient: 'linear-gradient(135deg, #e84393 0%, #fd79a8 50%, #fdcb6e 100%)',
-    sprite: '/assets/sprites/rhythm/arrows.png',
-    emoji: '🎵',
-  },
-  {
-    title: 'Pet Buddy',
-    genre: 'Sim',
-    description: 'Feed, play with, and care for your pet',
-    gradient: 'linear-gradient(135deg, #fdcb6e 0%, #f39c12 50%, #e17055 100%)',
-    sprite: '/assets/sprites/pet-sim/pet.png',
-    emoji: '🐾',
+    q: 'Do you accept Arizona ESA funds?',
+    a: 'Yes! VibeCode Kids qualifies as an approved ESA educational technology expense. Arizona ESA families can pay with their ClassWallet funds. Visit our ESA page for details on quarterly and annual billing options.',
   },
 ]
 
@@ -216,6 +126,9 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
   const [showAiReply, setShowAiReply] = useState(false)
   const [typedReply, setTypedReply] = useState('')
   const [phase, setPhase] = useState<'typing' | 'building' | 'done'>('typing')
+  const [featuredGames, setFeaturedGames] = useState<FeaturedGame[]>([])
+  const [openFaq, setOpenFaq] = useState<number | null>(null)
+  const [navScrolled, setNavScrolled] = useState(false)
 
   const scenario = DEMO_SCENARIOS[demoIndex]
 
@@ -227,6 +140,7 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
     setPhase('typing')
   }, [])
 
+  // Demo typing animation
   useEffect(() => {
     const prompt = DEMO_SCENARIOS[demoIndex].prompt
     if (phase !== 'typing') return
@@ -262,27 +176,56 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
     return () => clearTimeout(timer)
   }, [phase, demoIndex, startScenario])
 
+  // Fetch featured games
+  useEffect(() => {
+    fetch('/api/gallery?limit=6')
+      .then(r => r.ok ? r.json() : [])
+      .then(data => {
+        const games = Array.isArray(data) ? data : (data.games || [])
+        setFeaturedGames(games.slice(0, 6))
+      })
+      .catch(() => {})
+  }, [])
+
+  // Nav scroll effect
+  useEffect(() => {
+    const onScroll = () => setNavScrolled(window.scrollY > 40)
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+
   return (
     <div className="landing-page">
-      <div className="landing-bg"></div>
+      <div className="landing-bg" />
+
+      {/* ── 1. Sticky Nav ── */}
+      <nav className={`landing-nav ${navScrolled ? 'nav-scrolled' : ''}`}>
+        <div className="nav-inner">
+          <a href="/" className="nav-logo-link">
+            <img src="/images/logo.png" alt="VibeCode Kids" className="nav-logo-img" />
+          </a>
+          <div className="nav-links">
+            <a href="#how-it-works">How It Works</a>
+            <a href="/gallery">Arcade</a>
+            <a href="#pricing">Pricing</a>
+            <a href="/esa">ESA</a>
+          </div>
+          <div className="nav-actions">
+            <button className="nav-login" onClick={onLoginClick}>Log In</button>
+            <button className="nav-cta" onClick={onSignupClick}>Get Started Free</button>
+          </div>
+        </div>
+      </nav>
 
       <div className="landing-content">
-        <div className="landing-hero">
-          <div className="hero-badge">For Kids Ages 7-18</div>
+
+        {/* ── 2. Hero ── */}
+        <section className="landing-hero">
           <div className="hero-logo">
             <img src="/images/logo.png" alt="VibeCode Kids" className="hero-logo-img" />
           </div>
-          <p className="hero-subtitle">
-            Vibecode awesome games just by describing them!
-            <br />
-            No coding experience needed.
-          </p>
-
-          <p className="hero-explainer">
-            <strong>Vibecoding</strong> is a new way to build games — just tell our AI what you want
-            in plain English, and it writes the code for you. No syntax, no tutorials, no frustration.
-            You dream it, the AI builds it.
-          </p>
+          <h1 className="hero-headline">Your kid describes a game. AI builds it.</h1>
+          <p className="hero-subtitle">No coding needed. Just imagination.</p>
 
           <div className="hero-features">
             <div className="feature">
@@ -295,28 +238,53 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
             </div>
             <div className="feature">
               <span className="feature-icon">🏆</span>
-              <span>Share & Play</span>
+              <span>Share &amp; Play</span>
             </div>
           </div>
 
           <div className="hero-buttons">
             <button className="btn-signup" onClick={onSignupClick}>
-              <span>✨</span> Get Started Free
+              Get Started Free
             </button>
             <button className="btn-login" onClick={onLoginClick}>
-              <span>🔑</span> Log In
+              Log In
             </button>
           </div>
 
           <p className="hero-note">
             Start your free 30-day trial — 3 games and 10 prompts/day
           </p>
-        </div>
+        </section>
 
-        {/* Live Demo — Before & After */}
-        <div className="live-demo-section">
-          <h2 className="demo-section-title">See It In Action</h2>
-          <p className="demo-section-subtitle">Describe a game. Vibecode it to life.</p>
+        {/* ── 3. How It Works ── */}
+        <section className="how-it-works" id="how-it-works">
+          <h2 className="section-heading">How It Works</h2>
+          <p className="section-subheading">From idea to playable game in under a minute</p>
+          <div className="steps-row">
+            <div className="step-card">
+              <div className="step-number">1</div>
+              <h3 className="step-title">Describe Your Game</h3>
+              <p className="step-desc">Tell the AI what you want in plain English — any game you can imagine.</p>
+            </div>
+            <div className="step-connector" />
+            <div className="step-card">
+              <div className="step-number">2</div>
+              <h3 className="step-title">AI Builds It</h3>
+              <p className="step-desc">Watch your game come to life in seconds with real, working code.</p>
+            </div>
+            <div className="step-connector" />
+            <div className="step-card">
+              <div className="step-number">3</div>
+              <h3 className="step-title">Play &amp; Share</h3>
+              <p className="step-desc">Test it instantly, tweak it with more prompts, and publish to the Arcade.</p>
+            </div>
+          </div>
+        </section>
+
+        {/* ── 4. Live Demo (existing) ── */}
+        <section className="live-demo-section">
+          <h2 className="section-heading">See It In Action</h2>
+          <p className="section-subheading">Describe a game. Watch it come to life.</p>
 
           <div className="demo-tabs">
             {DEMO_SCENARIOS.map((s, i) => (
@@ -333,13 +301,11 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
           <div className="demo-window">
             <div className="demo-window-header">
               <div className="preview-dots">
-                <span></span><span></span><span></span>
+                <span /><span /><span />
               </div>
               <span className="preview-title">vibe-code-studio</span>
             </div>
-
             <div className="demo-split">
-              {/* Left: Chat */}
               <div className="demo-chat-panel">
                 <div className="demo-chat-label">Your Idea</div>
                 <div className="demo-chat-messages">
@@ -350,7 +316,6 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
                       {phase === 'typing' && <span className="demo-cursor">|</span>}
                     </div>
                   </div>
-
                   {showAiReply && (
                     <div className="demo-bubble demo-bubble-ai">
                       <span className="demo-avatar">🤖</span>
@@ -360,7 +325,6 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
                       </div>
                     </div>
                   )}
-
                   {phase === 'building' && typedReply.length < 3 && (
                     <div className="demo-building">
                       <div className="demo-spinner" />
@@ -369,8 +333,6 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
                   )}
                 </div>
               </div>
-
-              {/* Right: Game preview */}
               <div className="demo-game-panel" style={{ background: scenario.bg }}>
                 <div className={`demo-game-scene ${phase === 'done' ? 'demo-scene-active' : 'demo-scene-building'}`}>
                   {phase !== 'done' && (
@@ -398,31 +360,43 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
             </div>
           </div>
 
-          <button className="demo-cta" onClick={onSignupClick}>
+          <button className="section-cta" onClick={onSignupClick}>
             Try It Yourself — Free
           </button>
-        </div>
+        </section>
 
-        {/* Template Showcase */}
-        <div className="template-showcase">
-          <h2 className="showcase-title">18 Game Types to Vibecode</h2>
-          <p className="showcase-subtitle">Pick a template and vibecode it into your own game in seconds</p>
+        {/* ── 5. Real Games Showcase ── */}
+        {featuredGames.length > 0 && (
+          <section className="games-showcase">
+            <h2 className="section-heading">Games Built by Kids Like You</h2>
+            <p className="section-subheading">Real games created on VibeCode Kids — playable right now</p>
+            <div className="showcase-game-grid">
+              {featuredGames.map(game => (
+                <a key={game.id} href={`/play/${game.id}`} className="showcase-game-card">
+                  <div className="sgc-top">
+                    <span className="sgc-genre">{game.genre || 'Game'}</span>
+                  </div>
+                  <div className="sgc-info">
+                    <span className="sgc-title">{game.title || 'Untitled'}</span>
+                    <span className="sgc-creator">by {game.displayName || game.creatorName || 'a kid'}</span>
+                  </div>
+                  <div className="sgc-play">Play</div>
+                </a>
+              ))}
+            </div>
+            <a href="/gallery" className="section-cta-link">Browse all games in the Arcade</a>
+          </section>
+        )}
+
+        {/* ── 6. Template Grid (existing) ── */}
+        <section className="template-showcase">
+          <h2 className="section-heading">18 Game Types to Vibecode</h2>
+          <p className="section-subheading">Pick a template or describe something totally new</p>
           <div className="template-grid">
             {GAME_TEMPLATES.map((tmpl) => (
-              <button
-                key={tmpl.title}
-                className="template-card"
-                onClick={onSignupClick}
-              >
-                <div
-                  className="template-card-bg"
-                  style={{ background: tmpl.gradient }}
-                >
-                  <img
-                    src={tmpl.sprite}
-                    alt={tmpl.title}
-                    className="template-card-sprite"
-                  />
+              <button key={tmpl.title} className="template-card" onClick={onSignupClick}>
+                <div className="template-card-bg" style={{ background: tmpl.gradient }}>
+                  <img src={tmpl.sprite} alt={tmpl.title} className="template-card-sprite" />
                   <span className="template-card-emoji" aria-hidden="true">{tmpl.emoji}</span>
                 </div>
                 <div className="template-card-info">
@@ -433,128 +407,178 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
               </button>
             ))}
           </div>
-        </div>
+        </section>
 
-        {/* Vibecode From Scratch */}
-        <div className="scratch-section">
+        {/* ── 7. Vibecode From Scratch (existing) ── */}
+        <section className="scratch-section">
           <div className="scratch-divider">
             <span className="scratch-divider-line" />
             <span className="scratch-divider-text">OR</span>
             <span className="scratch-divider-line" />
           </div>
-
           <h2 className="scratch-title">Vibecode Something From Scratch</h2>
           <p className="scratch-subtitle">
             Don't see what you want? Just describe it. Your AI buddy will vibecode any game you can imagine.
           </p>
-
           <div className="scratch-examples">
-            <div
-              className="scratch-card"
-              role="button"
-              tabIndex={0}
-              onClick={onSignupClick}
-              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSignupClick(); } }}
-            >
-              <span className="scratch-card-icon" aria-hidden="true">🏰</span>
-              <span className="scratch-card-quote">"A castle defense game with dragons and wizards"</span>
-            </div>
-            <div
-              className="scratch-card"
-              role="button"
-              tabIndex={0}
-              onClick={onSignupClick}
-              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSignupClick(); } }}
-            >
-              <span className="scratch-card-icon" aria-hidden="true">🧟</span>
-              <span className="scratch-card-quote">"Zombie survival where I build walls and craft weapons"</span>
-            </div>
-            <div
-              className="scratch-card"
-              role="button"
-              tabIndex={0}
-              onClick={onSignupClick}
-              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSignupClick(); } }}
-            >
-              <span className="scratch-card-icon" aria-hidden="true">🐱</span>
-              <span className="scratch-card-quote">"A cat cafe simulator where customers order treats"</span>
-            </div>
-            <div
-              className="scratch-card"
-              role="button"
-              tabIndex={0}
-              onClick={onSignupClick}
-              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSignupClick(); } }}
-            >
-              <span className="scratch-card-icon" aria-hidden="true">🌌</span>
-              <span className="scratch-card-quote">"An asteroid mining game in outer space"</span>
-            </div>
-            <div
-              className="scratch-card"
-              role="button"
-              tabIndex={0}
-              onClick={onSignupClick}
-              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSignupClick(); } }}
-            >
-              <span className="scratch-card-icon" aria-hidden="true">🎃</span>
-              <span className="scratch-card-quote">"A haunted house escape room with puzzles"</span>
-            </div>
-            <div
-              className="scratch-card"
-              role="button"
-              tabIndex={0}
-              onClick={onSignupClick}
-              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSignupClick(); } }}
-            >
-              <span className="scratch-card-icon" aria-hidden="true">🏴‍☠️</span>
-              <span className="scratch-card-quote">"A pirate ship battle game on the ocean"</span>
-            </div>
+            {[
+              { icon: '🏰', quote: '"A castle defense game with dragons and wizards"' },
+              { icon: '🧟', quote: '"Zombie survival where I build walls and craft weapons"' },
+              { icon: '🐱', quote: '"A cat cafe simulator where customers order treats"' },
+              { icon: '🌌', quote: '"An asteroid mining game in outer space"' },
+              { icon: '🎃', quote: '"A haunted house escape room with puzzles"' },
+              { icon: '🏴‍☠️', quote: '"A pirate ship battle game on the ocean"' },
+            ].map(({ icon, quote }) => (
+              <div
+                key={quote}
+                className="scratch-card"
+                role="button"
+                tabIndex={0}
+                onClick={onSignupClick}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSignupClick(); } }}
+              >
+                <span className="scratch-card-icon" aria-hidden="true">{icon}</span>
+                <span className="scratch-card-quote">{quote}</span>
+              </div>
+            ))}
           </div>
-
           <div className="scratch-bottom">
             <p className="scratch-hint">Type anything you want — the only limit is your imagination</p>
-            <button className="scratch-cta" onClick={onSignupClick}>
-              Start Vibecoding — Free
-            </button>
+            <button className="section-cta" onClick={onSignupClick}>Start Vibecoding — Free</button>
+          </div>
+        </section>
+
+        {/* ── 8. For Parents ── */}
+        <section className="for-parents" id="parents">
+          <h2 className="section-heading">Built for Kids. Trusted by Parents.</h2>
+          <p className="section-subheading">Safety, education, and transparency are built into everything we do</p>
+          <div className="parent-grid">
+            <div className="parent-card">
+              <span className="parent-card-icon">🛡️</span>
+              <h3>Safe &amp; COPPA Compliant</h3>
+              <p>Parental consent for under-13 users, minimal data collection, and full compliance with children's privacy law.</p>
+            </div>
+            <div className="parent-card">
+              <span className="parent-card-icon">🧠</span>
+              <h3>Real Coding Skills</h3>
+              <p>Kids learn game design, computational thinking, and can view and edit the real source code behind every game.</p>
+            </div>
+            <div className="parent-card">
+              <span className="parent-card-icon">✅</span>
+              <h3>Kid-Friendly Content Only</h3>
+              <p>AI content moderation ensures all games stay E-rated. Swords and spells are fine — graphic violence is not.</p>
+            </div>
+            <div className="parent-card">
+              <span className="parent-card-icon">👨‍👩‍👧</span>
+              <h3>You Stay in Control</h3>
+              <p>View your child's creations, request data access or deletion anytime, and set daily usage limits through your account.</p>
+            </div>
+          </div>
+        </section>
+
+        {/* ── 9. Pricing ── */}
+        <section className="pricing-section" id="pricing">
+          <h2 className="section-heading">Simple, Affordable Plans</h2>
+          <p className="section-subheading">Start free. Upgrade when you're ready.</p>
+          <div className="pricing-grid">
+            <div className="price-card">
+              <h3 className="price-card-name">Free Trial</h3>
+              <div className="price-card-price">$0</div>
+              <div className="price-card-period">for 30 days</div>
+              <ul className="price-card-features">
+                <li>3 games per month</li>
+                <li>10 AI prompts per day</li>
+                <li>Unlimited plays</li>
+                <li>Share to Arcade</li>
+              </ul>
+              <button className="price-card-btn" onClick={onSignupClick}>Start Free Trial</button>
+            </div>
+            <div className="price-card featured">
+              <div className="price-card-badge">Most Popular</div>
+              <h3 className="price-card-name">Creator</h3>
+              <div className="price-card-price">$13</div>
+              <div className="price-card-period">per month</div>
+              <ul className="price-card-features">
+                <li>15 games per month</li>
+                <li>50 AI prompts per day</li>
+                <li>Unlimited plays</li>
+                <li>Share to Arcade</li>
+                <li>Priority support</li>
+              </ul>
+              <button className="price-card-btn" onClick={onSignupClick}>Get Started</button>
+            </div>
+            <div className="price-card">
+              <h3 className="price-card-name">Pro</h3>
+              <div className="price-card-price">$21</div>
+              <div className="price-card-period">per month</div>
+              <ul className="price-card-features">
+                <li>40 games per month</li>
+                <li>80 AI prompts per day</li>
+                <li>Unlimited plays</li>
+                <li>Share to Arcade</li>
+                <li>Priority support</li>
+              </ul>
+              <button className="price-card-btn" onClick={onSignupClick}>Get Started</button>
+            </div>
+          </div>
+          <p className="pricing-esa-note">
+            Arizona ESA family? <a href="/esa">Pay with your scholarship funds</a>
+          </p>
+        </section>
+
+        {/* ── 10. FAQ ── */}
+        <section className="faq-section" id="faq">
+          <h2 className="section-heading">Frequently Asked Questions</h2>
+          <div className="faq-list">
+            {FAQ_ITEMS.map((item, i) => (
+              <div key={i} className={`faq-item ${openFaq === i ? 'open' : ''}`}>
+                <button className="faq-question" onClick={() => setOpenFaq(openFaq === i ? null : i)}>
+                  <span>{item.q}</span>
+                  <span className="faq-toggle">{openFaq === i ? '−' : '+'}</span>
+                </button>
+                {openFaq === i && <div className="faq-answer">{item.a}</div>}
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* ── 11. Final CTA ── */}
+        <section className="final-cta-section">
+          <h2>Ready to start vibecoding?</h2>
+          <p>Your child's next favorite game is one sentence away.</p>
+          <button className="section-cta" onClick={onSignupClick}>Get Started Free</button>
+        </section>
+      </div>
+
+      {/* ── 12. Full Footer ── */}
+      <footer className="landing-footer-full">
+        <div className="footer-inner">
+          <div className="footer-col">
+            <img src="/images/logo.png" alt="VibeCode Kids" className="footer-logo" />
+            <p className="footer-tagline">AI-powered game creation for kids ages 7-18</p>
+          </div>
+          <div className="footer-col">
+            <h4>Product</h4>
+            <a href="/">Studio</a>
+            <a href="/gallery">Arcade</a>
+            <a href="#pricing">Pricing</a>
+          </div>
+          <div className="footer-col">
+            <h4>Parents</h4>
+            <a href="/esa">ESA Families</a>
+            <a href="#parents">Safety</a>
+            <a href="#faq">FAQ</a>
+          </div>
+          <div className="footer-col">
+            <h4>Legal</h4>
+            <a href="/privacy">Privacy Policy</a>
+            <a href="/terms">Terms of Service</a>
           </div>
         </div>
-      </div>
-
-      <div className="roadmap-teaser">
-        <h2 className="roadmap-heading">What's Coming Next</h2>
-        <p className="roadmap-subtitle">We're just getting started. Here's what's on the horizon.</p>
-
-        <div className="roadmap-grid">
-          <div className="roadmap-card">
-            <span className="roadmap-icon" aria-hidden="true">📱</span>
-            <h3 className="roadmap-card-title">App Store Launch</h3>
-            <p className="roadmap-card-desc">Play and create on any device — iPhone, iPad, Android</p>
-          </div>
-          <div className="roadmap-card">
-            <span className="roadmap-icon" aria-hidden="true">🎨</span>
-            <h3 className="roadmap-card-title">Creator Mode 2.0</h3>
-            <p className="roadmap-card-desc">Build your own characters, worlds, and stories from scratch</p>
-          </div>
-          <div className="roadmap-card">
-            <span className="roadmap-icon" aria-hidden="true">🔄</span>
-            <h3 className="roadmap-card-title">Community Remix</h3>
-            <p className="roadmap-card-desc">Share your creations and remix what others have built</p>
-          </div>
+        <div className="footer-bottom">
+          &copy; 2026 VibeCode Kids. All rights reserved.
         </div>
-
-        <button className="roadmap-cta" onClick={onSignupClick}>
-          Sign Up for Early Access
-        </button>
-      </div>
-
-      <div className="landing-footer">
-        <a href="/gallery" className="footer-link">
-          <span>🕹️</span> Browse the Arcade
-        </a>
-        <a href="/esa" className="footer-link">
-          <span>🎓</span> ESA Families
-        </a>
-      </div>
+      </footer>
     </div>
   )
 }
