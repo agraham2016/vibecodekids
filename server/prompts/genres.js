@@ -272,9 +272,10 @@ MOBILE / RESPONSIVE RULES (MANDATORY for every game):
 - ALWAYS include scale config: scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH }
 - ALWAYS add <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"> in <head>
 - ALWAYS add body { touch-action: none; } to prevent browser swipe/pinch interference
-- For ANY game that uses keyboard input: MUST add on-screen virtual touch buttons visible only on touch devices
-- Detect touch with: if ('ontouchstart' in window) { /* create virtual buttons */ }
-- Virtual buttons: semi-transparent rectangles with setScrollFactor(0) and high setDepth() so they overlay the game
-- In update(), always check BOTH keyboard AND touch flags: if (cursors.left.isDown || touchLeft) ...
-- Minimum touch button size: 80x80 pixels, placed in bottom corners of the screen
+- ALWAYS load nipplejs CDN: <script src="https://cdn.jsdelivr.net/npm/nipplejs@0.10.2/dist/nipplejs.min.js"></script>
+- For ANY game that uses keyboard input: MUST add a nipplejs virtual joystick for touch devices (see MOBILE / TOUCH SUPPORT section in game knowledge for full pattern)
+- The joystick goes in bottom-left, action/jump button goes in bottom-right
+- The joystick gives analog input (joyX/joyY from -1 to 1) — use a deadzone of 0.3 before triggering movement
+- In update(), always check BOTH keyboard AND joystick: if (cursors.left.isDown || (joyActive && joyX < -0.3)) ...
+- Hide joystick controls on desktop (non-touch devices)
 `;

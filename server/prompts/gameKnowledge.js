@@ -175,36 +175,77 @@ PHASER.JS GAME DESIGN PATTERNS AND TECHNIQUES:
        body { touch-action: none; }
        This prevents browser swipe/pinch gestures from interfering with gameplay.
 
-    D) VIRTUAL TOUCH BUTTONS — for any game using keyboard controls, add on-screen buttons:
-       // Only show on touch devices:
+    D) VIRTUAL JOYSTICK (nipplejs) — for any game using keyboard controls, add a thumb joystick on mobile:
+       
+       STEP 1: Load nipplejs CDN in <head>:
+       <script src="https://cdn.jsdelivr.net/npm/nipplejs@0.10.2/dist/nipplejs.min.js"></script>
+
+       STEP 2: Create a joystick zone div AFTER the Phaser canvas:
+       <div id="joystick-zone" style="position:fixed; bottom:20px; left:20px; width:150px; height:150px; z-index:1000;"></div>
+
+       STEP 3: For platformers/games that need a jump button, also add an action button:
+       <button id="action-btn" style="position:fixed; bottom:40px; right:30px; width:70px; height:70px; border-radius:50%; background:rgba(255,255,255,0.2); border:2px solid rgba(255,255,255,0.4); color:white; font-size:24px; z-index:1000; touch-action:none;">▲</button>
+
+       STEP 4: Initialize joystick and wire to game (put in a <script> AFTER the Phaser game creation):
+       // Track joystick direction
+       var joyX = 0, joyY = 0, joyActive = false;
+
        if ('ontouchstart' in window) {
-         const btnLeft = this.add.rectangle(70, height - 60, 80, 80, 0xffffff, 0.25)
-           .setScrollFactor(0).setDepth(1000).setInteractive();
-         const btnRight = this.add.rectangle(170, height - 60, 80, 80, 0xffffff, 0.25)
-           .setScrollFactor(0).setDepth(1000).setInteractive();
-         const btnJump = this.add.rectangle(width - 70, height - 60, 80, 80, 0xffffff, 0.25)
-           .setScrollFactor(0).setDepth(1000).setInteractive();
+         var joystick = nipplejs.create({
+           zone: document.getElementById('joystick-zone'),
+           mode: 'static',
+           position: { left: '75px', bottom: '75px' },
+           color: 'rgba(255, 255, 255, 0.5)',
+           size: 120
+         });
 
-         // Add arrow/label text on each button
-         this.add.text(70, height - 60, '◀', { fontSize: '28px' }).setOrigin(0.5).setScrollFactor(0).setDepth(1001);
-         this.add.text(170, height - 60, '▶', { fontSize: '28px' }).setOrigin(0.5).setScrollFactor(0).setDepth(1001);
-         this.add.text(width - 70, height - 60, '▲', { fontSize: '28px' }).setOrigin(0.5).setScrollFactor(0).setDepth(1001);
+         joystick.on('move', function(evt, data) {
+           joyActive = true;
+           // data.vector.x ranges -1 to 1 (left to right)
+           // data.vector.y ranges -1 to 1 (down to up — note: y is inverted)
+           joyX = data.vector.x;
+           joyY = data.vector.y;
+         });
+         joystick.on('end', function() {
+           joyActive = false;
+           joyX = 0;
+           joyY = 0;
+         });
 
-         // Wire button events to the same variables keyboard uses:
-         btnLeft.on('pointerdown', () => { touchLeft = true; });
-         btnLeft.on('pointerup', () => { touchLeft = false; });
-         btnLeft.on('pointerout', () => { touchLeft = false; });
-         btnRight.on('pointerdown', () => { touchRight = true; });
-         btnRight.on('pointerup', () => { touchRight = false; });
-         btnRight.on('pointerout', () => { touchRight = false; });
-         btnJump.on('pointerdown', () => { touchJump = true; });
-         btnJump.on('pointerup', () => { touchJump = false; });
-         btnJump.on('pointerout', () => { touchJump = false; });
+         // Action button for jump/shoot
+         var actionBtn = document.getElementById('action-btn');
+         if (actionBtn) {
+           actionBtn.addEventListener('touchstart', function(e) { e.preventDefault(); touchJump = true; });
+           actionBtn.addEventListener('touchend', function(e) { e.preventDefault(); touchJump = false; });
+         }
+       } else {
+         // Hide mobile controls on desktop
+         var jz = document.getElementById('joystick-zone');
+         var ab = document.getElementById('action-btn');
+         if (jz) jz.style.display = 'none';
+         if (ab) ab.style.display = 'none';
        }
 
-       // In update(), check BOTH keyboard and touch:
-       if (cursors.left.isDown || touchLeft) player.setVelocityX(-200);
-       if (cursors.up.isDown || touchJump) player.setVelocityY(-400);
+       STEP 5: In update(), check BOTH keyboard and joystick:
+       // Horizontal movement
+       if (cursors.left.isDown || (joyActive && joyX < -0.3)) {
+         player.setVelocityX(-200);
+       } else if (cursors.right.isDown || (joyActive && joyX > 0.3)) {
+         player.setVelocityX(200);
+       } else if (!joyActive) {
+         player.setVelocityX(0);
+       }
+       // Jump (joystick up OR action button OR keyboard)
+       if ((cursors.up.isDown || touchJump || (joyActive && joyY > 0.5)) && player.body.touching.down) {
+         player.setVelocityY(-400);
+       }
+
+       JOYSTICK NOTES:
+       - The joystick gives ANALOG input (0 to 1) — you can multiply by max speed for proportional movement
+       - For top-down games (RPG, racing), use both joyX and joyY for 8-directional movement
+       - For platformers, mainly use joyX for left/right and joyY > 0.5 or the action button for jump
+       - The joystick is semi-transparent and feels like a real mobile game control
+       - ALWAYS hide joystick and action button on desktop (non-touch devices)
 
     E) POINTER EVENTS (games controlled by tap/click):
        - Phaser handles touch automatically for pointer events (pointerdown, pointerup, pointermove)
@@ -212,7 +253,7 @@ PHASER.JS GAME DESIGN PATTERNS AND TECHNIQUES:
        - For drag: use this.input.on('pointermove', callback) — works on touch too
        - No extra code needed for clicker, puzzle, bubble-shooter, etc.
 
-    F) BUTTON SIZING — touch buttons must be at least 44x44 pixels for fingers
+    F) BUTTON SIZING — touch targets must be at least 44x44 pixels for fingers
 
 FALLBACK: RAW CANVAS / WEB AUDIO (only for non-game projects):
 - Canvas API: ctx.fillRect, ctx.drawImage, ctx.arc for 2D drawing
