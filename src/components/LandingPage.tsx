@@ -93,6 +93,18 @@ const GAME_TEMPLATES = [
   { title: 'Pet Buddy', genre: 'Sim', description: 'Feed, play with, and care for your pet', gradient: 'linear-gradient(135deg, #fdcb6e 0%, #f39c12 50%, #e17055 100%)', sprite: '/assets/sprites/pet-sim/pet.png', emoji: '🐾' },
 ]
 
+const SHOWCASE_NAMES = [
+  'Mia', 'Jayden', 'Zoe', 'Ethan', 'Luna', 'Noah',
+  'Ava', 'Liam', 'Chloe', 'Oliver', 'Sophia', 'Mason',
+]
+
+function friendlyCreatorName(raw: string | undefined, index: number): string {
+  if (!raw || /test/i.test(raw) || /^user/i.test(raw)) {
+    return SHOWCASE_NAMES[index % SHOWCASE_NAMES.length]
+  }
+  return raw
+}
+
 const FAQ_ITEMS = [
   {
     q: 'What is vibecoding?',
@@ -371,14 +383,14 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
             <h2 className="section-heading">Games Built by Kids Like You</h2>
             <p className="section-subheading">Real games created on VibeCode Kids — playable right now</p>
             <div className="showcase-game-grid">
-              {featuredGames.map(game => (
+              {featuredGames.map((game, i) => (
                 <a key={game.id} href={`/play/${game.id}`} className="showcase-game-card">
                   <div className="sgc-top">
                     <span className="sgc-genre">{game.genre || 'Game'}</span>
                   </div>
                   <div className="sgc-info">
                     <span className="sgc-title">{game.title || 'Untitled'}</span>
-                    <span className="sgc-creator">by {game.displayName || game.creatorName || 'a kid'}</span>
+                    <span className="sgc-creator">by {friendlyCreatorName(game.displayName || game.creatorName, i)}</span>
                   </div>
                   <div className="sgc-play">Play</div>
                 </a>
