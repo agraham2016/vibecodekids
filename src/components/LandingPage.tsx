@@ -278,10 +278,9 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
       <div className="landing-content">
         <div className="landing-hero">
           <div className="hero-badge">For Kids Ages 7-18</div>
-          <h1 className="hero-title">
-            <span className="title-icon">🚀</span>
-            <span className="title-text">Vibe Code Kidz</span>
-          </h1>
+          <div className="hero-logo">
+            <img src="/images/logo.png" alt="VibeCode Kids" className="hero-logo-img" />
+          </div>
           <p className="hero-subtitle">
             Vibecode awesome games just by describing them!
             <br />

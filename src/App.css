@@ -21,14 +21,16 @@
   color: white;
 }
 
-.loading-icon {
-  font-size: 4rem;
-  animation: loadingBounce 1s ease-in-out infinite;
+.loading-logo {
+  width: 160px;
+  height: auto;
+  filter: drop-shadow(0 0 20px rgba(167, 139, 250, 0.4));
+  animation: loadingPulse 2s ease-in-out infinite;
 }
 
-@keyframes loadingBounce {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-15px); }
+@keyframes loadingPulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.05); opacity: 0.85; }
 }
 
 .loading-content p {

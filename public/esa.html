@@ -45,12 +45,15 @@
       margin-bottom: 48px;
     }
     .nav-logo {
-      font-size: 1.4rem;
-      font-weight: 800;
-      color: #fff;
+      display: flex;
+      align-items: center;
       text-decoration: none;
     }
-    .nav-logo span { color: #a78bfa; }
+    .nav-logo img {
+      height: 44px;
+      width: auto;
+      filter: drop-shadow(0 0 8px rgba(167, 139, 250, 0.3));
+    }
     .nav-links { display: flex; gap: 16px; }
     .nav-links a {
       color: rgba(255,255,255,0.7);
@@ -375,7 +378,7 @@
   <div class="container">
 
     <nav class="nav-bar">
-      <a href="/" class="nav-logo">Vibe<span>Code</span>Kidz</a>
+      <a href="/" class="nav-logo"><img src="/images/logo.png" alt="VibeCode Kids"></a>
       <div class="nav-links">
         <a href="/">Home</a>
         <a href="/gallery">Arcade</a>
