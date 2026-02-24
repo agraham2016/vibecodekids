@@ -177,43 +177,35 @@
     
     .logo-section {
       display: flex;
-      flex-direction: column;
-      gap: 4px;
+      flex-direction: row;
+      align-items: center;
+      gap: 20px;
     }
     
     .logo {
       display: flex;
       align-items: center;
       text-decoration: none;
+      flex-shrink: 0;
     }
     
     .logo img {
-      height: 52px;
+      height: 80px;
       width: auto;
-      filter: drop-shadow(0 0 12px rgba(167, 139, 250, 0.4));
+      filter: drop-shadow(0 0 16px rgba(167, 139, 250, 0.5));
     }
     
     .arcade-title {
-      font-family: 'Press Start 2P', cursive;
-      font-size: clamp(1.5rem, 4vw, 2.5rem);
-      background: linear-gradient(180deg, #fff 0%, var(--neon-cyan) 50%, var(--neon-pink) 100%);
+      font-family: 'Nunito', sans-serif;
+      font-size: clamp(1.8rem, 4vw, 3rem);
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      background: linear-gradient(180deg, #c084fc 0%, #a78bfa 40%, #7c3aed 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
-      animation: titleGlow 2s ease-in-out infinite alternate;
-    }
-    
-    @keyframes titleGlow {
-      0% { filter: drop-shadow(0 0 10px var(--neon-cyan)); }
-      100% { filter: drop-shadow(0 0 20px var(--neon-pink)); }
-    }
-    
-    .subtitle {
-      font-family: 'Orbitron', sans-serif;
-      font-size: 0.85rem;
-      color: var(--neon-yellow);
-      text-transform: uppercase;
-      letter-spacing: 3px;
+      filter: drop-shadow(0 0 12px rgba(139, 92, 246, 0.5));
     }
     
     /* Glass Button */
@@ -690,8 +682,16 @@
         text-align: center;
       }
       
+      .logo-section {
+        gap: 12px;
+      }
+      
+      .logo img {
+        height: 60px;
+      }
+
       .arcade-title {
-        font-size: 1.2rem;
+        font-size: 1.4rem;
       }
       
       .stats-bar {
@@ -737,8 +737,7 @@
         <a href="/" class="logo">
           <img src="/images/logo.png" alt="VibeCode Kids">
         </a>
-        <h1 class="arcade-title">THE ARCADE</h1>
-        <p class="subtitle">★ Player Creations ★</p>
+        <h1 class="arcade-title">The Arcade</h1>
       </div>
       <div class="header-buttons">
         <a href="/" class="glass-btn primary">🚀 Open Studio</a>
