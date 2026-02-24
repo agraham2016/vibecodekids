@@ -146,10 +146,10 @@ export const CLASSWALLET_ENABLED = !!CLASSWALLET_API_KEY;
 export const CLASSWALLET_BASE_URL = process.env.CLASSWALLET_BASE_URL || 'https://app.classwallet.com';
 
 export const ESA_PRICING = {
-  creator_quarterly: { tier: 'creator', amount: 3900, label: '$39 / quarter', months: 3 },
-  creator_annual:    { tier: 'creator', amount: 15600, label: '$156 / year',    months: 12 },
-  pro_quarterly:     { tier: 'pro',     amount: 6300, label: '$63 / quarter', months: 3 },
-  pro_annual:        { tier: 'pro',     amount: 25200, label: '$252 / year',  months: 12 },
+  creator_monthly:   { tier: 'creator', amount: 1300, label: '$13 / month',   months: 1 },
+  creator_annual:    { tier: 'creator', amount: 13000, label: '$130 / year',  months: 12 },
+  pro_monthly:       { tier: 'pro',     amount: 2100, label: '$21 / month',   months: 1 },
+  pro_annual:        { tier: 'pro',     amount: 21000, label: '$210 / year',  months: 12 },
 };
 
 // ========== RATE LIMITS ==========

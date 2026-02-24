@@ -427,11 +427,11 @@
     <!-- Pricing -->
     <div class="card" id="pricing">
       <h2 class="section-title">ESA Pricing</h2>
-      <p class="section-subtitle">Aligned with ESA quarterly disbursement schedule</p>
+      <p class="section-subtitle">Choose monthly flexibility or save with an annual plan</p>
 
       <div class="pricing-toggle">
-        <button class="toggle-btn active" onclick="setPeriod('quarterly')">Quarterly</button>
-        <button class="toggle-btn" onclick="setPeriod('annual')">Annual (Save 3 months free!)</button>
+        <button class="toggle-btn active" onclick="setPeriod('monthly')">Monthly</button>
+        <button class="toggle-btn" onclick="setPeriod('annual')">Annual (Save 2 months free!)</button>
       </div>
 
       <div class="pricing-grid" id="pricingGrid">
@@ -452,7 +452,7 @@
         <div class="step">
           <div class="step-number">2</div>
           <h4>Choose a Plan</h4>
-          <p>Select Creator or Pro and pick quarterly or annual billing</p>
+          <p>Select Creator or Pro and pick monthly or annual billing</p>
         </div>
         <div class="step">
           <div class="step-number">3</div>
@@ -507,7 +507,7 @@
       <div class="faq-item">
         <div class="faq-q" onclick="toggleFaq(this)">How much does it cost, and which plan should I pick?</div>
         <div class="faq-a">
-          We offer two plans: <strong>Creator</strong> ($21/quarter or $84/year) for kids getting started with game coding, and <strong>Pro</strong> ($42/quarter or $168/year) for advanced creators who want more games, AI features, and premium assets. Both are well within typical ESA allocations. Annual plans save the equivalent of 3 months free.
+          We offer two plans: <strong>Creator</strong> ($13/month or $130/year) for kids getting started with game coding, and <strong>Pro</strong> ($21/month or $210/year) for serious creators who want more games and prompts. Both are well within typical ESA allocations. Annual plans save the equivalent of 2 months free.
         </div>
       </div>
 
@@ -575,35 +575,34 @@
 
   <script>
     const PRICING = {
-      quarterly: [
+      monthly: [
         {
-          key: 'creator_quarterly',
+          key: 'creator_monthly',
           name: 'Creator',
-          price: '$21',
-          period: 'per quarter',
-          monthly: '$7/mo equivalent',
+          price: '$13',
+          period: 'per month',
+          monthly: 'Billed monthly',
           features: [
-            '25 games per month',
-            '150 AI prompts per day',
+            '15 games per month',
+            '50 AI prompts per day',
             'Unlimited plays',
-            '5 AI game covers per month',
-            'Premium asset library'
+            'Premium asset library',
+            'Priority support'
           ]
         },
         {
-          key: 'pro_quarterly',
+          key: 'pro_monthly',
           name: 'Pro',
-          price: '$42',
-          period: 'per quarter',
-          monthly: '$14/mo equivalent',
+          price: '$21',
+          period: 'per month',
+          monthly: 'Billed monthly',
           featured: true,
           features: [
-            '50 games per month',
-            '300 AI prompts per day',
+            '40 games per month',
+            '80 AI prompts per day',
             'Unlimited plays',
-            '20 AI game covers per month',
-            '10 AI sprites per month',
-            'Premium asset library'
+            'Premium asset library',
+            'Priority support'
           ]
         }
       ],
@@ -611,37 +610,36 @@
         {
           key: 'creator_annual',
           name: 'Creator',
-          price: '$84',
+          price: '$130',
           period: 'per year',
-          monthly: '$7/mo \u2014 save $21 vs quarterly',
+          monthly: '$10.83/mo \u2014 save $26 vs monthly',
           features: [
-            '25 games per month',
-            '150 AI prompts per day',
+            '15 games per month',
+            '50 AI prompts per day',
             'Unlimited plays',
-            '5 AI game covers per month',
-            'Premium asset library'
+            'Premium asset library',
+            'Priority support'
           ]
         },
         {
           key: 'pro_annual',
           name: 'Pro',
-          price: '$168',
+          price: '$210',
           period: 'per year',
-          monthly: '$14/mo \u2014 save $42 vs quarterly',
+          monthly: '$17.50/mo \u2014 save $42 vs monthly',
           featured: true,
           features: [
-            '50 games per month',
-            '300 AI prompts per day',
+            '40 games per month',
+            '80 AI prompts per day',
             'Unlimited plays',
-            '20 AI game covers per month',
-            '10 AI sprites per month',
-            'Premium asset library'
+            'Premium asset library',
+            'Priority support'
           ]
         }
       ]
     };
 
-    let activePeriod = 'quarterly';
+    let activePeriod = 'monthly';
 
     function setPeriod(period) {
       activePeriod = period;
