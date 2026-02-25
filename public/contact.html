@@ -222,6 +222,22 @@
     .footer a { color: #666; margin: 0 12px; }
     .footer a:hover { color: #00d2ff; }
 
+    .discord-safety {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      background: rgba(76, 175, 80, 0.1);
+      border: 1px solid rgba(76, 175, 80, 0.25);
+      border-radius: 10px;
+      padding: 14px 18px;
+      margin: 8px 0 20px;
+      text-align: left;
+      font-size: 0.85em;
+      color: #a8d5a2;
+      line-height: 1.6;
+    }
+    .discord-safety .shield { font-size: 1.3em; flex-shrink: 0; margin-top: 1px; }
+
     @media (max-width: 600px) {
       .form-row { grid-template-columns: 1fr; }
       .discord-features { grid-template-columns: 1fr 1fr; }
@@ -250,6 +266,11 @@
         <div class="discord-feature"><span>🐛</span> Bug Reports</div>
         <div class="discord-feature"><span>🎮</span> Share Games</div>
         <div class="discord-feature"><span>🤝</span> Community</div>
+      </div>
+
+      <div class="discord-safety">
+        <span class="shield">&#x1F6E1;&#xFE0F;</span>
+        <span>Our Discord community is actively monitored for cyberbullying, inappropriate behavior, and content violations. We follow all COPPA guidelines &mdash; users under 13 require parental approval to join. All members are expected to follow our community code of conduct.</span>
       </div>
 
       <a href="https://discord.gg/placeholder" class="discord-btn">
