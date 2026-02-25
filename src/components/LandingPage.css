@@ -1570,6 +1570,26 @@
 
   .hero-logo-img {
     animation: none;
+    filter: none;
+  }
+
+  .nav-logo-img {
+    filter: none;
+  }
+
+  .footer-logo {
+    filter: none;
+  }
+
+  .btn-signup,
+  .landing-page .btn-login {
+    box-shadow: none;
+  }
+
+  .btn-signup:hover,
+  .landing-page .btn-login:hover {
+    box-shadow: none;
+    transform: none;
   }
 
   .demo-bounce,
