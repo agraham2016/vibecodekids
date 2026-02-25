@@ -51,6 +51,11 @@ export async function findUserBySubscriptionId(subscriptionId) {
   return users.find(u => u.stripeSubscriptionId === subscriptionId) || null;
 }
 
+export async function deleteUser(userId) {
+  const filePath = path.join(USERS_DIR, `${userId}.json`);
+  await fs.unlink(filePath);
+}
+
 // ========== PROJECT OPERATIONS ==========
 
 export async function readProject(projectId) {

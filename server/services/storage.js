@@ -27,6 +27,7 @@ export const writeUser      = backend.writeUser;
 export const userExists     = backend.userExists;
 export const listUsers      = backend.listUsers;
 export const findUserBySubscriptionId = backend.findUserBySubscriptionId;
+export const deleteUser     = backend.deleteUser;
 export const readProject    = backend.readProject;
 export const writeProject   = backend.writeProject;
 export const deleteProject  = backend.deleteProject;

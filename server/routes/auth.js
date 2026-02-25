@@ -233,6 +233,21 @@ export default function createAuthRouter(sessions) {
       if (user.status === 'denied') {
         return res.status(403).json({ error: 'Your account has been denied. Please contact support.' });
       }
+      if (user.status === 'suspended') {
+        const until = user.suspendedUntil ? new Date(user.suspendedUntil) : null;
+        if (until && until < new Date()) {
+          user.status = 'approved';
+          user.suspendedAt = null;
+          user.suspendReason = null;
+          user.suspendedUntil = null;
+          await writeUser(userId, user);
+        } else {
+          const msg = until
+            ? `Your account is suspended until ${until.toLocaleDateString()}.`
+            : 'Your account has been suspended. Contact support.';
+          return res.status(403).json({ error: msg });
+        }
+      }
       if (user.status === 'deleted') {
         return res.status(403).json({ error: 'This account has been deleted.' });
       }

@@ -8,7 +8,7 @@
 import { Router } from 'express';
 import bcrypt from 'bcrypt';
 import { BCRYPT_ROUNDS } from '../config/index.js';
-import { readUser, writeUser, listUsers, listProjects, deleteProject } from '../services/storage.js';
+import { readUser, writeUser, listUsers, deleteUser, listProjects, deleteProject } from '../services/storage.js';
 import { getUsageStats } from '../services/ai.js';
 import { getResponseCacheStats, clearResponseCache } from '../services/responseCache.js';
 
@@ -21,9 +21,11 @@ router.get('/users', async (req, res) => {
     const safeUsers = users
       .map(({ passwordHash, parentEmail, ...rest }) => ({
         ...rest,
-        // Show redacted parent email for admin awareness (COPPA)
         hasParentEmail: !!parentEmail,
         parentEmailDomain: parentEmail ? parentEmail.split('@')[1] : null,
+        suspendedAt: rest.suspendedAt || null,
+        suspendReason: rest.suspendReason || null,
+        suspendedUntil: rest.suspendedUntil || null,
       }))
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     res.json(safeUsers);
@@ -135,10 +137,94 @@ router.delete('/projects/:id', async (req, res) => {
   }
 });
 
+// Delete user
+router.delete('/users/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!/^[a-zA-Z0-9_-]+$/.test(id)) return res.status(400).json({ error: 'Invalid user ID' });
+
+    const deleteProjects = req.query.deleteProjects === 'true';
+
+    if (deleteProjects) {
+      try {
+        const allProjects = await listProjects();
+        const userProjects = allProjects.filter(p => p.userId === id || p.creatorId === id);
+        for (const p of userProjects) {
+          await deleteProject(p.id);
+        }
+      } catch { /* ignore if no projects */ }
+    }
+
+    await deleteUser(id);
+    res.json({ success: true, message: 'User deleted' });
+  } catch (error) {
+    if (error.code === 'ENOENT') return res.status(404).json({ error: 'User not found' });
+    console.error('Delete user error:', error);
+    res.status(500).json({ error: 'Could not delete user' });
+  }
+});
+
+// Suspend user
+router.post('/users/:id/suspend', async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!/^[a-zA-Z0-9_-]+$/.test(id)) return res.status(400).json({ error: 'Invalid user ID' });
+
+    const { reason, duration } = req.body;
+    if (!reason || typeof reason !== 'string') return res.status(400).json({ error: 'Reason is required' });
+
+    const user = await readUser(id);
+    user.status = 'suspended';
+    user.suspendedAt = new Date().toISOString();
+    user.suspendReason = reason;
+
+    if (duration && duration !== 'indefinite') {
+      const until = new Date();
+      const hours = parseInt(duration, 10);
+      if (!isNaN(hours) && hours > 0) {
+        until.setHours(until.getHours() + hours);
+        user.suspendedUntil = until.toISOString();
+      } else {
+        user.suspendedUntil = null;
+      }
+    } else {
+      user.suspendedUntil = null;
+    }
+
+    await writeUser(id, user);
+    res.json({ success: true, message: 'User suspended' });
+  } catch (error) {
+    if (error.code === 'ENOENT') return res.status(404).json({ error: 'User not found' });
+    console.error('Suspend user error:', error);
+    res.status(500).json({ error: 'Could not suspend user' });
+  }
+});
+
+// Unsuspend user
+router.post('/users/:id/unsuspend', async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!/^[a-zA-Z0-9_-]+$/.test(id)) return res.status(400).json({ error: 'Invalid user ID' });
+
+    const user = await readUser(id);
+    user.status = 'approved';
+    user.suspendedAt = null;
+    user.suspendReason = null;
+    user.suspendedUntil = null;
+    await writeUser(id, user);
+
+    res.json({ success: true, message: 'User unsuspended' });
+  } catch (error) {
+    if (error.code === 'ENOENT') return res.status(404).json({ error: 'User not found' });
+    console.error('Unsuspend user error:', error);
+    res.status(500).json({ error: 'Could not unsuspend user' });
+  }
+});
+
 // Dashboard stats
 router.get('/stats', async (req, res) => {
   try {
-    let totalUsers = 0, pendingUsers = 0, approvedUsers = 0, deniedUsers = 0;
+    let totalUsers = 0, pendingUsers = 0, approvedUsers = 0, deniedUsers = 0, suspendedUsers = 0;
 
     try {
       const users = await listUsers();
@@ -147,6 +233,7 @@ router.get('/stats', async (req, res) => {
         if (user.status === 'pending') pendingUsers++;
         else if (user.status === 'approved') approvedUsers++;
         else if (user.status === 'denied') deniedUsers++;
+        else if (user.status === 'suspended') suspendedUsers++;
       }
     } catch { /* ignore */ }
 
@@ -156,7 +243,7 @@ router.get('/stats', async (req, res) => {
       totalProjects = projects.length;
     } catch { /* ignore */ }
 
-    res.json({ totalUsers, pendingUsers, approvedUsers, deniedUsers, totalProjects });
+    res.json({ totalUsers, pendingUsers, approvedUsers, deniedUsers, suspendedUsers, totalProjects });
   } catch (error) {
     console.error('Stats error:', error);
     res.status(500).json({ error: 'Could not load stats' });
