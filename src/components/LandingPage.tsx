@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import './LandingPage.css'
 
 interface LandingPageProps {
@@ -141,6 +141,38 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
   const [featuredGames, setFeaturedGames] = useState<FeaturedGame[]>([])
   const [openFaq, setOpenFaq] = useState<number | null>(null)
   const [navScrolled, setNavScrolled] = useState(false)
+  const [previewGameId, setPreviewGameId] = useState<string | null>(null)
+  const [previewLoaded, setPreviewLoaded] = useState(false)
+  const hoverTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const restartInterval = useRef<ReturnType<typeof setInterval> | null>(null)
+  const previewIframeRef = useRef<HTMLIFrameElement | null>(null)
+
+  const cleanupPreview = useCallback(() => {
+    if (restartInterval.current) { clearInterval(restartInterval.current); restartInterval.current = null }
+    if (hoverTimeout.current) { clearTimeout(hoverTimeout.current); hoverTimeout.current = null }
+    setPreviewGameId(null)
+    setPreviewLoaded(false)
+    previewIframeRef.current = null
+  }, [])
+
+  const handleCardMouseEnter = useCallback((gameId: string) => {
+    if ('ontouchstart' in window) return
+    if (hoverTimeout.current) clearTimeout(hoverTimeout.current)
+    hoverTimeout.current = setTimeout(() => {
+      if (restartInterval.current) clearInterval(restartInterval.current)
+      setPreviewLoaded(false)
+      setPreviewGameId(gameId)
+      restartInterval.current = setInterval(() => {
+        setPreviewLoaded(false)
+        setPreviewGameId(null)
+        setTimeout(() => setPreviewGameId(gameId), 100)
+      }, 6000)
+    }, 300)
+  }, [])
+
+  const handleCardMouseLeave = useCallback(() => {
+    cleanupPreview()
+  }, [cleanupPreview])
 
   const scenario = DEMO_SCENARIOS[demoIndex]
 
@@ -187,6 +219,10 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
     }, 5000)
     return () => clearTimeout(timer)
   }, [phase, demoIndex, startScenario])
+
+  useEffect(() => {
+    return () => cleanupPreview()
+  }, [cleanupPreview])
 
   // Fetch featured games
   useEffect(() => {
@@ -384,9 +420,30 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
             <p className="section-subheading">Real games created on VibeCode Kids — playable right now</p>
             <div className="showcase-game-grid">
               {featuredGames.map((game, i) => (
-                <a key={game.id} href={`/play/${game.id}`} className="showcase-game-card">
-                  <div className="sgc-top">
-                    <span className="sgc-genre">{game.genre || 'Game'}</span>
+                <a
+                  key={game.id}
+                  href={`/play/${game.id}`}
+                  className={`showcase-game-card${previewGameId === game.id && previewLoaded ? ' sgc-preview-active' : ''}`}
+                  onMouseEnter={() => handleCardMouseEnter(game.id)}
+                  onMouseLeave={handleCardMouseLeave}
+                >
+                  <div className="sgc-screen">
+                    {previewGameId === game.id && (
+                      <>
+                        {!previewLoaded && <div className="sgc-preview-loader">LOADING...</div>}
+                        <iframe
+                          ref={previewIframeRef}
+                          className={`sgc-preview-frame${previewLoaded ? ' visible' : ''}`}
+                          src={`/play/${game.id}?preview=1`}
+                          sandbox="allow-scripts allow-same-origin"
+                          loading="lazy"
+                          onLoad={() => setPreviewLoaded(true)}
+                        />
+                      </>
+                    )}
+                    <div className="sgc-screen-overlay">
+                      <span className="sgc-genre">{game.genre || 'Game'}</span>
+                    </div>
                   </div>
                   <div className="sgc-info">
                     <span className="sgc-title">{game.title || 'Untitled'}</span>
