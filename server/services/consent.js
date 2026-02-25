@@ -272,6 +272,67 @@ Questions? Contact us at ${SUPPORT_EMAIL}
   return { sent: !!RESEND_API_KEY, to: parentEmail, consentUrl, denyUrl };
 }
 
+// ========== PASSWORD RESET EMAIL ==========
+
+/**
+ * Send password reset email.
+ * Used for under-13 (to parent) and 13+ (to recovery email).
+ */
+export async function sendPasswordResetEmail(to, username, token) {
+  const resetUrl = `${BASE_URL}/forgot-password/reset?token=${token}`;
+  const subject = `${SITE_NAME}: Reset your password`;
+  const body = `
+Hi there!
+
+Someone requested a password reset for the account "${username}" on ${SITE_NAME}.
+
+To set a new password, click here:
+${resetUrl}
+
+This link expires in 1 hour.
+
+If you didn't request this, you can safely ignore this email. Your password will not be changed.
+
+Questions? Contact us at ${SUPPORT_EMAIL}
+
+- The ${SITE_NAME} Team
+`;
+
+  const RESEND_API_KEY = process.env.RESEND_API_KEY;
+
+  if (RESEND_API_KEY) {
+    try {
+      const resp = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          from: `${SITE_NAME} <${SUPPORT_EMAIL}>`,
+          to: [to],
+          subject,
+          text: body,
+        }),
+      });
+      if (!resp.ok) {
+        const errBody = await resp.text();
+        console.error('📧 Password reset email failed:', resp.status, errBody);
+      } else {
+        console.log(`📧 Password reset email sent to ${to}`);
+      }
+    } catch (err) {
+      console.error('📧 Password reset email error:', err.message);
+    }
+  } else {
+    console.log('═══════════════════════════════════════════');
+    console.log(`📧 PASSWORD RESET EMAIL (RESEND_API_KEY not set — logging only)`);
+    console.log(`   To: ${to}`);
+    console.log(`   Subject: ${subject}`);
+    console.log(`   Reset URL: ${resetUrl}`);
+    console.log('═══════════════════════════════════════════');
+  }
+
+  return { sent: !!RESEND_API_KEY, to, resetUrl };
+}
+
 // ========== USER DATA EXPORT (COPPA Right to Access) ==========
 
 /**

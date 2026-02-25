@@ -6,6 +6,8 @@
  */
 
 import { Router } from 'express';
+import bcrypt from 'bcrypt';
+import { BCRYPT_ROUNDS } from '../config/index.js';
 import { readUser, writeUser, listUsers, listProjects, deleteProject } from '../services/storage.js';
 import { getUsageStats } from '../services/ai.js';
 import { getResponseCacheStats, clearResponseCache } from '../services/responseCache.js';
@@ -67,6 +69,30 @@ router.post('/users/:id/deny', async (req, res) => {
     if (error.code === 'ENOENT') return res.status(404).json({ error: 'User not found' });
     console.error('Deny user error:', error);
     res.status(500).json({ error: 'Could not deny user' });
+  }
+});
+
+// Reset user password (for support when 13+ user has no recovery email)
+router.post('/users/:id/reset-password', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { newPassword } = req.body;
+
+    if (!/^[a-zA-Z0-9_-]+$/.test(id)) return res.status(400).json({ error: 'Invalid user ID' });
+    if (!newPassword || typeof newPassword !== 'string' || newPassword.length < 4) {
+      return res.status(400).json({ error: 'Password must be at least 4 characters' });
+    }
+
+    const user = await readUser(id);
+    user.passwordHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
+    await writeUser(id, user);
+
+    console.log(`🔐 Admin password reset for user: ${user.username}`);
+    res.json({ success: true, message: 'Password reset successfully' });
+  } catch (error) {
+    if (error.code === 'ENOENT') return res.status(404).json({ error: 'User not found' });
+    console.error('Reset password error:', error);
+    res.status(500).json({ error: 'Could not reset password' });
   }
 });
 

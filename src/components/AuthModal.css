@@ -189,6 +189,42 @@
   cursor: not-allowed;
 }
 
+/* Forgot password link */
+.auth-forgot-link {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 8px 0;
+  margin-top: 4px;
+  text-decoration: underline;
+  transition: color 0.2s;
+}
+
+.auth-forgot-link:hover {
+  color: #a78bfa;
+}
+
+/* Forgot password back button */
+.auth-forgot-back {
+  width: 100%;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: var(--radius);
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.95rem;
+  cursor: pointer;
+  margin-top: 12px;
+  transition: all 0.2s ease;
+}
+
+.auth-forgot-back:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
 /* Note */
 .auth-note {
   display: flex;

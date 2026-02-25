@@ -1,4 +1,7 @@
 // Multiplayer Room Management System
+// NOTE: Rooms are stored in-memory. On Railway (or any multi-instance deployment),
+// ensure replicas=1 so all WebSocket connections hit the same server. Otherwise
+// "Room not found" will occur when users connect to different instances.
 import { WebSocketServer } from 'ws';
 import { randomBytes } from 'crypto';
 
@@ -196,10 +199,23 @@ function handleMessage(ws, playerId, message, setRoom) {
     }
 
     case 'join_room': {
-      const { roomCode, playerName } = message;
+      const { playerName } = message;
+      // Normalize room code: trim, uppercase, strip non-alphanumeric (handles copy-paste quirks)
+      const rawCode = (message.roomCode || '').toString().trim();
+      const roomCode = rawCode.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 4);
       
-      const room = rooms.get(roomCode.toUpperCase());
+      if (!roomCode || roomCode.length !== 4) {
+        ws.send(JSON.stringify({
+          type: 'error',
+          message: 'Please enter a valid 4-character room code.'
+        }));
+        return;
+      }
+      
+      const room = rooms.get(roomCode);
       if (!room) {
+        const activeCodes = Array.from(rooms.keys()).join(', ') || '(none)';
+        console.log(`🎮 Join failed: room "${roomCode}" not found. Active rooms on this instance: ${activeCodes}`);
         ws.send(JSON.stringify({
           type: 'error',
           message: 'Room not found! Check the code and try again.'

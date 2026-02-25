@@ -28,6 +28,7 @@ CREATE TABLE IF NOT EXISTS users (
     -- COPPA fields
     age_bracket             TEXT NOT NULL DEFAULT 'unknown',  -- 'under13', '13to17', '18plus', 'unknown'
     parent_email            TEXT,
+    recovery_email          TEXT,
     parental_consent_status TEXT NOT NULL DEFAULT 'not_required', -- 'not_required', 'pending', 'granted', 'denied', 'revoked'
     parental_consent_at     TIMESTAMPTZ,
     data_deletion_requested BOOLEAN NOT NULL DEFAULT false,
@@ -116,6 +117,22 @@ CREATE TABLE IF NOT EXISTS parental_consents (
 
 CREATE INDEX IF NOT EXISTS idx_consent_token ON parental_consents(token);
 CREATE INDEX IF NOT EXISTS idx_consent_user ON parental_consents(user_id);
+
+-- ========== PASSWORD RESET TOKENS ==========
+
+CREATE TABLE IF NOT EXISTS password_reset_tokens (
+    id              SERIAL PRIMARY KEY,
+    token           TEXT UNIQUE NOT NULL,
+    user_id         TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    email           TEXT NOT NULL,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    expires_at      TIMESTAMPTZ NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_password_reset_token ON password_reset_tokens(token);
+
+-- Add recovery_email for 13+ users (optional, for password recovery only)
+ALTER TABLE users ADD COLUMN IF NOT EXISTS recovery_email TEXT;
 
 -- ========== ESA / CLASSWALLET ==========
 

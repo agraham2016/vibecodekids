@@ -46,7 +46,7 @@ export default function createBillingRouter(sessions) {
   // Create Stripe checkout for new signup
   router.post('/checkout', async (req, res) => {
     try {
-      const { tier, username, displayName, password, age, parentEmail, privacyAccepted } = req.body;
+      const { tier, username, displayName, password, age, parentEmail, recoveryEmail, privacyAccepted } = req.body;
 
       if (!stripe) return res.status(500).json({ error: 'Payment system not configured' });
       if (!['creator', 'pro'].includes(tier)) return res.status(400).json({ error: 'Invalid tier' });
@@ -87,6 +87,12 @@ export default function createBillingRouter(sessions) {
           return res.status(400).json({ error: 'Please enter a valid parent email address' });
         }
       }
+      if (!needsConsent && recoveryEmail) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(recoveryEmail)) {
+          return res.status(400).json({ error: 'Please enter a valid recovery email address' });
+        }
+      }
 
       const userId = `user_${username.toLowerCase()}`;
       if (await userExists(userId)) {
@@ -108,6 +114,7 @@ export default function createBillingRouter(sessions) {
           tier,
           age: String(age),
           parentEmail: needsConsent ? parentEmail.toLowerCase().trim() : '',
+          recoveryEmail: !needsConsent && recoveryEmail ? recoveryEmail.toLowerCase().trim() : '',
           privacyAccepted: 'true',
           ageBracket
         }
@@ -130,7 +137,7 @@ export default function createBillingRouter(sessions) {
       const session = await stripe.checkout.sessions.retrieve(session_id);
       if (session.payment_status !== 'paid') return res.redirect('/?error=payment_incomplete');
 
-      const { username, displayName, password, tier, age, parentEmail, ageBracket } = session.metadata;
+      const { username, displayName, password, tier, age, parentEmail, recoveryEmail, ageBracket } = session.metadata;
       const userId = `user_${username}`;
 
       if (await userExists(userId)) {
@@ -170,6 +177,7 @@ export default function createBillingRouter(sessions) {
         lastLoginAt: null,
         ageBracket: ageBracket || 'unknown',
         parentEmail: parentEmail || null,
+        recoveryEmail: recoveryEmail || null,
         parentalConsentStatus: needsConsent ? 'pending' : 'not_required',
         parentalConsentAt: null,
         privacyAcceptedAt: now.toISOString(),

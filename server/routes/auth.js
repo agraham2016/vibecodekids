@@ -12,9 +12,11 @@ import { readUser, writeUser, userExists, listProjects } from '../services/stora
 import { generateToken } from '../services/sessions.js';
 import { filterContent } from '../middleware/contentFilter.js';
 import { checkAndResetCounters, calculateUsageRemaining } from '../middleware/rateLimit.js';
-import { getAgeBracket, requiresParentalConsent, createConsentRequest, sendConsentEmail } from '../services/consent.js';
+import { getAgeBracket, requiresParentalConsent, createConsentRequest, sendConsentEmail, sendPasswordResetEmail } from '../services/consent.js';
+import { createResetToken, getResetByToken, consumeToken } from '../services/passwordReset.js';
 
 const loginAttempts = new Map();
+const forgotPasswordAttempts = new Map();
 const LOGIN_WINDOW_MS = 60 * 1000;
 const LOGIN_MAX_ATTEMPTS = 5;
 
@@ -30,10 +32,25 @@ function checkLoginRateLimit(ip) {
   return true;
 }
 
+function checkForgotPasswordRateLimit(ip) {
+  const now = Date.now();
+  const entry = forgotPasswordAttempts.get(ip);
+  if (!entry || now - entry.windowStart > LOGIN_WINDOW_MS) {
+    forgotPasswordAttempts.set(ip, { windowStart: now, count: 1 });
+    return true;
+  }
+  entry.count++;
+  if (entry.count > LOGIN_MAX_ATTEMPTS) return false;
+  return true;
+}
+
 setInterval(() => {
   const now = Date.now();
   for (const [ip, entry] of loginAttempts) {
     if (now - entry.windowStart > LOGIN_WINDOW_MS * 2) loginAttempts.delete(ip);
+  }
+  for (const [ip, entry] of forgotPasswordAttempts) {
+    if (now - entry.windowStart > LOGIN_WINDOW_MS * 2) forgotPasswordAttempts.delete(ip);
   }
 }, 60 * 1000);
 
@@ -43,7 +60,7 @@ export default function createAuthRouter(sessions) {
   // Register
   router.post('/register', async (req, res) => {
     try {
-      const { username, password, displayName, age, parentEmail, privacyAccepted } = req.body;
+      const { username, password, displayName, age, parentEmail, recoveryEmail, privacyAccepted } = req.body;
 
       if (!username || !password || !displayName) {
         return res.status(400).json({ error: 'Username, password, and display name are required' });
@@ -87,6 +104,14 @@ export default function createAuthRouter(sessions) {
         }
       }
 
+      // Validate recovery email for 13+ (optional)
+      if (!needsConsent && recoveryEmail) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(recoveryEmail)) {
+          return res.status(400).json({ error: 'Please enter a valid recovery email address' });
+        }
+      }
+
       const usernameCheck = filterContent(username);
       const displayNameCheck = filterContent(displayName);
       if (usernameCheck.blocked || displayNameCheck.blocked) {
@@ -123,6 +148,7 @@ export default function createAuthRouter(sessions) {
         // COPPA fields
         ageBracket,
         parentEmail: needsConsent ? parentEmail.toLowerCase().trim() : null,
+        recoveryEmail: !needsConsent && recoveryEmail ? recoveryEmail.toLowerCase().trim() : null,
         parentalConsentStatus: needsConsent ? 'pending' : 'not_required',
         parentalConsentAt: null,
         privacyAcceptedAt: now.toISOString(),
@@ -283,6 +309,81 @@ export default function createAuthRouter(sessions) {
     const token = req.headers.authorization?.replace('Bearer ', '');
     if (token) await sessions.delete(token);
     res.json({ success: true });
+  });
+
+  // Forgot password (COPPA-compliant: under-13 → parent email, 13+ → recovery email)
+  const genericForgotSuccess = { success: true, message: "If an account exists and has a recovery email on file, we've sent reset instructions." };
+  router.post('/forgot-password', async (req, res) => {
+    try {
+      const clientIp = req.ip || req.connection?.remoteAddress || 'unknown';
+      if (!checkForgotPasswordRateLimit(clientIp)) {
+        return res.status(429).json({ error: 'Too many attempts. Please wait a minute and try again.' });
+      }
+
+      const { username } = req.body;
+      if (!username || typeof username !== 'string' || !username.trim()) {
+        return res.json(genericForgotSuccess);
+      }
+
+      const userId = `user_${username.toLowerCase().trim()}`;
+      let user;
+      try {
+        user = await readUser(userId);
+      } catch (err) {
+        if (err.code === 'ENOENT') return res.json(genericForgotSuccess);
+        throw err;
+      }
+
+      if (user.status !== 'approved') return res.json(genericForgotSuccess);
+
+      let recipientEmail = null;
+      if (user.ageBracket === 'under13') {
+        recipientEmail = user.parentEmail || null;
+      } else {
+        recipientEmail = user.recoveryEmail || null;
+      }
+
+      if (!recipientEmail) return res.json(genericForgotSuccess);
+
+      const token = await createResetToken(userId, recipientEmail);
+      await sendPasswordResetEmail(recipientEmail, user.username, token);
+
+      return res.json(genericForgotSuccess);
+    } catch (error) {
+      console.error('Forgot password error:', error);
+      return res.json(genericForgotSuccess);
+    }
+  });
+
+  // Reset password (token from email link)
+  router.post('/reset-password', async (req, res) => {
+    try {
+      const { token, newPassword } = req.body;
+      if (!token || !newPassword) {
+        return res.status(400).json({ error: 'Token and new password are required' });
+      }
+      if (typeof newPassword !== 'string' || newPassword.length < 4) {
+        return res.status(400).json({ error: 'Password must be at least 4 characters' });
+      }
+
+      const record = await getResetByToken(token);
+      if (!record) {
+        return res.status(400).json({ error: 'This reset link is invalid or expired. Please request a new one.' });
+      }
+
+      const user = await readUser(record.userId);
+      user.passwordHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
+      await writeUser(record.userId, user);
+      await consumeToken(token);
+
+      return res.json({ success: true, message: 'Password updated. You can now log in.' });
+    } catch (error) {
+      if (error.code === 'ENOENT') {
+        return res.status(400).json({ error: 'This reset link is invalid or expired. Please request a new one.' });
+      }
+      console.error('Reset password error:', error);
+      return res.status(500).json({ error: 'Could not reset password. Please try again or contact support.' });
+    }
   });
 
   // Get user's projects

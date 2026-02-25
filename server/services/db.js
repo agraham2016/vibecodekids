@@ -82,6 +82,7 @@ function rowToUser(row) {
     // COPPA fields
     ageBracket: row.age_bracket || 'unknown',
     parentEmail: row.parent_email || null,
+    recoveryEmail: row.recovery_email || null,
     parentalConsentStatus: row.parental_consent_status || 'not_required',
     parentalConsentAt: row.parental_consent_at?.toISOString() || null,
     dataDeletionRequested: row.data_deletion_requested || false,
@@ -121,6 +122,7 @@ function userToRow(user) {
     // COPPA fields
     age_bracket: user.ageBracket || 'unknown',
     parent_email: user.parentEmail || null,
+    recovery_email: user.recoveryEmail || null,
     parental_consent_status: user.parentalConsentStatus || 'not_required',
     parental_consent_at: user.parentalConsentAt || null,
     data_deletion_requested: user.dataDeletionRequested || false,
@@ -184,7 +186,7 @@ export async function writeUser(userId, userData) {
       games_created_month, ai_covers_used_month, ai_sprites_used_month,
       monthly_reset_date, prompts_today, plays_today, daily_reset_date,
       rate_limited_until, has_seen_upgrade_prompt, project_count,
-      age_bracket, parent_email, parental_consent_status, parental_consent_at,
+      age_bracket, parent_email, recovery_email, parental_consent_status, parental_consent_at,
       data_deletion_requested, data_deletion_at, privacy_accepted_at,
       approved_at, denied_at, created_at, last_login_at,
       payment_method, classwallet_order_id, esa_billing_period
@@ -194,10 +196,10 @@ export async function writeUser(userId, userData) {
       $11, $12, $13,
       $14, $15, $16, $17,
       $18, $19, $20,
-      $21, $22, $23, $24,
-      $25, $26, $27,
-      $28, $29, $30, $31,
-      $32, $33, $34
+      $21, $22, $23, $24, $25,
+      $26, $27, $28,
+      $29, $30, $31, $32,
+      $33, $34, $35
     )
     ON CONFLICT (id) DO UPDATE SET
       username = EXCLUDED.username,
@@ -221,6 +223,7 @@ export async function writeUser(userId, userData) {
       project_count = EXCLUDED.project_count,
       age_bracket = EXCLUDED.age_bracket,
       parent_email = EXCLUDED.parent_email,
+      recovery_email = EXCLUDED.recovery_email,
       parental_consent_status = EXCLUDED.parental_consent_status,
       parental_consent_at = EXCLUDED.parental_consent_at,
       data_deletion_requested = EXCLUDED.data_deletion_requested,
@@ -238,7 +241,7 @@ export async function writeUser(userId, userData) {
     r.games_created_month, r.ai_covers_used_month, r.ai_sprites_used_month,
     r.monthly_reset_date, r.prompts_today, r.plays_today, r.daily_reset_date,
     r.rate_limited_until, r.has_seen_upgrade_prompt, r.project_count,
-    r.age_bracket, r.parent_email, r.parental_consent_status, r.parental_consent_at,
+    r.age_bracket, r.parent_email, r.recovery_email, r.parental_consent_status, r.parental_consent_at,
     r.data_deletion_requested, r.data_deletion_at, r.privacy_accepted_at,
     r.approved_at, r.denied_at, r.created_at, r.last_login_at,
     r.payment_method, r.classwallet_order_id, r.esa_billing_period

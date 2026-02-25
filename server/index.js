@@ -153,6 +153,7 @@ app.get('/privacy', (_req, res) => res.sendFile(path.join(PUBLIC_DIR, 'privacy.h
 app.get('/terms', (_req, res) => res.sendFile(path.join(PUBLIC_DIR, 'terms.html')));
 app.get('/esa', (_req, res) => res.sendFile(path.join(PUBLIC_DIR, 'esa.html')));
 app.get('/contact', (_req, res) => res.sendFile(path.join(PUBLIC_DIR, 'contact.html')));
+app.get('/forgot-password/reset', (_req, res) => res.sendFile(path.join(PUBLIC_DIR, 'forgot-password.html')));
 
 // ========== API ROUTES ==========
 

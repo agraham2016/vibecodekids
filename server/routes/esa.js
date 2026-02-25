@@ -51,7 +51,7 @@ export default function createEsaRouter(sessions) {
 
   router.post('/checkout', async (req, res) => {
     try {
-      const { pricingKey, username, displayName, password, age, parentEmail, privacyAccepted } = req.body;
+      const { pricingKey, username, displayName, password, age, parentEmail, recoveryEmail, privacyAccepted } = req.body;
 
       const pricing = ESA_PRICING[pricingKey];
       if (!pricing) return res.status(400).json({ error: 'Invalid pricing option' });
@@ -88,6 +88,9 @@ export default function createEsaRouter(sessions) {
       }
       if (needsConsent && parentEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(parentEmail)) {
         return res.status(400).json({ error: 'Please enter a valid parent email address' });
+      }
+      if (!needsConsent && recoveryEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recoveryEmail)) {
+        return res.status(400).json({ error: 'Please enter a valid recovery email address' });
       }
 
       const userId = `user_${username.toLowerCase()}`;
@@ -135,6 +138,7 @@ export default function createEsaRouter(sessions) {
         lastLoginAt: null,
         ageBracket: ageBracket || 'unknown',
         parentEmail: parentEmail || null,
+        recoveryEmail: !needsConsent && recoveryEmail ? recoveryEmail.toLowerCase().trim() : null,
         parentalConsentStatus: needsConsent ? 'pending' : 'not_required',
         parentalConsentAt: null,
         privacyAcceptedAt: now.toISOString(),

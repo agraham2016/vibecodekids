@@ -26,12 +26,15 @@ export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: A
   const [displayName, setDisplayName] = useState('')
   const [age, setAge] = useState('')
   const [parentEmail, setParentEmail] = useState('')
+  const [recoveryEmail, setRecoveryEmail] = useState('')
   const [privacyAccepted, setPrivacyAccepted] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const [forgotStep, setForgotStep] = useState<'request' | null>(null)
 
   const isUnder13 = age !== '' && parseInt(age) < 13
+  const is13Plus = age !== '' && parseInt(age) >= 13
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -67,6 +70,7 @@ export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: A
               displayName,
               age: ageNum,
               parentEmail: ageNum < 13 ? parentEmail : undefined,
+              recoveryEmail: ageNum >= 13 && recoveryEmail ? recoveryEmail : undefined,
               privacyAccepted,
             })
           })
@@ -116,6 +120,7 @@ export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: A
               displayName,
               age: ageNum,
               parentEmail: ageNum < 13 ? parentEmail : undefined,
+              recoveryEmail: ageNum >= 13 && recoveryEmail ? recoveryEmail : undefined,
               privacyAccepted,
             })
           })
@@ -133,6 +138,24 @@ export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: A
           // Redirect to Stripe Checkout
           window.location.href = data.checkoutUrl
         }
+      } else if (forgotStep === 'request') {
+        // Forgot password: request reset link
+        const response = await fetch('/api/auth/forgot-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: username.trim() }),
+        })
+        const contentType = response.headers.get('content-type')
+        if (!contentType?.includes('application/json')) {
+          throw new Error('Server error — please try again later')
+        }
+        const data = await response.json()
+        if (!response.ok) {
+          throw new Error(data.error || 'Could not send reset link')
+        }
+        setSuccess("If an account exists and has a recovery email on file, we've sent reset instructions.")
+        setForgotStep(null)
+        setUsername('')
       } else {
         // Login
         const response = await fetch('/api/auth/login', {
@@ -169,6 +192,7 @@ export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: A
   const handleModeSwitch = (newMode: AuthMode) => {
     setMode(newMode)
     setSignupStep('plan')
+    setForgotStep(null)
     setError('')
     setSuccess('')
   }
@@ -238,6 +262,36 @@ export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: A
         )}
 
         <form className="auth-form" onSubmit={handleSubmit}>
+          {mode === 'login' && forgotStep === 'request' && (
+            <>
+              <div className="form-group">
+                <label>Username</label>
+                <input
+                  type="text"
+                  value={username}
+                  onChange={e => setUsername(e.target.value)}
+                  placeholder="Enter your username"
+                  maxLength={20}
+                  required
+                />
+                <span className="input-hint">We'll send reset instructions to the email on file.</span>
+              </div>
+              {error && <div className="auth-error">{error}</div>}
+              {success && <div className="auth-success">{success}</div>}
+              <button type="submit" className="auth-submit-btn" disabled={isLoading}>
+                {isLoading ? '⏳ Sending...' : '📧 Send Reset Link'}
+              </button>
+              <button
+                type="button"
+                className="auth-forgot-back"
+                onClick={() => { setForgotStep(null); setError(''); setSuccess(''); setUsername(''); }}
+              >
+                ← Back to Login
+              </button>
+            </>
+          )}
+          {!forgotStep && (
+          <>
           {mode === 'signup' && (
             <div className="form-group">
               <label>Display Name</label>
@@ -282,6 +336,21 @@ export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: A
               <span className="input-hint">
                 We need a parent's permission for users under 13. 
                 We'll send them an approval email — that's the only time we use it.
+              </span>
+            </div>
+          )}
+
+          {mode === 'signup' && is13Plus && (
+            <div className="form-group">
+              <label>Recovery Email (optional)</label>
+              <input
+                type="email"
+                value={recoveryEmail}
+                onChange={e => setRecoveryEmail(e.target.value)}
+                placeholder="you@example.com"
+              />
+              <span className="input-hint">
+                Add an email to recover your password if you forget it. We never use it for anything else.
               </span>
             </div>
           )}
@@ -355,6 +424,17 @@ export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: A
                   : '💳 Continue to Payment'
             }
           </button>
+          {mode === 'login' && (
+            <button
+              type="button"
+              className="auth-forgot-link"
+              onClick={() => setForgotStep('request')}
+            >
+              Forgot password?
+            </button>
+          )}
+          </>
+          )}
         </form>
 
         {mode === 'signup' && selectedPlan === 'free' && isUnder13 && (
