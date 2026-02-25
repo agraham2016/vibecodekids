@@ -152,6 +152,7 @@ app.get('/admin', (_req, res) => res.sendFile(path.join(PUBLIC_DIR, 'admin.html'
 app.get('/privacy', (_req, res) => res.sendFile(path.join(PUBLIC_DIR, 'privacy.html')));
 app.get('/terms', (_req, res) => res.sendFile(path.join(PUBLIC_DIR, 'terms.html')));
 app.get('/esa', (_req, res) => res.sendFile(path.join(PUBLIC_DIR, 'esa.html')));
+app.get('/contact', (_req, res) => res.sendFile(path.join(PUBLIC_DIR, 'contact.html')));
 
 // ========== API ROUTES ==========
 
@@ -200,6 +201,30 @@ app.get('/api/health', async (_req, res) => {
   };
 
   res.status(checks.status === 'ok' ? 200 : 503).json(checks);
+});
+
+// Contact form submissions
+app.post('/api/contact', async (req, res) => {
+  try {
+    const { name, email, subject, message } = req.body;
+    if (!name || !email || !subject || !message) {
+      return res.status(400).json({ error: 'All fields are required' });
+    }
+    const submission = {
+      name, email, subject, message,
+      timestamp: new Date().toISOString(),
+      ip: req.ip,
+    };
+    const contactDir = path.join(DATA_DIR, 'contact');
+    await fs.mkdir(contactDir, { recursive: true });
+    const filename = `${Date.now()}-${email.replace(/[^a-zA-Z0-9]/g, '_')}.json`;
+    await fs.writeFile(path.join(contactDir, filename), JSON.stringify(submission, null, 2));
+    console.log(`📩 Contact form submission from ${name} <${email}> — ${subject}`);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('Contact form error:', err);
+    res.status(500).json({ error: 'Failed to process submission' });
+  }
 });
 
 app.use('/api/auth', createAuthRouter(sessions));
