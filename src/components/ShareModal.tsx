@@ -6,6 +6,7 @@ interface ShareModalProps {
   onClose: () => void
   authToken?: string | null
   userDisplayName?: string
+  thumbnail?: string | null
 }
 
 const CATEGORIES = [
@@ -20,7 +21,7 @@ const CATEGORIES = [
   { id: 'other', label: '🎮 Other', emoji: '🎮' },
 ]
 
-export default function ShareModal({ code, onClose, authToken, userDisplayName }: ShareModalProps) {
+export default function ShareModal({ code, onClose, authToken, userDisplayName, thumbnail }: ShareModalProps) {
   const [title, setTitle] = useState('')
   const [creatorName, setCreatorName] = useState(userDisplayName || '')
   const [category, setCategory] = useState('arcade')
@@ -55,7 +56,8 @@ export default function ShareModal({ code, onClose, authToken, userDisplayName }
           creatorName: creatorName.trim() || 'Anonymous Creator',
           isPublic,
           multiplayer,
-          category
+          category,
+          thumbnail: thumbnail || undefined
         })
       })
 

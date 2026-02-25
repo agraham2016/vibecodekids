@@ -385,7 +385,131 @@
       background: rgba(0, 0, 0, 0.3);
       overflow: hidden;
     }
-    
+
+    /* ── Procedural Cover Art ── */
+    .cover-bg {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+    }
+    .cover-particles {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      overflow: hidden;
+    }
+    .cover-content {
+      position: absolute;
+      inset: 0;
+      z-index: 3;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .cover-icon {
+      font-size: 3.2rem;
+      margin-bottom: 10px;
+      filter: drop-shadow(0 4px 16px rgba(0,0,0,0.5));
+    }
+    .cover-title {
+      font-family: 'Press Start 2P', cursive;
+      font-size: 0.65rem;
+      text-align: center;
+      color: white;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.8), 0 0 24px rgba(255,255,255,0.25);
+      line-height: 1.5;
+      max-width: 90%;
+      overflow: hidden;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+    }
+    .cover-creator {
+      font-size: 0.65rem;
+      color: rgba(255,255,255,0.7);
+      margin-top: 6px;
+    }
+
+    .card-screen .card-thumb {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      z-index: 4;
+    }
+
+    /* Arcade */
+    .card-screen.cat-arcade .cover-bg { background: linear-gradient(135deg, #7c3aed 0%, #2563eb 50%, #0891b2 100%); }
+    .card-screen.cat-arcade .cover-particles::before {
+      content: '✦ ✧ ★ ✦ ✧ ★ ✦ ✧';
+      position: absolute; font-size: 1.5rem; color: rgba(255,255,255,0.12);
+      top: 20%; left: -10%; white-space: nowrap;
+      animation: coverScroll 15s linear infinite;
+    }
+    /* Puzzle */
+    .card-screen.cat-puzzle .cover-bg { background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 50%, #6366f1 100%); }
+    .card-screen.cat-puzzle .cover-particles::before {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(45deg, transparent 40%, rgba(255,255,255,0.04) 50%, transparent 60%),
+                  linear-gradient(-45deg, transparent 40%, rgba(255,255,255,0.04) 50%, transparent 60%);
+      background-size: 50px 50px;
+    }
+    /* Adventure */
+    .card-screen.cat-adventure .cover-bg { background: linear-gradient(135deg, #059669 0%, #0d9488 50%, #0891b2 100%); }
+    .card-screen.cat-adventure .cover-particles::before {
+      content: '🌿 🌲 🗻 🌿 🌲 🗻';
+      position: absolute; font-size: 1.6rem; opacity: 0.15; bottom: 8%; left: 0; right: 0; text-align: center;
+    }
+    /* RPG */
+    .card-screen.cat-rpg .cover-bg { background: linear-gradient(135deg, #dc2626 0%, #ea580c 50%, #d97706 100%); }
+    .card-screen.cat-rpg .cover-particles::before {
+      content: '🔥'; position: absolute; font-size: 2.5rem; opacity: 0.18; bottom: 5%; left: 12%;
+      animation: coverFlicker 0.5s ease-in-out infinite alternate;
+    }
+    .card-screen.cat-rpg .cover-particles::after {
+      content: '🔥'; position: absolute; font-size: 1.8rem; opacity: 0.12; bottom: 10%; right: 15%;
+      animation: coverFlicker 0.7s ease-in-out infinite alternate;
+    }
+    /* Strategy */
+    .card-screen.cat-strategy .cover-bg { background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #a855f7 100%); }
+    .card-screen.cat-strategy .cover-particles::before {
+      content: ''; position: absolute; inset: 0;
+      background: repeating-conic-gradient(rgba(255,255,255,0.03) 0% 25%, transparent 0% 50%) 0 0 / 40px 40px;
+    }
+    /* Racing */
+    .card-screen.cat-racing .cover-bg { background: linear-gradient(135deg, #0ea5e9 0%, #3b82f6 50%, #6366f1 100%); }
+    .card-screen.cat-racing .cover-particles::before {
+      content: ''; position: absolute; top: 0; bottom: 0; left: 30%; width: 4px;
+      background: linear-gradient(180deg, transparent, rgba(255,255,255,0.25), transparent);
+      animation: coverSpeedline 0.8s linear infinite;
+    }
+    .card-screen.cat-racing .cover-particles::after {
+      content: ''; position: absolute; top: 0; bottom: 0; right: 25%; width: 3px;
+      background: linear-gradient(180deg, transparent, rgba(255,255,255,0.18), transparent);
+      animation: coverSpeedline 0.6s linear infinite;
+    }
+    /* Sports */
+    .card-screen.cat-sports .cover-bg { background: linear-gradient(135deg, #16a34a 0%, #15803d 50%, #166534 100%); }
+    .card-screen.cat-sports .cover-particles::before {
+      content: ''; position: absolute; inset: 0;
+      background: repeating-linear-gradient(0deg, transparent, transparent 18px, rgba(255,255,255,0.04) 18px, rgba(255,255,255,0.04) 20px);
+    }
+    /* Classic */
+    .card-screen.cat-classic .cover-bg { background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 50%, #d97706 100%); }
+    .card-screen.cat-classic .cover-particles::before {
+      content: ''; position: absolute; inset: 0;
+      background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px);
+    }
+    /* Fallback / Other */
+    .card-screen.cat-other .cover-bg { background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a78bfa 100%); }
+
+    @keyframes coverScroll { 0% { transform: translateX(0); } 100% { transform: translateX(100%); } }
+    @keyframes coverFlicker { 0% { opacity: 0.1; transform: scale(1); } 100% { opacity: 0.22; transform: scale(1.1); } }
+    @keyframes coverSpeedline { 0% { transform: translateY(-100%); } 100% { transform: translateY(100%); } }
+
     .card-badge {
       position: absolute;
       top: 12px;
@@ -957,22 +1081,37 @@
       if (loadMoreWrap) loadMoreWrap.style.display = galleryHasMore ? 'block' : 'none';
     }
     
-    // Create card HTML
     function createCard(project, isFeatured) {
+      const cat = project.category || 'other';
+      const emoji = CATEGORY_EMOJIS[cat] || '✨';
+      const title = escapeHtml(project.title || 'Untitled');
+      const creator = escapeHtml(project.creatorName || 'Anonymous');
+      const thumbImg = project.thumbnail
+        ? `<img class="card-thumb" src="${project.thumbnail}" alt="${title}" loading="lazy">`
+        : '';
+
       return `
         <a href="/play/${project.id}" class="game-card ${project.multiplayer ? 'multiplayer' : ''}">
-          <div class="card-screen">
+          <div class="card-screen cat-${cat}">
+            <div class="cover-bg"></div>
+            <div class="cover-particles"></div>
+            <div class="cover-content">
+              <span class="cover-icon">${emoji}</span>
+              <h3 class="cover-title">${title}</h3>
+              <span class="cover-creator">by ${creator}</span>
+            </div>
+            ${thumbImg}
             ${isFeatured ? '<div class="card-badge">🔥 HOT</div>' : ''}
             ${project.multiplayer ? '<div class="card-badge multiplayer-badge">🎮 MULTIPLAYER</div>' : ''}
-            <span class="card-category">${CATEGORY_EMOJIS[project.category] || '✨'}</span>
+            <span class="card-category">${emoji}</span>
             <div class="play-overlay">
               <span class="play-icon">▶️</span>
               <span class="play-text">${project.multiplayer ? 'PLAY WITH FRIENDS' : 'PRESS START'}</span>
             </div>
           </div>
           <div class="card-content">
-            <h3 class="card-title">${escapeHtml(project.title || 'Untitled')}</h3>
-            <p class="card-creator">by ${escapeHtml(project.creatorName || 'Anonymous')}</p>
+            <h3 class="card-title">${title}</h3>
+            <p class="card-creator">by ${creator}</p>
             <div class="card-stats">
               <span class="card-stat stat-views">
                 <span class="icon">👁️</span>

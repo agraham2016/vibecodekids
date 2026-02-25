@@ -28,7 +28,8 @@ router.get('/', async (req, res) => {
         multiplayer: p.multiplayer || false,
         createdAt: p.createdAt,
         views: p.views || 0,
-        likes: p.likes || 0
+        likes: p.likes || 0,
+        thumbnail: p.thumbnail || null
       }))
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 

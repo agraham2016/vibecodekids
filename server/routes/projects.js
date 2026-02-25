@@ -29,7 +29,7 @@ export default function createProjectsRouter(sessions) {
   // Save/publish a project
   router.post('/', async (req, res) => {
     try {
-      const { title, code, creatorName, isPublic = false, category = 'other', multiplayer = false } = req.body;
+      const { title, code, creatorName, isPublic = false, category = 'other', multiplayer = false, thumbnail } = req.body;
 
       if (!code || !title) {
         return res.status(400).json({ error: 'Title and code are required' });
@@ -58,6 +58,11 @@ export default function createProjectsRouter(sessions) {
       }
 
       const id = generateProjectId();
+      let validThumb = null;
+      if (thumbnail && typeof thumbnail === 'string' && thumbnail.startsWith('data:image/') && thumbnail.length < 100000) {
+        validThumb = thumbnail;
+      }
+
       const project = {
         id,
         title: title.slice(0, 50),
@@ -67,6 +72,7 @@ export default function createProjectsRouter(sessions) {
         isPublic: Boolean(isPublic),
         multiplayer: Boolean(multiplayer),
         category: category || 'other',
+        thumbnail: validThumb,
         createdAt: new Date().toISOString(),
         views: 0,
         likes: 0

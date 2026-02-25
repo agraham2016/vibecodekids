@@ -49,6 +49,7 @@ function App() {
   // Mobile/tablet navigation
   const [mobileTab, setMobileTab] = useState<'chat' | 'game' | 'projects'>('chat')
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [shareThumbnail, setShareThumbnail] = useState<string | null>(null)
 
   // Chat with AI generation callbacks (dual-model)
   const { 
@@ -119,6 +120,34 @@ function App() {
     setShowUpgradeModal(true)
   }, [])
 
+  const capturePreviewThumbnail = useCallback((): string | null => {
+    try {
+      const iframe = document.querySelector('.preview-iframe') as HTMLIFrameElement | null
+      if (!iframe?.contentDocument) return null
+
+      const canvas = iframe.contentDocument.querySelector('canvas') as HTMLCanvasElement | null
+      if (!canvas || canvas.width === 0) return null
+
+      const thumbW = 320
+      const thumbH = Math.round((canvas.height / canvas.width) * thumbW)
+      const thumb = document.createElement('canvas')
+      thumb.width = thumbW
+      thumb.height = thumbH
+      const ctx = thumb.getContext('2d')
+      if (!ctx) return null
+      ctx.drawImage(canvas, 0, 0, thumbW, thumbH)
+      return thumb.toDataURL('image/jpeg', 0.65)
+    } catch {
+      return null
+    }
+  }, [])
+
+  const handleOpenShare = useCallback(() => {
+    const thumb = capturePreviewThumbnail()
+    setShareThumbnail(thumb)
+    setShowShareModal(true)
+  }, [capturePreviewThumbnail])
+
   // Loading screen
   if (isCheckingAuth) {
     return (
@@ -159,6 +188,7 @@ function App() {
           onClose={() => setShowShareModal(false)}
           authToken={token}
           userDisplayName={user.displayName}
+          thumbnail={shareThumbnail}
         />
       )}
 
@@ -210,7 +240,7 @@ function App() {
             onLoadProject={(id) => { handleLoadProject(id); setDrawerOpen(false); }}
             onNewProject={() => { handleNewProject(); setDrawerOpen(false); }}
             onSave={saveProject}
-            onShare={() => setShowShareModal(true)}
+            onShare={handleOpenShare}
             onOpenVersionHistory={() => setShowVersionHistory(true)}
             onStartOver={handleStartOver}
             onDeleteProject={deleteProject}
