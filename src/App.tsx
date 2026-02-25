@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useAuth } from './context/AuthContext'
 import { useProjects } from './hooks/useProjects'
 import { useChat } from './hooks/useChat'
@@ -49,23 +49,6 @@ function App() {
   // Mobile/tablet navigation
   const [mobileTab, setMobileTab] = useState<'chat' | 'game' | 'projects'>('chat')
   const [drawerOpen, setDrawerOpen] = useState(false)
-
-  // Splash video intro
-  const splashSeen = sessionStorage.getItem('vck-splash-seen')
-  const [showSplash, setShowSplash] = useState(!splashSeen && !user)
-  const splashVideoRef = useRef<HTMLVideoElement>(null)
-
-  const endSplash = useCallback(() => {
-    setShowSplash(false)
-    sessionStorage.setItem('vck-splash-seen', '1')
-    if (splashVideoRef.current) splashVideoRef.current.pause()
-  }, [])
-
-  useEffect(() => {
-    if (!showSplash) return
-    const timer = setTimeout(endSplash, 15000)
-    return () => clearTimeout(timer)
-  }, [showSplash, endSplash])
 
   // Chat with AI generation callbacks (dual-model)
   const { 
@@ -152,38 +135,6 @@ function App() {
   if (!user) {
     return (
       <div className="app">
-        {showSplash && (
-          <>
-            <div className="splash-overlay" style={{
-              position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
-              zIndex: 10000, background: '#0d0221', display: 'flex',
-              alignItems: 'center', justifyContent: 'center',
-              transition: 'opacity 0.8s ease',
-            }}>
-              <video
-                ref={splashVideoRef}
-                autoPlay muted playsInline
-                onEnded={endSplash}
-                onError={endSplash}
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-              >
-                <source src="/videos/intro.mp4" type="video/mp4" />
-              </video>
-            </div>
-            <button onClick={endSplash} style={{
-              position: 'fixed', bottom: 40, right: 40, zIndex: 10001,
-              padding: '12px 28px', background: 'rgba(255,255,255,0.12)',
-              backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
-              border: '1px solid rgba(255,255,255,0.25)', borderRadius: 50,
-              color: 'rgba(255,255,255,0.85)', fontFamily: "'Nunito', sans-serif",
-              fontSize: '0.85rem', fontWeight: 700, letterSpacing: '1.5px',
-              textTransform: 'uppercase' as const, cursor: 'pointer',
-              animation: 'splashSkipFadeIn 0.6s ease 1.5s forwards', opacity: 0,
-            }}>
-              Skip Intro
-            </button>
-          </>
-        )}
         {showAuthModal && (
           <AuthModal
             onClose={() => setShowAuthModal(false)}
