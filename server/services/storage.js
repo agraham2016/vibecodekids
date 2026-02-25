@@ -41,3 +41,4 @@ export const listEsaOrders         = backend.listEsaOrders;
 export const addEsaWaitlist        = backend.addEsaWaitlist;
 export const listEsaWaitlist       = backend.listEsaWaitlist;
 export const countEsaWaitlist      = backend.countEsaWaitlist;
+export const logOutOfScopeRequest  = backend.logOutOfScopeRequest;

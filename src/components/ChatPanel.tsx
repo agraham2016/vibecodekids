@@ -327,6 +327,16 @@ export default function ChatPanel({
     setInput('')
   }
 
+  const handleHelpBot = () => {
+    if (isLoading) return
+    onSendMessage(
+      input.trim() || "Something's not working with my game — can you help me figure out what's wrong and fix it?",
+      undefined,
+      'help-bot'
+    )
+    setInput('')
+  }
+
   // Get info for the "other" buddy
   const otherModel: AIModel = lastModelUsed === 'grok' ? 'claude' : 'grok'
   const otherBuddy = MODEL_INFO[otherModel]
@@ -572,6 +582,13 @@ export default function ChatPanel({
               </button>
             </>
           )}
+          <button
+            className="quick-action-btn action-bug"
+            onClick={handleHelpBot}
+            title="Get help from the Help Bot to fix issues or get unstuck."
+          >
+            🐛 Something's wrong?
+          </button>
         </div>
       )}
 

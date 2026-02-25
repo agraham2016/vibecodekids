@@ -11,7 +11,7 @@
  * - Token usage tracking per user per model
  * 
  * New request body fields:
- * - mode: 'default' | 'claude' | 'grok' | 'creative' | 'debug' | 'ask-other-buddy' | 'critic'
+ * - mode: 'default' | 'claude' | 'grok' | 'creative' | 'debug' | 'ask-other-buddy' | 'critic' | 'help-bot'
  * - lastModelUsed: 'claude' | 'grok' (for ask-other-buddy routing)
  * - debugAttempt: number (for debug escalation tracking)
  */

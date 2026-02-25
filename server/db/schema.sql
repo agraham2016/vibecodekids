@@ -147,6 +147,20 @@ CREATE TABLE IF NOT EXISTS esa_waitlist (
     created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- ========== HELP BOT OUT-OF-SCOPE LOGGING ==========
+-- Requests the Help Bot could not fulfill; for product/roadmap review (e.g. 2.0).
+
+CREATE TABLE IF NOT EXISTS help_bot_out_of_scope (
+    id                   SERIAL PRIMARY KEY,
+    user_id              TEXT REFERENCES users(id) ON DELETE SET NULL,
+    prompt_summary       TEXT NOT NULL,
+    reason               TEXT NOT NULL,
+    conversation_snippet TEXT,
+    created_at           TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_help_bot_out_of_scope_created ON help_bot_out_of_scope(created_at DESC);
+
 -- ========== CLEANUP ==========
 -- Automatic cleanup of expired sessions and old rate limit entries.
 -- Run these periodically via a cron job or scheduled task.
