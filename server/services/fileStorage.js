@@ -149,12 +149,6 @@ export async function countEsaWaitlist() {
   return list.length;
 }
 
-// ========== HELP BOT OUT-OF-SCOPE LOGGING (no-op when no Postgres) ==========
-
-export async function logOutOfScopeRequest() {
-  // No database: skip logging (or could append to a local file)
-}
-
 // ========== DATA DIRECTORY SETUP ==========
 
 export async function ensureDataDirs() {

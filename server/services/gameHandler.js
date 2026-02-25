@@ -22,7 +22,6 @@
  */
 
 import { getSystemPrompt } from '../prompts/index.js';
-import { HELP_BOT_SYSTEM_PROMPT } from '../prompts/helpBot.js';
 import {
   getPersonalityWrapper,
   GROK_CRITIC_PROMPT,
@@ -52,7 +51,6 @@ import {
 import { DEBUG_MAX_CLAUDE_ATTEMPTS } from '../config/index.js';
 import { resolveReferences } from './referenceResolver.js';
 import { detectGameGenre } from '../prompts/index.js';
-import { logOutOfScopeRequest } from './storage.js';
 
 // ========== MODE DETECTION HELPERS ==========
 
@@ -200,10 +198,10 @@ export async function generateOrIterateGame({
   const targetModel = resolveTargetModel(effectiveMode, lastModelUsed);
   console.log(`🎯 Mode: "${effectiveMode}" → Model: ${targetModel} | hasCode: ${!!currentCode} | history: ${conversationHistory.length}`);
 
-  // ===== CACHE CHECK (skip for help-bot) =====
+  // ===== CACHE CHECK =====
   const cacheKey = generateCacheKey(prompt, currentCode, targetModel, effectiveMode);
   const cached = getCachedResponse(cacheKey);
-  if (cached && effectiveMode !== 'help-bot') {
+  if (cached) {
     return {
       response: cached.response,
       code: cached.code,
@@ -217,10 +215,6 @@ export async function generateOrIterateGame({
   let result;
 
   switch (effectiveMode) {
-    case 'help-bot':
-      result = await handleHelpBot({ prompt, currentCode, conversationHistory, image, userId });
-      break;
-
     case 'critic':
       result = await handleCriticMode({ prompt, currentCode, conversationHistory, gameConfig, image, userId });
       break;
@@ -239,8 +233,8 @@ export async function generateOrIterateGame({
       break;
   }
 
-  // ===== CACHE THE RESULT (skip for help-bot) =====
-  if (result && !result.wasTruncated && effectiveMode !== 'help-bot') {
+  // ===== CACHE THE RESULT =====
+  if (result && !result.wasTruncated) {
     setCachedResponse(cacheKey, {
       response: result.response,
       code: result.code,
@@ -264,7 +258,6 @@ function resolveTargetModel(mode, lastModelUsed) {
     case 'claude':
     case 'default':
     case 'debug':
-    case 'help-bot':
       return 'claude';
     case 'ask-other-buddy':
       return lastModelUsed === 'claude' ? 'grok' : 'claude';
@@ -483,84 +476,6 @@ async function handleAskOtherBuddy({ prompt, currentCode, conversationHistory, g
   });
 
   return result;
-}
-
-// ========== HELP BOT HANDLER ==========
-
-/**
- * Help Bot — separate agent that deep-dives on the user's experience.
- * Resolves bugs when possible, coaches better prompting, or declares out-of-scope
- * and logs the request for roadmap review.
- */
-async function handleHelpBot({ prompt, currentCode, conversationHistory, image, userId }) {
-  console.log('🐛 Help Bot: deep dive on user experience');
-
-  const dynamicContext = [
-    currentCode
-      ? `CURRENT GAME CODE (the kid's project):\n${currentCode.slice(0, 120000)}\n\n`
-      : 'The kid has no game code yet (brand new session).\n\n',
-    'RECENT CONVERSATION (last messages):',
-    conversationHistory
-      .slice(-8)
-      .map(m => `${m.role === 'user' ? 'Kid' : 'Assistant'}: ${typeof m.content === 'string' ? m.content.slice(0, 500) : '[image]'}`)
-      .join('\n'),
-  ].join('\n');
-
-  const rawMessages = [
-    ...conversationHistory.map(msg => ({
-      role: msg.role,
-      content: formatMessageContent(msg.content, msg.image),
-    })),
-    { role: 'user', content: formatMessageContent(prompt, image) },
-  ];
-  const messages = trimConversationHistory(rawMessages, 10);
-  const maxTokens = calculateMaxTokens(currentCode);
-
-  const response = await callClaude(
-    HELP_BOT_SYSTEM_PROMPT,
-    dynamicContext,
-    messages,
-    Math.min(maxTokens, 8192),
-    userId
-  );
-  let assistantText = response.content[0].text;
-
-  // Parse OUT_OF_SCOPE line (for logging)
-  const outOfScopeMatch = assistantText.match(/\n?OUT_OF_SCOPE:\s*(.+?)(?=\n|$)/i);
-  let outOfScopeReason = null;
-  if (outOfScopeMatch) {
-    outOfScopeReason = outOfScopeMatch[1].trim();
-    assistantText = assistantText.replace(/\n?OUT_OF_SCOPE:\s*.+?(?=\n|$)/i, '').trim();
-    const promptSummary = (prompt || '').slice(0, 500);
-    const conversationSnippet = conversationHistory
-      .slice(-4)
-      .map(m => (typeof m.content === 'string' ? m.content : '[image]').slice(0, 200))
-      .join(' ');
-    await logOutOfScopeRequest(userId, promptSummary, outOfScopeReason, conversationSnippet.slice(0, 1000));
-  }
-
-  const code = extractCode(assistantText);
-
-  // Clean message for user: remove code block and any leftover technical lines
-  let responseMessage = assistantText
-    .replace(/```\s*html\s*\n[\s\S]*?```/gi, '')
-    .replace(/```[\s\S]*?```/g, '')
-    .replace(/<!DOCTYPE[\s\S]*?<\/html>/gi, '')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim();
-  if (!responseMessage || responseMessage.length < 5) {
-    responseMessage = code
-      ? "I fixed it! Check out your game in the preview! 🎉"
-      : "I'm here to help! Try describing what's not working, or ask the coders again with a bit more detail — they work best when you say exactly what you want to happen! 🐛";
-  }
-
-  return {
-    response: responseMessage,
-    code: code || null,
-    modelUsed: 'claude',
-    isCacheHit: false,
-    wasTruncated: false,
-  };
 }
 
 // ========== CRITIC MODE HANDLER ==========

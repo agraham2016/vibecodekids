@@ -424,25 +424,6 @@ export async function countEsaWaitlist() {
   return rows[0].count;
 }
 
-// ========== HELP BOT OUT-OF-SCOPE LOGGING ==========
-
-/**
- * Log a request the Help Bot could not fulfill (for roadmap / 2.0 review).
- * No-op if Postgres is unavailable (e.g. local dev without DATABASE_URL).
- */
-export async function logOutOfScopeRequest(userId, promptSummary, reason, conversationSnippet = null) {
-  try {
-    const db = getPool();
-    await db.query(
-      `INSERT INTO help_bot_out_of_scope (user_id, prompt_summary, reason, conversation_snippet)
-       VALUES ($1, $2, $3, $4)`,
-      [userId || null, promptSummary || '', reason || '', conversationSnippet || null]
-    );
-  } catch (err) {
-    console.warn('[Help Bot] Out-of-scope log skipped (database unavailable):', err.message);
-  }
-}
-
 // ========== DATA DIRECTORY SETUP (no-op for Postgres) ==========
 
 export async function ensureDataDirs() {

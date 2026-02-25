@@ -120,7 +120,7 @@ export interface AuthMeResponse {
 export type AIModel = 'claude' | 'grok'
 
 /** AI routing mode for the dual-model system. */
-export type AIMode = 'default' | 'claude' | 'grok' | 'creative' | 'debug' | 'ask-other-buddy' | 'critic' | 'help-bot'
+export type AIMode = 'default' | 'claude' | 'grok' | 'creative' | 'debug' | 'ask-other-buddy' | 'critic'
 
 /** Alternate response from the other AI model (critic/side-by-side). */
 export interface AlternateResponse {

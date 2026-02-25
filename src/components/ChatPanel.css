@@ -645,17 +645,6 @@
   box-shadow: 0 2px 12px rgba(52, 211, 153, 0.2);
 }
 
-.action-bug {
-  border-color: rgba(251, 191, 36, 0.35);
-  color: rgba(251, 191, 36, 0.95);
-}
-
-.action-bug:hover {
-  background: rgba(251, 191, 36, 0.15);
-  border-color: rgba(251, 191, 36, 0.5);
-  box-shadow: 0 2px 12px rgba(251, 191, 36, 0.2);
-}
-
 /* ========== CHAT INPUT ========== */
 
 .chat-input-area {

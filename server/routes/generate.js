@@ -11,7 +11,7 @@
  * - Token usage tracking per user per model
  * 
  * New request body fields:
- * - mode: 'default' | 'claude' | 'grok' | 'creative' | 'debug' | 'ask-other-buddy' | 'critic' | 'help-bot'
+ * - mode: 'default' | 'claude' | 'grok' | 'creative' | 'debug' | 'ask-other-buddy' | 'critic'
  * - lastModelUsed: 'claude' | 'grok' (for ask-other-buddy routing)
  * - debugAttempt: number (for debug escalation tracking)
  */
@@ -89,12 +89,10 @@ export default function createGenerateRouter(sessions) {
         });
       }
 
-      // Content filter (skip for help-bot — its default message can trigger false positives e.g. "something's" contains "sex")
-      if (mode !== 'help-bot') {
-        const contentCheck = filterContent(message);
-        if (contentCheck.blocked) {
-          return res.json({ message: contentCheck.reason, code: null, modelUsed: null, isCacheHit: false });
-        }
+      // Content filter
+      const contentCheck = filterContent(message);
+      if (contentCheck.blocked) {
+        return res.json({ message: contentCheck.reason, code: null, modelUsed: null, isCacheHit: false });
       }
 
       // Genre detection (still useful for template cache)
