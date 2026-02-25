@@ -89,10 +89,12 @@ export default function createGenerateRouter(sessions) {
         });
       }
 
-      // Content filter
-      const contentCheck = filterContent(message);
-      if (contentCheck.blocked) {
-        return res.json({ message: contentCheck.reason, code: null, modelUsed: null, isCacheHit: false });
+      // Content filter (skip for help-bot — its default message can trigger false positives e.g. "something's" contains "sex")
+      if (mode !== 'help-bot') {
+        const contentCheck = filterContent(message);
+        if (contentCheck.blocked) {
+          return res.json({ message: contentCheck.reason, code: null, modelUsed: null, isCacheHit: false });
+        }
       }
 
       // Genre detection (still useful for template cache)
