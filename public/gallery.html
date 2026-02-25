@@ -801,6 +801,105 @@
     
     /* Responsive */
     @media (max-width: 768px) {
+      body {
+        background-attachment: scroll;
+      }
+
+      body::before {
+        position: absolute;
+        animation: none;
+      }
+
+      .bg-container {
+        display: none;
+      }
+
+      .header {
+        position: sticky;
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+        background: rgba(13, 2, 33, 0.95);
+        transition: none;
+      }
+
+      .glass-btn {
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+      }
+
+      .stat-item {
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+        background: rgba(255, 255, 255, 0.1);
+        padding: 16px 24px;
+      }
+
+      .filter-btn {
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+        font-size: 0.75rem;
+        padding: 10px 16px;
+      }
+
+      .game-card {
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+        background: rgba(255, 255, 255, 0.1);
+        transition: none;
+      }
+
+      .card-badge {
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+      }
+
+      .card-category {
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+      }
+
+      .play-overlay {
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+      }
+
+      .insert-coin {
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+      }
+
+      body::before {
+        animation: none;
+      }
+
+      .glow-orb {
+        animation: none;
+      }
+
+      .cover-icon {
+        animation: none;
+      }
+
+      .card-screen.cat-arcade .cover-particles::before,
+      .card-screen.cat-racing .cover-particles::before,
+      .card-screen.cat-racing .cover-particles::after,
+      .card-screen.cat-rpg .cover-particles::before,
+      .card-screen.cat-rpg .cover-particles::after {
+        animation: none;
+      }
+
+      .card-badge.multiplayer-badge {
+        animation: none;
+      }
+
+      .play-icon {
+        animation: none;
+      }
+
+      .empty-icon {
+        animation: none;
+      }
+
       .header-content {
         flex-direction: column;
         text-align: center;
@@ -822,10 +921,6 @@
         gap: 12px;
       }
       
-      .stat-item {
-        padding: 16px 24px;
-      }
-      
       .stat-value {
         font-size: 1.1rem;
       }
@@ -834,14 +929,17 @@
         gap: 8px;
       }
       
-      .filter-btn {
-        font-size: 0.75rem;
-        padding: 10px 16px;
-      }
-      
       .gallery-grid,
       .featured-grid {
         grid-template-columns: 1fr;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
       }
     }
   </style>
