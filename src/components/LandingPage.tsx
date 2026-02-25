@@ -140,7 +140,7 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
   const [phase, setPhase] = useState<'typing' | 'building' | 'done'>('typing')
   const [featuredGames, setFeaturedGames] = useState<FeaturedGame[]>([])
   const [openFaq, setOpenFaq] = useState<number | null>(null)
-  const [navScrolled, setNavScrolled] = useState(false)
+  const navRef = useRef<HTMLElement | null>(null)
   const [previewGameId, setPreviewGameId] = useState<string | null>(null)
   const [previewLoaded, setPreviewLoaded] = useState(false)
   const hoverTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -235,9 +235,25 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
       .catch(() => {})
   }, [])
 
-  // Nav scroll effect
+  // Nav scroll effect — direct DOM toggle to avoid React re-renders during scroll
   useEffect(() => {
-    const onScroll = () => setNavScrolled(window.scrollY > 40)
+    let ticking = false
+    const onScroll = () => {
+      if (ticking) return
+      ticking = true
+      requestAnimationFrame(() => {
+        const nav = navRef.current
+        if (nav) {
+          const scrolled = window.scrollY > 40
+          if (scrolled && !nav.classList.contains('nav-scrolled')) {
+            nav.classList.add('nav-scrolled')
+          } else if (!scrolled && nav.classList.contains('nav-scrolled')) {
+            nav.classList.remove('nav-scrolled')
+          }
+        }
+        ticking = false
+      })
+    }
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
@@ -247,7 +263,7 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
       <div className="landing-bg" />
 
       {/* ── 1. Sticky Nav ── */}
-      <nav className={`landing-nav ${navScrolled ? 'nav-scrolled' : ''}`}>
+      <nav ref={navRef} className="landing-nav">
         <div className="nav-inner">
           <a href="/" className="nav-logo-link">
             <img src="/images/logo.png" alt="VibeCode Kids" className="nav-logo-img" />

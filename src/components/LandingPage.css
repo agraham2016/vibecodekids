@@ -1614,9 +1614,6 @@
     transition: none;
   }
 
-  .landing-page {
-    -webkit-overflow-scrolling: touch;
-  }
 }
 
 @media (max-width: 480px) {
