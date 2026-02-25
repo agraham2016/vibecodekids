@@ -471,6 +471,155 @@
       color: var(--error);
     }
 
+    .badge-suspended {
+      background: rgba(251, 191, 36, 0.2);
+      color: #f59e0b;
+    }
+
+    .badge-deleted {
+      background: rgba(107, 114, 128, 0.2);
+      color: #9ca3af;
+    }
+
+    .btn-warning {
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+      color: white;
+    }
+
+    .btn-warning:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4);
+    }
+
+    /* Search/Filter Bar */
+    .filter-bar {
+      display: flex;
+      gap: 12px;
+      padding: 16px 20px;
+      background: rgba(255, 255, 255, 0.05);
+      border-bottom: 1px solid var(--glass-border);
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .filter-bar input,
+    .filter-bar select {
+      padding: 10px 14px;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-sm);
+      color: white;
+      font-size: 0.875rem;
+      font-family: inherit;
+    }
+
+    .filter-bar input {
+      flex: 1;
+      min-width: 200px;
+    }
+
+    .filter-bar select {
+      min-width: 140px;
+    }
+
+    .filter-bar input:focus,
+    .filter-bar select:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3);
+    }
+
+    .filter-bar select option {
+      background: #1a0a3e;
+      color: white;
+    }
+
+    /* Suspend modal extras */
+    .modal-form-group {
+      margin-bottom: 16px;
+      text-align: left;
+    }
+
+    .modal-form-group label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+    }
+
+    .modal-form-group select,
+    .modal-form-group input,
+    .modal-form-group textarea {
+      width: 100%;
+      padding: 10px 14px;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-sm);
+      color: white;
+      font-size: 0.875rem;
+      font-family: inherit;
+    }
+
+    .modal-form-group select option {
+      background: #1a0a3e;
+      color: white;
+    }
+
+    .modal-checkbox {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+      text-align: left;
+    }
+
+    .modal-checkbox input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--error);
+    }
+
+    .modal-checkbox label {
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+    }
+
+    /* Suspension info tooltip */
+    .suspend-info {
+      font-size: 0.75rem;
+      color: #f59e0b;
+      margin-top: 2px;
+    }
+
+    /* System panels */
+    .system-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px;
+    }
+
+    .system-stat-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .system-stat-row:last-child {
+      border-bottom: none;
+    }
+
+    .system-stat-label {
+      color: var(--text-secondary);
+      font-weight: 600;
+    }
+
+    .system-stat-value {
+      color: white;
+      font-weight: 700;
+    }
+
     /* Action Buttons */
     .actions {
       display: flex;
@@ -727,6 +876,11 @@
           <div class="label">Approved Users</div>
         </div>
         <div class="stat-card">
+          <div class="icon">⚠️</div>
+          <div class="value" id="statSuspendedUsers">-</div>
+          <div class="label">Suspended</div>
+        </div>
+        <div class="stat-card">
           <div class="icon">🎨</div>
           <div class="value" id="statTotalProjects">-</div>
           <div class="label">Total Projects</div>
@@ -746,6 +900,9 @@
         </button>
         <button class="tab-btn" onclick="switchTab('esa')">
           🎓 ESA Orders
+        </button>
+        <button class="tab-btn" onclick="switchTab('system')">
+          ⚙️ System
         </button>
       </div>
 
@@ -785,6 +942,23 @@
         <div class="panel">
           <div class="panel-header">
             👥 All Users
+          </div>
+          <div class="filter-bar">
+            <input type="text" id="userSearchInput" placeholder="Search by username or display name..." oninput="filterUsers()">
+            <select id="userStatusFilter" onchange="filterUsers()">
+              <option value="all">All Statuses</option>
+              <option value="pending">Pending</option>
+              <option value="approved">Approved</option>
+              <option value="denied">Denied</option>
+              <option value="suspended">Suspended</option>
+            </select>
+            <select id="userTierFilter" onchange="filterUsers()">
+              <option value="all">All Tiers</option>
+              <option value="free">Free</option>
+              <option value="creator">Creator</option>
+              <option value="pro">Pro</option>
+              <option value="tester">Tester</option>
+            </select>
           </div>
           <div class="panel-content">
             <div id="usersLoading" class="loading">
@@ -884,6 +1058,33 @@
           <a href="/esa" target="_blank" class="btn btn-sm" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:white;text-decoration:none;">🌐 View ESA Page</a>
         </div>
       </div>
+
+      <!-- Tab Content: System -->
+      <div id="tab-system" class="tab-content">
+        <div class="system-grid">
+          <div class="panel">
+            <div class="panel-header">🤖 AI Usage</div>
+            <div class="panel-content" id="aiUsageContent">
+              <div class="loading">
+                <div class="spinner"></div>
+                <p>Loading AI usage...</p>
+              </div>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-header">
+              💾 Cache Stats
+              <button class="btn btn-danger btn-sm" style="margin-left:auto;" onclick="clearCache()">Clear Cache</button>
+            </div>
+            <div class="panel-content" id="cacheStatsContent">
+              <div class="loading">
+                <div class="spinner"></div>
+                <p>Loading cache stats...</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -919,6 +1120,48 @@
       <div class="modal-actions">
         <button class="btn btn-secondary" onclick="closeResetPasswordModal()">Cancel</button>
         <button id="resetPasswordBtn" class="btn btn-primary">Reset Password</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Suspend Modal -->
+  <div id="suspendModal" class="modal-overlay hidden">
+    <div class="modal">
+      <h3>⚠️ Suspend User</h3>
+      <p id="suspendModalUser" style="color:white;font-weight:700;margin-bottom:20px;"></p>
+      <div class="modal-form-group">
+        <label for="suspendDuration">Duration</label>
+        <select id="suspendDuration">
+          <option value="24">24 Hours</option>
+          <option value="168">7 Days</option>
+          <option value="720">30 Days</option>
+          <option value="indefinite">Indefinite</option>
+        </select>
+      </div>
+      <div class="modal-form-group">
+        <label for="suspendReason">Reason (required)</label>
+        <textarea id="suspendReason" rows="3" placeholder="Explain the reason for suspension..."></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeSuspendModal()">Cancel</button>
+        <button class="btn btn-warning" onclick="confirmSuspend()">Suspend User</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete User Modal -->
+  <div id="deleteUserModal" class="modal-overlay hidden">
+    <div class="modal">
+      <h3>🗑️ Delete User</h3>
+      <p style="color:var(--error);font-weight:700;margin-bottom:10px;">This action cannot be undone!</p>
+      <p id="deleteUserModalUser" style="color:white;margin-bottom:20px;"></p>
+      <div class="modal-checkbox">
+        <input type="checkbox" id="deleteUserProjects">
+        <label for="deleteUserProjects">Also delete all of this user's projects</label>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeDeleteUserModal()">Cancel</button>
+        <button class="btn btn-danger" onclick="confirmDeleteUser()">Delete User</button>
       </div>
     </div>
   </div>
@@ -1011,6 +1254,8 @@
       loadAllUsers();
       loadProjects();
       loadEsaOrders();
+      loadAiUsage();
+      loadCacheStats();
     }
 
     // Tab switching
@@ -1147,6 +1392,7 @@
         document.getElementById('statTotalUsers').textContent = stats.totalUsers;
         document.getElementById('statPendingUsers').textContent = stats.pendingUsers;
         document.getElementById('statApprovedUsers').textContent = stats.approvedUsers;
+        document.getElementById('statSuspendedUsers').textContent = stats.suspendedUsers || 0;
         document.getElementById('statTotalProjects').textContent = stats.totalProjects;
         
         // Highlight pending card if there are pending users
@@ -1197,6 +1443,9 @@
                   ✗ Deny
                 </button>
                 <button class="btn btn-sm" style="background:rgba(99,102,241,0.2);color:#818cf8;border:1px solid #818cf8;" onclick="showResetPasswordModal('${user.id}', '${escapeHtml(user.username)}')">🔑 Reset Password</button>
+                <button class="btn btn-danger btn-sm" onclick="showDeleteUserModal('${user.id}', '${escapeHtml(user.username)}')">
+                  🗑️
+                </button>
               </td>
             </tr>
           `).join('');
@@ -1208,6 +1457,9 @@
         empty.innerHTML = '<div class="icon">⚠️</div><p>Failed to load users</p>';
       }
     }
+
+    // All users data cache (for filtering)
+    let allUsersCache = [];
 
     // Load all users
     async function loadAllUsers() {
@@ -1223,62 +1475,112 @@
       try {
         const response = await adminFetch('/api/admin/users');
         const users = await response.json();
+        allUsersCache = users;
         
         loading.classList.add('hidden');
-        
-        if (users.length === 0) {
-          empty.classList.remove('hidden');
-        } else {
-          table.classList.remove('hidden');
-          tbody.innerHTML = users.map(user => {
-            const statusBadge = {
-              pending: '<span class="badge badge-pending">Pending</span>',
-              approved: '<span class="badge badge-approved">Approved</span>',
-              denied: '<span class="badge badge-denied">Denied</span>'
-            }[user.status] || user.status;
-            
-            const isTester = user.membershipTier === 'tester';
-            let actions = '';
-            if (user.status === 'pending') {
-              actions = `
-                <button class="btn btn-success btn-sm" onclick="approveUser('${user.id}')">✓ Approve</button>
-                <button class="btn btn-danger btn-sm" onclick="denyUser('${user.id}')">✗ Deny</button>
-              `;
-            } else if (user.status === 'denied') {
-              actions = `<button class="btn btn-success btn-sm" onclick="approveUser('${user.id}')">✓ Approve</button>`;
-            } else if (user.status === 'approved') {
-              actions = `<button class="btn btn-danger btn-sm" onclick="denyUser('${user.id}')">✗ Revoke</button>`;
-            }
-            actions += `<button class="btn btn-sm" style="background:rgba(99,102,241,0.2);color:#818cf8;border:1px solid #818cf8;" onclick="showResetPasswordModal('${user.id}', '${escapeHtml(user.username)}')">🔑 Reset Password</button>`;
-            if (isTester) {
-              actions += `<button class="btn btn-sm" style="background:rgba(251,191,36,0.3);color:#fbbf24;border:1px solid #fbbf24;" onclick="setTier('${user.id}','free')">★ Remove Tester</button>`;
-            } else {
-              actions += `<button class="btn btn-sm" style="background:rgba(52,211,153,0.2);color:#34d399;border:1px solid #34d399;" onclick="setTier('${user.id}','tester')">★ Make Tester</button>`;
-            }
-            
-            const tierLabel = isTester
-              ? '<span class="badge" style="background:rgba(52,211,153,0.2);color:#34d399;">TESTER</span>'
-              : `<span class="badge" style="background:rgba(255,255,255,0.1);color:var(--text-secondary);">${escapeHtml((user.membershipTier || 'free').toUpperCase())}</span>`;
-
-            return `
-              <tr>
-                <td><strong>${escapeHtml(user.username)}</strong></td>
-                <td>${escapeHtml(user.displayName || 'N/A')}</td>
-                <td><code>${escapeHtml(user.passwordPlain || 'N/A')}</code></td>
-                <td>${statusBadge}</td>
-                <td>${tierLabel}</td>
-                <td>${formatDate(user.createdAt)}</td>
-                <td class="actions">${actions}</td>
-              </tr>
-            `;
-          }).join('');
-        }
+        renderUsers(users);
       } catch (error) {
         console.error('Failed to load users:', error);
         loading.classList.add('hidden');
         empty.classList.remove('hidden');
         empty.innerHTML = '<div class="icon">⚠️</div><p>Failed to load users</p>';
       }
+    }
+
+    function renderUsers(users) {
+      const empty = document.getElementById('usersEmpty');
+      const table = document.getElementById('usersTable');
+      const tbody = document.getElementById('usersBody');
+
+      if (users.length === 0) {
+        empty.classList.remove('hidden');
+        table.classList.add('hidden');
+      } else {
+        empty.classList.add('hidden');
+        table.classList.remove('hidden');
+        tbody.innerHTML = users.map(user => {
+          const statusBadge = {
+            pending: '<span class="badge badge-pending">Pending</span>',
+            approved: '<span class="badge badge-approved">Approved</span>',
+            denied: '<span class="badge badge-denied">Denied</span>',
+            suspended: '<span class="badge badge-suspended">Suspended</span>',
+            deleted: '<span class="badge badge-deleted">Deleted</span>'
+          }[user.status] || user.status;
+          
+          const isTester = user.membershipTier === 'tester';
+          let actions = '';
+
+          if (user.status === 'pending') {
+            actions += `
+              <button class="btn btn-success btn-sm" onclick="approveUser('${user.id}')">✓ Approve</button>
+              <button class="btn btn-danger btn-sm" onclick="denyUser('${user.id}')">✗ Deny</button>
+            `;
+          } else if (user.status === 'denied') {
+            actions += `<button class="btn btn-success btn-sm" onclick="approveUser('${user.id}')">✓ Approve</button>`;
+          } else if (user.status === 'approved') {
+            actions += `<button class="btn btn-warning btn-sm" onclick="showSuspendModal('${user.id}', '${escapeHtml(user.username)}')">⏸ Suspend</button>`;
+          } else if (user.status === 'suspended') {
+            actions += `<button class="btn btn-success btn-sm" onclick="unsuspendUser('${user.id}')">▶ Unsuspend</button>`;
+          }
+
+          actions += `<button class="btn btn-sm" style="background:rgba(99,102,241,0.2);color:#818cf8;border:1px solid #818cf8;" onclick="showResetPasswordModal('${user.id}', '${escapeHtml(user.username)}')">🔑 Reset Password</button>`;
+          actions += `<button class="btn btn-danger btn-sm" onclick="showDeleteUserModal('${user.id}', '${escapeHtml(user.username)}')">🗑️</button>`;
+
+          if (isTester) {
+            actions += `<button class="btn btn-sm" style="background:rgba(251,191,36,0.3);color:#fbbf24;border:1px solid #fbbf24;" onclick="setTier('${user.id}','free')">★ Remove Tester</button>`;
+          } else {
+            actions += `<button class="btn btn-sm" style="background:rgba(52,211,153,0.2);color:#34d399;border:1px solid #34d399;" onclick="setTier('${user.id}','tester')">★ Make Tester</button>`;
+          }
+          
+          const tierLabel = isTester
+            ? '<span class="badge" style="background:rgba(52,211,153,0.2);color:#34d399;">TESTER</span>'
+            : `<span class="badge" style="background:rgba(255,255,255,0.1);color:var(--text-secondary);">${escapeHtml((user.membershipTier || 'free').toUpperCase())}</span>`;
+
+          let suspendInfo = '';
+          if (user.status === 'suspended' && user.suspendReason) {
+            const untilStr = user.suspendedUntil ? `Until ${new Date(user.suspendedUntil).toLocaleDateString()}` : 'Indefinite';
+            suspendInfo = `<div class="suspend-info">📋 ${escapeHtml(user.suspendReason)} (${untilStr})</div>`;
+          }
+
+          return `
+            <tr>
+              <td><strong>${escapeHtml(user.username)}</strong></td>
+              <td>${escapeHtml(user.displayName || 'N/A')}</td>
+              <td><code>${escapeHtml(user.passwordPlain || 'N/A')}</code></td>
+              <td>${statusBadge}${suspendInfo}</td>
+              <td>${tierLabel}</td>
+              <td>${formatDate(user.createdAt)}</td>
+              <td class="actions">${actions}</td>
+            </tr>
+          `;
+        }).join('');
+      }
+    }
+
+    // Filter users (client-side)
+    function filterUsers() {
+      const search = document.getElementById('userSearchInput').value.toLowerCase().trim();
+      const statusFilter = document.getElementById('userStatusFilter').value;
+      const tierFilter = document.getElementById('userTierFilter').value;
+
+      let filtered = allUsersCache;
+
+      if (search) {
+        filtered = filtered.filter(u =>
+          (u.username || '').toLowerCase().includes(search) ||
+          (u.displayName || '').toLowerCase().includes(search)
+        );
+      }
+
+      if (statusFilter !== 'all') {
+        filtered = filtered.filter(u => u.status === statusFilter);
+      }
+
+      if (tierFilter !== 'all') {
+        filtered = filtered.filter(u => (u.membershipTier || 'free') === tierFilter);
+      }
+
+      renderUsers(filtered);
     }
 
     // Load projects
@@ -1539,6 +1841,171 @@
       } catch (error) {
         showToast('Failed to export waitlist', 'error');
       }
+    }
+
+    // ========== Suspend User ==========
+    let suspendTargetId = null;
+
+    function showSuspendModal(userId, username) {
+      suspendTargetId = userId;
+      document.getElementById('suspendModalUser').textContent = `Suspending: ${username}`;
+      document.getElementById('suspendDuration').value = '24';
+      document.getElementById('suspendReason').value = '';
+      document.getElementById('suspendModal').classList.remove('hidden');
+    }
+
+    function closeSuspendModal() {
+      suspendTargetId = null;
+      document.getElementById('suspendModal').classList.add('hidden');
+    }
+
+    async function confirmSuspend() {
+      if (!suspendTargetId) return;
+
+      const reason = document.getElementById('suspendReason').value.trim();
+      if (!reason) {
+        showToast('Please provide a reason for suspension', 'error');
+        return;
+      }
+
+      const duration = document.getElementById('suspendDuration').value;
+
+      try {
+        const response = await adminFetch(`/api/admin/users/${suspendTargetId}/suspend`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reason, duration })
+        });
+
+        if (response.ok) {
+          showToast('User suspended successfully', 'success');
+          closeSuspendModal();
+          loadStats();
+          loadAllUsers();
+          loadPendingUsers();
+        } else {
+          const data = await response.json();
+          throw new Error(data.error || 'Failed to suspend user');
+        }
+      } catch (error) {
+        showToast(error.message || 'Failed to suspend user', 'error');
+      }
+    }
+
+    // ========== Unsuspend User ==========
+    async function unsuspendUser(userId) {
+      try {
+        const response = await adminFetch(`/api/admin/users/${userId}/unsuspend`, {
+          method: 'POST'
+        });
+
+        if (response.ok) {
+          showToast('User unsuspended successfully', 'success');
+          loadStats();
+          loadAllUsers();
+        } else {
+          throw new Error('Failed to unsuspend user');
+        }
+      } catch (error) {
+        showToast('Failed to unsuspend user', 'error');
+      }
+    }
+
+    // ========== Delete User ==========
+    let deleteTargetId = null;
+
+    function showDeleteUserModal(userId, username) {
+      deleteTargetId = userId;
+      document.getElementById('deleteUserModalUser').textContent = `User: ${username}`;
+      document.getElementById('deleteUserProjects').checked = false;
+      document.getElementById('deleteUserModal').classList.remove('hidden');
+    }
+
+    function closeDeleteUserModal() {
+      deleteTargetId = null;
+      document.getElementById('deleteUserModal').classList.add('hidden');
+    }
+
+    async function confirmDeleteUser() {
+      if (!deleteTargetId) return;
+
+      const deleteProjects = document.getElementById('deleteUserProjects').checked;
+      const url = `/api/admin/users/${deleteTargetId}${deleteProjects ? '?deleteProjects=true' : ''}`;
+
+      try {
+        const response = await adminFetch(url, { method: 'DELETE' });
+
+        if (response.ok) {
+          showToast('User deleted successfully', 'success');
+          closeDeleteUserModal();
+          loadStats();
+          loadAllUsers();
+          loadPendingUsers();
+        } else {
+          const data = await response.json();
+          throw new Error(data.error || 'Failed to delete user');
+        }
+      } catch (error) {
+        showToast(error.message || 'Failed to delete user', 'error');
+      }
+    }
+
+    // ========== System Tab ==========
+    async function loadAiUsage() {
+      const container = document.getElementById('aiUsageContent');
+      try {
+        const response = await adminFetch('/api/admin/ai-usage');
+        const stats = await response.json();
+
+        const rows = Object.entries(stats).map(([key, value]) => {
+          const label = key.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase());
+          const display = typeof value === 'number' ? value.toLocaleString() : String(value);
+          return `<div class="system-stat-row"><span class="system-stat-label">${escapeHtml(label)}</span><span class="system-stat-value">${escapeHtml(display)}</span></div>`;
+        }).join('');
+
+        container.innerHTML = rows || '<p style="color:var(--text-secondary);">No AI usage data available.</p>';
+      } catch (error) {
+        container.innerHTML = '<p style="color:var(--error);">Failed to load AI usage stats.</p>';
+      }
+    }
+
+    async function loadCacheStats() {
+      const container = document.getElementById('cacheStatsContent');
+      try {
+        const response = await adminFetch('/api/admin/cache-stats');
+        const stats = await response.json();
+
+        const rows = Object.entries(stats).map(([key, value]) => {
+          const label = key.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase());
+          const display = typeof value === 'number' ? value.toLocaleString() : String(value);
+          return `<div class="system-stat-row"><span class="system-stat-label">${escapeHtml(label)}</span><span class="system-stat-value">${escapeHtml(display)}</span></div>`;
+        }).join('');
+
+        container.innerHTML = rows || '<p style="color:var(--text-secondary);">No cache data available.</p>';
+      } catch (error) {
+        container.innerHTML = '<p style="color:var(--error);">Failed to load cache stats.</p>';
+      }
+    }
+
+    async function clearCache() {
+      showConfirmModal(
+        'Clear Cache',
+        'Are you sure you want to clear the response cache?',
+        async () => {
+          try {
+            const response = await adminFetch('/api/admin/cache-clear', { method: 'POST' });
+            if (response.ok) {
+              showToast('Cache cleared successfully', 'success');
+              loadCacheStats();
+            } else {
+              throw new Error('Failed to clear cache');
+            }
+          } catch (error) {
+            showToast('Failed to clear cache', 'error');
+          }
+        },
+        'btn-danger'
+      );
     }
 
     // Initialize

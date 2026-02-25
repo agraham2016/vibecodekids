@@ -260,6 +260,16 @@ export async function listUsers() {
   return rows.map(rowToUser);
 }
 
+export async function deleteUser(userId) {
+  const db = getPool();
+  const { rowCount } = await db.query('DELETE FROM users WHERE id = $1', [userId]);
+  if (rowCount === 0) {
+    const err = new Error(`User not found: ${userId}`);
+    err.code = 'ENOENT';
+    throw err;
+  }
+}
+
 export async function findUserBySubscriptionId(subscriptionId) {
   const db = getPool();
   const { rows } = await db.query(
