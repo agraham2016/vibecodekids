@@ -9,8 +9,7 @@
   align-items: center;
   justify-content: flex-start;
   position: relative;
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: visible;
   padding: 0;
 }
 

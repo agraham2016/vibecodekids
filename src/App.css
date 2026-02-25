@@ -5,9 +5,11 @@
   overflow: hidden;
 }
 
-/* Allow scrolling on landing page */
+/* Allow scrolling on landing page — single scroll container */
 .app:has(.landing-page) {
-  overflow: auto;
+  height: auto;
+  min-height: 100vh;
+  overflow: visible;
 }
 
 /* Loading Screen */

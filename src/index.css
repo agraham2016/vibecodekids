@@ -343,11 +343,7 @@ input, textarea {
     background-attachment: scroll;
   }
 
-  body::before {
-    position: absolute;
-    animation: none;
-  }
-
+  body::before,
   body::after {
     display: none;
   }
