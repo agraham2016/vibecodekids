@@ -150,166 +150,6 @@
       box-shadow: 0 8px 30px rgba(139, 92, 246, 0.4);
     }
     
-    /* Lobby State (multiplayer games) */
-    .lobby-container {
-      display: none;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      padding: 20px;
-      position: relative;
-      z-index: 1;
-    }
-    
-    .lobby-card {
-      width: 100%;
-      max-width: 420px;
-      padding: 32px;
-      background: rgba(255, 255, 255, 0.08);
-      backdrop-filter: blur(30px);
-      -webkit-backdrop-filter: blur(30px);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 24px;
-      box-shadow: 0 25px 80px rgba(0, 0, 0, 0.4);
-    }
-    
-    .lobby-title {
-      font-family: 'Orbitron', sans-serif;
-      font-size: 1.5rem;
-      font-weight: 700;
-      text-align: center;
-      margin-bottom: 6px;
-    }
-    
-    .lobby-creator {
-      font-size: 0.95rem;
-      color: rgba(255, 255, 255, 0.7);
-      text-align: center;
-      margin-bottom: 24px;
-    }
-    
-    .lobby-creator span {
-      color: #38bdf8;
-    }
-    
-    .lobby-thumb {
-      width: 100%;
-      aspect-ratio: 16/9;
-      background: rgba(255, 255, 255, 0.05);
-      border-radius: 12px;
-      margin-bottom: 24px;
-      overflow: hidden;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    
-    .lobby-thumb img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-    
-    .lobby-actions {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-    
-    .lobby-btn {
-      width: 100%;
-      padding: 14px 20px;
-      border-radius: 12px;
-      font-size: 1rem;
-      font-weight: 700;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      color: white;
-      font-family: inherit;
-    }
-    
-    .lobby-btn.primary {
-      background: linear-gradient(135deg, rgba(139, 92, 246, 0.6) 0%, rgba(236, 72, 153, 0.6) 100%);
-      backdrop-filter: blur(10px);
-    }
-    
-    .lobby-btn.primary:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 25px rgba(139, 92, 246, 0.3);
-    }
-    
-    .lobby-btn.secondary {
-      background: rgba(255, 255, 255, 0.1);
-    }
-    
-    .lobby-btn.secondary:hover {
-      background: rgba(255, 255, 255, 0.15);
-    }
-    
-    .lobby-divider {
-      text-align: center;
-      font-size: 0.9rem;
-      color: rgba(255, 255, 255, 0.6);
-      margin: 4px 0;
-    }
-    
-    .lobby-mp-section {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-    
-    .lobby-mp-section input {
-      width: 100%;
-      padding: 14px 18px;
-      background: rgba(255, 255, 255, 0.1);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 12px;
-      font-size: 1rem;
-      color: white;
-      font-family: inherit;
-      text-transform: none;
-      letter-spacing: normal;
-    }
-    
-    .lobby-mp-section input::placeholder {
-      color: rgba(255, 255, 255, 0.4);
-    }
-    
-    .lobby-mp-section input:focus {
-      outline: none;
-      border-color: rgba(139, 92, 246, 0.5);
-    }
-    
-    .lobby-mp-section input[placeholder="Room code"] {
-      text-align: center;
-      text-transform: uppercase;
-      letter-spacing: 4px;
-    }
-    
-    .lobby-error {
-      display: none;
-      padding: 12px;
-      background: rgba(239, 68, 68, 0.2);
-      border: 1px solid rgba(239, 68, 68, 0.4);
-      border-radius: 10px;
-      color: #fca5a5;
-      font-size: 0.9rem;
-      margin-bottom: 12px;
-    }
-    
-    @media (max-width: 768px) {
-      .lobby-card {
-        padding: 24px;
-      }
-      
-      .lobby-title {
-        font-size: 1.25rem;
-      }
-    }
-    
     /* Play Mode */
     .play-container {
       display: none;
@@ -960,26 +800,6 @@
     <a href="/" class="glass-btn">🚀 Open Studio</a>
   </div>
   
-  <!-- Lobby State (multiplayer games only) -->
-  <div id="lobby" class="lobby-container" style="display: none;">
-    <div class="lobby-card">
-      <h1 class="lobby-title" id="lobbyTitle">Game Title</h1>
-      <p class="lobby-creator" id="lobbyCreator">by Creator</p>
-      <div class="lobby-thumb" id="lobbyThumb"></div>
-      <div id="lobbyError" class="lobby-error"></div>
-      <div class="lobby-actions">
-        <button class="lobby-btn primary" onclick="startSolo()">Play Solo</button>
-        <div class="lobby-divider">or play with friends</div>
-        <div class="lobby-mp-section">
-          <input type="text" id="lobbyPlayerName" placeholder="Your name" maxlength="20">
-          <button id="lobbyCreateBtn" class="lobby-btn" onclick="lobbyCreateRoom()">Create Room</button>
-          <input type="text" id="lobbyRoomCode" placeholder="Room code" maxlength="4">
-          <button id="lobbyJoinBtn" class="lobby-btn secondary" onclick="lobbyJoinRoom()">Join Room</button>
-        </div>
-      </div>
-    </div>
-  </div>
-  
   <!-- Play State -->
   <div id="play" class="play-container">
     <header class="play-header">
@@ -1135,42 +955,14 @@
         
         const project = await response.json();
         currentProject = project;
-        if (project.multiplayer && !isPreviewMode) {
-          showPreGameLobby(project);
-        } else {
-          displayProject(project);
-        }
+        displayProject(project);
       } catch (err) {
         console.error('Error loading project:', err);
         showError();
       }
     }
     
-    // Show pre-game lobby (multiplayer games only)
-    function showPreGameLobby(project) {
-      document.title = `${project.title} - Vibe Code Arcade`;
-      document.getElementById('lobbyTitle').textContent = project.title;
-      document.getElementById('lobbyCreator').textContent = 'by ' + (project.creatorName || 'Anonymous');
-      
-      const thumb = document.getElementById('lobbyThumb');
-      if (project.thumbnail) {
-        thumb.innerHTML = '<img src="' + project.thumbnail + '" alt="">';
-      } else {
-        thumb.innerHTML = '';
-      }
-      
-      const savedName = localStorage.getItem('playerName');
-      if (savedName) {
-        document.getElementById('lobbyPlayerName').value = savedName;
-      }
-      
-      hideLobbyError();
-      document.getElementById('loading').style.display = 'none';
-      document.getElementById('lobby').style.display = 'flex';
-    }
-    
     // Display project (load game into iframe, show play container)
-    // mode: undefined = normal, 'solo' = from lobby Play Solo (no mp panel), 'room' = from lobby with room (show mp panel)
     function displayProject(project, mode) {
       // Update page title
       document.title = `${project.title} - Vibe Code Arcade`;
@@ -1233,31 +1025,12 @@
         try { iframe.focus(); } catch (e) { /* ignore */ }
       }, 100);
       
-      // Hide loading and lobby, show play container
+      // Hide loading, show play container
       document.getElementById('loading').style.display = 'none';
-      document.getElementById('lobby').style.display = 'none';
       document.getElementById('play').style.display = 'flex';
       
-      if (!isPreviewMode) {
-        if (mode === 'solo') {
-          // Do not show multiplayer panel for solo play
-        } else if (mode === 'room') {
-          const lobbyName = document.getElementById('lobbyPlayerName').value.trim();
-          if (lobbyName) {
-            document.getElementById('playerName').value = lobbyName;
-          }
-          initMultiplayer();
-          document.getElementById('mpToggle').style.display = 'flex';
-          showRoom();
-          updatePlayerList();
-          updateBadge(players.length);
-          pendingMultiplayerInject = true;
-          resetLobbyButtons();
-          mpPanelOpen = true;
-          document.getElementById('mpPanel').style.display = 'block';
-        } else {
-          initMultiplayer();
-        }
+      if (!isPreviewMode && currentProject && currentProject.multiplayer) {
+        initMultiplayer();
       }
     }
     
@@ -1370,111 +1143,6 @@
     // Load on page load
     loadProject();
     
-    // ========== LOBBY FUNCTIONS ==========
-    
-    function startSolo() {
-      document.getElementById('lobby').style.display = 'none';
-      displayProject(currentProject, 'solo');
-    }
-    
-    function lobbyCreateRoom() {
-      const name = getLobbyPlayerName();
-      if (!name) return;
-      
-      hideLobbyError();
-      setLobbyButtonLoading('lobbyCreateBtn', 'Connecting...');
-
-      const doCreate = () => {
-        ws.send(JSON.stringify({
-          type: 'create_room',
-          projectId: currentProject.id,
-          playerName: name
-        }));
-      };
-      if (!ws || ws.readyState !== WebSocket.OPEN) {
-        connectWebSocket(doCreate);
-      } else {
-        doCreate();
-      }
-    }
-    
-    function lobbyJoinRoom() {
-      const name = getLobbyPlayerName();
-      if (!name) return;
-      
-      const code = document.getElementById('lobbyRoomCode').value.trim().toUpperCase();
-      if (!code || code.length !== 4) {
-        showLobbyError('Please enter a 4-character room code.');
-        return;
-      }
-      
-      hideLobbyError();
-      setLobbyButtonLoading('lobbyJoinBtn', 'Joining...');
-
-      const doJoin = () => {
-        ws.send(JSON.stringify({
-          type: 'join_room',
-          roomCode: code,
-          playerName: name
-        }));
-      };
-      if (!ws || ws.readyState !== WebSocket.OPEN) {
-        connectWebSocket(doJoin);
-      } else {
-        doJoin();
-      }
-    }
-    
-    function startGameWithRoom() {
-      document.getElementById('lobby').style.display = 'none';
-      displayProject(currentProject, 'room');
-    }
-
-    function setLobbyButtonLoading(btnId, text) {
-      const btn = document.getElementById(btnId);
-      if (btn) {
-        btn.disabled = true;
-        btn.dataset.originalText = btn.textContent;
-        btn.textContent = text;
-        btn.style.opacity = '0.6';
-      }
-    }
-
-    function resetLobbyButtons() {
-      ['lobbyCreateBtn', 'lobbyJoinBtn'].forEach(function(btnId) {
-        const btn = document.getElementById(btnId);
-        if (btn) {
-          btn.disabled = false;
-          if (btn.dataset.originalText) {
-            btn.textContent = btn.dataset.originalText;
-          }
-          btn.style.opacity = '';
-        }
-      });
-    }
-    
-    function getLobbyPlayerName() {
-      const name = document.getElementById('lobbyPlayerName').value.trim();
-      if (!name) {
-        showLobbyError('Please enter your name first!');
-        return null;
-      }
-      localStorage.setItem('playerName', name);
-      return name;
-    }
-    
-    function showLobbyError(msg) {
-      resetLobbyButtons();
-      const el = document.getElementById('lobbyError');
-      el.textContent = msg;
-      el.style.display = 'block';
-    }
-    
-    function hideLobbyError() {
-      document.getElementById('lobbyError').style.display = 'none';
-      document.getElementById('lobbyError').textContent = '';
-    }
-    
     // ========== MULTIPLAYER FUNCTIONS ==========
     
     // Initialize multiplayer if project supports it
@@ -1500,7 +1168,7 @@
     }
     
     // Connect to WebSocket server
-    // Optional: onOpenCallback - called when socket opens (for lobby create/join)
+    // Optional: onOpenCallback - called when socket opens (e.g. after create/join from panel)
     function connectWebSocket(onOpenCallback) {
       if (ws && ws.readyState === WebSocket.OPEN) {
         if (onOpenCallback) onOpenCallback();
@@ -1533,7 +1201,6 @@
         if (wsConnectTimeout) { clearTimeout(wsConnectTimeout); wsConnectTimeout = null; }
         updateStatus(WS_STATUS.CONNECTED);
         hideError();
-        hideLobbyError();
         startPingInterval();
         if (onOpenCallback) onOpenCallback();
       };
@@ -1554,7 +1221,6 @@
         updateStatus(WS_STATUS.DISCONNECTED);
         ws = null;
         stopPingInterval();
-        resetLobbyButtons();
         
         // Reset room state
         if (currentRoomCode) {
@@ -1565,12 +1231,7 @@
       
       ws.onerror = (error) => {
         console.error('WebSocket error:', error);
-        const msg = 'Connection error. Please try again.';
-        if (document.getElementById('lobby').style.display === 'flex') {
-          showLobbyError(msg);
-        } else {
-          showMpError(msg);
-        }
+        showMpError('Connection error. Please try again.');
         updateStatus(WS_STATUS.DISCONNECTED);
       };
     }
@@ -1586,26 +1247,18 @@
           currentRoomCode = message.roomCode;
           players = message.players;
           addChatMessage('System', `Room created! Share code: ${message.roomCode}`);
-          if (document.getElementById('lobby').style.display === 'flex') {
-            startGameWithRoom();
-          } else {
-            showRoom();
-            updatePlayerList();
-            injectMultiplayerHelper(0);
-          }
+          showRoom();
+          updatePlayerList();
+          injectMultiplayerHelper();
           break;
           
         case 'room_joined':
           currentRoomCode = message.roomCode;
           players = message.players;
           addChatMessage('System', `Joined room ${message.roomCode}`);
-          if (document.getElementById('lobby').style.display === 'flex') {
-            startGameWithRoom();
-          } else {
-            showRoom();
-            updatePlayerList();
-            injectMultiplayerHelper(0);
-          }
+          showRoom();
+          updatePlayerList();
+          injectMultiplayerHelper();
           break;
           
         case 'player_joined':
@@ -1657,11 +1310,7 @@
           break;
           
         case 'error':
-          if (document.getElementById('lobby').style.display === 'flex') {
-            showLobbyError(message.message || 'Something went wrong. Please try again.');
-          } else {
-            showMpError(message.message);
-          }
+          showMpError(message.message || 'Something went wrong. Please try again.');
           break;
           
         case 'pong':
