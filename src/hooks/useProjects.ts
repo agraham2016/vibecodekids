@@ -39,8 +39,10 @@ const DEFAULT_HTML = `<!DOCTYPE html>
       font-size: 1.5rem;
       opacity: 0.9;
     }
-    .rocket {
-      font-size: 4rem;
+    .welcome-logo {
+      height: 80px;
+      width: auto;
+      filter: drop-shadow(0 0 16px rgba(167, 139, 250, 0.5));
       animation: bounce 1s ease infinite;
     }
     @keyframes bounce {
@@ -51,7 +53,7 @@ const DEFAULT_HTML = `<!DOCTYPE html>
 </head>
 <body>
   <div class="welcome">
-    <div class="rocket">🚀</div>
+    <img src="/images/logo.png" alt="VibeCode Kids" class="welcome-logo" />
     <h1>Vibe Code Studio</h1>
     <p>Tell me what you want to create and I'll help you make it!</p>
   </div>
