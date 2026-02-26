@@ -465,6 +465,9 @@
         </div>
       </div>
       <div class="header-actions">
+        <button class="action-btn refresh" onclick="refreshProject()" title="Reload latest code from Studio">
+          <span class="btn-emoji">🔄</span> Refresh
+        </button>
         <button class="action-btn like" onclick="likeProject(event)">
           <span class="btn-emoji">❤️</span> Like
         </button>
@@ -544,6 +547,27 @@
       }
     }
     
+    async function refreshProject() {
+      const projectId = getProjectId();
+      if (!projectId) return;
+
+      const btn = document.querySelector('.action-btn.refresh');
+      if (btn) { btn.disabled = true; btn.innerHTML = '<span class="btn-emoji">⏳</span> Loading...'; }
+
+      try {
+        const response = await fetch(`/api/projects/${projectId}`);
+        if (response.ok) {
+          const project = await response.json();
+          currentProject = project;
+          displayProject(project);
+        }
+      } catch (err) {
+        console.error('Error refreshing project:', err);
+      } finally {
+        if (btn) { btn.disabled = false; btn.innerHTML = '<span class="btn-emoji">🔄</span> Refresh'; }
+      }
+    }
+
     // Display project (load game into iframe, show play container)
     function displayProject(project, mode) {
       // Update page title
