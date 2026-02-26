@@ -664,8 +664,7 @@
       // no re-declaration errors on refresh — each srcdoc is a fresh document)
       iframe.srcdoc = codeToWrite;
 
-      // After iframe loads, inject multiplayer helper as a fallback
-      // (updates roomCode/playerId if they changed after initial injection)
+      // After iframe loads, inject viewport meta and (if needed) multiplayer helper
       iframe.onload = function() {
         try {
           const doc = iframe.contentDocument;
@@ -677,9 +676,9 @@
           }
         } catch (e) { /* cross-origin safety */ }
 
-        if (isMultiplayer) {
-          injectMultiplayerHelper();
-        }
+        // Multiplayer API is pre-injected into srcdoc HTML, so we do NOT call
+        // injectMultiplayerHelper() here — that would replace the VibeMultiplayer
+        // object and wipe out callbacks the game already registered.
       };
       
       // Focus iframe so arrow keys reach the game (click game area to play)
