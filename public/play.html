@@ -580,8 +580,9 @@
       document.getElementById('likeCount').textContent = project.likes || 0;
       updateLikeButton();
       
-      // Load code into iframe
+      // Load code into iframe (reset src first to avoid re-declaration errors on refresh)
       const iframe = document.getElementById('projectIframe');
+      iframe.src = 'about:blank';
       const doc = iframe.contentDocument || iframe.contentWindow.document;
       doc.open();
       doc.write(project.code);
