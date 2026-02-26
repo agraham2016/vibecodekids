@@ -617,6 +617,11 @@
         }
       } catch (e) { /* cross-origin safety */ }
 
+      // Set multiplayer flag BEFORE onload so the handler sees it
+      if (!isPreviewMode && currentProject && currentProject.multiplayer) {
+        pendingMultiplayerInject = true;
+      }
+
       // Defer multiplayer injection until iframe content is fully loaded
       iframe.onload = function() {
         if (pendingMultiplayerInject) {
@@ -624,6 +629,16 @@
           pendingMultiplayerInject = false;
         }
       };
+
+      // Safety net: if onload already fired (sync doc.write), inject after a short delay
+      if (pendingMultiplayerInject) {
+        setTimeout(function() {
+          if (pendingMultiplayerInject) {
+            injectMultiplayerHelper();
+            pendingMultiplayerInject = false;
+          }
+        }, 500);
+      }
       
       // Focus iframe so arrow keys reach the game (click game area to play)
       iframe.setAttribute('tabindex', '0');
@@ -634,10 +649,6 @@
       // Hide loading, show play container
       document.getElementById('loading').style.display = 'none';
       document.getElementById('play').style.display = 'flex';
-      
-      if (!isPreviewMode && currentProject && currentProject.multiplayer) {
-        initMultiplayer();
-      }
     }
     
     // Show error
