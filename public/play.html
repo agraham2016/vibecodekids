@@ -345,336 +345,6 @@
       display: block;
     }
     
-    /* Multiplayer Panel */
-    .multiplayer-panel {
-      position: fixed;
-      top: 80px;
-      right: 20px;
-      width: 320px;
-      max-height: calc(100vh - 120px);
-      background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(30px);
-      -webkit-backdrop-filter: blur(30px);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 20px;
-      padding: 20px;
-      z-index: 100;
-      overflow-y: auto;
-      box-shadow: 0 25px 80px rgba(0, 0, 0, 0.4);
-    }
-    
-    .mp-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 16px;
-    }
-    
-    .mp-title {
-      font-family: 'Orbitron', sans-serif;
-      font-size: 1.1rem;
-      font-weight: 700;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    
-    .mp-close {
-      background: rgba(255, 255, 255, 0.1);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      color: white;
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      cursor: pointer;
-      font-size: 1rem;
-      transition: all 0.2s ease;
-    }
-    
-    .mp-close:hover {
-      background: rgba(255, 255, 255, 0.2);
-    }
-    
-    .mp-section {
-      margin-bottom: 16px;
-    }
-    
-    .mp-section-title {
-      font-size: 0.85rem;
-      font-weight: 700;
-      color: rgba(255, 255, 255, 0.7);
-      margin-bottom: 10px;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-    }
-    
-    .mp-btn {
-      width: 100%;
-      padding: 14px 18px;
-      background: linear-gradient(135deg, rgba(139, 92, 246, 0.6) 0%, rgba(236, 72, 153, 0.6) 100%);
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      color: white;
-      border-radius: 12px;
-      font-size: 1rem;
-      font-weight: 700;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-    }
-    
-    .mp-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 25px rgba(139, 92, 246, 0.3);
-    }
-    
-    .mp-btn.secondary {
-      background: rgba(255, 255, 255, 0.1);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-    }
-    
-    .mp-btn.leave {
-      background: linear-gradient(135deg, rgba(239, 68, 68, 0.6) 0%, rgba(249, 115, 22, 0.6) 100%);
-    }
-    
-    .mp-input {
-      width: 100%;
-      padding: 14px 18px;
-      background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 12px;
-      font-size: 1rem;
-      color: white;
-      text-align: center;
-      margin-bottom: 12px;
-      text-transform: uppercase;
-      letter-spacing: 3px;
-      font-family: 'Orbitron', monospace;
-    }
-    
-    .mp-input::placeholder {
-      color: rgba(255, 255, 255, 0.4);
-      text-transform: none;
-      letter-spacing: normal;
-    }
-    
-    .mp-input:focus {
-      outline: none;
-      border-color: rgba(139, 92, 246, 0.6);
-      box-shadow: 0 0 20px rgba(139, 92, 246, 0.2);
-    }
-    
-    .room-code-display {
-      background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(6, 182, 212, 0.2) 100%);
-      border: 2px solid rgba(16, 185, 129, 0.5);
-      padding: 16px;
-      border-radius: 12px;
-      text-align: center;
-      margin-bottom: 16px;
-    }
-    
-    .room-code-label {
-      font-size: 0.8rem;
-      color: rgba(255, 255, 255, 0.7);
-      margin-bottom: 6px;
-    }
-    
-    .room-code {
-      font-family: 'Orbitron', monospace;
-      font-size: 2rem;
-      font-weight: 700;
-      color: #34d399;
-      letter-spacing: 8px;
-    }
-    
-    .room-code-hint {
-      font-size: 0.8rem;
-      color: rgba(255, 255, 255, 0.6);
-      margin-top: 8px;
-    }
-    
-    .player-list {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-    
-    .player-item {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 10px 14px;
-      background: rgba(255, 255, 255, 0.08);
-      border-radius: 10px;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-    
-    .player-avatar {
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 700;
-      font-size: 0.9rem;
-    }
-    
-    .player-info {
-      flex: 1;
-    }
-    
-    .player-name {
-      font-weight: 600;
-      font-size: 0.95rem;
-    }
-    
-    .player-badge {
-      font-size: 0.7rem;
-      padding: 3px 8px;
-      background: rgba(251, 191, 36, 0.3);
-      border: 1px solid rgba(251, 191, 36, 0.5);
-      border-radius: 20px;
-      color: #fde68a;
-      font-weight: 700;
-    }
-    
-    .player-badge.you {
-      background: rgba(139, 92, 246, 0.3);
-      border-color: rgba(139, 92, 246, 0.5);
-      color: #c4b5fd;
-    }
-    
-    .connection-status {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 10px 14px;
-      background: rgba(255, 255, 255, 0.05);
-      border-radius: 10px;
-      font-size: 0.85rem;
-      margin-bottom: 16px;
-    }
-    
-    .status-dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      background: #ef4444;
-    }
-    
-    .status-dot.connected {
-      background: #22c55e;
-      box-shadow: 0 0 10px rgba(34, 197, 94, 0.5);
-    }
-    
-    .status-dot.connecting {
-      background: #f59e0b;
-      animation: pulse 1s infinite;
-    }
-    
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.5; }
-    }
-    
-    .mp-error {
-      background: rgba(239, 68, 68, 0.2);
-      border: 1px solid rgba(239, 68, 68, 0.4);
-      color: #fca5a5;
-      padding: 12px 14px;
-      border-radius: 10px;
-      text-align: center;
-      font-size: 0.9rem;
-      margin-bottom: 12px;
-    }
-    
-    .mp-toggle-btn {
-      position: fixed;
-      top: 80px;
-      right: 20px;
-      padding: 14px 20px;
-      background: linear-gradient(135deg, rgba(16, 185, 129, 0.6) 0%, rgba(6, 182, 212, 0.6) 100%);
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      color: white;
-      border-radius: 50px;
-      font-weight: 700;
-      cursor: pointer;
-      z-index: 99;
-      transition: all 0.2s ease;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    
-    .mp-toggle-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 25px rgba(16, 185, 129, 0.3);
-    }
-    
-    .mp-badge {
-      background: rgba(255, 255, 255, 0.2);
-      padding: 2px 8px;
-      border-radius: 20px;
-      font-size: 0.8rem;
-    }
-    
-    /* Chat in multiplayer */
-    .mp-chat {
-      max-height: 200px;
-      overflow-y: auto;
-      margin-bottom: 12px;
-    }
-    
-    .mp-chat-message {
-      padding: 8px 12px;
-      background: rgba(255, 255, 255, 0.05);
-      border-radius: 8px;
-      margin-bottom: 6px;
-      font-size: 0.85rem;
-    }
-    
-    .mp-chat-message .sender {
-      font-weight: 700;
-      color: #a78bfa;
-    }
-    
-    .mp-chat-input {
-      display: flex;
-      gap: 8px;
-    }
-    
-    .mp-chat-input input {
-      flex: 1;
-      padding: 10px 14px;
-      background: rgba(255, 255, 255, 0.1);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      border-radius: 8px;
-      color: white;
-      font-size: 0.9rem;
-    }
-    
-    .mp-chat-input input:focus {
-      outline: none;
-      border-color: rgba(139, 92, 246, 0.5);
-    }
-    
-    .mp-chat-input button {
-      padding: 10px 16px;
-      background: rgba(139, 92, 246, 0.5);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      color: white;
-      border-radius: 8px;
-      cursor: pointer;
-      font-weight: 600;
-    }
-    
     @media (max-width: 1024px) {
       .play-content {
         padding: 4px;
@@ -758,23 +428,6 @@
       .play-footer {
         display: none;
       }
-      
-      .multiplayer-panel {
-        top: auto;
-        bottom: 0;
-        right: 0;
-        left: 0;
-        width: 100%;
-        max-height: 60vh;
-        border-radius: 20px 20px 0 0;
-      }
-      
-      .mp-toggle-btn {
-        top: auto;
-        bottom: 20px;
-        right: 20px;
-        min-height: 44px;
-      }
     }
     
     @media (max-width: 480px) {
@@ -838,87 +491,16 @@
     <button class="fullscreen-exit" onclick="toggleFullscreen()">✕ Exit Fullscreen</button>
   </div>
   
-  <!-- Multiplayer Toggle Button -->
-  <button id="mpToggle" class="mp-toggle-btn" style="display: none;" onclick="toggleMultiplayerPanel()">
-    🎮 Multiplayer <span id="mpBadge" class="mp-badge">0</span>
-  </button>
-  
-  <!-- Multiplayer Panel -->
-  <div id="mpPanel" class="multiplayer-panel" style="display: none;">
-    <div class="mp-header">
-      <span class="mp-title">🎮 Multiplayer</span>
-      <button class="mp-close" onclick="toggleMultiplayerPanel()">✕</button>
-    </div>
-    
-    <div class="connection-status">
-      <span id="statusDot" class="status-dot"></span>
-      <span id="statusText">Disconnected</span>
-    </div>
-    
-    <div id="mpError" class="mp-error" style="display: none;"></div>
-    
-    <!-- Join/Create View -->
-    <div id="mpLobby">
-      <div class="mp-section">
-        <div class="mp-section-title">Your Name</div>
-        <input type="text" id="playerName" class="mp-input" placeholder="Enter your name" maxlength="20" style="text-transform: none; letter-spacing: normal;">
-      </div>
-      
-      <div class="mp-section">
-        <div class="mp-section-title">Create a Room</div>
-        <button class="mp-btn" onclick="createRoom()">🚀 Start New Game</button>
-      </div>
-      
-      <div class="mp-section">
-        <div class="mp-section-title">Or Join a Room</div>
-        <input type="text" id="roomCode" class="mp-input" placeholder="ABCD" maxlength="4">
-        <button class="mp-btn secondary" onclick="joinRoom()">🎯 Join Game</button>
-      </div>
-    </div>
-    
-    <!-- In-Room View -->
-    <div id="mpRoom" style="display: none;">
-      <div class="room-code-display">
-        <div class="room-code-label">ROOM CODE</div>
-        <div class="room-code" id="displayRoomCode">----</div>
-        <div class="room-code-hint">Share this code with friends!</div>
-      </div>
-      
-      <div class="mp-section">
-        <div class="mp-section-title">Players (<span id="playerCount">0</span>)</div>
-        <div class="player-list" id="playerList"></div>
-      </div>
-      
-      <div class="mp-section">
-        <div class="mp-section-title">Chat</div>
-        <div class="mp-chat" id="mpChat"></div>
-        <div class="mp-chat-input">
-          <input type="text" id="chatInput" placeholder="Say something..." onkeypress="handleChatKeypress(event)">
-          <button onclick="sendChat()">Send</button>
-        </div>
-      </div>
-      
-      <button class="mp-btn leave" onclick="leaveRoom()">🚪 Leave Room</button>
-    </div>
-  </div>
-  
   <script>
     let currentProject = null;
     let ws = null;
     let myPlayerId = null;
     let currentRoomCode = null;
     let players = [];
-    let mpPanelOpen = false;
     let pendingMultiplayerInject = false;
     let wsConnectTimeout = null;
-    
-    // WebSocket connection status
-    const WS_STATUS = {
-      DISCONNECTED: 'disconnected',
-      CONNECTING: 'connecting',
-      CONNECTED: 'connected'
-    };
-    let wsStatus = WS_STATUS.DISCONNECTED;
+    let pendingCreateRoom = null;
+    let pendingJoinRoom = null;
     
     // Get project ID from URL
     function getProjectId() {
@@ -1143,39 +725,21 @@
     // Load on page load
     loadProject();
     
-    // ========== MULTIPLAYER FUNCTIONS ==========
+    // ========== MULTIPLAYER FUNCTIONS (game-hosted UI) ==========
     
-    // Initialize multiplayer if project supports it
+    // Initialize multiplayer: set flag so VibeMultiplayer is injected when iframe loads
     function initMultiplayer() {
       if (currentProject && currentProject.multiplayer) {
-        document.getElementById('mpToggle').style.display = 'flex';
-        // Auto-load saved name
-        const savedName = localStorage.getItem('playerName');
-        if (savedName) {
-          document.getElementById('playerName').value = savedName;
-        }
+        pendingMultiplayerInject = true;
       }
     }
     
-    // Toggle multiplayer panel
-    function toggleMultiplayerPanel() {
-      mpPanelOpen = !mpPanelOpen;
-      document.getElementById('mpPanel').style.display = mpPanelOpen ? 'block' : 'none';
-      
-      if (mpPanelOpen && !ws) {
-        connectWebSocket();
-      }
-    }
-    
-    // Connect to WebSocket server
-    // Optional: onOpenCallback - called when socket opens (e.g. after create/join from panel)
+    // Connect to WebSocket server (called when game requests create/join)
     function connectWebSocket(onOpenCallback) {
       if (ws && ws.readyState === WebSocket.OPEN) {
         if (onOpenCallback) onOpenCallback();
         return;
       }
-      
-      updateStatus(WS_STATUS.CONNECTING);
       
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       const wsUrl = `${protocol}//${window.location.host}/ws/multiplayer`;
@@ -1187,20 +751,12 @@
         if (ws && ws.readyState !== WebSocket.OPEN) {
           ws.close();
           ws = null;
-          const msg = 'Could not connect to the game server. Please try again.';
-          if (document.getElementById('lobby').style.display === 'flex') {
-            showLobbyError(msg);
-          } else {
-            showMpError(msg);
-          }
-          updateStatus(WS_STATUS.DISCONNECTED);
+          sendToGame({ type: 'mp_error', message: 'Could not connect to the game server. Please try again.' });
         }
       }, 8000);
       
       ws.onopen = () => {
         if (wsConnectTimeout) { clearTimeout(wsConnectTimeout); wsConnectTimeout = null; }
-        updateStatus(WS_STATUS.CONNECTED);
-        hideError();
         startPingInterval();
         if (onOpenCallback) onOpenCallback();
       };
@@ -1218,21 +774,15 @@
       
       ws.onclose = () => {
         if (wsConnectTimeout) { clearTimeout(wsConnectTimeout); wsConnectTimeout = null; }
-        updateStatus(WS_STATUS.DISCONNECTED);
         ws = null;
         stopPingInterval();
-        
-        // Reset room state
-        if (currentRoomCode) {
-          showLobby();
-          currentRoomCode = null;
-        }
+        currentRoomCode = null;
+        players = [];
       };
       
       ws.onerror = (error) => {
         console.error('WebSocket error:', error);
-        showMpError('Connection error. Please try again.');
-        updateStatus(WS_STATUS.DISCONNECTED);
+        sendToGame({ type: 'mp_error', message: 'Connection error. Please try again.' });
       };
     }
     
@@ -1246,52 +796,37 @@
         case 'room_created':
           currentRoomCode = message.roomCode;
           players = message.players;
-          addChatMessage('System', `Room created! Share code: ${message.roomCode}`);
-          showRoom();
-          updatePlayerList();
-          injectMultiplayerHelper();
+          sendToGame({ type: 'mp_room_created', roomCode: message.roomCode, players: message.players, playerId: myPlayerId });
           break;
           
         case 'room_joined':
           currentRoomCode = message.roomCode;
           players = message.players;
-          addChatMessage('System', `Joined room ${message.roomCode}`);
-          showRoom();
-          updatePlayerList();
-          injectMultiplayerHelper();
+          sendToGame({ type: 'mp_room_joined', roomCode: message.roomCode, players: message.players, playerId: myPlayerId });
           break;
           
         case 'player_joined':
           players = message.players;
-          updatePlayerList();
-          addChatMessage('System', `${message.playerName} joined the game!`);
           sendToGame({ type: 'multiplayer_player_joined', players: players });
           break;
           
         case 'player_left':
           players = message.players;
-          updatePlayerList();
-          addChatMessage('System', `${message.playerName} left the game.`);
           sendToGame({ type: 'multiplayer_player_left', players: players });
           break;
           
         case 'host_changed':
-          addChatMessage('System', `${message.newHostName} is now the host.`);
-          updatePlayerList();
+          players = players.map(p => ({ ...p, isHost: p.id === message.newHostId }));
+          sendToGame({ type: 'mp_host_changed', newHostName: message.newHostName, players: players });
           break;
           
         case 'room_left':
           currentRoomCode = null;
           players = [];
-          showLobby();
-          break;
-          
-        case 'chat':
-          addChatMessage(message.fromPlayerName, message.message);
+          sendToGame({ type: 'mp_room_left' });
           break;
           
         case 'game_state':
-          // Forward game state to iframe
           sendToGame({
             type: 'multiplayer_state',
             state: message.state,
@@ -1300,7 +835,6 @@
           break;
           
         case 'player_input':
-          // Forward player input to iframe
           sendToGame({
             type: 'multiplayer_input',
             input: message.input,
@@ -1310,209 +844,61 @@
           break;
           
         case 'error':
-          showMpError(message.message || 'Something went wrong. Please try again.');
+          sendToGame({ type: 'mp_error', message: message.message || 'Something went wrong. Please try again.' });
           break;
           
         case 'pong':
-          // Keep-alive response
           break;
       }
     }
     
-    // Create a new room
-    function createRoom() {
-      const name = getPlayerName();
-      if (!name) return;
-      
-      if (!ws || ws.readyState !== WebSocket.OPEN) {
-        showMpError('Not connected. Please try again.');
-        connectWebSocket();
+    // Handle create/join/leave from game (via postMessage)
+    function handleGameMultiplayerRequest(data) {
+      if (data.type === 'mp_create_room') {
+        const name = (data.playerName || '').toString().trim().slice(0, 20) || 'Player';
+        localStorage.setItem('playerName', name);
+        pendingCreateRoom = { playerName: name };
+        connectWebSocket(function() {
+          if (ws && ws.readyState === WebSocket.OPEN && pendingCreateRoom) {
+            ws.send(JSON.stringify({
+              type: 'create_room',
+              projectId: currentProject.id,
+              playerName: pendingCreateRoom.playerName
+            }));
+            pendingCreateRoom = null;
+          }
+        });
         return;
       }
-      
-      ws.send(JSON.stringify({
-        type: 'create_room',
-        projectId: currentProject.id,
-        playerName: name
-      }));
-    }
-    
-    // Join an existing room
-    function joinRoom() {
-      const name = getPlayerName();
-      if (!name) return;
-      
-      const code = document.getElementById('roomCode').value.trim().toUpperCase();
-      if (!code || code.length !== 4) {
-        showMpError('Please enter a 4-character room code.');
-        return;
-      }
-      
-      if (!ws || ws.readyState !== WebSocket.OPEN) {
-        showMpError('Not connected. Please try again.');
-        connectWebSocket();
-        return;
-      }
-      
-      ws.send(JSON.stringify({
-        type: 'join_room',
-        roomCode: code,
-        playerName: name
-      }));
-    }
-    
-    // Leave the current room
-    function leaveRoom() {
-      if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ type: 'leave_room' }));
-      }
-      currentRoomCode = null;
-      players = [];
-      showLobby();
-    }
-    
-    // Get and validate player name
-    function getPlayerName() {
-      const name = document.getElementById('playerName').value.trim();
-      if (!name) {
-        showMpError('Please enter your name first!');
-        return null;
-      }
-      localStorage.setItem('playerName', name);
-      hideError();
-      return name;
-    }
-    
-    // Show lobby view
-    function showLobby() {
-      document.getElementById('mpLobby').style.display = 'block';
-      document.getElementById('mpRoom').style.display = 'none';
-      updateBadge(0);
-    }
-    
-    // Show room view
-    function showRoom() {
-      document.getElementById('mpLobby').style.display = 'none';
-      document.getElementById('mpRoom').style.display = 'block';
-      document.getElementById('displayRoomCode').textContent = currentRoomCode;
-      updateBadge(players.length);
-    }
-    
-    // Update player list UI
-    function updatePlayerList() {
-      const list = document.getElementById('playerList');
-      list.innerHTML = '';
-      
-      players.forEach(player => {
-        const isMe = player.id === myPlayerId;
-        const initials = player.name.slice(0, 2).toUpperCase();
-        
-        const div = document.createElement('div');
-        div.className = 'player-item';
-
-        const avatar = document.createElement('div');
-        avatar.className = 'player-avatar';
-        avatar.textContent = initials;
-        div.appendChild(avatar);
-
-        const info = document.createElement('div');
-        info.className = 'player-info';
-        const nameSpan = document.createElement('span');
-        nameSpan.className = 'player-name';
-        nameSpan.textContent = player.name;
-        info.appendChild(nameSpan);
-        div.appendChild(info);
-
-        if (player.isHost) {
-          const hostBadge = document.createElement('span');
-          hostBadge.className = 'player-badge';
-          hostBadge.textContent = 'HOST';
-          div.appendChild(hostBadge);
+      if (data.type === 'mp_join_room') {
+        const name = (data.playerName || '').toString().trim().slice(0, 20) || 'Player';
+        const code = (data.roomCode || '').toString().trim().replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 4);
+        localStorage.setItem('playerName', name);
+        if (!code || code.length !== 4) {
+          sendToGame({ type: 'mp_error', message: 'Please enter a valid 4-character room code.' });
+          return;
         }
-        if (isMe) {
-          const youBadge = document.createElement('span');
-          youBadge.className = 'player-badge you';
-          youBadge.textContent = 'YOU';
-          div.appendChild(youBadge);
+        pendingJoinRoom = { roomCode: code, playerName: name };
+        connectWebSocket(function() {
+          if (ws && ws.readyState === WebSocket.OPEN && pendingJoinRoom) {
+            ws.send(JSON.stringify({
+              type: 'join_room',
+              roomCode: pendingJoinRoom.roomCode,
+              playerName: pendingJoinRoom.playerName
+            }));
+            pendingJoinRoom = null;
+          }
+        });
+        return;
+      }
+      if (data.type === 'mp_leave_room') {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ type: 'leave_room' }));
         }
-
-        list.appendChild(div);
-      });
-      
-      document.getElementById('playerCount').textContent = players.length;
-      updateBadge(players.length);
-    }
-    
-    // Update badge count
-    function updateBadge(count) {
-      document.getElementById('mpBadge').textContent = count;
-    }
-    
-    // Update connection status
-    function updateStatus(status) {
-      wsStatus = status;
-      const dot = document.getElementById('statusDot');
-      const text = document.getElementById('statusText');
-      
-      dot.className = 'status-dot';
-      
-      switch (status) {
-        case WS_STATUS.CONNECTED:
-          dot.classList.add('connected');
-          text.textContent = 'Connected';
-          break;
-        case WS_STATUS.CONNECTING:
-          dot.classList.add('connecting');
-          text.textContent = 'Connecting...';
-          break;
-        default:
-          text.textContent = 'Disconnected';
+        currentRoomCode = null;
+        players = [];
+        return;
       }
-    }
-    
-    // Show multiplayer error message
-    function showMpError(msg) {
-      const el = document.getElementById('mpError');
-      el.textContent = msg;
-      el.style.display = 'block';
-    }
-    
-    // Hide error message
-    function hideError() {
-      document.getElementById('mpError').style.display = 'none';
-    }
-    
-    // Chat functions
-    function sendChat() {
-      const input = document.getElementById('chatInput');
-      const text = input.value.trim();
-      if (!text || !ws || ws.readyState !== WebSocket.OPEN) return;
-      
-      ws.send(JSON.stringify({
-        type: 'chat',
-        text: text
-      }));
-      
-      input.value = '';
-    }
-    
-    function handleChatKeypress(event) {
-      if (event.key === 'Enter') {
-        sendChat();
-      }
-    }
-    
-    function addChatMessage(sender, message) {
-      const chat = document.getElementById('mpChat');
-      const div = document.createElement('div');
-      div.className = 'mp-chat-message';
-      const senderSpan = document.createElement('span');
-      senderSpan.className = 'sender';
-      senderSpan.textContent = sender + ':';
-      div.appendChild(senderSpan);
-      div.appendChild(document.createTextNode(' ' + message));
-      chat.appendChild(div);
-      chat.scrollTop = chat.scrollHeight;
     }
     
     // Inject multiplayer helper into iframe
@@ -1532,43 +918,78 @@
         }
 
         const script = iframe.contentDocument.createElement('script');
+        const roomCodeJson = JSON.stringify(currentRoomCode || null);
+        const playersJson = JSON.stringify(players).replace(/<\/script>/gi, '<\\/script>');
+        const playerIdEsc = (myPlayerId || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
         script.textContent = `
-          // Vibe Code Multiplayer API
-          window.VibeMultiplayer = {
-            sendState: function(state) {
-              window.parent.postMessage({ type: 'mp_state', state: state }, '*');
-            },
-            sendInput: function(input) {
-              window.parent.postMessage({ type: 'mp_input', input: input }, '*');
-            },
-            onStateReceived: null,
-            onInputReceived: null,
-            onPlayerJoined: null,
-            onPlayerLeft: null,
-            playerId: '${myPlayerId.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}',
-            players: ${JSON.stringify(players).replace(/<\/script>/gi, '<\\/script>')}
-          };
-          
-          window.addEventListener('message', function(event) {
-            if (event.data.type === 'multiplayer_state' && window.VibeMultiplayer.onStateReceived) {
-              window.VibeMultiplayer.onStateReceived(event.data.state, event.data.fromPlayerId);
-            }
-            if (event.data.type === 'multiplayer_input' && window.VibeMultiplayer.onInputReceived) {
-              window.VibeMultiplayer.onInputReceived(event.data.input, event.data.fromPlayerId, event.data.fromPlayerName);
-            }
-            if (event.data.type === 'multiplayer_player_joined' && window.VibeMultiplayer.onPlayerJoined) {
-              window.VibeMultiplayer.onPlayerJoined(event.data.players);
-            }
-            if (event.data.type === 'multiplayer_player_left' && window.VibeMultiplayer.onPlayerLeft) {
-              window.VibeMultiplayer.onPlayerLeft(event.data.players);
-            }
-          });
-          
-          console.log('🎮 Vibe Multiplayer API ready! Player: ' + window.VibeMultiplayer.playerId);
+          (function() {
+            window.VibeMultiplayer = {
+              roomCode: ${roomCodeJson},
+              playerId: '${playerIdEsc}',
+              players: ${playersJson},
+              createRoom: function(playerName) {
+                window.parent.postMessage({ type: 'mp_create_room', playerName: (playerName || 'Player').toString().trim().slice(0, 20) || 'Player' }, '*');
+              },
+              joinRoom: function(code, playerName) {
+                window.parent.postMessage({ type: 'mp_join_room', roomCode: String(code || ''), playerName: (playerName || 'Player').toString().trim().slice(0, 20) || 'Player' }, '*');
+              },
+              leaveRoom: function() {
+                window.parent.postMessage({ type: 'mp_leave_room' }, '*');
+              },
+              sendState: function(state) {
+                window.parent.postMessage({ type: 'mp_state', state: state }, '*');
+              },
+              sendInput: function(input) {
+                window.parent.postMessage({ type: 'mp_input', input: input }, '*');
+              },
+              onRoomCreated: null,
+              onRoomJoined: null,
+              onRoomLeft: null,
+              onError: null,
+              onStateReceived: null,
+              onInputReceived: null,
+              onPlayerJoined: null,
+              onPlayerLeft: null
+            };
+            window.addEventListener('message', function(event) {
+              var d = event.data;
+              if (d.type === 'mp_room_created') {
+                if (d.playerId) window.VibeMultiplayer.playerId = d.playerId;
+                window.VibeMultiplayer.roomCode = d.roomCode;
+                window.VibeMultiplayer.players = d.players || [];
+                if (window.VibeMultiplayer.onRoomCreated) window.VibeMultiplayer.onRoomCreated(d.roomCode, d.players);
+              } else if (d.type === 'mp_room_joined') {
+                if (d.playerId) window.VibeMultiplayer.playerId = d.playerId;
+                window.VibeMultiplayer.roomCode = d.roomCode;
+                window.VibeMultiplayer.players = d.players || [];
+                if (window.VibeMultiplayer.onRoomJoined) window.VibeMultiplayer.onRoomJoined(d.roomCode, d.players);
+              } else if (d.type === 'mp_room_left') {
+                window.VibeMultiplayer.roomCode = null;
+                window.VibeMultiplayer.players = [];
+                if (window.VibeMultiplayer.onRoomLeft) window.VibeMultiplayer.onRoomLeft();
+              } else if (d.type === 'mp_error') {
+                if (window.VibeMultiplayer.onError) window.VibeMultiplayer.onError(d.message || 'Error');
+              } else if (d.type === 'multiplayer_state' && window.VibeMultiplayer.onStateReceived) {
+                window.VibeMultiplayer.onStateReceived(d.state, d.fromPlayerId);
+              } else if (d.type === 'multiplayer_input' && window.VibeMultiplayer.onInputReceived) {
+                window.VibeMultiplayer.onInputReceived(d.input, d.fromPlayerId, d.fromPlayerName);
+              } else if (d.type === 'multiplayer_player_joined' && window.VibeMultiplayer.onPlayerJoined) {
+                window.VibeMultiplayer.players = d.players || [];
+                window.VibeMultiplayer.onPlayerJoined(d.players);
+              } else if (d.type === 'multiplayer_player_left' && window.VibeMultiplayer.onPlayerLeft) {
+                window.VibeMultiplayer.players = d.players || [];
+                window.VibeMultiplayer.onPlayerLeft(d.players);
+              } else if (d.type === 'mp_host_changed') {
+                window.VibeMultiplayer.players = d.players || window.VibeMultiplayer.players;
+                if (window.VibeMultiplayer.onPlayerJoined) window.VibeMultiplayer.onPlayerJoined(window.VibeMultiplayer.players);
+              }
+            });
+            console.log('🎮 Vibe Multiplayer API ready (game-hosted). Player: ' + window.VibeMultiplayer.playerId);
+          })();
         `;
         iframe.contentDocument.body.appendChild(script);
       } catch (e) {
-        console.error('Could not inject multiplayer helper:', e);
+        console.error('Multiplayer inject:', e);
         if (retries < 15) {
           setTimeout(function() { injectMultiplayerHelper(retries + 1); }, 300);
         }
@@ -1585,20 +1006,18 @@
     
     // Listen for messages from game iframe
     window.addEventListener('message', function(event) {
+      const data = event.data;
+      if (data.type === 'mp_create_room' || data.type === 'mp_join_room' || data.type === 'mp_leave_room') {
+        handleGameMultiplayerRequest(data);
+        return;
+      }
       if (!ws || ws.readyState !== WebSocket.OPEN) return;
       
-      if (event.data.type === 'mp_state') {
-        ws.send(JSON.stringify({
-          type: 'game_state',
-          state: event.data.state
-        }));
+      if (data.type === 'mp_state') {
+        ws.send(JSON.stringify({ type: 'game_state', state: data.state }));
       }
-      
-      if (event.data.type === 'mp_input') {
-        ws.send(JSON.stringify({
-          type: 'player_input',
-          input: event.data.input
-        }));
+      if (data.type === 'mp_input') {
+        ws.send(JSON.stringify({ type: 'player_input', input: data.input }));
       }
     });
     

@@ -262,27 +262,46 @@ MULTIPLAYER GAME — CRITICAL RULES (use window.VibeMultiplayer API):
 The VibeMultiplayer API is AUTOMATICALLY injected into the game iframe at runtime.
 You do NOT need to load any library for it. Just use window.VibeMultiplayer.
 
+THE GAME HOSTS THE MULTIPLAYER UI. Build Create Room / Join Room controls INSIDE your game — never rely on platform UI.
+
 API REFERENCE:
-- window.VibeMultiplayer.playerId          — this player's unique ID string
-- window.VibeMultiplayer.players           — array of { id, name, isHost } for all connected players
-- window.VibeMultiplayer.sendState(obj)    — broadcast a game-state object to ALL other players
-- window.VibeMultiplayer.sendInput(obj)    — send a single action/move to ALL other players
-- window.VibeMultiplayer.onStateReceived   — callback: function(state, fromPlayerId) {}
-- window.VibeMultiplayer.onInputReceived   — callback: function(input, fromPlayerId, fromPlayerName) {}
-- window.VibeMultiplayer.onPlayerJoined    — callback: function(updatedPlayersArray) {}
-- window.VibeMultiplayer.onPlayerLeft      — callback: function(updatedPlayersArray) {}
+- window.VibeMultiplayer.createRoom(playerName)   — create a room; playerName is required (e.g. from input)
+- window.VibeMultiplayer.joinRoom(roomCode, playerName) — join using a 4-character room code
+- window.VibeMultiplayer.leaveRoom()             — leave the current room
+- window.VibeMultiplayer.roomCode                — current room code (null if not in a room); set after create/join
+- window.VibeMultiplayer.playerId                — this player's unique ID string
+- window.VibeMultiplayer.players                 — array of { id, name, isHost } for all connected players
+- window.VibeMultiplayer.sendState(obj)          — broadcast a game-state object to ALL other players
+- window.VibeMultiplayer.sendInput(obj)          — send a single action/move to ALL other players
+- window.VibeMultiplayer.onRoomCreated(roomCode, players)  — callback when room is created (host)
+- window.VibeMultiplayer.onRoomJoined(roomCode, players)   — callback when joined a room
+- window.VibeMultiplayer.onRoomLeft()            — callback when leaving or kicked
+- window.VibeMultiplayer.onError(message)        — callback when an error occurs (e.g. invalid code, connection failed)
+- window.VibeMultiplayer.onStateReceived         — callback: function(state, fromPlayerId) {}
+- window.VibeMultiplayer.onInputReceived         — callback: function(input, fromPlayerId, fromPlayerName) {}
+- window.VibeMultiplayer.onPlayerJoined         — callback: function(updatedPlayersArray) {}
+- window.VibeMultiplayer.onPlayerLeft           — callback: function(updatedPlayersArray) {}
 
 STARTUP PATTERN (MUST follow this):
 1. On DOMContentLoaded or window.onload, check if window.VibeMultiplayer exists.
 2. If it does NOT exist, run the game in local/solo mode (both sides playable on one screen).
-3. If it DOES exist, run in online multiplayer mode:
-   a. Determine this player's role from VibeMultiplayer.players:
-      - The player whose isHost === true is Player 1 (e.g. White in chess, X in tic-tac-toe, left paddle in pong).
-      - The other player is Player 2 (e.g. Black, O, right paddle).
-      - Use: const me = VibeMultiplayer.players.find(p => p.id === VibeMultiplayer.playerId);
-      - const isHost = me && me.isHost;
-   b. If VibeMultiplayer.players.length < 2, show a "Waiting for opponent..." message.
-   c. Use VibeMultiplayer.onPlayerJoined to detect when a second player arrives, then start the game.
+3. If it DOES exist, run in online multiplayer mode. YOUR GAME MUST RENDER THE CREATE/JOIN UI:
+   a. If VibeMultiplayer.roomCode is null (not in a room), show:
+      - An input for the player's name (or a default like "Player")
+      - A "Create Room" button — onClick: VibeMultiplayer.createRoom(playerName)
+      - An input for room code (4 characters)
+      - A "Join Room" button — onClick: VibeMultiplayer.joinRoom(roomCodeInput.value, playerName)
+   b. Set VibeMultiplayer.onRoomCreated = function(roomCode, players) {
+        // Show "Room code: {roomCode} — Share this code with your friend!" and "Waiting for opponent..."
+        // Store roomCode; when onPlayerJoined fires with 2 players, start the game.
+      };
+   c. Set VibeMultiplayer.onRoomJoined = function(roomCode, players) {
+        // Hide create/join UI; show "Waiting for opponent..." or start if 2 players
+      };
+   d. Set VibeMultiplayer.onError = function(message) { /* Show error to user (e.g. "Room not found") */ };
+   e. Set VibeMultiplayer.onRoomLeft = function() { /* Return to create/join UI */ };
+   f. Use VibeMultiplayer.onPlayerJoined to detect when a second player arrives, then start the game.
+   g. NEVER mention links or URLs. Players join using the 4-character ROOM CODE only.
 
 TURN-BASED GAMES (chess, checkers, tic-tac-toe, connect-4, battleship, etc.):
 - Keep a "currentTurn" variable. Host goes first.
