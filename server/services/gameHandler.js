@@ -22,6 +22,7 @@
  */
 
 import { getSystemPrompt } from '../prompts/index.js';
+import { detectMultiplayerIntent } from '../prompts/genres.js';
 import {
   getPersonalityWrapper,
   GROK_CRITIC_PROMPT,
@@ -310,13 +311,21 @@ async function handleSingleModel({ prompt, currentCode, conversationHistory, gam
   const personalityWrapper = getPersonalityWrapper(targetModel);
   const maxTokens = calculateMaxTokens(currentCode);
 
+  // If multiplayer intent detected, prepend a hard reminder to the user message
+  const isMultiplayerRequest = detectMultiplayerIntent(prompt) ||
+    (gameConfig && gameConfig.customNotes && detectMultiplayerIntent(gameConfig.customNotes)) ||
+    (currentCode && currentCode.includes('VibeMultiplayer'));
+  const finalPrompt = isMultiplayerRequest
+    ? `[MULTIPLAYER GAME — You MUST use the window.VibeMultiplayer API. Include Create Room / Join Room UI inside the game. See the MULTIPLAYER GAME RULES in the system prompt.]\n\n${prompt}`
+    : prompt;
+
   // Build conversation messages
   const rawMessages = [
     ...conversationHistory.map(msg => ({
       role: msg.role,
       content: formatMessageContent(msg.content, msg.image)
     })),
-    { role: 'user', content: formatMessageContent(prompt, image) }
+    { role: 'user', content: formatMessageContent(finalPrompt, image) }
   ];
   const messages = trimConversationHistory(rawMessages, 12);
 

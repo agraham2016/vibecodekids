@@ -344,9 +344,14 @@ export const MULTIPLAYER_KEYWORDS = [
   '2 player', 'two player', '2-player', 'two-player',
   'multiplayer', 'multi player', 'multi-player',
   'play with friend', 'play with friends', 'play together',
-  'play online', 'online game', 'versus', 'vs ',
+  'with my friend', 'with my friends', 'with friends',
+  'play online', 'online game', 'online chess', 'online checkers',
+  'online tic tac toe', 'online connect',
+  'versus', 'vs ',
   'pvp', 'player vs player', 'play against',
   '1v1', '1 vs 1', 'head to head',
+  'against my friend', 'against a friend', 'challenge a friend',
+  'invite a friend', 'room code',
 ];
 
 /**

@@ -167,7 +167,8 @@ USE THIS CONFIG to make the game feel personal:
     (gameConfig && gameConfig.customNotes && detectMultiplayerIntent(gameConfig.customNotes)) ||
     (gameGenre && detectMultiplayerIntent(gameGenre));
   if (hasMultiplayerCode || wantsMultiplayer) {
-    dynamicParts.push(MULTIPLAYER_GAME_RULES);
+    // PREPEND (not push) so multiplayer rules appear FIRST in dynamic context
+    dynamicParts.unshift(`⚠️ MANDATORY: The user is requesting a MULTIPLAYER ONLINE game. You MUST integrate the window.VibeMultiplayer API as described below. The game MUST include an in-game lobby with Create Room / Join Room UI. This is NOT optional — a game without VibeMultiplayer integration is WRONG.\n\n` + MULTIPLAYER_GAME_RULES);
   }
 
   // Detect Phaser code
