@@ -584,8 +584,77 @@
       const iframe = document.getElementById('projectIframe');
       iframe.src = 'about:blank';
       const doc = iframe.contentDocument || iframe.contentWindow.document;
+
+      // For multiplayer games, prepend the VibeMultiplayer API directly into the HTML
+      // so it's available BEFORE the game's window.onload fires.
+      let codeToWrite = project.code;
+      const isMultiplayer = !isPreviewMode && currentProject && currentProject.multiplayer;
+      if (isMultiplayer) {
+        const roomCodeJson = JSON.stringify(currentRoomCode || null);
+        const playersJson = JSON.stringify(players).replace(/<\/script>/gi, '<\\/script>');
+        const playerIdEsc = (myPlayerId || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+        const mpBootstrap = '<script>' +
+          '(function(){' +
+          'window.VibeMultiplayer={' +
+            'roomCode:' + roomCodeJson + ',' +
+            "playerId:'" + playerIdEsc + "'," +
+            'players:' + playersJson + ',' +
+            "createRoom:function(n){window.parent.postMessage({type:'mp_create_room',playerName:(n||'Player').toString().trim().slice(0,20)||'Player'},'*')}," +
+            "joinRoom:function(c,n){window.parent.postMessage({type:'mp_join_room',roomCode:String(c||''),playerName:(n||'Player').toString().trim().slice(0,20)||'Player'},'*')}," +
+            "leaveRoom:function(){window.parent.postMessage({type:'mp_leave_room'},'*')}," +
+            "sendState:function(s){window.parent.postMessage({type:'mp_state',state:s},'*')}," +
+            "sendInput:function(i){window.parent.postMessage({type:'mp_input',input:i},'*')}," +
+            'onRoomCreated:null,onRoomJoined:null,onRoomLeft:null,onError:null,' +
+            'onStateReceived:null,onInputReceived:null,onPlayerJoined:null,onPlayerLeft:null' +
+          '};' +
+          "window.addEventListener('message',function(e){" +
+            'var d=e.data;' +
+            "if(d.type==='mp_room_created'){" +
+              'if(d.playerId)window.VibeMultiplayer.playerId=d.playerId;' +
+              'window.VibeMultiplayer.roomCode=d.roomCode;' +
+              'window.VibeMultiplayer.players=d.players||[];' +
+              'if(window.VibeMultiplayer.onRoomCreated)window.VibeMultiplayer.onRoomCreated(d.roomCode,d.players);' +
+            "}else if(d.type==='mp_room_joined'){" +
+              'if(d.playerId)window.VibeMultiplayer.playerId=d.playerId;' +
+              'window.VibeMultiplayer.roomCode=d.roomCode;' +
+              'window.VibeMultiplayer.players=d.players||[];' +
+              'if(window.VibeMultiplayer.onRoomJoined)window.VibeMultiplayer.onRoomJoined(d.roomCode,d.players);' +
+            "}else if(d.type==='mp_room_left'){" +
+              'window.VibeMultiplayer.roomCode=null;window.VibeMultiplayer.players=[];' +
+              'if(window.VibeMultiplayer.onRoomLeft)window.VibeMultiplayer.onRoomLeft();' +
+            "}else if(d.type==='mp_error'){" +
+              "if(window.VibeMultiplayer.onError)window.VibeMultiplayer.onError(d.message||'Error');" +
+            "}else if(d.type==='multiplayer_state'&&window.VibeMultiplayer.onStateReceived){" +
+              'window.VibeMultiplayer.onStateReceived(d.state,d.fromPlayerId);' +
+            "}else if(d.type==='multiplayer_input'&&window.VibeMultiplayer.onInputReceived){" +
+              'window.VibeMultiplayer.onInputReceived(d.input,d.fromPlayerId,d.fromPlayerName);' +
+            "}else if(d.type==='multiplayer_player_joined'&&window.VibeMultiplayer.onPlayerJoined){" +
+              'window.VibeMultiplayer.players=d.players||[];' +
+              'window.VibeMultiplayer.onPlayerJoined(d.players);' +
+            "}else if(d.type==='multiplayer_player_left'&&window.VibeMultiplayer.onPlayerLeft){" +
+              'window.VibeMultiplayer.players=d.players||[];' +
+              'window.VibeMultiplayer.onPlayerLeft(d.players);' +
+            "}else if(d.type==='mp_host_changed'){" +
+              'window.VibeMultiplayer.players=d.players||window.VibeMultiplayer.players;' +
+              'if(window.VibeMultiplayer.onPlayerJoined)window.VibeMultiplayer.onPlayerJoined(window.VibeMultiplayer.players);' +
+            '}' +
+          '});' +
+          "console.log('\\uD83C\\uDFAE Vibe Multiplayer API ready (pre-injected). Player: '+window.VibeMultiplayer.playerId);" +
+          '})();' +
+        '<\\/script>';
+
+        // Insert the bootstrap right after <head> (or prepend if no <head> tag)
+        const headMatch = codeToWrite.match(/<head[^>]*>/i);
+        if (headMatch) {
+          const insertPos = headMatch.index + headMatch[0].length;
+          codeToWrite = codeToWrite.slice(0, insertPos) + mpBootstrap + codeToWrite.slice(insertPos);
+        } else {
+          codeToWrite = mpBootstrap + codeToWrite;
+        }
+      }
+
       doc.open();
-      doc.write(project.code);
+      doc.write(codeToWrite);
       doc.close();
       
       // Inject responsive overrides so game content fits the iframe
@@ -618,21 +687,15 @@
         }
       } catch (e) { /* cross-origin safety */ }
 
-      // Set multiplayer flag BEFORE onload so the handler sees it
-      if (!isPreviewMode && currentProject && currentProject.multiplayer) {
+      // Keep the deferred injection as a fallback (updates roomCode/playerId if they change)
+      if (isMultiplayer) {
         pendingMultiplayerInject = true;
-      }
-
-      // Defer multiplayer injection until iframe content is fully loaded
-      iframe.onload = function() {
-        if (pendingMultiplayerInject) {
-          injectMultiplayerHelper();
-          pendingMultiplayerInject = false;
-        }
-      };
-
-      // Safety net: if onload already fired (sync doc.write), inject after a short delay
-      if (pendingMultiplayerInject) {
+        iframe.onload = function() {
+          if (pendingMultiplayerInject) {
+            injectMultiplayerHelper();
+            pendingMultiplayerInject = false;
+          }
+        };
         setTimeout(function() {
           if (pendingMultiplayerInject) {
             injectMultiplayerHelper();

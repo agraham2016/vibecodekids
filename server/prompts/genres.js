@@ -284,7 +284,14 @@ API REFERENCE:
 
 STARTUP PATTERN (MUST follow this):
 1. On DOMContentLoaded or window.onload, check if window.VibeMultiplayer exists.
-2. If it does NOT exist, run the game in local/solo mode (both sides playable on one screen).
+2. If it does NOT exist yet, RETRY — use a short polling loop:
+     function waitForMultiplayer(attempts) {
+       if (window.VibeMultiplayer) { initOnlineMode(); return; }
+       if (attempts < 20) { setTimeout(function() { waitForMultiplayer(attempts + 1); }, 200); }
+       else { initLocalMode(); } // give up after 4 seconds, run local
+     }
+     waitForMultiplayer(0);
+   This handles the case where VibeMultiplayer is injected slightly after the page loads.
 3. If it DOES exist, run in online multiplayer mode. YOUR GAME MUST RENDER THE CREATE/JOIN UI:
    a. If VibeMultiplayer.roomCode is null (not in a room), show:
       - An input for the player's name (or a default like "Player")
