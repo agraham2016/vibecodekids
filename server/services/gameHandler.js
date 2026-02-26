@@ -359,6 +359,40 @@ async function handleSingleModel({ prompt, currentCode, conversationHistory, gam
     }
   }
 
+  // MULTIPLAYER SAFETY NET: If multiplayer was requested but the AI forgot to integrate
+  // VibeMultiplayer, auto-retry with an explicit correction message.
+  if (code && isMultiplayerRequest && !code.includes('VibeMultiplayer')) {
+    console.log('⚠️ Multiplayer requested but AI did not integrate VibeMultiplayer — auto-retrying...');
+    const fixupMessages = [
+      ...messages,
+      { role: 'assistant', content: assistantText },
+      { role: 'user', content: `CRITICAL: This game was supposed to be an ONLINE MULTIPLAYER game, but you forgot to integrate the window.VibeMultiplayer API. The API is already injected into the iframe — you do NOT need to load anything. You MUST:\n1. Check if window.VibeMultiplayer exists on load\n2. If it exists, show a lobby with player name input, "Create Room" button (calls VibeMultiplayer.createRoom(name)), room code input + "Join Room" button (calls VibeMultiplayer.joinRoom(code, name))\n3. Use VibeMultiplayer.onRoomCreated, onRoomJoined, onPlayerJoined callbacks to start the game when 2 players are connected\n4. Use VibeMultiplayer.sendInput() to send moves and VibeMultiplayer.onInputReceived to receive opponent moves\n5. If VibeMultiplayer does NOT exist, fall back to local mode\n\nPlease regenerate the COMPLETE game code with proper VibeMultiplayer integration. Output the full HTML.` }
+    ];
+    const trimmedFixup = trimConversationHistory(fixupMessages, 12);
+    try {
+      let retryText;
+      if (targetModel === 'grok') {
+        const fullSystemPrompt = personalityWrapper + '\n\n' + staticPrompt + '\n\n' + dynamicContext;
+        const retryResponse = await callGrok(fullSystemPrompt, trimmedFixup, maxTokens, userId);
+        retryText = extractGrokText(retryResponse);
+      } else {
+        const fullStaticPrompt = personalityWrapper + '\n\n' + staticPrompt;
+        const retryResponse = await callClaude(fullStaticPrompt, dynamicContext, trimmedFixup, maxTokens, userId);
+        retryText = retryResponse.content[0].text;
+      }
+      const retryCode = extractCode(retryText);
+      if (retryCode && retryCode.includes('VibeMultiplayer')) {
+        console.log('✅ Multiplayer auto-retry succeeded — VibeMultiplayer integrated.');
+        code = retryCode;
+        assistantText = retryText;
+      } else {
+        console.log('⚠️ Multiplayer auto-retry did not produce VibeMultiplayer code — using original.');
+      }
+    } catch (retryErr) {
+      console.error('⚠️ Multiplayer auto-retry failed:', retryErr.message);
+    }
+  }
+
   // Store pattern success if we got code and this was an iteration pattern
   if (code && iterationCategory && currentCode) {
     const summary = summarizeCodeChange(prompt, iterationCategory);
