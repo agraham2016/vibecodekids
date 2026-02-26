@@ -972,9 +972,9 @@
         <div class="lobby-divider">or play with friends</div>
         <div class="lobby-mp-section">
           <input type="text" id="lobbyPlayerName" placeholder="Your name" maxlength="20">
-          <button class="lobby-btn" onclick="lobbyCreateRoom()">Create Room</button>
+          <button id="lobbyCreateBtn" class="lobby-btn" onclick="lobbyCreateRoom()">Create Room</button>
           <input type="text" id="lobbyRoomCode" placeholder="Room code" maxlength="4">
-          <button class="lobby-btn secondary" onclick="lobbyJoinRoom()">Join Room</button>
+          <button id="lobbyJoinBtn" class="lobby-btn secondary" onclick="lobbyJoinRoom()">Join Room</button>
         </div>
       </div>
     </div>
@@ -1089,6 +1089,8 @@
     let currentRoomCode = null;
     let players = [];
     let mpPanelOpen = false;
+    let pendingMultiplayerInject = false;
+    let wsConnectTimeout = null;
     
     // WebSocket connection status
     const WS_STATUS = {
@@ -1216,6 +1218,14 @@
           doc.head.appendChild(meta);
         }
       } catch (e) { /* cross-origin safety */ }
+
+      // Defer multiplayer injection until iframe content is fully loaded
+      iframe.onload = function() {
+        if (pendingMultiplayerInject) {
+          injectMultiplayerHelper();
+          pendingMultiplayerInject = false;
+        }
+      };
       
       // Focus iframe so arrow keys reach the game (click game area to play)
       iframe.setAttribute('tabindex', '0');
@@ -1241,7 +1251,8 @@
           showRoom();
           updatePlayerList();
           updateBadge(players.length);
-          injectMultiplayerHelper();
+          pendingMultiplayerInject = true;
+          resetLobbyButtons();
           mpPanelOpen = true;
           document.getElementById('mpPanel').style.display = 'block';
         } else {
@@ -1371,6 +1382,8 @@
       if (!name) return;
       
       hideLobbyError();
+      setLobbyButtonLoading('lobbyCreateBtn', 'Connecting...');
+
       const doCreate = () => {
         ws.send(JSON.stringify({
           type: 'create_room',
@@ -1396,6 +1409,8 @@
       }
       
       hideLobbyError();
+      setLobbyButtonLoading('lobbyJoinBtn', 'Joining...');
+
       const doJoin = () => {
         ws.send(JSON.stringify({
           type: 'join_room',
@@ -1414,6 +1429,29 @@
       document.getElementById('lobby').style.display = 'none';
       displayProject(currentProject, 'room');
     }
+
+    function setLobbyButtonLoading(btnId, text) {
+      const btn = document.getElementById(btnId);
+      if (btn) {
+        btn.disabled = true;
+        btn.dataset.originalText = btn.textContent;
+        btn.textContent = text;
+        btn.style.opacity = '0.6';
+      }
+    }
+
+    function resetLobbyButtons() {
+      ['lobbyCreateBtn', 'lobbyJoinBtn'].forEach(function(btnId) {
+        const btn = document.getElementById(btnId);
+        if (btn) {
+          btn.disabled = false;
+          if (btn.dataset.originalText) {
+            btn.textContent = btn.dataset.originalText;
+          }
+          btn.style.opacity = '';
+        }
+      });
+    }
     
     function getLobbyPlayerName() {
       const name = document.getElementById('lobbyPlayerName').value.trim();
@@ -1426,6 +1464,7 @@
     }
     
     function showLobbyError(msg) {
+      resetLobbyButtons();
       const el = document.getElementById('lobbyError');
       el.textContent = msg;
       el.style.display = 'block';
@@ -1474,8 +1513,24 @@
       const wsUrl = `${protocol}//${window.location.host}/ws/multiplayer`;
       
       ws = new WebSocket(wsUrl);
+
+      if (wsConnectTimeout) clearTimeout(wsConnectTimeout);
+      wsConnectTimeout = setTimeout(function() {
+        if (ws && ws.readyState !== WebSocket.OPEN) {
+          ws.close();
+          ws = null;
+          const msg = 'Could not connect to the game server. Please try again.';
+          if (document.getElementById('lobby').style.display === 'flex') {
+            showLobbyError(msg);
+          } else {
+            showMpError(msg);
+          }
+          updateStatus(WS_STATUS.DISCONNECTED);
+        }
+      }, 8000);
       
       ws.onopen = () => {
+        if (wsConnectTimeout) { clearTimeout(wsConnectTimeout); wsConnectTimeout = null; }
         updateStatus(WS_STATUS.CONNECTED);
         hideError();
         hideLobbyError();
@@ -1495,9 +1550,11 @@
       };
       
       ws.onclose = () => {
+        if (wsConnectTimeout) { clearTimeout(wsConnectTimeout); wsConnectTimeout = null; }
         updateStatus(WS_STATUS.DISCONNECTED);
         ws = null;
         stopPingInterval();
+        resetLobbyButtons();
         
         // Reset room state
         if (currentRoomCode) {
@@ -1534,7 +1591,7 @@
           } else {
             showRoom();
             updatePlayerList();
-            injectMultiplayerHelper();
+            injectMultiplayerHelper(0);
           }
           break;
           
@@ -1547,7 +1604,7 @@
           } else {
             showRoom();
             updatePlayerList();
-            injectMultiplayerHelper();
+            injectMultiplayerHelper(0);
           }
           break;
           
@@ -1555,12 +1612,14 @@
           players = message.players;
           updatePlayerList();
           addChatMessage('System', `${message.playerName} joined the game!`);
+          sendToGame({ type: 'multiplayer_player_joined', players: players });
           break;
           
         case 'player_left':
           players = message.players;
           updatePlayerList();
           addChatMessage('System', `${message.playerName} left the game.`);
+          sendToGame({ type: 'multiplayer_player_left', players: players });
           break;
           
         case 'host_changed':
@@ -1808,38 +1867,39 @@
     }
     
     // Inject multiplayer helper into iframe
-    function injectMultiplayerHelper() {
+    function injectMultiplayerHelper(retries) {
+      retries = retries || 0;
       const iframe = document.getElementById('projectIframe');
       if (!iframe || !iframe.contentWindow) return;
       
       try {
-        // Inject the multiplayer API into the game
+        if (!iframe.contentDocument || !iframe.contentDocument.body) {
+          if (retries < 15) {
+            setTimeout(function() { injectMultiplayerHelper(retries + 1); }, 300);
+          } else {
+            console.error('Multiplayer inject: gave up after 15 retries (no body)');
+          }
+          return;
+        }
+
         const script = iframe.contentDocument.createElement('script');
         script.textContent = `
           // Vibe Code Multiplayer API
           window.VibeMultiplayer = {
-            // Send game state to other players
             sendState: function(state) {
               window.parent.postMessage({ type: 'mp_state', state: state }, '*');
             },
-            
-            // Send player input to other players
             sendInput: function(input) {
               window.parent.postMessage({ type: 'mp_input', input: input }, '*');
             },
-            
-            // Event handlers (set these in your game)
             onStateReceived: null,
             onInputReceived: null,
             onPlayerJoined: null,
             onPlayerLeft: null,
-            
-            // Player info
             playerId: '${myPlayerId.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}',
             players: ${JSON.stringify(players).replace(/<\/script>/gi, '<\\/script>')}
           };
           
-          // Listen for messages from parent
           window.addEventListener('message', function(event) {
             if (event.data.type === 'multiplayer_state' && window.VibeMultiplayer.onStateReceived) {
               window.VibeMultiplayer.onStateReceived(event.data.state, event.data.fromPlayerId);
@@ -1847,13 +1907,22 @@
             if (event.data.type === 'multiplayer_input' && window.VibeMultiplayer.onInputReceived) {
               window.VibeMultiplayer.onInputReceived(event.data.input, event.data.fromPlayerId, event.data.fromPlayerName);
             }
+            if (event.data.type === 'multiplayer_player_joined' && window.VibeMultiplayer.onPlayerJoined) {
+              window.VibeMultiplayer.onPlayerJoined(event.data.players);
+            }
+            if (event.data.type === 'multiplayer_player_left' && window.VibeMultiplayer.onPlayerLeft) {
+              window.VibeMultiplayer.onPlayerLeft(event.data.players);
+            }
           });
           
-          console.log('🎮 Vibe Multiplayer API ready!');
+          console.log('🎮 Vibe Multiplayer API ready! Player: ' + window.VibeMultiplayer.playerId);
         `;
         iframe.contentDocument.body.appendChild(script);
       } catch (e) {
         console.error('Could not inject multiplayer helper:', e);
+        if (retries < 15) {
+          setTimeout(function() { injectMultiplayerHelper(retries + 1); }, 300);
+        }
       }
     }
     
