@@ -337,6 +337,7 @@ ASSIGNING ROLES/COLORS IN TURN-BASED GAMES (chess, checkers, tic-tac-toe, connec
 REAL-TIME GAMES (pong, racing, co-op shooters, etc.):
 - Each frame (in requestAnimationFrame or Phaser update), send local player state:
     VibeMultiplayer.sendState({ x: player.x, y: player.y, score: myScore });
+- THROTTLE sendState to 15-30 updates per second (e.g. every 2-3 frames), not every frame — avoid flooding the network.
 - Receive opponent state and update their visual representation:
     VibeMultiplayer.onStateReceived = function(state, fromPlayerId) {
       opponent.x = state.x; opponent.y = state.y;
@@ -344,6 +345,19 @@ REAL-TIME GAMES (pong, racing, co-op shooters, etc.):
 - For Phaser games: put sendState() calls in the scene update() method.
 - Render BOTH the local player AND a second sprite/object for the remote player.
 - Use interpolation or direct position setting for the remote player's movement.
+
+REAL-TIME: FIGHTING, BATTLE, SPORTS (both players act simultaneously — NO turn system):
+- Use a HYBRID of sendState and sendInput:
+  - sendState: position (x, y), facing, health, animationState (idle, punch, kick). Throttle to ~20/sec.
+  - sendInput: discrete actions (punch, kick, shoot, block, pass, tackle) — call immediately when the player performs the action.
+- FIGHTING / beat-em-up: sendState({ x, y, facing, health, anim: 'idle'|'punch'|'kick' }); sendInput({ type: 'attack', attackType: 'punch' }) when the player performs an attack.
+  Each client applies damage locally when hit is detected; sync health via sendState so both see the same values.
+- SPORTS: sendState({ x, y, ballX, ballY, score }); sendInput({ type: 'pass' }) or { type: 'shoot' } on action.
+  The player with the ball can sync ball position; use sendInput for passes/shots so the other player receives the event.
+- SHOOTER / battle: sendState({ x, y, facing, health }); sendInput({ type: 'shoot', direction }) when firing.
+  Spawn bullets locally; onInputReceived spawns the same bullet on the receiving client. Hit detection can be client-side.
+- NO currentTurn variable — both players can act at any time. Do NOT disable input based on turns.
+- Keep state payloads SMALL: only x, y, facing, health, score — not full game state.
 
 PLAYER DISCONNECT:
 - VibeMultiplayer.onPlayerLeft is called when the opponent disconnects.
@@ -369,6 +383,7 @@ export const MULTIPLAYER_KEYWORDS = [
   '1v1', '1 vs 1', 'head to head',
   'against my friend', 'against a friend', 'challenge a friend',
   'invite a friend', 'room code',
+  'fighting', 'battle', 'sports game', 'beat em up', 'fighter',
 ];
 
 /**
