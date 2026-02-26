@@ -29,8 +29,7 @@ export default function Header({
           </button>
         )}
         <a href="/gallery" className="logo">
-          <span className="logo-icon">🕹️</span>
-          <span className="logo-text">Vibe Code Kidz</span>
+          <img src="/images/logo.png" alt="VibeCode Kids" className="logo-img" />
         </a>
       </div>
       

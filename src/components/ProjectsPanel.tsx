@@ -62,7 +62,7 @@ export default function ProjectsPanel({
     <div className="projects-panel">
       {/* Panel Header */}
       <div className="pp-header">
-        <span className="pp-title">📁 My Projects</span>
+        <span className="pp-title">My Projects</span>
       </div>
 
       {/* New Project Button */}

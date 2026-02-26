@@ -37,6 +37,13 @@
   gap: 12px;
 }
 
+.preview-logo {
+  height: 24px;
+  width: auto;
+  flex-shrink: 0;
+  filter: drop-shadow(0 0 4px rgba(167, 139, 250, 0.3));
+}
+
 /* Play button in header */
 .play-header-btn {
   flex: 1;

@@ -43,17 +43,11 @@
   transform: scale(1.05);
 }
 
-.logo-icon {
-  font-size: 1.1rem;
-}
-
-.logo-text {
-  font-size: 0.9rem;
-  font-weight: 800;
-  background: linear-gradient(135deg, #a78bfa 0%, #f472b6 50%, #38bdf8 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+.logo-img {
+  height: 32px;
+  width: auto;
+  display: block;
+  filter: drop-shadow(0 0 6px rgba(167, 139, 250, 0.35));
 }
 
 /* User Section */

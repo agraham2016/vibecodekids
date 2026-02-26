@@ -117,6 +117,7 @@ export default function PreviewPanel({ code }: PreviewPanelProps) {
     <>
       <div className="panel preview-panel">
         <div className="panel-header preview-header">
+          <img src="/images/logo.png" alt="VibeCode Kids" className="preview-logo" />
           <button 
             className="play-header-btn"
             onClick={handlePlay}

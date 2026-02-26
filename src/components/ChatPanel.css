@@ -14,6 +14,12 @@
   padding: 10px 14px;
 }
 
+.chat-logo {
+  height: 24px;
+  width: auto;
+  filter: drop-shadow(0 0 4px rgba(167, 139, 250, 0.3));
+}
+
 .chat-header-title {
   font-size: 0.9rem;
   font-weight: 700;

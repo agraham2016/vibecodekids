@@ -343,7 +343,7 @@ export default function ChatPanel({
       
       {/* ===== PANEL HEADER WITH MODEL TOGGLE ===== */}
       <div className="panel-header chat-header">
-        <span className="icon">💬</span>
+        <img src="/images/logo.png" alt="VibeCode Kids" className="chat-logo" />
         <span className="chat-header-title">AI Buddy</span>
         
         {/* Model Toggle Switch */}
