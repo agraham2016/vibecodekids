@@ -343,7 +343,6 @@ export default function ChatPanel({
       
       {/* ===== PANEL HEADER WITH MODEL TOGGLE ===== */}
       <div className="panel-header chat-header">
-        <img src="/images/logo.png" alt="VibeCode Kids" className="chat-logo" />
         <span className="chat-header-title">AI Buddy</span>
         
         {/* Model Toggle Switch */}
@@ -378,7 +377,9 @@ export default function ChatPanel({
       <div className="panel-content chat-messages" role="log" aria-live="polite">
         {messages.length === 0 ? (
           <div className="chat-welcome">
-            <div className="welcome-icon">🎮</div>
+            <div className="welcome-icon">
+              <img src="/images/logo.png" alt="VibeCode Kids" className="welcome-logo" />
+            </div>
             <h3>Let's build something awesome!</h3>
             <p>Tell me what kind of game you want to make! For example: "Make me a 3D space shooter" or "Build a racing game with dinosaurs" — anything you can imagine!</p>
             
