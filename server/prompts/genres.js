@@ -324,6 +324,16 @@ TURN-BASED GAMES (chess, checkers, tic-tac-toe, connect-4, battleship, etc.):
 - After applying a move (local or remote), check for win/draw conditions.
 - IMPORTANT: validate that the move is legal before applying it.
 
+ASSIGNING ROLES/COLORS IN TURN-BASED GAMES (chess, checkers, tic-tac-toe, connect-4, etc.):
+- DO NOT rely solely on players.find(p => p.id === VibeMultiplayer.playerId)?.isHost for host/guest.
+  playerId can fail to match in some contexts, causing BOTH players to get the same role (e.g. both black in chess).
+- USE players array INDEX for role assignment: players[0] = first role (white, X, host), players[1] = second role (black, O, guest).
+- Pattern:
+  const myIndex = VibeMultiplayer.players.findIndex(p => p.id === VibeMultiplayer.playerId);
+  const myRole = (myIndex === 1) ? 'black' : 'white';  // index 1 = second player = black; index 0 or -1 = first/white
+- Fallback: if myIndex === -1 (player not found), default myRole to 'white' so at least one player can move on turn 1.
+- NEVER use only isHost from a failed find() — both players would get the same role and the game would be unplayable.
+
 REAL-TIME GAMES (pong, racing, co-op shooters, etc.):
 - Each frame (in requestAnimationFrame or Phaser update), send local player state:
     VibeMultiplayer.sendState({ x: player.x, y: player.y, score: myScore });

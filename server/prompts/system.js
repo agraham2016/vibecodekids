@@ -163,6 +163,12 @@ CODE COMPLETENESS - CRITICAL:
 - Test that all event listeners are properly attached
 - Make sure requestAnimationFrame loops actually call themselves
 
+GAME STATE - NO PERSISTENCE (CRITICAL):
+- NEVER use localStorage or sessionStorage to save or restore game state (screen, board position, score, level, etc.)
+- Each time the game loads (studio preview, arcade, shared link), it MUST start fresh at the main menu
+- All game state should live only in JavaScript variables during the current session
+- If the game has a main menu, it MUST show the main menu on every load — never restore "where I left off"
+
 BUILD INCREMENTALLY - VERY IMPORTANT:
 - For complex games (RPGs, multi-level games), start with a SIMPLE version first
 - Build in stages: Basic movement → Add one enemy → Add scoring → Add shop, etc.
