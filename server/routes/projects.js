@@ -258,13 +258,30 @@ export default function createProjectsRouter(sessions) {
       if (!PROJECT_ID_REGEX.test(id)) return res.status(400).json({ error: 'Invalid project ID' });
 
       const project = await readProject(id);
-      project.likes = (project.likes || 0) + 1;
+      project.likes = Math.max(0, (project.likes || 0) + 1);
       await writeProject(id, project);
 
       res.json({ likes: project.likes });
     } catch (error) {
       if (error.code === 'ENOENT') return res.status(404).json({ error: 'Project not found' });
       res.status(500).json({ error: 'Could not like project' });
+    }
+  });
+
+  // Unlike a project (toggle - removes one like)
+  router.delete('/:id/like', async (req, res) => {
+    try {
+      const { id } = req.params;
+      if (!PROJECT_ID_REGEX.test(id)) return res.status(400).json({ error: 'Invalid project ID' });
+
+      const project = await readProject(id);
+      project.likes = Math.max(0, (project.likes || 0) - 1);
+      await writeProject(id, project);
+
+      res.json({ likes: project.likes });
+    } catch (error) {
+      if (error.code === 'ENOENT') return res.status(404).json({ error: 'Project not found' });
+      res.status(500).json({ error: 'Could not unlike project' });
     }
   });
 

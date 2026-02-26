@@ -1178,6 +1178,7 @@
       document.getElementById('creatorName').textContent = project.creatorName;
       document.getElementById('viewCount').textContent = project.views || 0;
       document.getElementById('likeCount').textContent = project.likes || 0;
+      updateLikeButton();
       
       // Load code into iframe
       const iframe = document.getElementById('projectIframe');
@@ -1255,26 +1256,63 @@
       document.getElementById('error').style.display = 'flex';
     }
     
-    // Like project
+    // Get/set liked projects (localStorage - one like per browser per project)
+    const LIKED_KEY = 'vck_liked_projects';
+    function getLikedProjects() {
+      try {
+        const raw = localStorage.getItem(LIKED_KEY);
+        return raw ? JSON.parse(raw) : [];
+      } catch { return []; }
+    }
+    function setLiked(id, liked) {
+      const ids = getLikedProjects();
+      const idx = ids.indexOf(id);
+      if (liked && idx === -1) ids.push(id);
+      else if (!liked && idx !== -1) ids.splice(idx, 1);
+      localStorage.setItem(LIKED_KEY, JSON.stringify(ids));
+    }
+    function hasLiked(id) {
+      return getLikedProjects().includes(id);
+    }
+
+    // Update like button UI
+    function updateLikeButton() {
+      if (!currentProject) return;
+      const btn = document.querySelector('.action-btn.like');
+      if (!btn) return;
+      const liked = hasLiked(currentProject.id);
+      const emojiSpan = btn.querySelector('.btn-emoji');
+      btn.disabled = false;
+      if (liked) {
+        if (emojiSpan) emojiSpan.textContent = '❤️';
+        btn.innerHTML = '<span class="btn-emoji">❤️</span> Liked!';
+      } else {
+        if (emojiSpan) emojiSpan.textContent = '❤️';
+        btn.innerHTML = '<span class="btn-emoji">❤️</span> Like';
+      }
+    }
+
+    // Like project (toggle: like if not liked, unlike if already liked)
     async function likeProject(event) {
       if (!currentProject) return;
-      
+      const btn = event.target.closest('.action-btn');
+      if (!btn || btn.disabled) return;
+
+      const alreadyLiked = hasLiked(currentProject.id);
+      const method = alreadyLiked ? 'DELETE' : 'POST';
+
       try {
-        const response = await fetch(`/api/projects/${currentProject.id}/like`, {
-          method: 'POST'
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          document.getElementById('likeCount').textContent = data.likes;
-          
-          // Fun feedback
-          const btn = event.target.closest('.action-btn');
-          btn.textContent = '❤️ Liked!';
-          btn.disabled = true;
-        }
+        btn.disabled = true;
+        const response = await fetch(`/api/projects/${currentProject.id}/like`, { method });
+        if (!response.ok) throw new Error('Failed');
+
+        const data = await response.json();
+        document.getElementById('likeCount').textContent = data.likes;
+        setLiked(currentProject.id, !alreadyLiked);
+        updateLikeButton();
       } catch (err) {
-        console.error('Error liking project:', err);
+        console.error('Error toggling like:', err);
+        btn.disabled = false;
       }
     }
     
