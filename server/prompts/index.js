@@ -13,7 +13,9 @@ import {
   THREE_D_RACING_RULES,
   THREE_D_SHOOTER_RULES,
   PLATFORMER_SAFETY_RULES,
-  PHASER_GAME_RULES
+  PHASER_GAME_RULES,
+  MULTIPLAYER_GAME_RULES,
+  detectMultiplayerIntent
 } from './genres.js';
 import { MODIFICATION_SAFETY_RULES } from './safety.js';
 
@@ -123,9 +125,10 @@ export function sanitizeOutput(message) {
  * @param {object|null} gameConfig - Game configuration from the survey
  * @param {string|null} gameGenre - Detected game genre
  * @param {string} referenceCode - Reference code from templates/snippets/GitHub
+ * @param {string} userPrompt - The user's current message (for multiplayer detection)
  * @returns {{ staticPrompt: string, dynamicContext: string }}
  */
-export function getSystemPrompt(currentCode, gameConfig = null, gameGenre = null, referenceCode = '') {
+export function getSystemPrompt(currentCode, gameConfig = null, gameGenre = null, referenceCode = '', userPrompt = '') {
   // ===== STATIC PART (cacheable - same for every request) =====
   const staticPrompt = SYSTEM_PROMPT + '\n\n' + GAME_KNOWLEDGE_BASE;
 
@@ -152,6 +155,19 @@ USE THIS CONFIG to make the game feel personal:
 - The game type is "${gameConfig.gameType}" - use the right mechanics for that genre
 - Dimension is "${gameConfig.dimension || '2d'}": if "3d", build with Three.js (3D scene, camera, renderer). If "2d", use Phaser.js with arcade physics.
 `);
+  }
+
+  // Detect multiplayer intent (from code, user prompt, game config, or genre)
+  const hasMultiplayerCode = currentCode && (
+    currentCode.includes('VibeMultiplayer') ||
+    currentCode.includes('multiplayer_state') ||
+    currentCode.includes('multiplayer_input')
+  );
+  const wantsMultiplayer = detectMultiplayerIntent(userPrompt) ||
+    (gameConfig && gameConfig.customNotes && detectMultiplayerIntent(gameConfig.customNotes)) ||
+    (gameGenre && detectMultiplayerIntent(gameGenre));
+  if (hasMultiplayerCode || wantsMultiplayer) {
+    dynamicParts.push(MULTIPLAYER_GAME_RULES);
   }
 
   // Detect Phaser code

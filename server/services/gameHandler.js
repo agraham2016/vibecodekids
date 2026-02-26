@@ -306,7 +306,7 @@ async function handleSingleModel({ prompt, currentCode, conversationHistory, gam
   // Combine reference code with pattern hint
   const fullReferenceCode = referenceCode + patternHintText;
 
-  const { staticPrompt, dynamicContext } = getSystemPrompt(currentCode, gameConfig, genre, fullReferenceCode);
+  const { staticPrompt, dynamicContext } = getSystemPrompt(currentCode, gameConfig, genre, fullReferenceCode, prompt);
   const personalityWrapper = getPersonalityWrapper(targetModel);
   const maxTokens = calculateMaxTokens(currentCode);
 

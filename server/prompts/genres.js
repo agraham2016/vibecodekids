@@ -255,6 +255,91 @@ PLATFORMER GAME (Phaser) - CRITICAL RULES (never break these when customizing):
 - DO NOT remove setCollideWorldBounds(true) — the player will leave the screen
 `;
 
+// Multiplayer game rules (injected when multiplayer intent is detected)
+export const MULTIPLAYER_GAME_RULES = `
+MULTIPLAYER GAME — CRITICAL RULES (use window.VibeMultiplayer API):
+
+The VibeMultiplayer API is AUTOMATICALLY injected into the game iframe at runtime.
+You do NOT need to load any library for it. Just use window.VibeMultiplayer.
+
+API REFERENCE:
+- window.VibeMultiplayer.playerId          — this player's unique ID string
+- window.VibeMultiplayer.players           — array of { id, name, isHost } for all connected players
+- window.VibeMultiplayer.sendState(obj)    — broadcast a game-state object to ALL other players
+- window.VibeMultiplayer.sendInput(obj)    — send a single action/move to ALL other players
+- window.VibeMultiplayer.onStateReceived   — callback: function(state, fromPlayerId) {}
+- window.VibeMultiplayer.onInputReceived   — callback: function(input, fromPlayerId, fromPlayerName) {}
+- window.VibeMultiplayer.onPlayerJoined    — callback: function(updatedPlayersArray) {}
+- window.VibeMultiplayer.onPlayerLeft      — callback: function(updatedPlayersArray) {}
+
+STARTUP PATTERN (MUST follow this):
+1. On DOMContentLoaded or window.onload, check if window.VibeMultiplayer exists.
+2. If it does NOT exist, run the game in local/solo mode (both sides playable on one screen).
+3. If it DOES exist, run in online multiplayer mode:
+   a. Determine this player's role from VibeMultiplayer.players:
+      - The player whose isHost === true is Player 1 (e.g. White in chess, X in tic-tac-toe, left paddle in pong).
+      - The other player is Player 2 (e.g. Black, O, right paddle).
+      - Use: const me = VibeMultiplayer.players.find(p => p.id === VibeMultiplayer.playerId);
+      - const isHost = me && me.isHost;
+   b. If VibeMultiplayer.players.length < 2, show a "Waiting for opponent..." message.
+   c. Use VibeMultiplayer.onPlayerJoined to detect when a second player arrives, then start the game.
+
+TURN-BASED GAMES (chess, checkers, tic-tac-toe, connect-4, battleship, etc.):
+- Keep a "currentTurn" variable. Host goes first.
+- On the local player's turn, allow them to interact (click squares, drag pieces, etc.).
+- On the opponent's turn, DISABLE local interaction (ignore clicks / show "Opponent's turn").
+- When the local player makes a move, call:
+    VibeMultiplayer.sendInput({ type: 'move', from: ..., to: ..., piece: ... });
+  (include whatever fields describe the move for your game)
+- Listen for the opponent's move:
+    VibeMultiplayer.onInputReceived = function(input, fromPlayerId) {
+      // Apply input to the board, swap currentTurn
+    };
+- After applying a move (local or remote), check for win/draw conditions.
+- IMPORTANT: validate that the move is legal before applying it.
+
+REAL-TIME GAMES (pong, racing, co-op shooters, etc.):
+- Each frame (in requestAnimationFrame or Phaser update), send local player state:
+    VibeMultiplayer.sendState({ x: player.x, y: player.y, score: myScore });
+- Receive opponent state and update their visual representation:
+    VibeMultiplayer.onStateReceived = function(state, fromPlayerId) {
+      opponent.x = state.x; opponent.y = state.y;
+    };
+- For Phaser games: put sendState() calls in the scene update() method.
+- Render BOTH the local player AND a second sprite/object for the remote player.
+- Use interpolation or direct position setting for the remote player's movement.
+
+PLAYER DISCONNECT:
+- VibeMultiplayer.onPlayerLeft is called when the opponent disconnects.
+- Show a "Player disconnected" message and pause or end the game gracefully.
+
+RULES:
+- NEVER import or load a multiplayer library — VibeMultiplayer is already injected.
+- ALWAYS make the game work in solo mode too (when VibeMultiplayer is undefined).
+- NEVER mention the API, technical details, or networking to the kid — just build it silently.
+- Keep state payloads SMALL — only send what changed, not the entire game state every frame.
+`;
+
+// Multiplayer intent detection keywords
+export const MULTIPLAYER_KEYWORDS = [
+  '2 player', 'two player', '2-player', 'two-player',
+  'multiplayer', 'multi player', 'multi-player',
+  'play with friend', 'play with friends', 'play together',
+  'play online', 'online game', 'versus', 'vs ',
+  'pvp', 'player vs player', 'play against',
+  '1v1', '1 vs 1', 'head to head',
+];
+
+/**
+ * Detect if a prompt is asking for a multiplayer game.
+ * @param {string} message
+ * @returns {boolean}
+ */
+export function detectMultiplayerIntent(message) {
+  const lower = (message || '').toLowerCase();
+  return MULTIPLAYER_KEYWORDS.some(kw => lower.includes(kw));
+}
+
 // Phaser 2D game rules (general, injected when Phaser code is detected)
 export const PHASER_GAME_RULES = `
 PHASER 2D GAME - IMPORTANT RULES:
