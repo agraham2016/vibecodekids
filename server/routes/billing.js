@@ -123,7 +123,8 @@ export default function createBillingRouter(sessions) {
       res.json({ success: true, checkoutUrl: session.url, sessionId: session.id });
     } catch (error) {
       console.error('Stripe checkout error:', error);
-      res.status(500).json({ error: 'Could not create checkout session' });
+      const msg = (error.type && error.message) ? error.message : 'Could not create checkout session';
+      res.status(500).json({ error: msg });
     }
   });
 
@@ -266,7 +267,8 @@ export default function createBillingRouter(sessions) {
       res.json({ success: true, checkoutUrl: checkoutSession.url });
     } catch (error) {
       console.error('Upgrade error:', error);
-      res.status(500).json({ error: 'Could not process upgrade' });
+      const msg = (error.type && error.message) ? error.message : 'Could not process upgrade';
+      res.status(500).json({ error: msg });
     }
   });
 
