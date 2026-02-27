@@ -1364,6 +1364,8 @@
   padding: 60px 24px 28px;
   margin-top: 40px;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
+  position: relative;
+  z-index: 10;
 }
 
 .footer-inner {
@@ -1408,6 +1410,8 @@
   text-decoration: none;
   font-size: 0.9rem;
   transition: color 0.2s;
+  cursor: pointer;
+  touch-action: manipulation;
 }
 
 .footer-col a:hover {
@@ -1566,6 +1570,14 @@
     gap: 32px;
   }
 
+  .footer-col a {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    padding: 8px 0;
+    -webkit-tap-highlight-color: rgba(167, 139, 250, 0.2);
+  }
+
   .final-cta-section h2 {
     font-size: 1.6rem;
   }
@@ -1642,6 +1654,11 @@
   .footer-inner {
     grid-template-columns: 1fr;
     gap: 24px;
+  }
+
+  .footer-col a {
+    min-height: 48px;
+    padding: 10px 0;
   }
 }
 
