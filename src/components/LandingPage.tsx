@@ -146,6 +146,35 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
   const hoverTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
   const restartInterval = useRef<ReturnType<typeof setInterval> | null>(null)
   const previewIframeRef = useRef<HTMLIFrameElement | null>(null)
+  const pageRef = useRef<HTMLDivElement | null>(null)
+
+  // Native click listener for path links — fixes tap/click not working on mobile (iOS/Android)
+  useEffect(() => {
+    const root = pageRef.current
+    if (!root) return
+    const handleLink = (e: Event) => {
+      const ev = e as MouseEvent
+      if (ev.button !== 0 || ev.ctrlKey || ev.metaKey || ev.shiftKey) return
+      const target = (e.target as HTMLElement).closest('a[href^="/"]:not([href^="//"])')
+      if (!target) return
+      const href = (target as HTMLAnchorElement).getAttribute('href') || ''
+      if (href && href !== '#' && (window.innerWidth <= 768 || 'ontouchstart' in window)) {
+        e.preventDefault()
+        e.stopPropagation()
+        window.location.href = href
+      }
+    }
+    root.addEventListener('click', handleLink, true)
+    return () => root.removeEventListener('click', handleLink, true)
+  }, [])
+
+  const handleFooterPathLink = useCallback((e: React.MouseEvent<HTMLAnchorElement>) => {
+    const href = e.currentTarget.getAttribute('href') || ''
+    if (href.startsWith('/') && !href.startsWith('//') && (window.innerWidth <= 768 || 'ontouchstart' in window)) {
+      e.preventDefault()
+      window.location.href = href
+    }
+  }, [])
 
   const cleanupPreview = useCallback(() => {
     if (restartInterval.current) { clearInterval(restartInterval.current); restartInterval.current = null }
@@ -259,7 +288,7 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
   }, [])
 
   return (
-    <div className="landing-page">
+    <div ref={pageRef} className="landing-page">
       <div className="landing-bg" />
 
       {/* ── 1. Sticky Nav ── */}
@@ -649,26 +678,26 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
           </div>
           <div className="footer-col">
             <h4>Product</h4>
-            <a href="/">Studio</a>
-            <a href="/gallery">Arcade</a>
+            <a href="/" onClick={handleFooterPathLink}>Studio</a>
+            <a href="/gallery" onClick={handleFooterPathLink}>Arcade</a>
             <a href="#pricing">Pricing</a>
           </div>
           <div className="footer-col">
             <h4>Parents</h4>
-            <a href="/esa">ESA Families</a>
+            <a href="/esa" onClick={handleFooterPathLink}>ESA Families</a>
             <a href="#parents">Safety</a>
             <a href="#faq">FAQ</a>
           </div>
           <div className="footer-col">
             <h4>Community</h4>
             <a href="https://discord.gg/placeholder" target="_blank" rel="noopener noreferrer">Join Discord</a>
-            <a href="/contact">Contact Us</a>
+            <a href="/contact" onClick={handleFooterPathLink}>Contact Us</a>
             <a href="https://discord.gg/placeholder" target="_blank" rel="noopener noreferrer">Report a Bug</a>
           </div>
           <div className="footer-col">
             <h4>Legal</h4>
-            <a href="/privacy">Privacy Policy</a>
-            <a href="/terms">Terms of Service</a>
+            <a href="/privacy" onClick={handleFooterPathLink}>Privacy Policy</a>
+            <a href="/terms" onClick={handleFooterPathLink}>Terms of Service</a>
           </div>
         </div>
         <div className="footer-bottom">

@@ -13,7 +13,7 @@ import { promises as fs } from 'fs';
 import { createServer } from 'http';
 
 // Config
-import { PORT, BASE_URL, PUBLIC_DIR, DIST_DIR, DATA_DIR, USE_POSTGRES, ANTHROPIC_API_KEY, XAI_API_KEY } from './config/index.js';
+import { PORT, BASE_URL, PUBLIC_DIR, DIST_DIR, DATA_DIR, USE_POSTGRES, ANTHROPIC_API_KEY, XAI_API_KEY, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, STRIPE_PRICES } from './config/index.js';
 
 // Services
 import { ensureDataDirs } from './services/storage.js';
@@ -200,6 +200,26 @@ app.get('/api/health', async (_req, res) => {
     heapUsed: `${Math.round(mem.heapUsed / 1024 / 1024)}MB`,
     heapTotal: `${Math.round(mem.heapTotal / 1024 / 1024)}MB`,
   };
+
+  // Stripe check (key + webhook + price IDs)
+  if (!STRIPE_SECRET_KEY) {
+    checks.checks.stripe = { status: 'missing', error: 'STRIPE_SECRET_KEY not set' };
+    checks.status = 'degraded';
+  } else if (!STRIPE_WEBHOOK_SECRET) {
+    checks.checks.stripe = { status: 'partial', error: 'STRIPE_WEBHOOK_SECRET not set' };
+  } else if (!STRIPE_PRICES.creator || !STRIPE_PRICES.pro) {
+    checks.checks.stripe = { status: 'partial', error: 'Price IDs not set' };
+  } else {
+    try {
+      const Stripe = (await import('stripe')).default;
+      const stripe = new Stripe(STRIPE_SECRET_KEY);
+      await stripe.prices.retrieve(STRIPE_PRICES.creator);
+      checks.checks.stripe = { status: 'ok', prices: 'valid' };
+    } catch (err) {
+      checks.checks.stripe = { status: 'error', error: err.message };
+      checks.status = 'degraded';
+    }
+  }
 
   res.status(checks.status === 'ok' ? 200 : 503).json(checks);
 });
