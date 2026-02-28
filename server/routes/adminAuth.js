@@ -96,7 +96,7 @@ router.post('/auth/verify-2fa', async (req, res) => {
     if (!cfg.enabled || !cfg.secret) {
       return res.status(400).json({ error: '2FA is not enabled' });
     }
-    if (!verifyTOTP(cfg.secret, code)) {
+    if (!(await verifyTOTP(cfg.secret, code))) {
       return res.status(401).json({ error: 'Invalid or expired code' });
     }
     const token = createAdminToken();
@@ -107,15 +107,15 @@ router.post('/auth/verify-2fa', async (req, res) => {
   }
 });
 
-/** POST /api/admin/auth/setup-2fa — requires admin key only, returns QR code */
+/** POST /api/admin/auth/setup-2fa — requires admin key only, returns secret for manual entry */
 router.post('/auth/setup-2fa', requireAdminKeyOrToken, async (_req, res) => {
   try {
     const enabled = await is2FAEnabled();
     if (enabled) {
       return res.status(400).json({ error: '2FA is already enabled' });
     }
-    const { secret, qrDataUrl, otpauthUrl } = await generate2FASecret();
-    res.json({ secret, qrDataUrl, otpauthUrl });
+    const { secret, otpauthUrl } = await generate2FASecret();
+    res.json({ secret, otpauthUrl });
   } catch (err) {
     console.error('Admin 2FA setup error:', err);
     res.status(500).json({ error: 'Could not generate 2FA secret' });
@@ -131,7 +131,7 @@ router.post('/auth/confirm-2fa', requireAdminKeyOrToken, async (req, res) => {
   try {
     const ok = await confirm2FASetup(secret, code);
     if (!ok) {
-      return res.status(400).json({ error: 'Invalid code. Scan QR and try again.' });
+      return res.status(400).json({ error: 'Invalid code. Add the secret to your app and try again.' });
     }
     res.json({ ok: true, message: '2FA enabled. Future logins will require your authenticator app.' });
   } catch (err) {
@@ -151,7 +151,7 @@ router.post('/auth/disable-2fa', requireAdminKeyOrToken, async (req, res) => {
     if (!cfg.enabled || !cfg.secret) {
       return res.status(400).json({ error: '2FA is not enabled' });
     }
-    if (!verifyTOTP(cfg.secret, code)) {
+    if (!(await verifyTOTP(cfg.secret, code))) {
       return res.status(401).json({ error: 'Invalid code' });
     }
     await disable2FA();

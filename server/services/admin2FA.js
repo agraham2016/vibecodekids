@@ -3,12 +3,12 @@
  *
  * Stores TOTP secret in data/admin_2fa.json. When enabled, admin login
  * requires password + 6-digit code from Google Authenticator.
+ * Uses otplib (pure JS, no native deps) for deployment compatibility.
  */
 
 import { promises as fs } from 'fs';
 import path from 'path';
-import speakeasy from 'speakeasy';
-import QRCode from 'qrcode';
+import { generateSecret, verify, generateURI } from 'otplib';
 import { DATA_DIR } from '../config/index.js';
 
 const ADMIN_2FA_FILE = path.join(DATA_DIR, 'admin_2fa.json');
@@ -43,39 +43,35 @@ export async function is2FAEnabled() {
 }
 
 /**
- * Generate new TOTP secret and return otpauth URL + QR code data URL.
+ * Generate new TOTP secret. Returns secret and otpauth URI for manual entry.
  * Does not persist — caller must call confirm2FASetup after user verifies.
  */
 export async function generate2FASecret() {
-  const secret = speakeasy.generateSecret({
-    name: 'Vibe Code Studio Admin',
-    length: 20,
+  const secret = generateSecret();
+  const otpauthUrl = generateURI({
+    secret,
+    issuer: 'Vibe Code Studio',
+    label: 'Admin',
   });
-  const otpauthUrl = secret.otpauth_url;
-  const qrDataUrl = await QRCode.toDataURL(otpauthUrl, { width: 200 });
-  return { secret: secret.base32, otpauthUrl, qrDataUrl };
+  return { secret, otpauthUrl };
 }
 
 /**
- * Verify TOTP code against a secret. Allows ±1 time step for clock drift.
+ * Verify TOTP code against a secret.
  */
-export function verifyTOTP(secret, token) {
+export async function verifyTOTP(secret, token) {
   if (!secret || !token || typeof token !== 'string') return false;
   const code = token.replace(/\s/g, '');
   if (!/^\d{6}$/.test(code)) return false;
-  return speakeasy.totp.verify({
-    secret,
-    encoding: 'base32',
-    token: code,
-    window: 1,
-  });
+  return verify({ secret, token: code });
 }
 
 /**
  * Confirm 2FA setup: verify code against pending secret, then persist.
  */
 export async function confirm2FASetup(secret, token) {
-  if (!verifyTOTP(secret, token)) return false;
+  const valid = await verifyTOTP(secret, token);
+  if (!valid) return false;
   await writeAdmin2FA({ secret, enabled: true });
   return true;
 }

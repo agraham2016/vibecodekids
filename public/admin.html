@@ -2161,10 +2161,10 @@
         if (!response.ok) throw new Error(data.error || 'Setup failed');
         setup2FASecret = data.secret;
         showModal('Setup 2FA', `
-          <p>Scan this QR code with Google Authenticator (or a similar app):</p>
-          <img src="${data.qrDataUrl || ''}" alt="QR code" style="display:block;margin:16px auto;background:white;padding:8px;border-radius:8px;">
-          <p style="font-size:0.85rem;color:var(--text-secondary);">Or enter this key manually: <code style="background:rgba(0,0,0,0.3);padding:4px 8px;border-radius:4px;">${escapeHtml(data.secret)}</code></p>
-          <p>Then enter the 6-digit code from your app:</p>
+          <p>Add this secret to Google Authenticator (or similar app):</p>
+          <p style="font-size:0.9rem;"><strong>Manual entry:</strong> Open your app, choose "Enter a setup key", and paste:</p>
+          <code style="display:block;background:rgba(0,0,0,0.3);padding:12px 16px;border-radius:8px;margin:12px 0;word-break:break-all;font-size:0.95rem;">${escapeHtml(data.secret)}</code>
+          <p>Then enter the 6-digit code from your app to confirm:</p>
           <input type="text" id="setup2FACode" inputmode="numeric" maxlength="6" placeholder="000000" style="width:120px;padding:10px;font-size:1.2rem;text-align:center;letter-spacing:8px;margin:8px 0;">
           <div id="setup2FAError" class="error-message hidden" style="margin-top:8px;"></div>
         `, async () => {

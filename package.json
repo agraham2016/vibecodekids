@@ -47,8 +47,7 @@
     "react-dom": "^18.2.0",
     "stripe": "^20.3.0",
     "ws": "^8.19.0",
-    "qrcode": "^1.5.4",
-    "speakeasy": "^2.0.0"
+    "otplib": "^13.0.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.1",
