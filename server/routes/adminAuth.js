@@ -12,10 +12,11 @@ import { ADMIN_SECRET } from '../config/index.js';
 import {
   is2FAEnabled,
   readAdmin2FA,
-  generate2FASecret,
-  verifyTOTP,
+  send2FACode,
+  verifyEmailCode,
   confirm2FASetup,
   disable2FA,
+  getAdmin2FAEmail,
 } from '../services/admin2FA.js';
 
 const router = Router();
@@ -52,18 +53,19 @@ function requireAdminKeyOrToken(req, res, next) {
   return res.status(401).json({ error: 'Invalid admin key' });
 }
 
-/** GET /api/admin/auth/status — public, returns whether 2FA is enabled */
+/** GET /api/admin/auth/status — public, returns whether 2FA is enabled and email */
 router.get('/auth/status', async (_req, res) => {
   try {
     const enabled = await is2FAEnabled();
-    res.json({ twoFactorEnabled: enabled });
+    const email = getAdmin2FAEmail();
+    res.json({ twoFactorEnabled: enabled, email });
   } catch (err) {
     console.error('Admin 2FA status error:', err);
     res.status(500).json({ error: 'Could not check 2FA status' });
   }
 });
 
-/** POST /api/admin/auth/login — validates admin key, returns ok or needs2FA */
+/** POST /api/admin/auth/login — validates admin key, sends code if 2FA enabled, returns ok or needs2FA */
 router.post('/auth/login', async (req, res) => {
   const adminKey = req.headers['x-admin-key'] || req.body?.adminKey;
   if (!ADMIN_SECRET || adminKey !== ADMIN_SECRET) {
@@ -72,7 +74,12 @@ router.post('/auth/login', async (req, res) => {
   try {
     const enabled = await is2FAEnabled();
     if (enabled) {
-      return res.json({ needs2FA: true });
+      const { sent } = await send2FACode();
+      return res.json({
+        needs2FA: true,
+        email: getAdmin2FAEmail(),
+        emailSent: sent,
+      });
     }
     return res.json({ ok: true });
   } catch (err) {
@@ -81,7 +88,7 @@ router.post('/auth/login', async (req, res) => {
   }
 });
 
-/** POST /api/admin/auth/verify-2fa — validates admin key + TOTP code, returns token */
+/** POST /api/admin/auth/verify-2fa — validates admin key + email code, returns token */
 router.post('/auth/verify-2fa', async (req, res) => {
   const adminKey = req.headers['x-admin-key'] || req.body?.adminKey;
   const code = req.body?.code;
@@ -93,10 +100,10 @@ router.post('/auth/verify-2fa', async (req, res) => {
   }
   try {
     const cfg = await readAdmin2FA();
-    if (!cfg.enabled || !cfg.secret) {
+    if (!cfg.enabled) {
       return res.status(400).json({ error: '2FA is not enabled' });
     }
-    if (!(await verifyTOTP(cfg.secret, code))) {
+    if (!(await verifyEmailCode(code))) {
       return res.status(401).json({ error: 'Invalid or expired code' });
     }
     const token = createAdminToken();
@@ -107,52 +114,45 @@ router.post('/auth/verify-2fa', async (req, res) => {
   }
 });
 
-/** POST /api/admin/auth/setup-2fa — requires admin key only, returns secret for manual entry */
+/** POST /api/admin/auth/setup-2fa — sends code to admin email to confirm setup */
 router.post('/auth/setup-2fa', requireAdminKeyOrToken, async (_req, res) => {
   try {
     const enabled = await is2FAEnabled();
     if (enabled) {
       return res.status(400).json({ error: '2FA is already enabled' });
     }
-    const { secret, otpauthUrl } = await generate2FASecret();
-    res.json({ secret, otpauthUrl });
+    const { sent, email } = await send2FACode();
+    res.json({ ok: true, email, emailSent: sent });
   } catch (err) {
     console.error('Admin 2FA setup error:', err);
-    res.status(500).json({ error: 'Could not generate 2FA secret' });
+    res.status(500).json({ error: 'Could not send verification code' });
   }
 });
 
-/** POST /api/admin/auth/confirm-2fa — requires admin key + code, enables 2FA */
+/** POST /api/admin/auth/confirm-2fa — verifies code and enables 2FA */
 router.post('/auth/confirm-2fa', requireAdminKeyOrToken, async (req, res) => {
-  const { secret, code } = req.body || {};
-  if (!secret || !code) {
-    return res.status(400).json({ error: 'Secret and code are required' });
+  const { code } = req.body || {};
+  if (!code) {
+    return res.status(400).json({ error: 'Code is required' });
   }
   try {
-    const ok = await confirm2FASetup(secret, code);
+    const ok = await confirm2FASetup(code);
     if (!ok) {
-      return res.status(400).json({ error: 'Invalid code. Add the secret to your app and try again.' });
+      return res.status(400).json({ error: 'Invalid or expired code. Check your email and try again.' });
     }
-    res.json({ ok: true, message: '2FA enabled. Future logins will require your authenticator app.' });
+    res.json({ ok: true, message: '2FA enabled. Future logins will require a code from your email.' });
   } catch (err) {
     console.error('Admin 2FA confirm error:', err);
     res.status(500).json({ error: 'Could not enable 2FA' });
   }
 });
 
-/** POST /api/admin/auth/disable-2fa — requires admin key + code, disables 2FA */
-router.post('/auth/disable-2fa', requireAdminKeyOrToken, async (req, res) => {
-  const { code } = req.body || {};
-  if (!code) {
-    return res.status(400).json({ error: 'Code is required to disable 2FA' });
-  }
+/** POST /api/admin/auth/disable-2fa — disables 2FA (no code required when already authenticated) */
+router.post('/auth/disable-2fa', requireAdminKeyOrToken, async (_req, res) => {
   try {
     const cfg = await readAdmin2FA();
-    if (!cfg.enabled || !cfg.secret) {
+    if (!cfg.enabled) {
       return res.status(400).json({ error: '2FA is not enabled' });
-    }
-    if (!(await verifyTOTP(cfg.secret, code))) {
-      return res.status(401).json({ error: 'Invalid code' });
     }
     await disable2FA();
     res.json({ ok: true, message: '2FA disabled.' });

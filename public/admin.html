@@ -844,13 +844,15 @@
         </form>
 
         <div id="login2FAStep" class="hidden" style="margin-top:20px;padding-top:20px;border-top:1px solid rgba(255,255,255,0.15);">
-          <p class="subtitle" style="margin-bottom:12px;">Enter 6-digit code from your authenticator app</p>
+          <p class="subtitle" style="margin-bottom:4px;">Enter the 6-digit code we sent to your email</p>
+          <p id="login2FAEmailHint" class="subtitle" style="margin-bottom:12px;font-size:0.85rem;opacity:0.9;"></p>
           <form id="login2FAForm">
             <div class="form-group">
               <label for="code2FA">Verification Code</label>
               <input type="text" id="code2FA" name="code" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="one-time-code" placeholder="000000" style="letter-spacing:8px;font-size:1.2rem;text-align:center;">
             </div>
             <button type="submit" class="btn btn-primary">Verify & Access</button>
+            <p style="margin-top:10px;font-size:0.85rem;"><a href="#" id="resend2FACode" style="color:var(--accent);">Resend code</a></p>
             <div id="login2FAError" class="error-message hidden" style="margin-top:10px;"></div>
           </form>
         </div>
@@ -1318,6 +1320,8 @@
           loginForm.querySelector('button[type="submit"]').disabled = true;
           document.getElementById('password').disabled = true;
           login2FAStep.classList.remove('hidden');
+          const emailHint = document.getElementById('login2FAEmailHint');
+          if (emailHint) emailHint.textContent = data.email ? `Check ${data.email} for your code.` : 'Check your email for your code.';
           document.getElementById('code2FA').focus();
         } else {
           loginError.textContent = data.error || 'Invalid admin key. Access denied.';
@@ -1334,7 +1338,7 @@
       e.preventDefault();
       const code = document.getElementById('code2FA').value.trim();
       if (!code || code.length !== 6) {
-        login2FAError.textContent = 'Enter the 6-digit code from your authenticator app.';
+        login2FAError.textContent = 'Enter the 6-digit code from your email.';
         login2FAError.classList.remove('hidden');
         return;
       }
@@ -1360,6 +1364,27 @@
       }
     });
 
+    // Resend 2FA code (re-call login to send new code)
+    document.getElementById('resend2FACode')?.addEventListener('click', async (e) => {
+      e.preventDefault();
+      if (!adminKey) return;
+      try {
+        const response = await fetch('/api/admin/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-admin-key': adminKey },
+          body: JSON.stringify({ adminKey })
+        });
+        const data = await response.json().catch(() => ({}));
+        if (response.ok && data.needs2FA) {
+          showToast(data.emailSent ? 'New code sent to your email' : 'Code sent (check server logs if RESEND_API_KEY not set)', 'success');
+        } else {
+          showToast(data.error || 'Could not resend code', 'error');
+        }
+      } catch (err) {
+        showToast('Could not connect to server', 'error');
+      }
+    });
+
     // Logout
     function logout() {
       adminKey = null;
@@ -1373,6 +1398,8 @@
       loginForm.querySelector('button[type="submit"]').disabled = false;
       login2FAStep.classList.add('hidden');
       document.getElementById('code2FA').value = '';
+      const emailHint = document.getElementById('login2FAEmailHint');
+      if (emailHint) emailHint.textContent = '';
       login2FAError.classList.add('hidden');
     }
 
@@ -2140,9 +2167,10 @@
         const response = await adminFetch('/api/admin/auth/status');
         const data = await response.json();
         const enabled = !!data.twoFactorEnabled;
+        const email = data.email || 'your email';
         container.innerHTML = `
           <div class="system-stat-row"><span class="system-stat-label">Status</span><span class="system-stat-value">${enabled ? '✅ Enabled' : '❌ Not enabled'}</span></div>
-          <p style="color:var(--text-secondary);font-size:0.9rem;margin:12px 0;">When enabled, you must enter a 6-digit code from Google Authenticator (or similar app) after your admin key.</p>
+          <p style="color:var(--text-secondary);font-size:0.9rem;margin:12px 0;">When enabled, a 6-digit code is sent to ${escapeHtml(email)} after your admin key. Enter the code to complete login.</p>
           ${enabled
             ? '<button class="btn btn-danger btn-sm" onclick="showDisable2FAModal()">Disable 2FA</button>'
             : '<button class="btn btn-primary btn-sm" onclick="showSetup2FAModal()">Enable 2FA</button>'
@@ -2153,18 +2181,15 @@
       }
     }
 
-    let setup2FASecret = null;
     async function showSetup2FAModal() {
       try {
         const response = await adminFetch('/api/admin/auth/setup-2fa', { method: 'POST' });
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || 'Setup failed');
-        setup2FASecret = data.secret;
+        const email = data.email || 'your email';
         showModal('Setup 2FA', `
-          <p>Add this secret to Google Authenticator (or similar app):</p>
-          <p style="font-size:0.9rem;"><strong>Manual entry:</strong> Open your app, choose "Enter a setup key", and paste:</p>
-          <code style="display:block;background:rgba(0,0,0,0.3);padding:12px 16px;border-radius:8px;margin:12px 0;word-break:break-all;font-size:0.95rem;">${escapeHtml(data.secret)}</code>
-          <p>Then enter the 6-digit code from your app to confirm:</p>
+          <p>We've sent a 6-digit code to <strong>${escapeHtml(email)}</strong>.</p>
+          <p style="font-size:0.9rem;color:var(--text-secondary);">Check your inbox (and spam) and enter the code below to enable 2FA.</p>
           <input type="text" id="setup2FACode" inputmode="numeric" maxlength="6" placeholder="000000" style="width:120px;padding:10px;font-size:1.2rem;text-align:center;letter-spacing:8px;margin:8px 0;">
           <div id="setup2FAError" class="error-message hidden" style="margin-top:8px;"></div>
         `, async () => {
@@ -2177,7 +2202,7 @@
           const res = await adminFetch('/api/admin/auth/confirm-2fa', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ secret: setup2FASecret, code })
+            body: JSON.stringify({ code })
           });
           const r = await res.json();
           if (res.ok && r.ok) {
@@ -2195,20 +2220,12 @@
 
     function showDisable2FAModal() {
       showModal('Disable 2FA', `
-        <p>Enter your current 6-digit code to disable 2FA:</p>
-        <input type="text" id="disable2FACode" inputmode="numeric" maxlength="6" placeholder="000000" style="width:120px;padding:10px;font-size:1.2rem;text-align:center;letter-spacing:8px;margin:8px 0;">
-        <div id="disable2FAError" class="error-message hidden" style="margin-top:8px;"></div>
+        <p>Are you sure you want to disable 2FA? Future logins will only require your admin key.</p>
       `, async () => {
-        const code = document.getElementById('disable2FACode')?.value?.trim();
-        const errEl = document.getElementById('disable2FAError');
-        if (!code || code.length !== 6) {
-          if (errEl) { errEl.textContent = 'Enter the 6-digit code.'; errEl.classList.remove('hidden'); }
-          return;
-        }
         const res = await adminFetch('/api/admin/auth/disable-2fa', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ code })
+          body: JSON.stringify({})
         });
         const r = await res.json();
         if (res.ok && r.ok) {
@@ -2216,7 +2233,7 @@
           showToast('2FA disabled', 'success');
           loadAdmin2FA();
         } else {
-          if (errEl) { errEl.textContent = r.error || 'Invalid code.'; errEl.classList.remove('hidden'); }
+          showToast(r.error || 'Failed to disable 2FA', 'error');
         }
       }, 'Disable', 'btn-danger');
     }
