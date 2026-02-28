@@ -164,6 +164,10 @@ CREATE TABLE IF NOT EXISTS esa_waitlist (
     created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- ========== AI IMPROVEMENT OPT-OUT (COPPA) ==========
+
+ALTER TABLE users ADD COLUMN IF NOT EXISTS improvement_opt_out BOOLEAN NOT NULL DEFAULT false;
+
 -- ========== CLEANUP ==========
 -- Automatic cleanup of expired sessions and old rate limit entries.
 -- Run these periodically via a cron job or scheduled task.

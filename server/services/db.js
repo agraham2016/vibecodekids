@@ -92,6 +92,7 @@ function rowToUser(row) {
     paymentMethod: row.payment_method || 'stripe',
     classwalletOrderId: row.classwallet_order_id || null,
     esaBillingPeriod: row.esa_billing_period || null,
+    improvementOptOut: row.improvement_opt_out || false,
     // Rate limit requests are stored in a separate table for Postgres
     recentRequests: [],
   };
@@ -136,6 +137,7 @@ function userToRow(user) {
     payment_method: user.paymentMethod || 'stripe',
     classwallet_order_id: user.classwalletOrderId || null,
     esa_billing_period: user.esaBillingPeriod || null,
+    improvement_opt_out: user.improvementOptOut || false,
   };
 }
 
@@ -189,7 +191,7 @@ export async function writeUser(userId, userData) {
       age_bracket, parent_email, recovery_email, parental_consent_status, parental_consent_at,
       data_deletion_requested, data_deletion_at, privacy_accepted_at,
       approved_at, denied_at, created_at, last_login_at,
-      payment_method, classwallet_order_id, esa_billing_period
+      payment_method, classwallet_order_id, esa_billing_period, improvement_opt_out
     ) VALUES (
       $1, $2, $3, $4, $5, $6,
       $7, $8, $9, $10,
@@ -198,8 +200,8 @@ export async function writeUser(userId, userData) {
       $18, $19, $20,
       $21, $22, $23, $24, $25,
       $26, $27, $28,
-      $29, $30, $31, $32,
-      $33, $34, $35
+      $29, $30,       $31, $32,
+      $33, $34, $35, $36
     )
     ON CONFLICT (id) DO UPDATE SET
       username = EXCLUDED.username,
@@ -234,7 +236,8 @@ export async function writeUser(userId, userData) {
       last_login_at = EXCLUDED.last_login_at,
       payment_method = EXCLUDED.payment_method,
       classwallet_order_id = EXCLUDED.classwallet_order_id,
-      esa_billing_period = EXCLUDED.esa_billing_period
+      esa_billing_period = EXCLUDED.esa_billing_period,
+      improvement_opt_out = EXCLUDED.improvement_opt_out
   `, [
     r.id, r.username, r.display_name, r.password_hash, r.status, r.is_admin,
     r.membership_tier, r.membership_expires, r.stripe_customer_id, r.stripe_subscription_id,
@@ -244,7 +247,7 @@ export async function writeUser(userId, userData) {
     r.age_bracket, r.parent_email, r.recovery_email, r.parental_consent_status, r.parental_consent_at,
     r.data_deletion_requested, r.data_deletion_at, r.privacy_accepted_at,
     r.approved_at, r.denied_at, r.created_at, r.last_login_at,
-    r.payment_method, r.classwallet_order_id, r.esa_billing_period
+    r.payment_method, r.classwallet_order_id, r.esa_billing_period, r.improvement_opt_out
   ]);
 }
 

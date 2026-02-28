@@ -27,6 +27,8 @@ import {
   isGrokAvailable,
 } from '../services/ai.js';
 import { generateOrIterateGame } from '../services/gameHandler.js';
+import { logGenerateEvent } from '../services/eventStore.js';
+import { readUser } from '../services/storage.js';
 
 export default function createGenerateRouter(sessions) {
   const router = Router();
@@ -47,10 +49,13 @@ export default function createGenerateRouter(sessions) {
         currentCode, 
         conversationHistory = [], 
         gameConfig = null,
-        // ---- NEW DUAL-MODEL FIELDS ----
-        mode = 'default',        // Routing mode
-        lastModelUsed = null,    // For ask-other-buddy
-        debugAttempt = 0,        // For debug escalation
+        // ---- DUAL-MODEL FIELDS ----
+        mode = 'default',
+        lastModelUsed = null,
+        debugAttempt = 0,
+        // ---- MONITORING FIELDS ----
+        sessionId = null,
+        startingModel = null,
       } = req.body;
 
       console.log(`🎮 Generate request: "${(message || '').slice(0, 80)}" | mode: ${mode} | model-hint: ${lastModelUsed || 'none'} | gameConfig: ${gameConfig ? gameConfig.gameType : 'none'} | hasCode: ${!!currentCode} | historyLen: ${conversationHistory.length}`);
@@ -115,6 +120,28 @@ export default function createGenerateRouter(sessions) {
           cached.hits++;
           await incrementUsage(userId, 'generate');
           const usage = userId ? calculateUsageRemaining(tierCheck.user) : null;
+
+          // Log event for monitoring (skip if opted out)
+          let improvementOptOut = false;
+          let ageBracket = null;
+          if (userId) {
+            try {
+              const user = await readUser(userId);
+              improvementOptOut = !!user.improvementOptOut;
+              ageBracket = user.ageBracket || null;
+            } catch { /* user not found */ }
+          }
+          logGenerateEvent({
+            sessionId,
+            startingModel,
+            modelUsed: 'claude',
+            mode,
+            hasCode: !!cached.code,
+            userId,
+            ageBracket,
+            improvementOptOut,
+          }).catch((err) => console.error('Event log error:', err?.message));
+
           return res.json({ 
             message: cached.message, 
             code: cached.code, 
@@ -176,6 +203,27 @@ export default function createGenerateRouter(sessions) {
       if (result.referenceSources && result.referenceSources.length > 0) {
         responsePayload.referenceSources = result.referenceSources;
       }
+
+      // Log event for AI monitoring (skip if opted out)
+      let improvementOptOut = false;
+      let ageBracket = null;
+      if (userId) {
+        try {
+          const user = await readUser(userId);
+          improvementOptOut = !!user.improvementOptOut;
+          ageBracket = user.ageBracket || null;
+        } catch { /* user not found */ }
+      }
+      logGenerateEvent({
+        sessionId,
+        startingModel,
+        modelUsed: result.modelUsed,
+        mode,
+        hasCode: !!result.code,
+        userId,
+        ageBracket,
+        improvementOptOut,
+      }).catch((err) => console.error('Event log error:', err?.message));
 
       res.json(responsePayload);
 

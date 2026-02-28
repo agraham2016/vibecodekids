@@ -11,6 +11,7 @@ import { BCRYPT_ROUNDS } from '../config/index.js';
 import { readUser, writeUser, listUsers, deleteUser, listProjects, deleteProject } from '../services/storage.js';
 import { getUsageStats } from '../services/ai.js';
 import { getResponseCacheStats, clearResponseCache } from '../services/responseCache.js';
+import { getModelPerformanceStats } from '../services/modelPerformance.js';
 
 const router = Router();
 
@@ -315,6 +316,36 @@ router.post('/cache-clear', (_req, res) => {
   } catch (error) {
     console.error('Cache clear error:', error);
     res.status(500).json({ error: 'Could not clear cache' });
+  }
+});
+
+// Model performance (Claude vs Grok monitoring)
+router.get('/model-performance', async (req, res) => {
+  try {
+    const periodDays = parseInt(req.query.periodDays || '7', 10) || 7;
+    const stats = await getModelPerformanceStats({ periodDays });
+    res.json(stats);
+  } catch (error) {
+    console.error('Model performance error:', error);
+    res.status(500).json({ error: 'Failed to load model performance stats' });
+  }
+});
+
+// Opt user out of AI improvement monitoring (COPPA)
+router.post('/users/:id/opt-out-improvement', async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!/^[a-zA-Z0-9_-]+$/.test(id)) return res.status(400).json({ error: 'Invalid user ID' });
+
+    const user = await readUser(id);
+    user.improvementOptOut = true;
+    await writeUser(id, user);
+
+    res.json({ success: true, message: 'User opted out of AI improvement monitoring' });
+  } catch (error) {
+    if (error.code === 'ENOENT') return res.status(404).json({ error: 'User not found' });
+    console.error('Opt-out error:', error);
+    res.status(500).json({ error: 'Failed to update opt-out status' });
   }
 });
 

@@ -31,6 +31,11 @@ interface UseChatOptions {
   onUpgradeNeeded: () => void
 }
 
+function pickRandomStartingModel(grokAvailable: boolean): AIModel {
+  if (!grokAvailable) return 'claude'
+  return Math.random() < 0.5 ? 'claude' : 'grok'
+}
+
 export function useChat({ onCodeGenerated, onUsageUpdate, onUpgradeNeeded }: UseChatOptions) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -38,12 +43,22 @@ export function useChat({ onCodeGenerated, onUsageUpdate, onUpgradeNeeded }: Use
   const [grokAvailable, setGrokAvailable] = useState(false)
   const [lastModelUsed, setLastModelUsed] = useState<AIModel | null>(null)
   const debugAttemptRef = useRef(0)
+  const sessionIdRef = useRef(crypto.randomUUID())
+  const startingModelRef = useRef<AIModel>('claude')
+  const hasPickedInitialRef = useRef(false)
 
-  // Check if Grok is available on mount via health endpoint
+  // Check if Grok is available on mount; when known, randomize starting model for fresh session
   useEffect(() => {
     api.get<{ grok?: boolean }>('/api/health')
       .then(data => {
-        if (data.grok) setGrokAvailable(true)
+        const available = !!data.grok
+        setGrokAvailable(available)
+        if (!hasPickedInitialRef.current) {
+          hasPickedInitialRef.current = true
+          const picked = pickRandomStartingModel(available)
+          startingModelRef.current = picked
+          setActiveModel(picked)
+        }
       })
       .catch(() => { /* ignore — just means we can't check yet */ })
   }, [])
@@ -93,6 +108,8 @@ export function useChat({ onCodeGenerated, onUsageUpdate, onUpgradeNeeded }: Use
         mode,
         lastModelUsed,
         debugAttempt: mode === 'debug' ? debugAttemptRef.current : 0,
+        sessionId: sessionIdRef.current,
+        startingModel: startingModelRef.current,
       })
 
       if (data.usage) {
@@ -165,10 +182,14 @@ export function useChat({ onCodeGenerated, onUsageUpdate, onUpgradeNeeded }: Use
   }, [])
 
   const clearMessages = useCallback(() => {
+    sessionIdRef.current = crypto.randomUUID()
+    const picked = pickRandomStartingModel(grokAvailable)
+    startingModelRef.current = picked
+    setActiveModel(picked)
     setMessages([])
     setLastModelUsed(null)
     debugAttemptRef.current = 0
-  }, [])
+  }, [grokAvailable])
 
   return {
     messages,

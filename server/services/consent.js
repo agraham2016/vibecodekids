@@ -201,6 +201,8 @@ What we DON'T collect:
 - Location data
 - Photos or videos
 
+By approving, you agree to our Terms of Service and Privacy Policy, including our use of anonymized chat data to improve our AI assistants (you may opt out at any time by emailing us).
+
 To APPROVE your child's account, click here:
 ${consentUrl}
 

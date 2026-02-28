@@ -1083,6 +1083,22 @@
               </div>
             </div>
           </div>
+          <div class="panel" style="grid-column: 1 / -1;">
+            <div class="panel-header">
+              📊 Model Performance (Claude vs Grok)
+              <select id="modelPerformancePeriod" onchange="loadModelPerformance()" style="margin-left:12px;padding:6px 10px;border-radius:8px;background:rgba(0,0,0,0.3);border:1px solid var(--glass-border);color:white;font-size:0.9rem;">
+                <option value="7">Last 7 days</option>
+                <option value="30">Last 30 days</option>
+              </select>
+              <button class="btn btn-primary btn-sm" style="margin-left:8px;" onclick="loadModelPerformance()">Refresh</button>
+            </div>
+            <div class="panel-content" id="modelPerformanceContent">
+              <div class="loading">
+                <div class="spinner"></div>
+                <p>Loading model performance...</p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -1256,6 +1272,7 @@
       loadEsaOrders();
       loadAiUsage();
       loadCacheStats();
+      loadModelPerformance();
     }
 
     // Tab switching
@@ -1265,6 +1282,10 @@
       
       event.target.classList.add('active');
       document.getElementById(`tab-${tabId}`).classList.add('active');
+
+      if (tabId === 'system') {
+        loadModelPerformance();
+      }
     }
 
     // Toast notifications
@@ -2006,6 +2027,39 @@
         },
         'btn-danger'
       );
+    }
+
+    async function loadModelPerformance() {
+      const container = document.getElementById('modelPerformanceContent');
+      const periodEl = document.getElementById('modelPerformancePeriod');
+      const periodDays = periodEl ? parseInt(periodEl.value || '7', 10) : 7;
+
+      try {
+        const response = await adminFetch(`/api/admin/model-performance?periodDays=${periodDays}`);
+        const stats = await response.json();
+
+        const s = stats.sessionsByStartingModel || {};
+        const g = stats.generationsByModel || {};
+        const r = stats.successRateByModel || {};
+
+        container.innerHTML = `
+          <div class="system-stat-row"><span class="system-stat-label">Period</span><span class="system-stat-value">${escapeHtml(stats.periodLabel || 'N/A')}</span></div>
+          <div class="system-stat-row"><span class="system-stat-label">Total Generations</span><span class="system-stat-value">${(stats.totalGenerations || 0).toLocaleString()}</span></div>
+          <div class="system-stat-row"><span class="system-stat-label">Unique Sessions</span><span class="system-stat-value">${(stats.uniqueSessions || 0).toLocaleString()}</span></div>
+          <hr style="border:none;border-top:1px solid rgba(255,255,255,0.1);margin:12px 0;">
+          <div class="system-stat-row"><span class="system-stat-label">Sessions starting with Claude</span><span class="system-stat-value">${(s.claude || 0).toLocaleString()}</span></div>
+          <div class="system-stat-row"><span class="system-stat-label">Sessions starting with Grok</span><span class="system-stat-value">${(s.grok || 0).toLocaleString()}</span></div>
+          <hr style="border:none;border-top:1px solid rgba(255,255,255,0.1);margin:12px 0;">
+          <div class="system-stat-row"><span class="system-stat-label">Claude generations</span><span class="system-stat-value">${(g.claude || 0).toLocaleString()}</span></div>
+          <div class="system-stat-row"><span class="system-stat-label">Grok generations</span><span class="system-stat-value">${(g.grok || 0).toLocaleString()}</span></div>
+          <hr style="border:none;border-top:1px solid rgba(255,255,255,0.1);margin:12px 0;">
+          <div class="system-stat-row"><span class="system-stat-label">Claude success rate (code returned)</span><span class="system-stat-value">${r.claude || '0%'}</span></div>
+          <div class="system-stat-row"><span class="system-stat-label">Grok success rate (code returned)</span><span class="system-stat-value">${r.grok || '0%'}</span></div>
+          ${stats.totalGenerations === 0 ? '<p style="color:var(--text-secondary);margin-top:16px;">No events yet. Events are logged when users generate games in the studio.</p>' : ''}
+        `;
+      } catch (error) {
+        container.innerHTML = '<p style="color:var(--error);">Failed to load model performance stats.</p>';
+      }
     }
 
     // Initialize

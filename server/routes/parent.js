@@ -124,7 +124,7 @@ ${JSON.stringify(data, null, 2)}
 
     if (granted) {
       const message = consent.action === 'consent'
-        ? 'You have approved your child\'s account. They can log in now!'
+        ? 'You have approved your child\'s account. They can log in now! You agreed to our Terms of Service and Privacy Policy, including our use of anonymized data to improve our AI. You may opt out of AI improvement use at any time by emailing us.'
         : 'Your request has been approved.';
       res.send(renderPage('Approved!', message, 'success'));
     } else {
