@@ -837,11 +837,23 @@
           </div>
           
           <button type="submit" class="btn btn-primary">
-            Access Dashboard
+            Continue
           </button>
           
           <div id="loginError" class="error-message hidden"></div>
         </form>
+
+        <div id="login2FAStep" class="hidden" style="margin-top:20px;padding-top:20px;border-top:1px solid rgba(255,255,255,0.15);">
+          <p class="subtitle" style="margin-bottom:12px;">Enter 6-digit code from your authenticator app</p>
+          <form id="login2FAForm">
+            <div class="form-group">
+              <label for="code2FA">Verification Code</label>
+              <input type="text" id="code2FA" name="code" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="one-time-code" placeholder="000000" style="letter-spacing:8px;font-size:1.2rem;text-align:center;">
+            </div>
+            <button type="submit" class="btn btn-primary">Verify & Access</button>
+            <div id="login2FAError" class="error-message hidden" style="margin-top:10px;"></div>
+          </form>
+        </div>
       </div>
     </div>
 
@@ -1087,6 +1099,12 @@
             </div>
           </div>
           <div class="panel">
+            <div class="panel-header">🔐 Two-Factor Authentication (2FA)</div>
+            <div class="panel-content" id="admin2FAContent">
+              <div class="loading"><div class="spinner"></div><p>Loading...</p></div>
+            </div>
+          </div>
+          <div class="panel">
             <div class="panel-header">🏥 System Health</div>
             <div class="panel-content" id="systemHealthContent">
               <div class="loading"><div class="spinner"></div><p>Loading...</p></div>
@@ -1230,13 +1248,16 @@
   </div>
 
   <script>
-    // Admin key stored in session (validated server-side via x-admin-key header)
+    // Admin key (password) and/or admin token (2FA) stored in session
     let adminKey = sessionStorage.getItem('adminKey');
+    let adminToken = sessionStorage.getItem('adminToken');
 
-    // Helper: add admin auth headers to every fetch request
+    // Helper: add admin auth headers (token when 2FA, else key)
     function adminFetch(url, options = {}) {
       if (!options.headers) options.headers = {};
-      if (adminKey) {
+      if (adminToken) {
+        options.headers['Authorization'] = 'Bearer ' + adminToken;
+      } else if (adminKey) {
         options.headers['x-admin-key'] = adminKey;
       }
       return fetch(url, options);
@@ -1247,50 +1268,59 @@
     const dashboardPage = document.getElementById('dashboardPage');
     const loginForm = document.getElementById('loginForm');
     const loginError = document.getElementById('loginError');
+    const login2FAStep = document.getElementById('login2FAStep');
+    const login2FAForm = document.getElementById('login2FAForm');
+    const login2FAError = document.getElementById('login2FAError');
 
     // Check if already logged in by hitting a protected endpoint
     async function checkAuth() {
-      if (!adminKey) return;
+      if (!adminKey && !adminToken) return;
       try {
         const response = await adminFetch('/api/admin/stats');
         if (response.ok) {
           showDashboard();
         } else {
-          // Key is invalid or expired
           sessionStorage.removeItem('adminKey');
+          sessionStorage.removeItem('adminToken');
           adminKey = null;
+          adminToken = null;
         }
       } catch (err) {
         // Server unreachable, stay on login
       }
     }
 
-    // Login handler -- validates against server
+    // Login handler — step 1: validate password
     loginForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-      
-      // The "password" field is now the admin secret key
       const key = document.getElementById('password').value.trim();
-      
       if (!key) {
         loginError.textContent = 'Please enter the admin key.';
         loginError.classList.remove('hidden');
         return;
       }
-
-      // Test the key by hitting a protected endpoint
       try {
-        const response = await fetch('/api/admin/stats', {
-          headers: { 'x-admin-key': key }
+        const response = await fetch('/api/admin/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-admin-key': key },
+          body: JSON.stringify({ adminKey: key })
         });
-
-        if (response.ok) {
+        const data = await response.json().catch(() => ({}));
+        if (response.ok && data.ok) {
           adminKey = key;
           sessionStorage.setItem('adminKey', adminKey);
           loginError.classList.add('hidden');
           showDashboard();
+        } else if (response.ok && data.needs2FA) {
+          adminKey = key;
+          sessionStorage.setItem('adminKey', adminKey);
+          loginError.classList.add('hidden');
+          loginForm.querySelector('button[type="submit"]').disabled = true;
+          document.getElementById('password').disabled = true;
+          login2FAStep.classList.remove('hidden');
+          document.getElementById('code2FA').focus();
         } else {
-          loginError.textContent = 'Invalid admin key. Access denied.';
+          loginError.textContent = data.error || 'Invalid admin key. Access denied.';
           loginError.classList.remove('hidden');
         }
       } catch (err) {
@@ -1299,13 +1329,51 @@
       }
     });
 
+    // Login handler — step 2: verify 2FA code
+    login2FAForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const code = document.getElementById('code2FA').value.trim();
+      if (!code || code.length !== 6) {
+        login2FAError.textContent = 'Enter the 6-digit code from your authenticator app.';
+        login2FAError.classList.remove('hidden');
+        return;
+      }
+      try {
+        const response = await fetch('/api/admin/auth/verify-2fa', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-admin-key': adminKey },
+          body: JSON.stringify({ adminKey, code })
+        });
+        const data = await response.json().catch(() => ({}));
+        if (response.ok && data.ok && data.token) {
+          adminToken = data.token;
+          sessionStorage.setItem('adminToken', adminToken);
+          login2FAError.classList.add('hidden');
+          showDashboard();
+        } else {
+          login2FAError.textContent = data.error || 'Invalid or expired code. Try again.';
+          login2FAError.classList.remove('hidden');
+        }
+      } catch (err) {
+        login2FAError.textContent = 'Could not connect to server. Try again.';
+        login2FAError.classList.remove('hidden');
+      }
+    });
+
     // Logout
     function logout() {
       adminKey = null;
+      adminToken = null;
       sessionStorage.removeItem('adminKey');
+      sessionStorage.removeItem('adminToken');
       dashboardPage.classList.add('hidden');
       loginPage.classList.remove('hidden');
       document.getElementById('password').value = '';
+      document.getElementById('password').disabled = false;
+      loginForm.querySelector('button[type="submit"]').disabled = false;
+      login2FAStep.classList.add('hidden');
+      document.getElementById('code2FA').value = '';
+      login2FAError.classList.add('hidden');
     }
 
     // Show dashboard
@@ -1339,6 +1407,7 @@
         loadSystemHealth();
         loadContentFilterStats();
         loadRateLimitStats();
+        loadAdmin2FA();
       } else if (tabId === 'audit') {
         loadAuditLog();
       }
@@ -2062,6 +2131,117 @@
       } catch (error) {
         container.innerHTML = '<p style="color:var(--error);">Failed to load cache stats.</p>';
       }
+    }
+
+    async function loadAdmin2FA() {
+      const container = document.getElementById('admin2FAContent');
+      if (!container) return;
+      try {
+        const response = await adminFetch('/api/admin/auth/status');
+        const data = await response.json();
+        const enabled = !!data.twoFactorEnabled;
+        container.innerHTML = `
+          <div class="system-stat-row"><span class="system-stat-label">Status</span><span class="system-stat-value">${enabled ? '✅ Enabled' : '❌ Not enabled'}</span></div>
+          <p style="color:var(--text-secondary);font-size:0.9rem;margin:12px 0;">When enabled, you must enter a 6-digit code from Google Authenticator (or similar app) after your admin key.</p>
+          ${enabled
+            ? '<button class="btn btn-danger btn-sm" onclick="showDisable2FAModal()">Disable 2FA</button>'
+            : '<button class="btn btn-primary btn-sm" onclick="showSetup2FAModal()">Enable 2FA</button>'
+          }
+        `;
+      } catch (error) {
+        container.innerHTML = '<p style="color:var(--error);">Failed to load 2FA status.</p>';
+      }
+    }
+
+    let setup2FASecret = null;
+    async function showSetup2FAModal() {
+      try {
+        const response = await adminFetch('/api/admin/auth/setup-2fa', { method: 'POST' });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Setup failed');
+        setup2FASecret = data.secret;
+        showModal('Setup 2FA', `
+          <p>Scan this QR code with Google Authenticator (or a similar app):</p>
+          <img src="${data.qrDataUrl || ''}" alt="QR code" style="display:block;margin:16px auto;background:white;padding:8px;border-radius:8px;">
+          <p style="font-size:0.85rem;color:var(--text-secondary);">Or enter this key manually: <code style="background:rgba(0,0,0,0.3);padding:4px 8px;border-radius:4px;">${escapeHtml(data.secret)}</code></p>
+          <p>Then enter the 6-digit code from your app:</p>
+          <input type="text" id="setup2FACode" inputmode="numeric" maxlength="6" placeholder="000000" style="width:120px;padding:10px;font-size:1.2rem;text-align:center;letter-spacing:8px;margin:8px 0;">
+          <div id="setup2FAError" class="error-message hidden" style="margin-top:8px;"></div>
+        `, async () => {
+          const code = document.getElementById('setup2FACode')?.value?.trim();
+          const errEl = document.getElementById('setup2FAError');
+          if (!code || code.length !== 6) {
+            if (errEl) { errEl.textContent = 'Enter the 6-digit code.'; errEl.classList.remove('hidden'); }
+            return;
+          }
+          const res = await adminFetch('/api/admin/auth/confirm-2fa', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ secret: setup2FASecret, code })
+          });
+          const r = await res.json();
+          if (res.ok && r.ok) {
+            closeModal();
+            showToast('2FA enabled successfully', 'success');
+            loadAdmin2FA();
+          } else {
+            if (errEl) { errEl.textContent = r.error || 'Invalid code.'; errEl.classList.remove('hidden'); }
+          }
+        }, 'Confirm');
+      } catch (err) {
+        showToast(err.message || 'Failed to start 2FA setup', 'error');
+      }
+    }
+
+    function showDisable2FAModal() {
+      showModal('Disable 2FA', `
+        <p>Enter your current 6-digit code to disable 2FA:</p>
+        <input type="text" id="disable2FACode" inputmode="numeric" maxlength="6" placeholder="000000" style="width:120px;padding:10px;font-size:1.2rem;text-align:center;letter-spacing:8px;margin:8px 0;">
+        <div id="disable2FAError" class="error-message hidden" style="margin-top:8px;"></div>
+      `, async () => {
+        const code = document.getElementById('disable2FACode')?.value?.trim();
+        const errEl = document.getElementById('disable2FAError');
+        if (!code || code.length !== 6) {
+          if (errEl) { errEl.textContent = 'Enter the 6-digit code.'; errEl.classList.remove('hidden'); }
+          return;
+        }
+        const res = await adminFetch('/api/admin/auth/disable-2fa', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code })
+        });
+        const r = await res.json();
+        if (res.ok && r.ok) {
+          closeModal();
+          showToast('2FA disabled', 'success');
+          loadAdmin2FA();
+        } else {
+          if (errEl) { errEl.textContent = r.error || 'Invalid code.'; errEl.classList.remove('hidden'); }
+        }
+      }, 'Disable', 'btn-danger');
+    }
+
+    function showModal(title, bodyHtml, onConfirm, confirmText = 'OK', confirmClass = 'btn-primary') {
+      const overlay = document.createElement('div');
+      overlay.id = 'customModalOverlay';
+      overlay.className = 'modal-overlay';
+      overlay.innerHTML = `
+        <div class="modal">
+          <h3>${escapeHtml(title)}</h3>
+          <div>${bodyHtml}</div>
+          <div class="modal-actions" style="margin-top:16px;">
+            <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+            <button class="btn ${confirmClass}" id="customModalConfirm">${escapeHtml(confirmText)}</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(overlay);
+      overlay.querySelector('#customModalConfirm').onclick = () => onConfirm();
+    }
+
+    function closeModal() {
+      const el = document.getElementById('customModalOverlay');
+      if (el) el.remove();
     }
 
     async function clearCache() {

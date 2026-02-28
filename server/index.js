@@ -31,6 +31,7 @@ import createGenerateRouter from './routes/generate.js';
 import createBillingRouter from './routes/billing.js';
 import galleryRouter from './routes/gallery.js';
 import adminRouter from './routes/admin.js';
+import adminAuthRouter from './routes/adminAuth.js';
 import parentRouter from './routes/parent.js';
 import createEsaRouter from './routes/esa.js';
 import createFeedbackRouter from './routes/feedback.js';
@@ -264,6 +265,8 @@ app.use('/api/membership', billingRouter);
 const esaRouter = createEsaRouter(sessions);
 app.use('/api/esa', esaRouter);
 
+// Admin auth routes (login, 2FA) — before requireAdmin
+app.use('/api/admin', adminAuthRouter);
 // Admin routes (protected)
 app.use('/api/admin', requireAdmin(sessions), adminRouter);
 
