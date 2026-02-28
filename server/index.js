@@ -36,6 +36,8 @@ import adminAuthRouter from './routes/adminAuth.js';
 import parentRouter from './routes/parent.js';
 import createEsaRouter from './routes/esa.js';
 import createFeedbackRouter from './routes/feedback.js';
+import demoRouter from './routes/demo.js';
+import demoAnalyticsRouter from './routes/demoAnalytics.js';
 import { initMultiplayer, getRoomInfo, getActiveRooms } from './multiplayer.js';
 
 // ========== INIT ==========
@@ -265,6 +267,10 @@ app.use('/api/membership', billingRouter);
 // ESA / ClassWallet routes (public checkout + admin order management)
 const esaRouter = createEsaRouter(sessions);
 app.use('/api/esa', esaRouter);
+
+// Demo routes (unauthenticated — "Try It Now")
+app.use('/api/demo', demoRouter);
+app.use('/api/demo', demoAnalyticsRouter);
 
 // Admin auth routes (login, 2FA) — before requireAdmin
 app.use('/api/admin', adminAuthRouter);

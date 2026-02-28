@@ -1126,6 +1126,20 @@
           </div>
           <div class="panel" style="grid-column: 1 / -1;">
             <div class="panel-header">
+              🧪 A/B Test — Landing Page
+              <select id="abStatsPeriod" onchange="loadABStats()" style="margin-left:12px;padding:6px 10px;border-radius:8px;background:rgba(0,0,0,0.3);border:1px solid var(--glass-border);color:white;font-size:0.9rem;">
+                <option value="7">Last 7 days</option>
+                <option value="30" selected>Last 30 days</option>
+                <option value="90">Last 90 days</option>
+              </select>
+              <button class="btn btn-primary btn-sm" style="margin-left:8px;" onclick="loadABStats()">Refresh</button>
+            </div>
+            <div class="panel-content" id="abStatsContent">
+              <div class="loading"><div class="spinner"></div><p>Loading A/B stats...</p></div>
+            </div>
+          </div>
+          <div class="panel" style="grid-column: 1 / -1;">
+            <div class="panel-header">
               📊 Model Performance (Claude vs Grok)
               <select id="modelPerformancePeriod" onchange="loadModelPerformance()" style="margin-left:12px;padding:6px 10px;border-radius:8px;background:rgba(0,0,0,0.3);border:1px solid var(--glass-border);color:white;font-size:0.9rem;">
                 <option value="7">Last 7 days</option>
@@ -1418,6 +1432,7 @@
       loadSystemHealth();
       loadContentFilterStats();
       loadRateLimitStats();
+      loadABStats();
       loadAuditLog();
     }
 
@@ -1435,6 +1450,7 @@
         loadContentFilterStats();
         loadRateLimitStats();
         loadAdmin2FA();
+        loadABStats();
       } else if (tabId === 'audit') {
         loadAuditLog();
       }
@@ -2379,6 +2395,46 @@
         `;
       } catch (error) {
         container.innerHTML = '<p style="color:var(--error);">Failed to load rate limit stats.</p>';
+      }
+    }
+
+    async function loadABStats() {
+      const container = document.getElementById('abStatsContent');
+      if (!container) return;
+      try {
+        const days = document.getElementById('abStatsPeriod')?.value || '30';
+        const response = await adminFetch('/api/admin/ab-stats?days=' + days);
+        const d = await response.json();
+        const va = d.variants?.a || {};
+        const vb = d.variants?.b || {};
+
+        const topPromptsRows = (d.topPrompts || []).map(p => {
+          const rate = p.count > 0 ? Math.round(p.thumbsUp / p.count * 100) : 0;
+          return `<tr><td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(p.prompt)}</td><td>${p.count}</td><td>${rate}%</td></tr>`;
+        }).join('');
+
+        container.innerHTML = `
+          <table class="data-table" style="font-size:0.9rem;margin-bottom:16px;">
+            <thead><tr><th>Metric</th><th>A (Current)</th><th>B (Try-It-Now)</th></tr></thead>
+            <tbody>
+              <tr><td>Pageviews</td><td>${va.pageviews || 0}</td><td>${vb.pageviews || 0}</td></tr>
+              <tr><td>Unique Visitors</td><td>${va.uniqueVisitors || 0}</td><td>${vb.uniqueVisitors || 0}</td></tr>
+              <tr><td>Generations</td><td>${va.generations || 0}</td><td>${vb.generations || 0}</td></tr>
+              <tr><td>Thumbs Up</td><td>${va.thumbsUp || 0}</td><td>${vb.thumbsUp || 0}</td></tr>
+              <tr><td>Thumbs Down</td><td>${va.thumbsDown || 0}</td><td>${vb.thumbsDown || 0}</td></tr>
+              <tr><td>Signups</td><td>${va.signups || 0}</td><td>${vb.signups || 0}</td></tr>
+              <tr><td><strong>Conversion Rate</strong></td><td><strong>${va.conversionRate || '0%'}</strong></td><td><strong>${vb.conversionRate || '0%'}</strong></td></tr>
+            </tbody>
+          </table>
+          <p style="color:var(--text-secondary);font-size:0.85rem;margin-bottom:8px;">Total events tracked: ${d.totalEvents || 0}</p>
+          ${topPromptsRows ? `<h4 style="margin:12px 0 8px;color:var(--text-primary);">Top Demo Prompts</h4>
+          <table class="data-table" style="font-size:0.85rem;">
+            <thead><tr><th>Prompt</th><th>Uses</th><th>Thumbs Up %</th></tr></thead>
+            <tbody>${topPromptsRows}</tbody>
+          </table>` : ''}
+        `;
+      } catch (error) {
+        container.innerHTML = '<p style="color:var(--error);">Failed to load A/B stats.</p>';
       }
     }
 

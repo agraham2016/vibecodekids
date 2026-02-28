@@ -12,6 +12,8 @@ import AuthModal from './components/AuthModal'
 import UpgradeModal from './components/UpgradeModal'
 import VersionHistoryModal from './components/VersionHistoryModal'
 import LandingPage from './components/LandingPage'
+import LandingPageB from './components/LandingPageB'
+import { getVariant } from './lib/abVariant'
 import './App.css'
 
 function App() {
@@ -80,11 +82,21 @@ function App() {
     })
     setShowAuthModal(false)
 
+    // Restore demo draft if present (from "Try It Now" landing page)
+    const draftCode = localStorage.getItem('vck_draft_code')
+    const draftTs = localStorage.getItem('vck_draft_ts')
+    if (draftCode && draftTs && Date.now() - Number(draftTs) < 3600000) {
+      setGeneratedCode(draftCode)
+      localStorage.removeItem('vck_draft_code')
+      localStorage.removeItem('vck_draft_prompt')
+      localStorage.removeItem('vck_draft_ts')
+    }
+
     if (loginData?.showUpgradePrompt) {
       setIsWelcomeUpgrade(true)
       setTimeout(() => setShowUpgradeModal(true), 500)
     }
-  }, [login])
+  }, [login, setGeneratedCode])
 
   const handleLogout = useCallback(() => {
     logout()
@@ -162,6 +174,8 @@ function App() {
 
   // Landing page for unauthenticated users
   if (!user) {
+    const variant = getVariant()
+    const LandingComponent = variant === 'b' ? LandingPageB : LandingPage
     return (
       <div className="app">
         {showAuthModal && (
@@ -171,7 +185,7 @@ function App() {
             initialMode={authMode}
           />
         )}
-        <LandingPage
+        <LandingComponent
           onLoginClick={() => { setAuthMode('login'); setShowAuthModal(true) }}
           onSignupClick={() => { setAuthMode('signup'); setShowAuthModal(true) }}
         />

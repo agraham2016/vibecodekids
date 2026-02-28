@@ -1,0 +1,359 @@
+/* ═══════════════════════════════════════════════
+   Landing Page B — "Try It Now" variant
+   ═══════════════════════════════════════════════ */
+
+/* ─── Try-It Section ─── */
+
+.tryit-section {
+  width: 100%;
+  padding: 60px 0 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+/* Preset buttons */
+.tryit-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  margin-bottom: 20px;
+  max-width: 700px;
+}
+
+.tryit-preset-btn {
+  padding: 10px 20px;
+  border-radius: 24px;
+  border: 1.5px solid rgba(139, 92, 246, 0.4);
+  background: rgba(139, 92, 246, 0.1);
+  color: #d4bfff;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tryit-preset-btn:hover:not(:disabled) {
+  background: rgba(139, 92, 246, 0.3);
+  border-color: #8b5cf6;
+  color: #fff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(139, 92, 246, 0.3);
+}
+
+.tryit-preset-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Input row */
+.tryit-input-row {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  max-width: 600px;
+  margin-bottom: 12px;
+}
+
+.tryit-input {
+  flex: 1;
+  padding: 14px 18px;
+  border-radius: 14px;
+  border: 1.5px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  font-size: 1rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.tryit-input::placeholder {
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.tryit-input:focus {
+  border-color: #8b5cf6;
+}
+
+.tryit-go-btn {
+  padding: 14px 28px;
+  border-radius: 14px;
+  border: none;
+  background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+  color: #fff;
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  white-space: nowrap;
+  box-shadow: 0 4px 18px rgba(139, 92, 246, 0.3);
+}
+
+.tryit-go-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(139, 92, 246, 0.45);
+}
+
+.tryit-go-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Prompt counter */
+.tryit-counter {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.88rem;
+  margin: 4px 0 0;
+}
+
+.tryit-error {
+  color: #f87171;
+  font-size: 0.9rem;
+  margin: 8px 0 0;
+}
+
+/* Loading */
+.tryit-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  margin: 40px 0;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 1.05rem;
+}
+
+.tryit-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(139, 92, 246, 0.2);
+  border-top-color: #8b5cf6;
+  border-radius: 50%;
+  animation: tryit-spin 0.8s linear infinite;
+}
+
+@keyframes tryit-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Result area */
+.tryit-result {
+  width: 100%;
+  max-width: 700px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 20px;
+}
+
+.tryit-ai-message {
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 0.95rem;
+  margin-bottom: 14px;
+  text-align: center;
+  max-width: 600px;
+}
+
+.tryit-preview-wrapper {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border-radius: 16px;
+  overflow: hidden;
+  position: relative;
+  border: 1.5px solid rgba(139, 92, 246, 0.3);
+  background: #0a0520;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.4);
+}
+
+.tryit-preview-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: #fff;
+}
+
+/* Feedback bar */
+.tryit-feedback-bar {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(10, 5, 30, 0.85);
+  backdrop-filter: blur(8px);
+  border-radius: 24px;
+  padding: 6px 14px;
+  border: 1px solid rgba(139, 92, 246, 0.3);
+}
+
+.tryit-feedback-label {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.82rem;
+  margin-right: 2px;
+}
+
+.tryit-thumb-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 255, 255, 0.15);
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  transition: all 0.2s;
+}
+
+.tryit-thumb-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.tryit-thumb-btn.active {
+  background: rgba(139, 92, 246, 0.3);
+  border-color: #8b5cf6;
+  box-shadow: 0 0 10px rgba(139, 92, 246, 0.4);
+}
+
+/* Try another button */
+.tryit-another-btn {
+  margin-top: 16px;
+  padding: 12px 32px;
+  border-radius: 12px;
+  border: 1.5px solid rgba(139, 92, 246, 0.4);
+  background: transparent;
+  color: #d4bfff;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.tryit-another-btn:hover {
+  background: rgba(139, 92, 246, 0.15);
+  border-color: #8b5cf6;
+  color: #fff;
+}
+
+/* ─── Signup Gate Overlay ─── */
+
+.tryit-gate-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(6px);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tryit-gate-modal {
+  background: linear-gradient(180deg, #1a1035 0%, #0e0820 100%);
+  border: 1.5px solid rgba(139, 92, 246, 0.4);
+  border-radius: 20px;
+  padding: 40px 36px;
+  max-width: 440px;
+  width: 90%;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.tryit-gate-modal h3 {
+  color: #fff;
+  font-size: 1.5rem;
+  font-weight: 800;
+  margin: 0 0 12px;
+  background: linear-gradient(135deg, #fff 0%, #a78bfa 60%, #f472b6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.tryit-gate-modal p {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 1rem;
+  margin: 0 0 24px;
+  line-height: 1.5;
+}
+
+.tryit-gate-signup {
+  display: block;
+  width: 100%;
+  padding: 16px;
+  margin-bottom: 12px;
+  border: none;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+  color: #fff;
+  font-weight: 700;
+  font-size: 1.05rem;
+  cursor: pointer;
+  transition: all 0.25s;
+  box-shadow: 0 6px 24px rgba(139, 92, 246, 0.35);
+}
+
+.tryit-gate-signup:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 35px rgba(139, 92, 246, 0.5);
+}
+
+.tryit-gate-plans {
+  display: block;
+  width: 100%;
+  padding: 14px;
+  border: 1.5px solid rgba(139, 92, 246, 0.4);
+  border-radius: 14px;
+  background: transparent;
+  color: #d4bfff;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.tryit-gate-plans:hover {
+  background: rgba(139, 92, 246, 0.15);
+  border-color: #8b5cf6;
+  color: #fff;
+}
+
+/* ─── Mobile adjustments ─── */
+
+@media (max-width: 600px) {
+  .tryit-input-row {
+    flex-direction: column;
+  }
+
+  .tryit-go-btn {
+    width: 100%;
+  }
+
+  .tryit-presets {
+    gap: 8px;
+  }
+
+  .tryit-preset-btn {
+    font-size: 0.85rem;
+    padding: 8px 14px;
+  }
+
+  .tryit-preview-wrapper {
+    aspect-ratio: 3 / 4;
+  }
+
+  .tryit-feedback-bar {
+    bottom: 8px;
+    right: 8px;
+    padding: 4px 10px;
+  }
+
+  .tryit-gate-modal {
+    padding: 28px 20px;
+  }
+}

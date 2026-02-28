@@ -14,6 +14,7 @@ import { getResponseCacheStats, clearResponseCache } from '../services/responseC
 import { getModelPerformanceStats } from '../services/modelPerformance.js';
 import { logAdminAction, readAuditLog } from '../services/adminAuditLog.js';
 import { getContentFilterStats } from '../services/contentFilterStats.js';
+import { readDemoEvents } from '../services/demoEvents.js';
 
 const router = Router();
 
@@ -459,6 +460,71 @@ router.get('/rate-limit-stats', async (req, res) => {
   } catch (error) {
     console.error('Rate limit stats error:', error);
     res.status(500).json({ error: 'Could not load rate limit stats' });
+  }
+});
+
+// A/B test stats (Landing Page experiment)
+router.get('/ab-stats', async (req, res) => {
+  try {
+    const days = parseInt(req.query.days || '30', 10) || 30;
+    const events = await readDemoEvents({ sinceDays: days });
+
+    const stats = { a: { pageviews: 0, generations: 0, thumbsUp: 0, thumbsDown: 0, signups: 0, visitors: new Set() },
+                    b: { pageviews: 0, generations: 0, thumbsUp: 0, thumbsDown: 0, signups: 0, visitors: new Set() } };
+
+    const promptCounts = {};
+
+    for (const e of events) {
+      const v = e.variant === 'a' || e.variant === 'b' ? e.variant : 'b';
+      const s = stats[v];
+      const vid = e.visitorId || e.ipHash || 'unknown';
+
+      if (e.type === 'pageview') { s.pageviews++; s.visitors.add(vid); }
+      else if (e.type === 'generation') {
+        s.generations++;
+        s.visitors.add(vid);
+        if (e.prompt) {
+          const key = e.prompt.toLowerCase().trim().slice(0, 80);
+          if (!promptCounts[key]) promptCounts[key] = { prompt: e.prompt.slice(0, 80), count: 0, thumbsUp: 0 };
+          promptCounts[key].count++;
+        }
+      }
+      else if (e.type === 'feedback') {
+        if (e.thumbsUp === true) s.thumbsUp++;
+        else s.thumbsDown++;
+      }
+      else if (e.type === 'signup') { s.signups++; }
+    }
+
+    // Attach thumbs-up data to prompts
+    for (const e of events) {
+      if (e.type === 'feedback' && e.thumbsUp && e.generationId) {
+        const gen = events.find(g => g.type === 'generation' && g.generationId === e.generationId);
+        if (gen?.prompt) {
+          const key = gen.prompt.toLowerCase().trim().slice(0, 80);
+          if (promptCounts[key]) promptCounts[key].thumbsUp++;
+        }
+      }
+    }
+
+    const topPrompts = Object.values(promptCounts).sort((a, b) => b.count - a.count).slice(0, 15);
+
+    res.json({
+      periodDays: days,
+      variants: {
+        a: { pageviews: stats.a.pageviews, uniqueVisitors: stats.a.visitors.size, generations: stats.a.generations,
+             thumbsUp: stats.a.thumbsUp, thumbsDown: stats.a.thumbsDown, signups: stats.a.signups,
+             conversionRate: stats.a.pageviews > 0 ? (stats.a.signups / stats.a.pageviews * 100).toFixed(1) + '%' : '0%' },
+        b: { pageviews: stats.b.pageviews, uniqueVisitors: stats.b.visitors.size, generations: stats.b.generations,
+             thumbsUp: stats.b.thumbsUp, thumbsDown: stats.b.thumbsDown, signups: stats.b.signups,
+             conversionRate: stats.b.pageviews > 0 ? (stats.b.signups / stats.b.pageviews * 100).toFixed(1) + '%' : '0%' },
+      },
+      topPrompts,
+      totalEvents: events.length,
+    });
+  } catch (error) {
+    console.error('AB stats error:', error);
+    res.status(500).json({ error: 'Could not load A/B stats' });
   }
 });
 
