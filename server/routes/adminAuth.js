@@ -125,7 +125,15 @@ router.post('/auth/setup-2fa', requireAdminKeyOrToken, async (_req, res) => {
     res.json({ ok: true, email, emailSent: sent });
   } catch (err) {
     console.error('Admin 2FA setup error:', err);
-    res.status(500).json({ error: 'Could not send verification code' });
+    let msg;
+    if (err.code === 'EACCES' || err.code === 'EROFS') {
+      msg = 'Cannot write config (read-only filesystem). Set DATA_DIR to a writable path, e.g. /tmp/data';
+    } else if (err.code === 'ENOENT') {
+      msg = 'Data directory not found. Set DATA_DIR in your .env to a writable path.';
+    } else {
+      msg = `Could not send verification code: ${err.message || String(err)}`;
+    }
+    res.status(500).json({ error: msg });
   }
 });
 

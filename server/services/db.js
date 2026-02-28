@@ -440,10 +440,16 @@ export async function countEsaWaitlist() {
   return rows[0].count;
 }
 
-// ========== DATA DIRECTORY SETUP (no-op for Postgres) ==========
+// ========== DATA DIRECTORY SETUP ==========
 
 export async function ensureDataDirs() {
-  // Postgres doesn't need data directories.
-  // Instead, ensure the schema is applied.
   await initDatabase();
+  // Admin 2FA, audit log, etc. still use JSON files — ensure DATA_DIR exists
+  try {
+    const { DATA_DIR } = await import('../config/index.js');
+    const { promises: fs } = await import('fs');
+    await fs.mkdir(DATA_DIR, { recursive: true });
+  } catch (e) {
+    console.warn('Could not create data directory (admin 2FA etc. may fail):', e.message);
+  }
 }

@@ -28,8 +28,18 @@ export async function readAdmin2FA() {
 }
 
 async function writeAdmin2FA(config) {
-  await fs.mkdir(path.dirname(ADMIN_2FA_FILE), { recursive: true });
-  await fs.writeFile(ADMIN_2FA_FILE, JSON.stringify(config, null, 2), 'utf-8');
+  const dir = path.dirname(ADMIN_2FA_FILE);
+  await fs.mkdir(dir, { recursive: true });
+  try {
+    await fs.writeFile(ADMIN_2FA_FILE, JSON.stringify(config, null, 2), 'utf-8');
+  } catch (err) {
+    if (err.code === 'EACCES' || err.code === 'EROFS') {
+      const e = new Error(`Cannot write admin 2FA config. Set DATA_DIR to a writable path (e.g. /tmp/data). ${err.message}`);
+      e.code = err.code;
+      throw e;
+    }
+    throw err;
+  }
 }
 
 /**
