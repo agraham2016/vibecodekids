@@ -9,6 +9,7 @@ import express from 'express';
 import cors from 'cors';
 import compression from 'compression';
 import path from 'path';
+import os from 'os';
 import { promises as fs } from 'fs';
 import { createServer } from 'http';
 
@@ -48,7 +49,7 @@ await ensureDataDirs();
 await sessions.load();
 
 console.log('📍 BASE_URL configured as:', JSON.stringify(BASE_URL));
-console.log('📂 Data directory:', DATA_DIR);
+console.log('📂 Data directory:', DATA_DIR, DATA_DIR.includes(os.tmpdir()) ? '(tmp — set DATA_DIR for persistence)' : '');
 console.log(`💾 Storage backend: ${USE_POSTGRES ? 'PostgreSQL' : 'JSON files'}`);
 
 // ========== MIDDLEWARE ==========

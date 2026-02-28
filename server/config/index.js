@@ -6,6 +6,7 @@
 
 import dotenv from 'dotenv';
 import path from 'path';
+import os from 'os';
 import { fileURLToPath } from 'url';
 
 dotenv.config();
@@ -24,7 +25,11 @@ export const BASE_URL = (process.env.BASE_URL || 'https://vibecodekidz.org').tri
 
 export const SERVER_DIR = path.join(__dirname, '..');
 export const ROOT_DIR = path.join(SERVER_DIR, '..');
-export const DATA_DIR = process.env.DATA_DIR || path.join(ROOT_DIR, 'data');
+// Use tmp dir in production when DATA_DIR not set (fixes read-only filesystem on Railway, Heroku, etc.)
+const defaultDataDir = IS_PRODUCTION && !process.env.DATA_DIR
+  ? path.join(os.tmpdir(), 'vibecodekidz-data')
+  : path.join(ROOT_DIR, 'data');
+export const DATA_DIR = process.env.DATA_DIR || defaultDataDir;
 export const PROJECTS_DIR = path.join(DATA_DIR, 'projects');
 export const USERS_DIR = path.join(DATA_DIR, 'users');
 export const SESSIONS_FILE = path.join(DATA_DIR, 'sessions.json');
