@@ -35,7 +35,7 @@ export default function createProjectsRouter(sessions) {
         return res.status(400).json({ error: 'Title and code are required' });
       }
 
-      const titleCheck = filterContent(title);
+      const titleCheck = filterContent(title, { source: 'projects' });
       if (titleCheck.blocked) {
         return res.status(400).json({ error: 'Please choose a different title' });
       }

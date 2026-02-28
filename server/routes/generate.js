@@ -95,7 +95,7 @@ export default function createGenerateRouter(sessions) {
       }
 
       // Content filter
-      const contentCheck = filterContent(message);
+      const contentCheck = filterContent(message, { source: 'generate' });
       if (contentCheck.blocked) {
         return res.json({ message: contentCheck.reason, code: null, modelUsed: null, isCacheHit: false });
       }

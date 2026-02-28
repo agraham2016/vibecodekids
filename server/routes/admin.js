@@ -12,8 +12,14 @@ import { readUser, writeUser, listUsers, deleteUser, listProjects, deleteProject
 import { getUsageStats } from '../services/ai.js';
 import { getResponseCacheStats, clearResponseCache } from '../services/responseCache.js';
 import { getModelPerformanceStats } from '../services/modelPerformance.js';
+import { logAdminAction, readAuditLog } from '../services/adminAuditLog.js';
+import { getContentFilterStats } from '../services/contentFilterStats.js';
 
 const router = Router();
+
+function getAdminIp(req) {
+  return req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || null;
+}
 
 // Get all users
 router.get('/users', async (req, res) => {
@@ -48,6 +54,8 @@ router.post('/users/:id/approve', async (req, res) => {
     user.approvedAt = new Date().toISOString();
     await writeUser(id, user);
 
+    logAdminAction({ action: 'approve', targetId: id, details: { username: user.username }, ip: getAdminIp(req) }).catch(() => {});
+
     res.json({ success: true, message: 'User approved' });
   } catch (error) {
     if (error.code === 'ENOENT') return res.status(404).json({ error: 'User not found' });
@@ -66,6 +74,8 @@ router.post('/users/:id/deny', async (req, res) => {
     user.status = 'denied';
     user.deniedAt = new Date().toISOString();
     await writeUser(id, user);
+
+    logAdminAction({ action: 'deny', targetId: id, details: { username: user.username }, ip: getAdminIp(req) }).catch(() => {});
 
     res.json({ success: true, message: 'User denied' });
   } catch (error) {
@@ -90,7 +100,7 @@ router.post('/users/:id/reset-password', async (req, res) => {
     user.passwordHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
     await writeUser(id, user);
 
-    console.log(`🔐 Admin password reset for user: ${user.username}`);
+    logAdminAction({ action: 'reset-password', targetId: id, details: { username: user.username }, ip: getAdminIp(req) }).catch(() => {});
     res.json({ success: true, message: 'Password reset successfully' });
   } catch (error) {
     if (error.code === 'ENOENT') return res.status(404).json({ error: 'User not found' });
@@ -130,6 +140,7 @@ router.delete('/projects/:id', async (req, res) => {
     if (!/^[a-z0-9]{6}$/.test(id)) return res.status(400).json({ error: 'Invalid project ID' });
 
     await deleteProject(id);
+    logAdminAction({ action: 'delete-project', targetId: id, ip: getAdminIp(req) }).catch(() => {});
     res.json({ success: true, message: 'Project deleted' });
   } catch (error) {
     if (error.code === 'ENOENT') return res.status(404).json({ error: 'Project not found' });
@@ -157,6 +168,7 @@ router.delete('/users/:id', async (req, res) => {
     }
 
     await deleteUser(id);
+    logAdminAction({ action: 'delete-user', targetId: id, details: { deleteProjects: !!deleteProjects }, ip: getAdminIp(req) }).catch(() => {});
     res.json({ success: true, message: 'User deleted' });
   } catch (error) {
     if (error.code === 'ENOENT') return res.status(404).json({ error: 'User not found' });
@@ -193,6 +205,7 @@ router.post('/users/:id/suspend', async (req, res) => {
     }
 
     await writeUser(id, user);
+    logAdminAction({ action: 'suspend', targetId: id, details: { username: user.username, reason, duration }, ip: getAdminIp(req) }).catch(() => {});
     res.json({ success: true, message: 'User suspended' });
   } catch (error) {
     if (error.code === 'ENOENT') return res.status(404).json({ error: 'User not found' });
@@ -213,6 +226,7 @@ router.post('/users/:id/unsuspend', async (req, res) => {
     user.suspendReason = null;
     user.suspendedUntil = null;
     await writeUser(id, user);
+    logAdminAction({ action: 'unsuspend', targetId: id, details: { username: user.username }, ip: getAdminIp(req) }).catch(() => {});
 
     res.json({ success: true, message: 'User unsuspended' });
   } catch (error) {
@@ -272,6 +286,7 @@ router.post('/users/:id/set-tier', async (req, res) => {
     }
 
     await writeUser(id, user);
+    logAdminAction({ action: 'set-tier', targetId: id, details: { username: user.username, tier, months }, ip: getAdminIp(req) }).catch(() => {});
 
     res.json({
       success: true,
@@ -312,6 +327,7 @@ router.get('/cache-stats', (_req, res) => {
 router.post('/cache-clear', (_req, res) => {
   try {
     clearResponseCache();
+    logAdminAction({ action: 'cache-clear', ip: getAdminIp(req) }).catch(() => {});
     res.json({ success: true, message: 'Response cache cleared' });
   } catch (error) {
     console.error('Cache clear error:', error);
@@ -340,12 +356,109 @@ router.post('/users/:id/opt-out-improvement', async (req, res) => {
     const user = await readUser(id);
     user.improvementOptOut = true;
     await writeUser(id, user);
+    logAdminAction({ action: 'opt-out-improvement', targetId: id, details: { username: user.username }, ip: getAdminIp(req) }).catch(() => {});
 
     res.json({ success: true, message: 'User opted out of AI improvement monitoring' });
   } catch (error) {
     if (error.code === 'ENOENT') return res.status(404).json({ error: 'User not found' });
     console.error('Opt-out error:', error);
     res.status(500).json({ error: 'Failed to update opt-out status' });
+  }
+});
+
+// Audit log (admin actions)
+router.get('/audit-log', async (req, res) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit || '50', 10) || 50, 200);
+    const action = req.query.action || null;
+    const entries = await readAuditLog({ limit, action });
+    res.json({ entries });
+  } catch (error) {
+    console.error('Audit log error:', error);
+    res.status(500).json({ error: 'Could not load audit log' });
+  }
+});
+
+// System health (admin-only, returns full health check)
+router.get('/health', async (req, res) => {
+  try {
+    const { USE_POSTGRES, ANTHROPIC_API_KEY, XAI_API_KEY, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET } = await import('../config/index.js');
+    const uptime = Math.round(process.uptime());
+
+    const checks = {
+      status: 'ok',
+      uptime,
+      storage: USE_POSTGRES ? 'postgres' : 'file',
+      ai: !!ANTHROPIC_API_KEY,
+      grok: !!XAI_API_KEY,
+      timestamp: new Date().toISOString(),
+      checks: {},
+    };
+
+    if (USE_POSTGRES) {
+      try {
+        const { getPool } = await import('../services/db.js');
+        const pool = getPool();
+        const before = Date.now();
+        await pool.query('SELECT 1 AS ok');
+        checks.checks.database = { status: 'ok', latencyMs: Date.now() - before };
+      } catch (err) {
+        checks.checks.database = { status: 'error', error: err.message };
+        checks.status = 'degraded';
+      }
+    } else {
+      checks.checks.database = { status: 'skipped', reason: 'Using file storage' };
+    }
+
+    const mem = process.memoryUsage();
+    checks.checks.memory = {
+      rssMB: Math.round(mem.rss / 1024 / 1024),
+      heapUsedMB: Math.round(mem.heapUsed / 1024 / 1024),
+    };
+
+    if (!STRIPE_SECRET_KEY) checks.checks.stripe = { status: 'missing' };
+    else if (!STRIPE_WEBHOOK_SECRET) checks.checks.stripe = { status: 'partial', note: 'Webhook secret not set' };
+    else checks.checks.stripe = { status: 'ok' };
+
+    res.json(checks);
+  } catch (error) {
+    console.error('Admin health error:', error);
+    res.status(500).json({ status: 'error', error: error.message });
+  }
+});
+
+// Content filter stats
+router.get('/content-filter-stats', (_req, res) => {
+  try {
+    const stats = getContentFilterStats();
+    res.json(stats);
+  } catch (error) {
+    console.error('Content filter stats error:', error);
+    res.status(500).json({ error: 'Could not load content filter stats' });
+  }
+});
+
+// Rate limit stats (users currently rate limited)
+router.get('/rate-limit-stats', async (req, res) => {
+  try {
+    const users = await listUsers();
+    const now = Date.now();
+    const rateLimited = users.filter(u => {
+      const until = u.rateLimitedUntil ? new Date(u.rateLimitedUntil).getTime() : 0;
+      return until > now;
+    }).map(u => ({
+      id: u.id,
+      username: u.username,
+      rateLimitedUntil: u.rateLimitedUntil,
+      status: u.status,
+    }));
+    res.json({
+      count: rateLimited.length,
+      users: rateLimited.slice(0, 50),
+    });
+  } catch (error) {
+    console.error('Rate limit stats error:', error);
+    res.status(500).json({ error: 'Could not load rate limit stats' });
   }
 });
 

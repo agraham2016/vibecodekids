@@ -112,8 +112,8 @@ export default function createAuthRouter(sessions) {
         }
       }
 
-      const usernameCheck = filterContent(username);
-      const displayNameCheck = filterContent(displayName);
+      const usernameCheck = filterContent(username, { source: 'auth' });
+      const displayNameCheck = filterContent(displayName, { source: 'auth' });
       if (usernameCheck.blocked || displayNameCheck.blocked) {
         return res.status(400).json({ error: 'Please choose a different username or display name' });
       }

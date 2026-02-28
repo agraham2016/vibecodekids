@@ -904,6 +904,9 @@
         <button class="tab-btn" onclick="switchTab('system')">
           ⚙️ System
         </button>
+        <button class="tab-btn" onclick="switchTab('audit')">
+          📋 Audit Log
+        </button>
       </div>
 
       <!-- Tab Content: Pending Users -->
@@ -1083,6 +1086,24 @@
               </div>
             </div>
           </div>
+          <div class="panel">
+            <div class="panel-header">🏥 System Health</div>
+            <div class="panel-content" id="systemHealthContent">
+              <div class="loading"><div class="spinner"></div><p>Loading...</p></div>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-header">🛡️ Content Filter</div>
+            <div class="panel-content" id="contentFilterStatsContent">
+              <div class="loading"><div class="spinner"></div><p>Loading...</p></div>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-header">⏱️ Rate Limits</div>
+            <div class="panel-content" id="rateLimitStatsContent">
+              <div class="loading"><div class="spinner"></div><p>Loading...</p></div>
+            </div>
+          </div>
           <div class="panel" style="grid-column: 1 / -1;">
             <div class="panel-header">
               📊 Model Performance (Claude vs Grok)
@@ -1098,6 +1119,32 @@
                 <p>Loading model performance...</p>
               </div>
             </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab Content: Audit Log -->
+      <div id="tab-audit" class="tab-content">
+        <div class="panel">
+          <div class="panel-header">
+            📋 Admin Audit Log
+            <select id="auditLogActionFilter" onchange="loadAuditLog()" style="margin-left:12px;padding:6px 10px;border-radius:8px;background:rgba(0,0,0,0.3);border:1px solid var(--glass-border);color:white;font-size:0.9rem;">
+              <option value="">All actions</option>
+              <option value="approve">Approve</option>
+              <option value="deny">Deny</option>
+              <option value="suspend">Suspend</option>
+              <option value="unsuspend">Unsuspend</option>
+              <option value="reset-password">Reset password</option>
+              <option value="delete-user">Delete user</option>
+              <option value="delete-project">Delete project</option>
+              <option value="set-tier">Set tier</option>
+              <option value="opt-out-improvement">Opt-out</option>
+              <option value="cache-clear">Cache clear</option>
+            </select>
+            <button class="btn btn-primary btn-sm" style="margin-left:8px;" onclick="loadAuditLog()">Refresh</button>
+          </div>
+          <div class="panel-content" id="auditLogContent">
+            <div class="loading"><div class="spinner"></div><p>Loading audit log...</p></div>
           </div>
         </div>
       </div>
@@ -1273,6 +1320,10 @@
       loadAiUsage();
       loadCacheStats();
       loadModelPerformance();
+      loadSystemHealth();
+      loadContentFilterStats();
+      loadRateLimitStats();
+      loadAuditLog();
     }
 
     // Tab switching
@@ -1285,6 +1336,11 @@
 
       if (tabId === 'system') {
         loadModelPerformance();
+        loadSystemHealth();
+        loadContentFilterStats();
+        loadRateLimitStats();
+      } else if (tabId === 'audit') {
+        loadAuditLog();
       }
     }
 
@@ -2059,6 +2115,90 @@
         `;
       } catch (error) {
         container.innerHTML = '<p style="color:var(--error);">Failed to load model performance stats.</p>';
+      }
+    }
+
+    async function loadSystemHealth() {
+      const container = document.getElementById('systemHealthContent');
+      if (!container) return;
+      try {
+        const response = await adminFetch('/api/admin/health');
+        const h = await response.json();
+        const c = h.checks || {};
+        container.innerHTML = `
+          <div class="system-stat-row"><span class="system-stat-label">Status</span><span class="system-stat-value">${escapeHtml(h.status || 'ok')}</span></div>
+          <div class="system-stat-row"><span class="system-stat-label">Uptime</span><span class="system-stat-value">${(h.uptime || 0)}s</span></div>
+          <div class="system-stat-row"><span class="system-stat-label">Storage</span><span class="system-stat-value">${escapeHtml(h.storage || '-')}</span></div>
+          <div class="system-stat-row"><span class="system-stat-label">AI (Claude)</span><span class="system-stat-value">${h.ai ? '✅' : '❌'}</span></div>
+          <div class="system-stat-row"><span class="system-stat-label">Grok</span><span class="system-stat-value">${h.grok ? '✅' : '❌'}</span></div>
+          <hr style="border:none;border-top:1px solid rgba(255,255,255,0.1);margin:12px 0;">
+          <div class="system-stat-row"><span class="system-stat-label">Database</span><span class="system-stat-value">${escapeHtml(c.database?.status || '-')} ${c.database?.latencyMs != null ? '(' + c.database.latencyMs + 'ms)' : ''}</span></div>
+          <div class="system-stat-row"><span class="system-stat-label">Memory</span><span class="system-stat-value">${c.memory?.heapUsedMB || '-'}MB heap</span></div>
+          <div class="system-stat-row"><span class="system-stat-label">Stripe</span><span class="system-stat-value">${escapeHtml(c.stripe?.status || '-')}</span></div>
+          <button class="btn btn-primary btn-sm" style="margin-top:12px;" onclick="loadSystemHealth()">Refresh</button>
+        `;
+      } catch (error) {
+        container.innerHTML = '<p style="color:var(--error);">Failed to load system health.</p>';
+      }
+    }
+
+    async function loadContentFilterStats() {
+      const container = document.getElementById('contentFilterStatsContent');
+      if (!container) return;
+      try {
+        const response = await adminFetch('/api/admin/content-filter-stats');
+        const s = await response.json();
+        const bySource = s.bySource || {};
+        const rows = Object.entries(bySource).map(([k, v]) => `<div class="system-stat-row"><span class="system-stat-label">${escapeHtml(k)}</span><span class="system-stat-value">${v}</span></div>`).join('');
+        container.innerHTML = `
+          <div class="system-stat-row"><span class="system-stat-label">Total Blocked</span><span class="system-stat-value">${(s.totalBlocked || 0).toLocaleString()}</span></div>
+          <div class="system-stat-row"><span class="system-stat-label">Last Blocked</span><span class="system-stat-value" style="font-size:0.85rem;">${escapeHtml(s.lastBlockedAt || 'Never')}</span></div>
+          ${rows ? '<hr style="border:none;border-top:1px solid rgba(255,255,255,0.1);margin:12px 0;">' + rows : ''}
+          <p style="color:var(--text-secondary);font-size:0.85rem;margin-top:12px;">Counts reset on server restart. Blocked content is not stored.</p>
+        `;
+      } catch (error) {
+        container.innerHTML = '<p style="color:var(--error);">Failed to load content filter stats.</p>';
+      }
+    }
+
+    async function loadRateLimitStats() {
+      const container = document.getElementById('rateLimitStatsContent');
+      if (!container) return;
+      try {
+        const response = await adminFetch('/api/admin/rate-limit-stats');
+        const d = await response.json();
+        const users = d.users || [];
+        const count = d.count || 0;
+        let tableRows = users.slice(0, 20).map(u => `<tr><td>${escapeHtml(u.username || '-')}</td><td>${escapeHtml(u.rateLimitedUntil || '-')}</td><td>${escapeHtml(u.status || '-')}</td></tr>`).join('');
+        container.innerHTML = `
+          <div class="system-stat-row"><span class="system-stat-label">Users Currently Rate Limited</span><span class="system-stat-value">${count}</span></div>
+          ${count > 0 ? `<table class="data-table" style="margin-top:12px;font-size:0.9rem;"><thead><tr><th>Username</th><th>Until</th><th>Status</th></tr></thead><tbody>${tableRows}</tbody></table>` : '<p style="color:var(--text-secondary);margin-top:12px;">No users are currently rate limited.</p>'}
+        `;
+      } catch (error) {
+        container.innerHTML = '<p style="color:var(--error);">Failed to load rate limit stats.</p>';
+      }
+    }
+
+    async function loadAuditLog() {
+      const container = document.getElementById('auditLogContent');
+      if (!container) return;
+      try {
+        const actionFilter = document.getElementById('auditLogActionFilter')?.value || '';
+        const url = '/api/admin/audit-log?limit=50' + (actionFilter ? '&action=' + encodeURIComponent(actionFilter) : '');
+        const response = await adminFetch(url);
+        const data = await response.json();
+        const entries = data.entries || [];
+        if (entries.length === 0) {
+          container.innerHTML = '<p style="color:var(--text-secondary);">No audit entries yet. Actions will appear here when admins perform them.</p>';
+          return;
+        }
+        const rows = entries.map(e => {
+          const details = e.details && Object.keys(e.details).length ? ' ' + JSON.stringify(e.details) : '';
+          return `<tr><td style="font-size:0.85rem;">${escapeHtml(e.timestamp || '')}</td><td>${escapeHtml(e.action || '')}</td><td>${escapeHtml(e.targetId || '-')}</td><td style="font-size:0.85rem;max-width:200px;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(details)}</td><td style="font-size:0.8rem;">${escapeHtml(e.ip || '-')}</td></tr>`;
+        }).join('');
+        container.innerHTML = `<table class="data-table" style="font-size:0.9rem;"><thead><tr><th>Time</th><th>Action</th><th>Target</th><th>Details</th><th>IP</th></tr></thead><tbody>${rows}</tbody></table>`;
+      } catch (error) {
+        container.innerHTML = '<p style="color:var(--error);">Failed to load audit log.</p>';
       }
     }
 

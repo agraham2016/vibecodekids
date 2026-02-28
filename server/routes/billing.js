@@ -62,8 +62,8 @@ export default function createBillingRouter(sessions) {
         return res.status(400).json({ error: 'Display name must be 1-30 characters' });
       }
 
-      const usernameCheck = filterContent(username);
-      const displayNameCheck = filterContent(displayName);
+      const usernameCheck = filterContent(username, { source: 'billing' });
+      const displayNameCheck = filterContent(displayName, { source: 'billing' });
       if (usernameCheck.blocked || displayNameCheck.blocked) {
         return res.status(400).json({ error: 'Please choose a different username or display name' });
       }
