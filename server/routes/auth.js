@@ -129,7 +129,7 @@ export default function createAuthRouter(sessions) {
         username: username.toLowerCase(),
         displayName: displayName.trim(),
         passwordHash: await bcrypt.hash(password, BCRYPT_ROUNDS),
-        status: 'pending',
+        status: needsConsent ? 'pending' : 'approved',
         createdAt: now.toISOString(),
         projectCount: 0,
         membershipTier: 'free',
@@ -151,6 +151,7 @@ export default function createAuthRouter(sessions) {
         recoveryEmail: !needsConsent && recoveryEmail ? recoveryEmail.toLowerCase().trim() : null,
         parentalConsentStatus: needsConsent ? 'pending' : 'not_required',
         parentalConsentAt: null,
+        approvedAt: needsConsent ? null : now.toISOString(),
         privacyAcceptedAt: now.toISOString(),
       };
 
@@ -164,7 +165,7 @@ export default function createAuthRouter(sessions) {
         responseMessage = 'Account created! We\'ve sent an email to your parent/guardian for approval. They need to approve before you can log in.';
         console.log(`👶 Under-13 registration: ${username} → consent email sent to ${parentEmail}`);
       } else {
-        responseMessage = 'Account created! Please wait for admin approval before logging in.';
+        responseMessage = 'Account created! You can log in now.';
       }
 
       res.json({ 

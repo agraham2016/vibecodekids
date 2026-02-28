@@ -80,8 +80,9 @@ router.get('/verify', async (req, res) => {
         if (granted) {
           user.parentalConsentStatus = 'granted';
           user.parentalConsentAt = new Date().toISOString();
-          // Don't auto-approve -- admin still needs to approve
-          console.log(`✅ Parental consent GRANTED for ${user.username}`);
+          user.status = 'approved';
+          user.approvedAt = new Date().toISOString();
+          console.log(`✅ Parental consent GRANTED for ${user.username} — auto-approved`);
         } else {
           user.parentalConsentStatus = 'denied';
           user.status = 'denied';
@@ -123,7 +124,7 @@ ${JSON.stringify(data, null, 2)}
 
     if (granted) {
       const message = consent.action === 'consent'
-        ? 'You have approved your child\'s account. An admin will complete the approval shortly.'
+        ? 'You have approved your child\'s account. They can log in now!'
         : 'Your request has been approved.';
       res.send(renderPage('Approved!', message, 'success'));
     } else {

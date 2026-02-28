@@ -440,14 +440,14 @@ export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: A
         {mode === 'signup' && selectedPlan === 'free' && isUnder13 && (
           <div className="auth-note auth-note-coppa">
             <span className="note-icon">👨‍👩‍👧</span>
-            <span>Your parent/guardian will receive an email to approve your account. Once they approve, an admin will complete the setup!</span>
+            <span>Your parent/guardian will receive an email to approve your account. Once they approve, you can log in!</span>
           </div>
         )}
 
         {mode === 'signup' && selectedPlan === 'free' && !isUnder13 && (
           <div className="auth-note">
             <span className="note-icon">ℹ️</span>
-            <span>Free accounts need admin approval before you can log in.</span>
+            <span>Your account will be ready to use right away.</span>
           </div>
         )}
 
