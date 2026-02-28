@@ -2097,6 +2097,8 @@
         const s = stats.sessionsByStartingModel || {};
         const g = stats.generationsByModel || {};
         const r = stats.successRateByModel || {};
+        const fb = stats.feedbackByModel || { claude: {}, grok: {} };
+        const fr = stats.feedbackRateByModel || {};
 
         container.innerHTML = `
           <div class="system-stat-row"><span class="system-stat-label">Period</span><span class="system-stat-value">${escapeHtml(stats.periodLabel || 'N/A')}</span></div>
@@ -2111,7 +2113,11 @@
           <hr style="border:none;border-top:1px solid rgba(255,255,255,0.1);margin:12px 0;">
           <div class="system-stat-row"><span class="system-stat-label">Claude success rate (code returned)</span><span class="system-stat-value">${r.claude || '0%'}</span></div>
           <div class="system-stat-row"><span class="system-stat-label">Grok success rate (code returned)</span><span class="system-stat-value">${r.grok || '0%'}</span></div>
-          ${stats.totalGenerations === 0 ? '<p style="color:var(--text-secondary);margin-top:16px;">No events yet. Events are logged when users generate games in the studio.</p>' : ''}
+          <hr style="border:none;border-top:1px solid rgba(255,255,255,0.1);margin:12px 0;">
+          <div class="system-stat-row"><span class="system-stat-label">Total feedback (👍/👎)</span><span class="system-stat-value">${(stats.feedbackTotal || 0).toLocaleString()}</span></div>
+          <div class="system-stat-row"><span class="system-stat-label">Claude feedback</span><span class="system-stat-value">👍 ${fb.claude?.thumbsUp || 0} / 👎 ${fb.claude?.thumbsDown || 0}${fr.claude ? ' (' + fr.claude + ' 👍)' : ''}</span></div>
+          <div class="system-stat-row"><span class="system-stat-label">Grok feedback</span><span class="system-stat-value">👍 ${fb.grok?.thumbsUp || 0} / 👎 ${fb.grok?.thumbsDown || 0}${fr.grok ? ' (' + fr.grok + ' 👍)' : ''}</span></div>
+          ${stats.totalGenerations === 0 && !(stats.feedbackTotal || 0) ? '<p style="color:var(--text-secondary);margin-top:16px;">No events yet. Events are logged when users generate games in the studio. Feedback appears when users give thumbs up/down on chat responses.</p>' : ''}
         `;
       } catch (error) {
         container.innerHTML = '<p style="color:var(--error);">Failed to load model performance stats.</p>';

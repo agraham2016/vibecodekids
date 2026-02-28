@@ -51,6 +51,7 @@ declare global {
 interface ChatPanelProps {
   messages: ChatMessage[]
   onSendMessage: (content: string, image?: string, modeOverride?: AIMode) => void
+  onFeedback?: (messageId: string, outcome: 'thumbsUp' | 'thumbsDown', modelUsed: AIModel | null, details?: string) => void
   isLoading: boolean
   activeModel: AIModel
   onSwitchModel: (model: AIModel) => void
@@ -89,6 +90,7 @@ const GAME_STARTERS = [
 export default function ChatPanel({ 
   messages, 
   onSendMessage, 
+  onFeedback,
   isLoading, 
   activeModel, 
   onSwitchModel, 
@@ -97,6 +99,7 @@ export default function ChatPanel({
   onUseAlternateCode 
 }: ChatPanelProps) {
   const [input, setInput] = useState('')
+  const [feedbackGiven, setFeedbackGiven] = useState<Record<string, 'thumbsUp' | 'thumbsDown'>>({})
   const [isListening, setIsListening] = useState(false)
   const [speechSupported, setSpeechSupported] = useState(false)
   const [speechError, setSpeechError] = useState<string | null>(null)
@@ -474,6 +477,40 @@ export default function ChatPanel({
                         >
                           {speakingMessageId === message.id ? '⏹️' : '🔊'}
                         </button>
+                      )}
+
+                      {/* Thumbs up/down feedback */}
+                      {message.role === 'assistant' && onFeedback && (
+                        <div className="feedback-buttons">
+                          {feedbackGiven[message.id] ? (
+                            <span className="feedback-thanks" title="Thanks for your feedback!">
+                              {feedbackGiven[message.id] === 'thumbsUp' ? '👍 Thanks!' : '👎 Thanks for the feedback!'}
+                            </span>
+                          ) : (
+                            <>
+                              <button
+                                className="feedback-btn feedback-thumbs-up"
+                                onClick={() => {
+                                  onFeedback(message.id, 'thumbsUp', message.modelUsed ?? null)
+                                  setFeedbackGiven(prev => ({ ...prev, [message.id]: 'thumbsUp' }))
+                                }}
+                                title="This helped!"
+                              >
+                                👍
+                              </button>
+                              <button
+                                className="feedback-btn feedback-thumbs-down"
+                                onClick={() => {
+                                  onFeedback(message.id, 'thumbsDown', message.modelUsed ?? null)
+                                  setFeedbackGiven(prev => ({ ...prev, [message.id]: 'thumbsDown' }))
+                                }}
+                                title="This wasn't helpful"
+                              >
+                                👎
+                              </button>
+                            </>
+                          )}
+                        </div>
                       )}
                     </div>
                   </div>

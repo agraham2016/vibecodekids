@@ -1,10 +1,10 @@
 /**
- * Model Performance — Aggregate stats from generate events
+ * Model Performance — Aggregate stats from generate + feedback events
  *
  * Used by admin dashboard to compare Claude vs Grok.
  */
 
-import { readEvents } from './eventStore.js';
+import { readEvents, readFeedbackEvents } from './eventStore.js';
 
 /**
  * Get aggregated model performance stats.
@@ -47,6 +47,16 @@ export async function getModelPerformanceStats(opts = {}) {
       : '0%',
   };
 
+  // Feedback stats (thumbs up/down)
+  const feedbackEvents = await readFeedbackEvents({ sinceDays: periodDays });
+  const feedbackByModel = { claude: { thumbsUp: 0, thumbsDown: 0 }, grok: { thumbsUp: 0, thumbsDown: 0 } };
+  for (const f of feedbackEvents) {
+    const m = f.modelUsed === 'grok' ? 'grok' : 'claude';
+    if (f.outcome === 'thumbsUp') feedbackByModel[m].thumbsUp++;
+    else if (f.outcome === 'thumbsDown') feedbackByModel[m].thumbsDown++;
+  }
+  const feedbackTotal = feedbackEvents.length;
+
   return {
     periodDays,
     periodLabel: `Last ${periodDays} days`,
@@ -60,5 +70,15 @@ export async function getModelPerformanceStats(opts = {}) {
       grok: { total: successByModel.grok.total, withCode: successByModel.grok.withCode },
     },
     eventCount: events.length,
+    feedbackTotal,
+    feedbackByModel,
+    feedbackRateByModel: {
+      claude: feedbackByModel.claude.thumbsUp + feedbackByModel.claude.thumbsDown > 0
+        ? ((feedbackByModel.claude.thumbsUp / (feedbackByModel.claude.thumbsUp + feedbackByModel.claude.thumbsDown)) * 100).toFixed(1) + '%'
+        : null,
+      grok: feedbackByModel.grok.thumbsUp + feedbackByModel.grok.thumbsDown > 0
+        ? ((feedbackByModel.grok.thumbsUp / (feedbackByModel.grok.thumbsUp + feedbackByModel.grok.thumbsDown)) * 100).toFixed(1) + '%'
+        : null,
+    },
   };
 }

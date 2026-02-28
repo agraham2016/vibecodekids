@@ -191,11 +191,32 @@ export function useChat({ onCodeGenerated, onUsageUpdate, onUpgradeNeeded }: Use
     debugAttemptRef.current = 0
   }, [grokAvailable])
 
+  /** Send thumbs up/down feedback for an AI response. */
+  const sendFeedback = useCallback(async (
+    messageId: string,
+    outcome: 'thumbsUp' | 'thumbsDown',
+    modelUsed: AIModel | null,
+    details?: string
+  ) => {
+    try {
+      await api.post('/api/feedback', {
+        sessionId: sessionIdRef.current,
+        messageId,
+        outcome,
+        modelUsed: modelUsed || null,
+        details: details || undefined,
+      })
+    } catch {
+      // Silently fail — feedback is non-critical
+    }
+  }, [])
+
   return {
     messages,
     isLoading,
     sendMessage,
     clearMessages,
+    sendFeedback,
     activeModel,
     switchModel,
     grokAvailable,

@@ -53,7 +53,7 @@ function App() {
 
   // Chat with AI generation callbacks (dual-model)
   const { 
-    messages, isLoading, sendMessage, clearMessages,
+    messages, isLoading, sendMessage, clearMessages, sendFeedback,
     activeModel, switchModel, grokAvailable, lastModelUsed 
   } = useChat({
     onCodeGenerated: setGeneratedCode,
@@ -255,6 +255,7 @@ function App() {
           <ChatPanel
             messages={messages}
             onSendMessage={handleSendMessage}
+            onFeedback={sendFeedback}
             isLoading={isLoading}
             activeModel={activeModel}
             onSwitchModel={switchModel}

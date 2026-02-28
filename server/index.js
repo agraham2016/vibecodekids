@@ -33,6 +33,7 @@ import galleryRouter from './routes/gallery.js';
 import adminRouter from './routes/admin.js';
 import parentRouter from './routes/parent.js';
 import createEsaRouter from './routes/esa.js';
+import createFeedbackRouter from './routes/feedback.js';
 import { initMultiplayer, getRoomInfo, getActiveRooms } from './multiplayer.js';
 
 // ========== INIT ==========
@@ -251,6 +252,7 @@ app.post('/api/contact', async (req, res) => {
 app.use('/api/auth', createAuthRouter(sessions));
 app.use('/api/projects', createProjectsRouter(sessions));
 app.use('/api/generate', createGenerateRouter(sessions));
+app.use('/api/feedback', createFeedbackRouter(sessions));
 app.use('/api/gallery', galleryRouter);
 
 // Billing routes (Stripe checkout at /api/stripe/*, membership at /api/membership/*)
