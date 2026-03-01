@@ -8,6 +8,7 @@ import { Router } from 'express';
 import { randomBytes } from 'crypto';
 import { readProject, writeProject, deleteProject as removeProject, listProjects, readUser } from '../services/storage.js';
 import { filterContent } from '../middleware/contentFilter.js';
+import { prePublishScan } from '../middleware/prePublishScan.js';
 import { checkTierLimits, incrementUsage, calculateUsageRemaining } from '../middleware/rateLimit.js';
 
 function generateProjectId() {
@@ -71,6 +72,20 @@ export default function createProjectsRouter(sessions) {
             }
           }
         } catch { /* user read failed — default to safe */ }
+      }
+
+      // Pre-publish content + PII scan when making a game public
+      if (allowPublic && code) {
+        const scan = prePublishScan(code);
+        if (!scan.safe) {
+          return res.status(400).json({
+            error: 'This game contains content that cannot be published publicly. Please review and try again.',
+            scanWarnings: scan.warnings,
+          });
+        }
+        if (scan.warnings.length > 0) {
+          console.log(`Pre-publish scan warnings for user ${userId}: ${scan.warnings.join(', ')}`);
+        }
       }
 
       const id = generateProjectId();

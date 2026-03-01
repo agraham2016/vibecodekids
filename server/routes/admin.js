@@ -15,6 +15,8 @@ import { getModelPerformanceStats } from '../services/modelPerformance.js';
 import { logAdminAction, readAuditLog } from '../services/adminAuditLog.js';
 import { getContentFilterStats } from '../services/contentFilterStats.js';
 import { readDemoEvents } from '../services/demoEvents.js';
+import { listReports, resolveReport } from '../services/moderation.js';
+import { runRetentionSweep } from '../services/dataRetention.js';
 
 const router = Router();
 
@@ -525,6 +527,57 @@ router.get('/ab-stats', async (req, res) => {
   } catch (error) {
     console.error('AB stats error:', error);
     res.status(500).json({ error: 'Could not load A/B stats' });
+  }
+});
+
+// Data retention — manual sweep trigger
+router.post('/retention-sweep', async (req, res) => {
+  try {
+    const results = await runRetentionSweep();
+    logAdminAction({ action: 'retention-sweep', details: results, ip: getAdminIp(req) }).catch(() => {});
+    res.json({ success: true, results });
+  } catch (error) {
+    console.error('Retention sweep error:', error);
+    res.status(500).json({ error: 'Retention sweep failed' });
+  }
+});
+
+// Moderation queue
+router.get('/moderation', async (req, res) => {
+  try {
+    const status = req.query.status || null;
+    const limit = Math.min(parseInt(req.query.limit || '50', 10), 200);
+    const reports = await listReports({ status, limit });
+    res.json({ reports, count: reports.length });
+  } catch (error) {
+    console.error('Moderation list error:', error);
+    res.status(500).json({ error: 'Could not load reports' });
+  }
+});
+
+router.post('/moderation/:id/resolve', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { action, note } = req.body;
+    if (!['remove', 'dismiss'].includes(action)) {
+      return res.status(400).json({ error: 'Action must be "remove" or "dismiss"' });
+    }
+
+    await resolveReport(id, { action, note });
+
+    if (action === 'remove') {
+      const reports = await listReports({ status: 'actioned' });
+      const report = reports.find(r => r.id === id);
+      if (report?.projectId) {
+        try { await deleteProject(report.projectId); } catch { /* may already be deleted */ }
+      }
+    }
+
+    logAdminAction({ action: `moderation-${action}`, targetId: id, details: { note }, ip: getAdminIp(req) }).catch(() => {});
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Moderation resolve error:', error);
+    res.status(500).json({ error: 'Could not resolve report' });
   }
 });
 

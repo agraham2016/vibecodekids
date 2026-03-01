@@ -31,6 +31,7 @@ import {
 import { generateOrIterateGame } from '../services/gameHandler.js';
 import { logGenerateEvent } from '../services/eventStore.js';
 import { readUser } from '../services/storage.js';
+import { recordViolation } from '../services/discipline.js';
 
 export default function createGenerateRouter(sessions) {
   const router = Router();
@@ -99,7 +100,11 @@ export default function createGenerateRouter(sessions) {
       // Content filter
       const contentCheck = filterContent(message, { source: 'generate' });
       if (contentCheck.blocked) {
-        return res.json({ message: contentCheck.reason, code: null, modelUsed: null, isCacheHit: false });
+        const discipline = await recordViolation(userId);
+        const msg = discipline.message
+          ? `${contentCheck.reason}\n\n${discipline.message}`
+          : contentCheck.reason;
+        return res.json({ message: msg, code: null, modelUsed: null, isCacheHit: false });
       }
 
       // Genre detection (still useful for template cache)

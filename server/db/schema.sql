@@ -177,6 +177,28 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS parent_verified_method TEXT;        -
 ALTER TABLE users ADD COLUMN IF NOT EXISTS parent_verified_at TIMESTAMPTZ;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS parent_dashboard_token TEXT;
 
+-- ========== MODERATION REPORTS (Session 4) ==========
+
+CREATE TABLE IF NOT EXISTS moderation_reports (
+    id                  TEXT PRIMARY KEY,
+    project_id          TEXT NOT NULL,
+    reason              TEXT NOT NULL,
+    reporter_user_id    TEXT,
+    reporter_ip_hash    TEXT,
+    status              TEXT NOT NULL DEFAULT 'pending',   -- 'pending', 'actioned', 'dismissed'
+    review_action       TEXT,                               -- 'remove', 'dismiss'
+    review_note         TEXT,
+    created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    reviewed_at         TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_mod_reports_status ON moderation_reports(status, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_mod_reports_project ON moderation_reports(project_id);
+
+-- Per-user content filter violation tracking (Session 4)
+ALTER TABLE users ADD COLUMN IF NOT EXISTS filter_violations INT NOT NULL DEFAULT 0;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS last_violation_at TIMESTAMPTZ;
+
 -- ========== CLEANUP ==========
 -- Automatic cleanup of expired sessions and old rate limit entries.
 -- Run these periodically via a cron job or scheduled task.

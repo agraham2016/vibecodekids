@@ -39,7 +39,9 @@ import createEsaRouter from './routes/esa.js';
 import createFeedbackRouter from './routes/feedback.js';
 import demoRouter from './routes/demo.js';
 import demoAnalyticsRouter from './routes/demoAnalytics.js';
+import reportRouter from './routes/report.js';
 import { initMultiplayer, getRoomInfo, getActiveRooms, getAllowedChatPhrases } from './multiplayer.js';
+import { startRetentionJob } from './services/dataRetention.js';
 
 // ========== INIT ==========
 
@@ -274,6 +276,9 @@ app.use('/api/esa', esaRouter);
 app.use('/api/demo', demoRouter);
 app.use('/api/demo', demoAnalyticsRouter);
 
+// Public report route (any visitor)
+app.use('/api/report', reportRouter);
+
 // Admin auth routes (login, 2FA) — before requireAdmin
 app.use('/api/admin', adminAuthRouter);
 // Admin routes (protected)
@@ -327,6 +332,8 @@ server.listen(PORT, () => {
   console.log(`   Detailed:     http://localhost:${PORT}/api/health?full=1`);
   console.log(`   Multiplayer:  ws://localhost:${PORT}/ws/multiplayer`);
   console.log(`   Mode: ${isProduction ? 'Production' : 'Development'}`);
+
+  startRetentionJob();
 });
 
 // ========== GRACEFUL SHUTDOWN ==========

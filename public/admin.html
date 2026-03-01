@@ -1126,6 +1126,31 @@
           </div>
           <div class="panel" style="grid-column: 1 / -1;">
             <div class="panel-header">
+              🚩 Moderation Queue
+              <select id="modQueueFilter" onchange="loadModerationQueue()" style="margin-left:12px;padding:6px 10px;border-radius:8px;background:rgba(0,0,0,0.3);border:1px solid var(--glass-border);color:white;font-size:0.9rem;">
+                <option value="pending">Pending</option>
+                <option value="">All</option>
+                <option value="actioned">Actioned</option>
+                <option value="dismissed">Dismissed</option>
+              </select>
+              <button class="btn btn-primary btn-sm" style="margin-left:8px;" onclick="loadModerationQueue()">Refresh</button>
+            </div>
+            <div class="panel-content" id="moderationQueueContent">
+              <div class="loading"><div class="spinner"></div><p>Loading reports...</p></div>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-header">
+              🗑️ Data Retention
+              <button class="btn btn-primary btn-sm" style="margin-left:12px;" onclick="runRetentionSweep()">Run Sweep Now</button>
+            </div>
+            <div class="panel-content" id="retentionContent">
+              <p style="color:var(--text-secondary);font-size:0.9rem;">Automatic sweep runs every 6 hours. Purges expired sessions, old demo events (90d), resolved reports (90d), and deleted accounts (30d grace).</p>
+              <div id="retentionResult"></div>
+            </div>
+          </div>
+          <div class="panel" style="grid-column: 1 / -1;">
+            <div class="panel-header">
               🧪 A/B Test — Landing Page
               <select id="abStatsPeriod" onchange="loadABStats()" style="margin-left:12px;padding:6px 10px;border-radius:8px;background:rgba(0,0,0,0.3);border:1px solid var(--glass-border);color:white;font-size:0.9rem;">
                 <option value="7">Last 7 days</option>
@@ -1433,6 +1458,7 @@
       loadContentFilterStats();
       loadRateLimitStats();
       loadABStats();
+      loadModerationQueue();
       loadAuditLog();
     }
 
@@ -1451,6 +1477,7 @@
         loadRateLimitStats();
         loadAdmin2FA();
         loadABStats();
+        loadModerationQueue();
       } else if (tabId === 'audit') {
         loadAuditLog();
       }
@@ -2458,6 +2485,76 @@
         container.innerHTML = `<table class="data-table" style="font-size:0.9rem;"><thead><tr><th>Time</th><th>Action</th><th>Target</th><th>Details</th><th>IP</th></tr></thead><tbody>${rows}</tbody></table>`;
       } catch (error) {
         container.innerHTML = '<p style="color:var(--error);">Failed to load audit log.</p>';
+      }
+    }
+
+    async function loadModerationQueue() {
+      const container = document.getElementById('moderationQueueContent');
+      if (!container) return;
+      try {
+        const status = document.getElementById('modQueueFilter')?.value || 'pending';
+        const url = '/api/admin/moderation' + (status ? '?status=' + status : '');
+        const response = await adminFetch(url);
+        const data = await response.json();
+        const reports = data.reports || [];
+        if (reports.length === 0) {
+          container.innerHTML = '<p style="color:var(--text-secondary);">No reports found.</p>';
+          return;
+        }
+        const rows = reports.map(r => {
+          const actions = r.status === 'pending'
+            ? `<button class="btn btn-sm" style="background:var(--error);color:#fff;border:none;margin-right:6px;" onclick="resolveReport('${escapeHtml(r.id)}','remove')">Remove Game</button><button class="btn btn-sm" style="background:rgba(255,255,255,0.1);color:#fff;border:1px solid var(--glass-border);" onclick="resolveReport('${escapeHtml(r.id)}','dismiss')">Dismiss</button>`
+            : `<span style="color:var(--text-secondary);">${escapeHtml(r.status)}</span>`;
+          return `<tr>
+            <td style="font-size:0.85rem;">${escapeHtml(r.createdAt || '')}</td>
+            <td><a href="/play/${escapeHtml(r.projectId)}" target="_blank" style="color:var(--primary);">${escapeHtml(r.projectId)}</a></td>
+            <td>${escapeHtml(r.reason || '-')}</td>
+            <td>${actions}</td>
+          </tr>`;
+        }).join('');
+        container.innerHTML = `<table class="data-table" style="font-size:0.9rem;"><thead><tr><th>Date</th><th>Project</th><th>Reason</th><th>Actions</th></tr></thead><tbody>${rows}</tbody></table>`;
+      } catch (error) {
+        container.innerHTML = '<p style="color:var(--error);">Failed to load moderation queue.</p>';
+      }
+    }
+
+    async function resolveReport(reportId, action) {
+      const note = action === 'remove' ? 'Removed via admin panel' : 'Dismissed via admin panel';
+      try {
+        const response = await adminFetch(`/api/admin/moderation/${reportId}/resolve`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action, note }),
+        });
+        if (response.ok) {
+          showToast(action === 'remove' ? 'Game removed' : 'Report dismissed', 'success');
+          loadModerationQueue();
+        } else {
+          showToast('Failed to resolve report', 'error');
+        }
+      } catch {
+        showToast('Network error', 'error');
+      }
+    }
+
+    async function runRetentionSweep() {
+      const container = document.getElementById('retentionResult');
+      if (!container) return;
+      container.innerHTML = '<p style="color:var(--text-secondary);">Running sweep...</p>';
+      try {
+        const response = await adminFetch('/api/admin/retention-sweep', { method: 'POST' });
+        const data = await response.json();
+        const r = data.results || {};
+        container.innerHTML = `
+          <div class="system-stat-row"><span class="system-stat-label">Sessions purged</span><span class="system-stat-value">${r.sessions || 0}</span></div>
+          <div class="system-stat-row"><span class="system-stat-label">Rate limits purged</span><span class="system-stat-value">${r.rateLimits || 0}</span></div>
+          <div class="system-stat-row"><span class="system-stat-label">Demo events purged</span><span class="system-stat-value">${r.demoEvents || 0}</span></div>
+          <div class="system-stat-row"><span class="system-stat-label">Resolved reports purged</span><span class="system-stat-value">${r.resolvedReports || 0}</span></div>
+          <div class="system-stat-row"><span class="system-stat-label">Deleted accounts finalized</span><span class="system-stat-value">${r.deletedAccounts || 0}</span></div>
+          <p style="color:var(--text-secondary);font-size:0.85rem;margin-top:8px;">Completed at ${escapeHtml(r.timestamp || new Date().toISOString())}</p>
+        `;
+      } catch {
+        container.innerHTML = '<p style="color:var(--error);">Sweep failed.</p>';
       }
     }
 

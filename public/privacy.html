@@ -101,7 +101,7 @@
 
     <div class="header">
       <h1>Privacy Policy</h1>
-      <p class="subtitle">Last updated: February 27, 2026 &nbsp; <span class="badge">COPPA Compliant</span></p>
+      <p class="subtitle">Last updated: February 28, 2026 &nbsp; <span class="badge">COPPA Compliant</span></p>
     </div>
 
     <div class="card">
@@ -116,11 +116,15 @@
       <div class="highlight">
         <strong>For users under 13:</strong> We require verifiable parental consent before allowing account creation. A parent or guardian must approve the account via email before the child can use the platform.
       </div>
-      <p>Parents can at any time:</p>
+      <p>Parents receive a link to our <strong>Parent Command Center</strong> when they approve their child's account. From there, parents can at any time:</p>
       <ul>
         <li>Review all data we've collected about their child</li>
+        <li>Toggle whether their child can publish games publicly</li>
+        <li>Toggle whether their child can use multiplayer features</li>
+        <li>Opt their child out of anonymized AI improvement data</li>
+        <li>Download a copy of all their child's data</li>
         <li>Request deletion of their child's data and account</li>
-        <li>Revoke their consent, which will deactivate the account</li>
+        <li>Revoke their consent, which will immediately deactivate the account</li>
       </ul>
     </div>
 
@@ -170,32 +174,48 @@
       <h2>&#x1F512; How We Protect Your Data</h2>
       <ul>
         <li>Passwords are hashed with bcrypt (industry standard)</li>
-        <li>All connections use HTTPS encryption</li>
-        <li>Admin access requires separate authentication</li>
-        <li>Content filters prevent inappropriate content</li>
-        <li>We do not sell, share, or trade personal information</li>
-        <li>Parent emails are only used for consent -- never for marketing</li>
-        <li>Recovery emails are used only for password reset links -- never for marketing</li>
+        <li>All connections use HTTPS with HSTS enforcement</li>
+        <li>Content-Security-Policy headers restrict script and resource loading</li>
+        <li>Admin access requires separate two-factor authentication</li>
+        <li>AI prompts are automatically scanned to strip personal information before transmission</li>
+        <li>AI-generated code is scanned for PII leakage and inappropriate content before delivery</li>
+        <li>Games are scanned before public publishing for content and safety issues</li>
+        <li>Multiplayer communication is restricted to preset, kid-safe phrases only</li>
+        <li>Game iframes are sandboxed and cannot access the parent page</li>
+        <li>All fonts and assets are self-hosted (no third-party tracking)</li>
+        <li>Parent emails are only used for consent and account management — never for marketing</li>
+        <li>Recovery emails are used only for password reset links — never for marketing</li>
       </ul>
+      <p><strong>Content moderation:</strong> Users can report published games. Our team reviews reports and removes content that violates our guidelines. Repeated content filter violations result in progressive discipline (warnings, cooldowns, and temporary suspensions).</p>
       <p><strong>Password recovery:</strong> If you forget your password, users under 13 receive reset links at the parent email on file. Users 13+ who added an optional recovery email receive reset links there; otherwise they can contact support for help.</p>
     </div>
 
     <div class="card">
-      <h2>&#x1F4E4; Data Sharing</h2>
-      <p>We do <strong>not</strong> sell or share personal data with third parties, with these limited exceptions:</p>
+      <h2>&#x1F4E4; Data Sharing &amp; Service Providers</h2>
+      <p>We do <strong>not sell</strong> personal information. We share limited data with trusted service providers solely to operate our platform:</p>
       <ul>
-        <li><strong>AI service</strong> — Game prompts are sent to our AI provider (Anthropic) and xAI to generate game code. Prompts do not include personally identifiable information.</li>
-        <li><strong>Payment processing</strong> -- If you purchase a paid plan, payment is handled by Stripe. We do not store credit card information.</li>
-        <li><strong>Legal requirements</strong> -- We may disclose information if required by law.</li>
+        <li><strong>AI game generation (Anthropic &amp; xAI)</strong> — Game creation prompts are transmitted to Anthropic (Claude) and/or xAI (Grok) to generate game code. Before transmission, prompts are automatically scanned and stripped of any personally identifiable information (PII), including names, emails, phone numbers, and addresses. Neither Anthropic nor xAI train their models on our users' data.</li>
+        <li><strong>Payment processing (Stripe)</strong> — If you purchase a paid membership, Stripe processes the payment. We send only a user identifier and membership tier to Stripe — no passwords, ages, or child information. We do not store credit card numbers on our servers.</li>
+        <li><strong>Transactional email (Resend)</strong> — We use Resend to send essential emails such as parental consent requests and password reset links. Only the recipient email address and message content are shared with Resend.</li>
+        <li><strong>Legal requirements</strong> — We may disclose information if required by law or to protect the safety of our users.</li>
       </ul>
+      <div class="highlight">
+        <strong>No advertising, no analytics trackers, no social media SDKs.</strong> We do not use Google Analytics, Facebook Pixel, or any third-party tracking technology. All fonts and assets are self-hosted.
+      </div>
     </div>
 
     <div class="card">
-      <h2>&#x1F5D1; Data Retention & Deletion</h2>
-      <p>We retain account data as long as the account is active. You can request deletion of your account and all associated data at any time.</p>
-      <p>For child accounts (under 13), parents can request data deletion by contacting us or using the data deletion request form.</p>
+      <h2>&#x1F5D1; Data Retention &amp; Deletion</h2>
+      <p>We retain account data as long as the account is active. We run automated data cleanup:</p>
+      <ul>
+        <li>Expired login sessions are purged automatically</li>
+        <li>Anonymous demo event logs are purged after 90 days</li>
+        <li>Resolved moderation reports are purged after 90 days</li>
+        <li>Accounts flagged for deletion are permanently removed within 30 days</li>
+      </ul>
+      <p>For child accounts (under 13), parents can request data deletion via the <strong>Parent Command Center</strong> (linked in the consent approval email) or by contacting us.</p>
       <div class="highlight">
-        <strong>To request data access or deletion:</strong> Email us at <a href="mailto:admin@vibecodekidz.org" style="color:#00d2ff">admin@vibecodekidz.org</a> with the child's username, or use the parent portal at <code>/api/parent/request-data</code> and <code>/api/parent/request-deletion</code>.
+        <strong>To request data access or deletion:</strong> Use the Parent Command Center dashboard, or email us at <a href="mailto:admin@vibecodekidz.org" style="color:#00d2ff">admin@vibecodekidz.org</a> with the child's username. We will respond within 48 hours.
       </div>
     </div>
 
