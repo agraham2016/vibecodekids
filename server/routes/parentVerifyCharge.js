@@ -15,6 +15,7 @@ import Stripe from 'stripe';
 import { STRIPE_SECRET_KEY, BASE_URL, SITE_NAME } from '../config/index.js';
 import { readUser, writeUser } from '../services/storage.js';
 import { getConsentByToken, resolveConsent, createParentDashboardToken } from '../services/consent.js';
+import { logAdminAction } from '../services/adminAuditLog.js';
 
 const stripe = STRIPE_SECRET_KEY ? new Stripe(STRIPE_SECRET_KEY) : null;
 const router = Router();
@@ -128,6 +129,7 @@ router.post('/confirm', async (req, res) => {
         const dashboardToken = await createParentDashboardToken(consent.userId);
         user.parentDashboardToken = dashboardToken;
         await writeUser(consent.userId, user);
+        logAdminAction({ action: 'consent_granted', targetId: consent.userId, details: { username: user.username, method: 'stripe_micro' } }).catch(() => {});
       } catch (err) {
         console.error('User update after micro-charge failed:', err.message);
       }

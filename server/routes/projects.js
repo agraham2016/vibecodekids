@@ -9,6 +9,7 @@ import { randomBytes } from 'crypto';
 import { readProject, writeProject, deleteProject as removeProject, listProjects, readUser } from '../services/storage.js';
 import { filterContent } from '../middleware/contentFilter.js';
 import { prePublishScan } from '../middleware/prePublishScan.js';
+import { filterUsername } from '../middleware/usernameFilter.js';
 import { checkTierLimits, incrementUsage, calculateUsageRemaining } from '../middleware/rateLimit.js';
 
 function generateProjectId() {
@@ -85,6 +86,14 @@ export default function createProjectsRouter(sessions) {
         }
         if (scan.warnings.length > 0) {
           console.log(`Pre-publish scan warnings for user ${userId}: ${scan.warnings.join(', ')}`);
+        }
+      }
+
+      // Filter creatorName to prevent PII disclosure in public games
+      if (allowPublic && displayName) {
+        const nameCheck = filterUsername(displayName);
+        if (!nameCheck.allowed) {
+          displayName = 'Creator';
         }
       }
 
@@ -195,6 +204,15 @@ export default function createProjectsRouter(sessions) {
           existing.category = category;
           existing.updatedAt = now;
 
+          // Re-scan if project is public — revert to private if scan fails
+          if (existing.isPublic) {
+            const scan = prePublishScan(code);
+            if (!scan.safe) {
+              existing.isPublic = false;
+              console.log(`Auto-unpublished project ${projectId} after edit: ${scan.warnings.join(', ')}`);
+            }
+          }
+
           await writeProject(projectId, existing);
 
           return res.json({
@@ -253,6 +271,9 @@ export default function createProjectsRouter(sessions) {
       const isOwner = session && project.userId === session.userId;
 
       if (!isOwner) {
+        if (!project.isPublic) {
+          return res.status(404).json({ error: 'Project not found' });
+        }
         const { userId, ageMode, parentEmail, ...safeProject } = project;
         return res.json(safeProject);
       }

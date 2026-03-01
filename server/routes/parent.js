@@ -21,6 +21,7 @@ import {
   getUserByParentToken,
 } from '../services/consent.js';
 import { SITE_NAME, SUPPORT_EMAIL, BASE_URL } from '../config/index.js';
+import { logAdminAction } from '../services/adminAuditLog.js';
 
 const router = Router();
 
@@ -91,12 +92,12 @@ router.get('/verify', async (req, res) => {
           // Generate Parent Command Center token
           const dashboardToken = await createParentDashboardToken(consent.userId);
           user.parentDashboardToken = dashboardToken;
-          console.log(`Parental consent GRANTED for ${user.username}`);
+          logAdminAction({ action: 'consent_granted', targetId: consent.userId, details: { username: user.username, method: 'email_plus' } }).catch(() => {});
         } else {
           user.parentalConsentStatus = 'denied';
           user.status = 'denied';
           user.deniedAt = new Date().toISOString();
-          console.log(`Parental consent DENIED for ${user.username}`);
+          logAdminAction({ action: 'consent_denied', targetId: consent.userId, details: { username: user.username } }).catch(() => {});
         }
         await writeUser(consent.userId, user);
 

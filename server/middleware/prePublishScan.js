@@ -64,12 +64,14 @@ export function prePublishScan(code) {
 
   const piiResult = scanPII(combinedText);
   if (piiResult.piiFound.length > 0) {
+    safe = false;
     warnings.push(`pii_detected:${piiResult.piiFound.join(',')}`);
   }
 
   for (const { pattern, label } of DANGEROUS_PATTERNS) {
     pattern.lastIndex = 0;
     if (pattern.test(code)) {
+      safe = false;
       warnings.push(label);
     }
   }

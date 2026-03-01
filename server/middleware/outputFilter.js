@@ -57,14 +57,16 @@ export function filterOutputCode(code) {
     }
   }
 
-  // Check for content-filter keywords in visible text within the HTML
-  // (e.g., the AI generated dialogue or UI text containing blocked words)
+  // Check for content-filter keywords in visible text within the HTML.
+  // If found, strip the offending terms from the code to prevent display.
   const blockedPatterns = getContentFilter();
   const textContent = extractVisibleText(filtered);
   const lowerText = textContent.toLowerCase();
   for (const pattern of blockedPatterns) {
     if (lowerText.includes(pattern)) {
       warnings.push(`blocked_content:${pattern}`);
+      const escaped = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      filtered = filtered.replace(new RegExp(escaped, 'gi'), '***');
     }
   }
 

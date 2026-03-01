@@ -19,7 +19,7 @@
 import { Router } from 'express';
 import { detectGameGenre, sanitizeOutput } from '../prompts/index.js';
 import { filterContent } from '../middleware/contentFilter.js';
-import { piiScannerMiddleware } from '../middleware/piiScanner.js';
+import { piiScannerMiddleware, scanPII } from '../middleware/piiScanner.js';
 import { filterOutputText, filterOutputCode } from '../middleware/outputFilter.js';
 import { checkRateLimits, checkTierLimits, incrementUsage, calculateUsageRemaining } from '../middleware/rateLimit.js';
 import {
@@ -69,6 +69,16 @@ export default function createGenerateRouter(sessions) {
       if (token) {
         const session = await sessions.get(token);
         if (session) userId = session.userId;
+      }
+
+      // Block suspended/deleted users
+      if (userId) {
+        try {
+          const user = await readUser(userId);
+          if (user.status === 'suspended' || user.status === 'deleted' || user.status === 'denied') {
+            return res.status(403).json({ message: 'Your account is not active. Please contact support.', code: null, modelUsed: null, isCacheHit: false });
+          }
+        } catch { /* user not found — allow anonymous */ }
       }
 
       // Check rate limits
@@ -160,12 +170,21 @@ export default function createGenerateRouter(sessions) {
         }
       }
 
+      // Re-scan conversation history for PII before sending to AI
+      const cleanedHistory = conversationHistory.map(msg => {
+        if (msg.content && typeof msg.content === 'string') {
+          const { cleaned } = scanPII(msg.content);
+          return { ...msg, content: cleaned };
+        }
+        return msg;
+      });
+
       // ===== CALL THE DUAL-MODEL HANDLER =====
       const result = await generateOrIterateGame({
         prompt: message,
         currentCode,
         mode,
-        conversationHistory,
+        conversationHistory: cleanedHistory,
         gameConfig,
         image,
         userId,

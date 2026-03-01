@@ -93,6 +93,14 @@ function rowToUser(row) {
     classwalletOrderId: row.classwallet_order_id || null,
     esaBillingPeriod: row.esa_billing_period || null,
     improvementOptOut: row.improvement_opt_out || false,
+    // COPPA parent controls + discipline
+    publishingEnabled: row.publishing_enabled ?? false,
+    multiplayerEnabled: row.multiplayer_enabled ?? false,
+    parentDashboardToken: row.parent_dashboard_token || null,
+    parentVerifiedMethod: row.parent_verified_method || null,
+    parentVerifiedAt: row.parent_verified_at?.toISOString() || null,
+    filterViolations: row.filter_violations || 0,
+    lastViolationAt: row.last_violation_at?.toISOString() || null,
     // Rate limit requests are stored in a separate table for Postgres
     recentRequests: [],
   };
@@ -138,6 +146,14 @@ function userToRow(user) {
     classwallet_order_id: user.classwalletOrderId || null,
     esa_billing_period: user.esaBillingPeriod || null,
     improvement_opt_out: user.improvementOptOut || false,
+    // COPPA parent controls + discipline
+    publishing_enabled: user.publishingEnabled ?? false,
+    multiplayer_enabled: user.multiplayerEnabled ?? false,
+    parent_dashboard_token: user.parentDashboardToken || null,
+    parent_verified_method: user.parentVerifiedMethod || null,
+    parent_verified_at: user.parentVerifiedAt || null,
+    filter_violations: user.filterViolations || 0,
+    last_violation_at: user.lastViolationAt || null,
   };
 }
 
@@ -191,7 +207,9 @@ export async function writeUser(userId, userData) {
       age_bracket, parent_email, recovery_email, parental_consent_status, parental_consent_at,
       data_deletion_requested, data_deletion_at, privacy_accepted_at,
       approved_at, denied_at, created_at, last_login_at,
-      payment_method, classwallet_order_id, esa_billing_period, improvement_opt_out
+      payment_method, classwallet_order_id, esa_billing_period, improvement_opt_out,
+      publishing_enabled, multiplayer_enabled, parent_dashboard_token,
+      parent_verified_method, parent_verified_at, filter_violations, last_violation_at
     ) VALUES (
       $1, $2, $3, $4, $5, $6,
       $7, $8, $9, $10,
@@ -200,8 +218,10 @@ export async function writeUser(userId, userData) {
       $18, $19, $20,
       $21, $22, $23, $24, $25,
       $26, $27, $28,
-      $29, $30,       $31, $32,
-      $33, $34, $35, $36
+      $29, $30, $31, $32,
+      $33, $34, $35, $36,
+      $37, $38, $39,
+      $40, $41, $42, $43
     )
     ON CONFLICT (id) DO UPDATE SET
       username = EXCLUDED.username,
@@ -237,7 +257,14 @@ export async function writeUser(userId, userData) {
       payment_method = EXCLUDED.payment_method,
       classwallet_order_id = EXCLUDED.classwallet_order_id,
       esa_billing_period = EXCLUDED.esa_billing_period,
-      improvement_opt_out = EXCLUDED.improvement_opt_out
+      improvement_opt_out = EXCLUDED.improvement_opt_out,
+      publishing_enabled = EXCLUDED.publishing_enabled,
+      multiplayer_enabled = EXCLUDED.multiplayer_enabled,
+      parent_dashboard_token = EXCLUDED.parent_dashboard_token,
+      parent_verified_method = EXCLUDED.parent_verified_method,
+      parent_verified_at = EXCLUDED.parent_verified_at,
+      filter_violations = EXCLUDED.filter_violations,
+      last_violation_at = EXCLUDED.last_violation_at
   `, [
     r.id, r.username, r.display_name, r.password_hash, r.status, r.is_admin,
     r.membership_tier, r.membership_expires, r.stripe_customer_id, r.stripe_subscription_id,
@@ -247,7 +274,9 @@ export async function writeUser(userId, userData) {
     r.age_bracket, r.parent_email, r.recovery_email, r.parental_consent_status, r.parental_consent_at,
     r.data_deletion_requested, r.data_deletion_at, r.privacy_accepted_at,
     r.approved_at, r.denied_at, r.created_at, r.last_login_at,
-    r.payment_method, r.classwallet_order_id, r.esa_billing_period, r.improvement_opt_out
+    r.payment_method, r.classwallet_order_id, r.esa_billing_period, r.improvement_opt_out,
+    r.publishing_enabled, r.multiplayer_enabled, r.parent_dashboard_token,
+    r.parent_verified_method, r.parent_verified_at, r.filter_violations, r.last_violation_at,
   ]);
 }
 

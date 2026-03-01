@@ -14,6 +14,7 @@
 import { Router } from 'express';
 import { readUser, writeUser } from '../services/storage.js';
 import { getUserByParentToken, exportUserData, deleteUserData } from '../services/consent.js';
+import { logAdminAction } from '../services/adminAuditLog.js';
 
 const router = Router();
 
@@ -75,7 +76,7 @@ router.post('/toggle', async (req, res) => {
     user[setting] = Boolean(enabled);
     await writeUser(user.id, user);
 
-    console.log(`Parent toggled ${setting}=${enabled} for ${user.username}`);
+    logAdminAction({ action: 'parent_toggle', targetId: user.id, details: { username: user.username, setting, enabled: Boolean(enabled) } }).catch(() => {});
     res.json({ success: true, [setting]: user[setting] });
   } catch (error) {
     console.error('Parent toggle error:', error);
@@ -90,6 +91,7 @@ router.get('/export', async (req, res) => {
     if (!user) return;
 
     const data = await exportUserData(user.id);
+    logAdminAction({ action: 'parent_data_export', targetId: user.id, details: { username: user.username } }).catch(() => {});
     res.json(data);
   } catch (error) {
     console.error('Parent export error:', error);
@@ -104,6 +106,7 @@ router.post('/delete', async (req, res) => {
     if (!user) return;
 
     const result = await deleteUserData(user.id);
+    logAdminAction({ action: 'parent_data_deletion', targetId: user.id, details: { username: user.username, deletedProjects: result.deletedProjects } }).catch(() => {});
     res.json({
       success: true,
       message: `Account anonymized and ${result.deletedProjects} project(s) deleted. This cannot be undone.`,
@@ -126,7 +129,7 @@ router.post('/revoke', async (req, res) => {
     user.multiplayerEnabled = false;
     await writeUser(user.id, user);
 
-    console.log(`Parent revoked consent for ${user.username}`);
+    logAdminAction({ action: 'consent_revoked', targetId: user.id, details: { username: user.username } }).catch(() => {});
     res.json({
       success: true,
       message: 'Consent revoked. Your child\'s account has been deactivated. Data is preserved but the account cannot be used until consent is re-granted.',
