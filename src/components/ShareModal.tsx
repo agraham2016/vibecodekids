@@ -97,9 +97,9 @@ export default function ShareModal({ code, onClose, authToken, userDisplayName, 
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay" onClick={onClose} role="dialog" aria-modal="true" aria-label="Share your creation">
       <div className="share-modal" onClick={e => e.stopPropagation()}>
-        <button className="close-btn" onClick={onClose}>✕</button>
+        <button className="close-btn" onClick={onClose} aria-label="Close dialog">✕</button>
 
         {!shareResult ? (
           <>

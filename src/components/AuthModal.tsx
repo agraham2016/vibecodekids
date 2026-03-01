@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import PlanSelector from './PlanSelector'
 import './AuthModal.css'
 
@@ -18,6 +18,7 @@ type AuthMode = 'login' | 'signup'
 type SignupStep = 'plan' | 'details'
 
 export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: AuthModalProps) {
+  const modalRef = useRef<HTMLDivElement>(null)
   const [mode, setMode] = useState<AuthMode>(initialMode)
   const [signupStep, setSignupStep] = useState<SignupStep>('plan')
   const [selectedPlan, setSelectedPlan] = useState<'free' | 'creator' | 'pro'>('free')
@@ -35,6 +36,17 @@ export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: A
 
   const isUnder13 = age !== '' && parseInt(age) < 13
   const is13Plus = age !== '' && parseInt(age) >= 13
+
+  useEffect(() => {
+    const closeBtn = modalRef.current?.querySelector('.close-btn') as HTMLElement | null
+    if (closeBtn) closeBtn.focus()
+
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', handleEscape)
+    return () => document.removeEventListener('keydown', handleEscape)
+  }, [onClose])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -200,9 +212,9 @@ export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: A
   // Show plan selector for signup
   if (mode === 'signup' && signupStep === 'plan') {
     return (
-      <div className="modal-overlay" onClick={onClose}>
-        <div className="auth-modal auth-modal-wide" onClick={e => e.stopPropagation()}>
-          <button className="close-btn" onClick={onClose}>✕</button>
+      <div className="modal-overlay" onClick={onClose} role="dialog" aria-modal="true" aria-label="Choose a plan">
+        <div className="auth-modal auth-modal-wide" onClick={e => e.stopPropagation()} ref={modalRef}>
+          <button className="close-btn" onClick={onClose} aria-label="Close dialog">✕</button>
           
           <PlanSelector
             selectedPlan={selectedPlan}
@@ -216,12 +228,12 @@ export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: A
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="auth-modal" onClick={e => e.stopPropagation()}>
-        <button className="close-btn" onClick={onClose}>✕</button>
+    <div className="modal-overlay" onClick={onClose} role="dialog" aria-modal="true" aria-labelledby="auth-modal-title">
+      <div className="auth-modal" onClick={e => e.stopPropagation()} ref={modalRef}>
+        <button className="close-btn" onClick={onClose} aria-label="Close dialog">✕</button>
 
         <div className="auth-header">
-          <h2>{mode === 'login' ? '👋 Welcome Back!' : '🚀 Create Your Account'}</h2>
+          <h2 id="auth-modal-title">{mode === 'login' ? '👋 Welcome Back!' : '🚀 Create Your Account'}</h2>
           <p>
             {mode === 'login' 
               ? 'Log in to save and share your creations' 

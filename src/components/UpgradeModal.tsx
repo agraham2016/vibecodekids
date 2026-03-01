@@ -77,9 +77,9 @@ export default function UpgradeModal({
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay" onClick={onClose} role="dialog" aria-modal="true" aria-label="Upgrade your plan">
       <div className="upgrade-modal" onClick={e => e.stopPropagation()}>
-        <button className="close-btn" onClick={onClose}>✕</button>
+        <button className="close-btn" onClick={onClose} aria-label="Close dialog">✕</button>
 
         {/* Header */}
         <div className="upgrade-header">

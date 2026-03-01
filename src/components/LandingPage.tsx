@@ -292,7 +292,7 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
       <div className="landing-bg" />
 
       {/* ── 1. Sticky Nav ── */}
-      <nav ref={navRef} className="landing-nav">
+      <nav ref={navRef} className="landing-nav" aria-label="Main navigation">
         <div className="nav-inner">
           <a href="/" className="nav-logo-link">
             <img src="/images/logo.png" alt="VibeCode Kids" className="nav-logo-img" />
@@ -315,7 +315,7 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
         </div>
       </nav>
 
-      <div className="landing-content">
+      <div className="landing-content" id="main-content">
 
         {/* ── 2. Hero ── */}
         <section className="landing-hero">
@@ -651,11 +651,16 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
           <div className="faq-list">
             {FAQ_ITEMS.map((item, i) => (
               <div key={i} className={`faq-item ${openFaq === i ? 'open' : ''}`}>
-                <button className="faq-question" onClick={() => setOpenFaq(openFaq === i ? null : i)}>
+                <button
+                  className="faq-question"
+                  onClick={() => setOpenFaq(openFaq === i ? null : i)}
+                  aria-expanded={openFaq === i}
+                  aria-controls={`faq-answer-${i}`}
+                >
                   <span>{item.q}</span>
-                  <span className="faq-toggle">{openFaq === i ? '−' : '+'}</span>
+                  <span className="faq-toggle" aria-hidden="true">{openFaq === i ? '−' : '+'}</span>
                 </button>
-                {openFaq === i && <div className="faq-answer">{item.a}</div>}
+                {openFaq === i && <div className="faq-answer" id={`faq-answer-${i}`} role="region">{item.a}</div>}
               </div>
             ))}
           </div>

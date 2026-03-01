@@ -155,9 +155,9 @@ export default function VersionHistoryModal({
   // Show message if project hasn't been saved yet
   if (projectId === 'new') {
     return (
-      <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-overlay" onClick={onClose} role="dialog" aria-modal="true" aria-label="Version history">
         <div className="version-modal" onClick={e => e.stopPropagation()}>
-          <button className="close-btn" onClick={onClose}>✕</button>
+          <button className="close-btn" onClick={onClose} aria-label="Close dialog">✕</button>
           
           <div className="version-header">
             <span className="version-icon">📜</span>
@@ -175,9 +175,9 @@ export default function VersionHistoryModal({
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay" onClick={onClose} role="dialog" aria-modal="true" aria-label="Version history">
       <div className="version-modal" onClick={e => e.stopPropagation()}>
-        <button className="close-btn" onClick={onClose}>✕</button>
+        <button className="close-btn" onClick={onClose} aria-label="Close dialog">✕</button>
         
         <div className="version-header">
           <span className="version-icon">📜</span>
