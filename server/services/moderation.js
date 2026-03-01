@@ -11,6 +11,7 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import { randomBytes } from 'crypto';
 import { DATA_DIR, USE_POSTGRES } from '../config/index.js';
+import { trackReport } from './adminAlerts.js';
 
 const REPORTS_FILE = path.join(DATA_DIR, 'reports.jsonl');
 
@@ -29,6 +30,8 @@ export async function createReport({ projectId, reason, reporterIp, reporterUser
     reviewAction: null,
     reviewNote: null,
   };
+
+  trackReport();
 
   if (USE_POSTGRES) {
     try {

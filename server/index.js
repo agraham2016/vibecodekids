@@ -35,6 +35,7 @@ import adminRouter from './routes/admin.js';
 import adminAuthRouter from './routes/adminAuth.js';
 import parentRouter from './routes/parent.js';
 import parentDashboardRouter from './routes/parentDashboard.js';
+import parentVerifyChargeRouter from './routes/parentVerifyCharge.js';
 import createEsaRouter from './routes/esa.js';
 import createFeedbackRouter from './routes/feedback.js';
 import demoRouter from './routes/demo.js';
@@ -287,6 +288,7 @@ app.use('/api/admin', requireAdmin(sessions), adminRouter);
 // Parent/COPPA routes (public -- accessed via email links)
 app.use('/api/parent', parentRouter);
 app.use('/api/parent/dashboard', parentDashboardRouter);
+app.use('/api/parent/verify-charge', parentVerifyChargeRouter);
 
 // Multiplayer REST endpoints
 app.get('/api/rooms/:code', (req, res) => {

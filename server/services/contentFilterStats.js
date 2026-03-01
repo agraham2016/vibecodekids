@@ -12,9 +12,12 @@ const stats = {
   lastBlockedAt: null,
 };
 
+import { trackContentBlock } from './adminAlerts.js';
+
 const MAX_RECENT = 50;
 
 export function recordBlocked(source = 'unknown') {
+  trackContentBlock();
   stats.totalBlocked++;
   const count = stats.bySource.get(source) || 0;
   stats.bySource.set(source, count + 1);

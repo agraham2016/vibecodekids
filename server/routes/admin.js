@@ -17,6 +17,7 @@ import { getContentFilterStats } from '../services/contentFilterStats.js';
 import { readDemoEvents } from '../services/demoEvents.js';
 import { listReports, resolveReport } from '../services/moderation.js';
 import { runRetentionSweep } from '../services/dataRetention.js';
+import { getAlertStatus } from '../services/adminAlerts.js';
 
 const router = Router();
 
@@ -527,6 +528,16 @@ router.get('/ab-stats', async (req, res) => {
   } catch (error) {
     console.error('AB stats error:', error);
     res.status(500).json({ error: 'Could not load A/B stats' });
+  }
+});
+
+// Safety alert status
+router.get('/alerts', (_req, res) => {
+  try {
+    res.json(getAlertStatus());
+  } catch (error) {
+    console.error('Alert status error:', error);
+    res.status(500).json({ error: 'Could not load alert status' });
   }
 });
 

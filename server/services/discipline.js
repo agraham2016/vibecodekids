@@ -8,6 +8,7 @@
  */
 
 import { readUser, writeUser } from './storage.js';
+import { trackSuspension } from './adminAlerts.js';
 
 const COOLDOWN_1H_THRESHOLD = 3;
 const SUSPEND_24H_THRESHOLD = 5;
@@ -27,6 +28,7 @@ export async function recordViolation(userId) {
     const count = user.filterViolations;
 
     if (count >= SUSPEND_24H_THRESHOLD) {
+      trackSuspension();
       user.status = 'suspended';
       user.suspendedAt = new Date().toISOString();
       user.suspendReason = `Automatic: ${count} content filter violations`;

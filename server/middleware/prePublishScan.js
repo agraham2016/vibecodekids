@@ -63,8 +63,8 @@ export function prePublishScan(code) {
   }
 
   const piiResult = scanPII(combinedText);
-  if (piiResult.detectedTypes.length > 0) {
-    warnings.push(`pii_detected:${piiResult.detectedTypes.join(',')}`);
+  if (piiResult.piiFound.length > 0) {
+    warnings.push(`pii_detected:${piiResult.piiFound.join(',')}`);
   }
 
   for (const { pattern, label } of DANGEROUS_PATTERNS) {

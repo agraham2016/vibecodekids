@@ -11,6 +11,7 @@ import { BCRYPT_ROUNDS, MEMBERSHIP_TIERS } from '../config/index.js';
 import { readUser, writeUser, userExists, listProjects } from '../services/storage.js';
 import { generateToken } from '../services/sessions.js';
 import { filterContent } from '../middleware/contentFilter.js';
+import { filterUsername } from '../middleware/usernameFilter.js';
 import { checkAndResetCounters, calculateUsageRemaining } from '../middleware/rateLimit.js';
 import { getAgeBracket, requiresParentalConsent, createConsentRequest, sendConsentEmail, sendPasswordResetEmail } from '../services/consent.js';
 import { createResetToken, getResetByToken, consumeToken } from '../services/passwordReset.js';
@@ -120,6 +121,16 @@ export default function createAuthRouter(sessions) {
       const displayNameCheck = filterContent(displayName, { source: 'auth' });
       if (usernameCheck.blocked || displayNameCheck.blocked) {
         return res.status(400).json({ error: 'Please choose a different username or display name' });
+      }
+
+      // COPPA: Block usernames that look like real names or contain PII
+      const usernameNameCheck = filterUsername(username);
+      const displayNameNameCheck = filterUsername(displayName);
+      if (usernameNameCheck.blocked) {
+        return res.status(400).json({ error: usernameNameCheck.reason });
+      }
+      if (displayNameNameCheck.blocked) {
+        return res.status(400).json({ error: displayNameNameCheck.reason });
       }
 
       const userId = `user_${username.toLowerCase()}`;
