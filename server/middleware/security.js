@@ -35,12 +35,12 @@ export function securityHeaders() {
     // self-hosted fonts (after P0-9 migration) and data: for SVG backgrounds.
     const csp = [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline'",
+      "script-src 'self' 'unsafe-inline' https://js.stripe.com",
       "style-src 'self' 'unsafe-inline'",
       "font-src 'self' data:",
       "img-src 'self' data: blob:",
-      "connect-src 'self' wss: ws:",
-      "frame-src 'self' blob:",
+      "connect-src 'self' wss: ws: https://api.stripe.com",
+      "frame-src 'self' blob: https://js.stripe.com",
       "object-src 'none'",
       "base-uri 'self'",
       "form-action 'self'",

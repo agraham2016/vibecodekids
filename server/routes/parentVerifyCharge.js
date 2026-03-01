@@ -20,6 +20,18 @@ const stripe = STRIPE_SECRET_KEY ? new Stripe(STRIPE_SECRET_KEY) : null;
 const router = Router();
 
 const MICRO_CHARGE_AMOUNT = 50; // $0.50 in cents
+const STRIPE_PUBLISHABLE_KEY = process.env.STRIPE_PUBLISHABLE_KEY || null;
+
+/**
+ * GET /api/parent/verify-charge/config
+ * Public — returns the publishable key so the frontend can init Stripe Elements.
+ */
+router.get('/config', (_req, res) => {
+  if (!STRIPE_PUBLISHABLE_KEY) {
+    return res.status(503).json({ error: 'Stripe is not configured.' });
+  }
+  res.json({ publishableKey: STRIPE_PUBLISHABLE_KEY, amount: MICRO_CHARGE_AMOUNT });
+});
 
 /**
  * POST /api/parent/verify-charge/create

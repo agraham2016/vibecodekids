@@ -208,6 +208,7 @@ export async function getUserByParentToken(token) {
 export async function sendConsentEmail(parentEmail, childUsername, token, action = 'consent') {
   const consentUrl = `${BASE_URL}/api/parent/verify?token=${token}&action=grant`;
   const denyUrl = `${BASE_URL}/api/parent/verify?token=${token}&action=deny`;
+  const verifyChargeUrl = `${BASE_URL}/parent-verify-charge?token=${token}`;
 
   const subject = action === 'consent'
     ? `${SITE_NAME}: Your child wants to create an account`
@@ -253,13 +254,18 @@ After approving, you will receive a link to the Parent Command Center where you 
 - Request deletion of all your child's data
 - Revoke consent and deactivate the account
 
-To APPROVE your child's account:
+OPTION 1 — VERIFY WITH CREDIT CARD (Recommended):
+A small $0.50 charge (immediately refunded) verifies your identity:
+${verifyChargeUrl}
+
+OPTION 2 — APPROVE VIA EMAIL:
+Click here to approve without card verification:
 ${consentUrl}
 
 To DENY this request:
 ${denyUrl}
 
-This link expires in 72 hours.
+These links expire in 72 hours.
 
 If you didn't expect this email, you can safely ignore it.
 

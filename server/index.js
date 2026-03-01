@@ -163,6 +163,7 @@ app.get('/terms', (_req, res) => res.sendFile(path.join(PUBLIC_DIR, 'terms.html'
 app.get('/esa', (_req, res) => res.sendFile(path.join(PUBLIC_DIR, 'esa.html')));
 app.get('/contact', (_req, res) => res.sendFile(path.join(PUBLIC_DIR, 'contact.html')));
 app.get('/parent-dashboard', (_req, res) => res.sendFile(path.join(PUBLIC_DIR, 'parent-dashboard.html')));
+app.get('/parent-verify-charge', (_req, res) => res.sendFile(path.join(PUBLIC_DIR, 'parent-verify-charge.html')));
 app.get('/forgot-password/reset', (_req, res) => res.sendFile(path.join(PUBLIC_DIR, 'forgot-password.html')));
 
 // ========== API ROUTES ==========
