@@ -20,7 +20,10 @@ import {
 } from '../services/admin2FA.js';
 
 const router = Router();
-const ADMIN_TOKEN_SECRET = process.env.ADMIN_TOKEN_SECRET || ADMIN_SECRET || 'fallback-admin-token-secret';
+const ADMIN_TOKEN_SECRET = process.env.ADMIN_TOKEN_SECRET || ADMIN_SECRET;
+if (!ADMIN_TOKEN_SECRET) {
+  console.error('FATAL: ADMIN_TOKEN_SECRET or ADMIN_SECRET must be set. Admin auth disabled.');
+}
 const ADMIN_TOKEN_EXPIRY_HOURS = 8;
 
 function createAdminToken() {

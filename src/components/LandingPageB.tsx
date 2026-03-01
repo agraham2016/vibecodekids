@@ -308,7 +308,7 @@ export default function LandingPageB({ onLoginClick, onSignupClick }: LandingPag
                 <iframe
                   ref={iframeRef}
                   title="Demo Game Preview"
-                  sandbox="allow-scripts allow-same-origin allow-pointer-lock"
+                  sandbox="allow-scripts allow-pointer-lock"
                   className="tryit-preview-iframe"
                 />
 

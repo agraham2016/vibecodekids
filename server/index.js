@@ -38,7 +38,7 @@ import createEsaRouter from './routes/esa.js';
 import createFeedbackRouter from './routes/feedback.js';
 import demoRouter from './routes/demo.js';
 import demoAnalyticsRouter from './routes/demoAnalytics.js';
-import { initMultiplayer, getRoomInfo, getActiveRooms } from './multiplayer.js';
+import { initMultiplayer, getRoomInfo, getActiveRooms, getAllowedChatPhrases } from './multiplayer.js';
 
 // ========== INIT ==========
 
@@ -293,6 +293,10 @@ app.get('/api/projects/:id/rooms', (req, res) => {
 
 app.get('/api/rooms', (req, res) => {
   res.json(getActiveRooms(req.query.projectId));
+});
+
+app.get('/api/multiplayer/phrases', (_req, res) => {
+  res.json({ phrases: getAllowedChatPhrases() });
 });
 
 // ========== SPA CATCH-ALL ==========

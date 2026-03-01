@@ -485,7 +485,7 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
                           ref={previewIframeRef}
                           className={`sgc-preview-frame${previewLoaded ? ' visible' : ''}`}
                           src={`/play/${game.id}?preview=1`}
-                          sandbox="allow-scripts allow-same-origin"
+                          sandbox="allow-scripts"
                           loading="lazy"
                           onLoad={() => setPreviewLoaded(true)}
                         />

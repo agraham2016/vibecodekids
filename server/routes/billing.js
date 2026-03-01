@@ -99,72 +99,22 @@ export default function createBillingRouter(sessions) {
         return res.status(400).json({ error: 'Username already taken' });
       }
 
-      const priceId = MEMBERSHIP_TIERS[tier].stripePriceId;
-
-      const session = await stripe.checkout.sessions.create({
-        payment_method_types: ['card'],
-        line_items: [{ price: priceId, quantity: 1 }],
-        mode: 'subscription',
-        success_url: `${BASE_URL}/api/stripe/success?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${BASE_URL}/?cancelled=true`,
-        metadata: {
-          username: username.toLowerCase(),
-          displayName: displayName.trim(),
-          password,
-          tier,
-          age: String(age),
-          parentEmail: needsConsent ? parentEmail.toLowerCase().trim() : '',
-          recoveryEmail: !needsConsent && recoveryEmail ? recoveryEmail.toLowerCase().trim() : '',
-          privacyAccepted: 'true',
-          ageBracket
-        }
-      });
-
-      res.json({ success: true, checkoutUrl: session.url, sessionId: session.id });
-    } catch (error) {
-      console.error('Stripe checkout error:', error);
-      const msg = (error.type && error.message) ? error.message : 'Could not create checkout session';
-      res.status(500).json({ error: msg });
-    }
-  });
-
-  // Stripe success redirect
-  router.get('/success', async (req, res) => {
-    console.log('📦 Stripe success callback received');
-    try {
-      const { session_id } = req.query;
-      if (!stripe || !session_id) return res.redirect('/?error=payment_failed');
-
-      const session = await stripe.checkout.sessions.retrieve(session_id);
-      if (session.payment_status !== 'paid') return res.redirect('/?error=payment_incomplete');
-
-      const { username, displayName, password, tier, age, parentEmail, recoveryEmail, ageBracket } = session.metadata;
-      const userId = `user_${username}`;
-
-      if (await userExists(userId)) {
-        return res.redirect('/?signup=success&message=Account already exists, please log in');
-      }
-
+      // COPPA: Create user record locally FIRST so that no PII (password,
+      // parent email, age) is ever transmitted to Stripe metadata.
       const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
-      const ageNum = parseInt(age, 10);
-      const needsConsent = ageBracket === 'under13';
-
       const now = new Date();
-      const expireDate = new Date();
-      expireDate.setMonth(expireDate.getMonth() + 1);
-
-      const user = {
+      const pendingUser = {
         id: userId,
-        username,
-        displayName,
+        username: username.toLowerCase(),
+        displayName: displayName.trim(),
         passwordHash,
-        status: needsConsent ? 'pending' : 'approved',
+        status: 'pending_payment',
         createdAt: now.toISOString(),
         projectCount: 0,
-        membershipTier: tier,
-        membershipExpires: expireDate.toISOString(),
-        stripeCustomerId: session.customer,
-        stripeSubscriptionId: session.subscription,
+        membershipTier: 'free',
+        membershipExpires: null,
+        stripeCustomerId: null,
+        stripeSubscriptionId: null,
         gamesCreatedThisMonth: 0,
         aiCoversUsedThisMonth: 0,
         aiSpritesUsedThisMonth: 0,
@@ -177,26 +127,76 @@ export default function createBillingRouter(sessions) {
         hasSeenUpgradePrompt: true,
         lastLoginAt: null,
         ageBracket: ageBracket || 'unknown',
-        parentEmail: parentEmail || null,
-        recoveryEmail: recoveryEmail || null,
+        parentEmail: needsConsent ? parentEmail.toLowerCase().trim() : null,
+        recoveryEmail: !needsConsent && recoveryEmail ? recoveryEmail.toLowerCase().trim() : null,
         parentalConsentStatus: needsConsent ? 'pending' : 'not_required',
         parentalConsentAt: null,
         privacyAcceptedAt: now.toISOString(),
       };
+      await writeUser(userId, pendingUser);
 
-      await writeUser(userId, user);
-      console.log('✅ User account created:', userId);
+      const priceId = MEMBERSHIP_TIERS[tier].stripePriceId;
 
-      if (needsConsent && parentEmail) {
-        const consentToken = await createConsentRequest(userId, parentEmail, 'consent');
-        await sendConsentEmail(parentEmail, username, consentToken, 'consent');
-        console.log(`👶 Under-13 paid signup: ${username} → consent email sent to ${parentEmail}`);
-        return res.redirect('/?signup=pending_consent&tier=' + tier);
+      const session = await stripe.checkout.sessions.create({
+        payment_method_types: ['card'],
+        line_items: [{ price: priceId, quantity: 1 }],
+        mode: 'subscription',
+        success_url: `${BASE_URL}/api/stripe/success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${BASE_URL}/?cancelled=true`,
+        metadata: {
+          userId,
+          tier,
+        }
+      });
+
+      res.json({ success: true, checkoutUrl: session.url, sessionId: session.id });
+    } catch (error) {
+      console.error('Stripe checkout error:', error);
+      const msg = (error.type && error.message) ? error.message : 'Could not create checkout session';
+      res.status(500).json({ error: msg });
+    }
+  });
+
+  // Stripe success redirect — user record already exists locally from /checkout
+  router.get('/success', async (req, res) => {
+    console.log('Stripe success callback received');
+    try {
+      const { session_id } = req.query;
+      if (!stripe || !session_id) return res.redirect('/?error=payment_failed');
+
+      const checkoutSession = await stripe.checkout.sessions.retrieve(session_id);
+      if (checkoutSession.payment_status !== 'paid') return res.redirect('/?error=payment_incomplete');
+
+      const { userId, tier } = checkoutSession.metadata;
+      if (!userId) return res.redirect('/?error=payment_failed');
+
+      let user;
+      try { user = await readUser(userId); } catch { return res.redirect('/?error=account_creation_failed'); }
+
+      if (user.status === 'pending_payment') {
+        const needsConsent = user.parentalConsentStatus === 'pending';
+        const expireDate = new Date();
+        expireDate.setMonth(expireDate.getMonth() + 1);
+
+        user.status = needsConsent ? 'pending' : 'approved';
+        user.membershipTier = tier;
+        user.membershipExpires = expireDate.toISOString();
+        user.stripeCustomerId = checkoutSession.customer;
+        user.stripeSubscriptionId = checkoutSession.subscription;
+
+        await writeUser(userId, user);
+        console.log('User account activated:', userId);
+
+        if (needsConsent && user.parentEmail) {
+          const consentToken = await createConsentRequest(userId, user.parentEmail, 'consent');
+          await sendConsentEmail(user.parentEmail, user.username, consentToken, 'consent');
+          return res.redirect('/?signup=pending_consent&tier=' + tier);
+        }
       }
 
       res.redirect('/?signup=success&tier=' + tier);
     } catch (error) {
-      console.error('❌ Stripe success handler error:', error);
+      console.error('Stripe success handler error:', error);
       res.redirect('/?error=account_creation_failed');
     }
   });

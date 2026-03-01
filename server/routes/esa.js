@@ -21,8 +21,10 @@ import {
 } from '../services/storage.js';
 import { getAgeBracket, requiresParentalConsent, createConsentRequest, sendConsentEmail } from '../services/consent.js';
 import { filterContent } from '../middleware/contentFilter.js';
+import { requireAdmin } from '../middleware/auth.js';
 
 export default function createEsaRouter(sessions) {
+  const adminOnly = requireAdmin(sessions);
   const router = Router();
 
   // ========== PUBLIC: pricing info ==========
@@ -209,7 +211,7 @@ export default function createEsaRouter(sessions) {
 
   // ========== ADMIN: list orders ==========
 
-  router.get('/orders', async (req, res) => {
+  router.get('/orders', adminOnly, async (req, res) => {
     try {
       const { status } = req.query;
       const orders = await listEsaOrders(status || null);
@@ -223,7 +225,7 @@ export default function createEsaRouter(sessions) {
 
   // ========== ADMIN: manually confirm/pay an order ==========
 
-  router.post('/orders/:orderRef/confirm', async (req, res) => {
+  router.post('/orders/:orderRef/confirm', adminOnly, async (req, res) => {
     try {
       const { orderRef } = req.params;
       const order = await getEsaOrder(orderRef);
@@ -259,7 +261,7 @@ export default function createEsaRouter(sessions) {
 
   // ========== ADMIN: waitlist export ==========
 
-  router.get('/waitlist', async (_req, res) => {
+  router.get('/waitlist', adminOnly, async (_req, res) => {
     try {
       const list = await listEsaWaitlist();
       res.json({ waitlist: list, count: list.length });

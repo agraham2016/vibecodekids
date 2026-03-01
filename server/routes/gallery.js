@@ -23,7 +23,6 @@ router.get('/', async (req, res) => {
         id: p.id,
         title: p.title,
         creatorName: p.creatorName,
-        ageMode: p.ageMode,
         category: p.category,
         multiplayer: p.multiplayer || false,
         createdAt: p.createdAt,

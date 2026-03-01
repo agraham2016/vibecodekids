@@ -163,7 +163,7 @@ export default function createAuthRouter(sessions) {
         const token = await createConsentRequest(userId, parentEmail, 'consent');
         await sendConsentEmail(parentEmail, username, token, 'consent');
         responseMessage = 'Account created! We\'ve sent an email to your parent/guardian for approval. They need to approve before you can log in.';
-        console.log(`👶 Under-13 registration: ${username} → consent email sent to ${parentEmail}`);
+        console.log(`Under-13 registration: ${username} → consent email sent`);
       } else {
         responseMessage = 'Account created! You can log in now.';
       }

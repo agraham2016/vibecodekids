@@ -207,7 +207,7 @@ export default function createProjectsRouter(sessions) {
     }
   });
 
-  // Get single project
+  // Get single project — strips internal fields for unauthenticated/public requests
   router.get('/:id', async (req, res) => {
     try {
       const { id } = req.params;
@@ -216,6 +216,15 @@ export default function createProjectsRouter(sessions) {
       const project = await readProject(id);
       project.views = (project.views || 0) + 1;
       await writeProject(id, project);
+
+      const token = req.headers.authorization?.replace('Bearer ', '');
+      const session = token ? await sessions.get(token) : null;
+      const isOwner = session && project.userId === session.userId;
+
+      if (!isOwner) {
+        const { userId, ageMode, parentEmail, ...safeProject } = project;
+        return res.json(safeProject);
+      }
 
       res.json(project);
     } catch (error) {

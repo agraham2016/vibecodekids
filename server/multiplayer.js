@@ -5,6 +5,13 @@
 import { WebSocketServer } from 'ws';
 import { randomBytes } from 'crypto';
 
+const ALLOWED_CHAT_PHRASES = [
+  'Nice!', 'Good game!', 'Let\'s go!', 'Wow!', 'GG',
+  'Ready?', 'Yes!', 'No!', 'Wait!', 'Help!',
+  'Awesome!', 'Oops!', 'My turn!', 'Your turn!',
+  'High five!', 'Try again!', 'So close!', 'LOL', 'Yay!',
+];
+
 // Store active rooms
 const rooms = new Map();
 
@@ -280,12 +287,17 @@ function handleMessage(ws, playerId, message, setRoom) {
     case 'chat': {
       const room = getRoomByPlayerId(playerId);
       if (room) {
+        const phrase = message.text;
+        if (!ALLOWED_CHAT_PHRASES.includes(phrase)) {
+          ws.send(JSON.stringify({ type: 'error', message: 'Only preset phrases are allowed' }));
+          break;
+        }
         const player = room.players.get(playerId);
         room.broadcast({
           type: 'chat',
           fromPlayerId: playerId,
-          fromPlayerName: player?.name || 'Anonymous',
-          message: message.text?.slice(0, 200) // Limit chat length
+          fromPlayerName: player?.name || 'Player',
+          message: phrase
         });
       }
       break;
@@ -327,6 +339,10 @@ export function getRoomInfo(roomCode) {
     maxPlayers: room.maxPlayers,
     createdAt: room.createdAt
   };
+}
+
+export function getAllowedChatPhrases() {
+  return ALLOWED_CHAT_PHRASES;
 }
 
 export function getActiveRooms(projectId = null) {

@@ -256,7 +256,7 @@ Questions? Contact us at ${SUPPORT_EMAIL}
         const errBody = await resp.text();
         console.error('📧 Email delivery failed:', resp.status, errBody);
       } else {
-        console.log(`📧 Consent email sent to ${parentEmail}`);
+        console.log('Consent email sent successfully');
       }
     } catch (err) {
       console.error('📧 Email delivery error:', err.message);
@@ -264,7 +264,7 @@ Questions? Contact us at ${SUPPORT_EMAIL}
   } else {
     console.log('═══════════════════════════════════════════');
     console.log(`📧 CONSENT EMAIL (RESEND_API_KEY not set — logging only)`);
-    console.log(`   To: ${parentEmail}`);
+    console.log('   To: [redacted]');
     console.log(`   Subject: ${subject}`);
     console.log(`   Approve: ${consentUrl}`);
     console.log(`   Deny:    ${denyUrl}`);
