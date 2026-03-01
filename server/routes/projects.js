@@ -6,10 +6,9 @@
 
 import { Router } from 'express';
 import { randomBytes } from 'crypto';
-import { readProject, writeProject, deleteProject as removeProject, listProjects } from '../services/storage.js';
+import { readProject, writeProject, deleteProject as removeProject, listProjects, readUser } from '../services/storage.js';
 import { filterContent } from '../middleware/contentFilter.js';
 import { checkTierLimits, incrementUsage, calculateUsageRemaining } from '../middleware/rateLimit.js';
-import { readUser } from '../services/storage.js';
 
 function generateProjectId() {
   const chars = 'abcdefghjkmnpqrstuvwxyz23456789';
@@ -57,6 +56,23 @@ export default function createProjectsRouter(sessions) {
         }
       }
 
+      // COPPA: Enforce parent publishing toggle for under-13
+      let allowPublic = Boolean(isPublic);
+      let allowMultiplayer = Boolean(multiplayer);
+      if (userId) {
+        try {
+          const ownerUser = await readUser(userId);
+          if (ownerUser.ageBracket === 'under13') {
+            if (allowPublic && !ownerUser.publishingEnabled) {
+              allowPublic = false;
+            }
+            if (allowMultiplayer && !ownerUser.multiplayerEnabled) {
+              allowMultiplayer = false;
+            }
+          }
+        } catch { /* user read failed — default to safe */ }
+      }
+
       const id = generateProjectId();
       let validThumb = null;
       if (thumbnail && typeof thumbnail === 'string' && thumbnail.startsWith('data:image/') && thumbnail.length < 100000) {
@@ -69,8 +85,8 @@ export default function createProjectsRouter(sessions) {
         code,
         creatorName: displayName.slice(0, 30),
         userId,
-        isPublic: Boolean(isPublic),
-        multiplayer: Boolean(multiplayer),
+        isPublic: allowPublic,
+        multiplayer: allowMultiplayer,
         category: category || 'other',
         thumbnail: validThumb,
         createdAt: new Date().toISOString(),

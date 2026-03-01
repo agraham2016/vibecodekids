@@ -157,6 +157,12 @@ export default function createAuthRouter(sessions) {
         parentalConsentAt: null,
         approvedAt: needsConsent ? null : now.toISOString(),
         privacyAcceptedAt: now.toISOString(),
+        // Parent controls: under-13 default OFF, 13+ default ON
+        publishingEnabled: !needsConsent,
+        multiplayerEnabled: !needsConsent,
+        parentVerifiedMethod: null,
+        parentVerifiedAt: null,
+        parentDashboardToken: null,
       };
 
       await writeUser(userId, user);

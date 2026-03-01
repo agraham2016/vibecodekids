@@ -132,6 +132,11 @@ export default function createBillingRouter(sessions) {
         parentalConsentStatus: needsConsent ? 'pending' : 'not_required',
         parentalConsentAt: null,
         privacyAcceptedAt: now.toISOString(),
+        publishingEnabled: !needsConsent,
+        multiplayerEnabled: !needsConsent,
+        parentVerifiedMethod: null,
+        parentVerifiedAt: null,
+        parentDashboardToken: null,
       };
       await writeUser(userId, pendingUser);
 

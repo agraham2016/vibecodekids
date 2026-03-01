@@ -16,9 +16,11 @@ import {
   exportUserData, 
   deleteUserData,
   createConsentRequest,
-  sendConsentEmail
+  sendConsentEmail,
+  createParentDashboardToken,
+  getUserByParentToken,
 } from '../services/consent.js';
-import { SITE_NAME, SUPPORT_EMAIL } from '../config/index.js';
+import { SITE_NAME, SUPPORT_EMAIL, BASE_URL } from '../config/index.js';
 
 const router = Router();
 
@@ -76,18 +78,25 @@ router.get('/verify', async (req, res) => {
       const user = await readUser(consent.userId);
 
       if (consent.action === 'consent') {
-        // Account creation consent
         if (granted) {
           user.parentalConsentStatus = 'granted';
           user.parentalConsentAt = new Date().toISOString();
+          user.parentVerifiedMethod = 'email_plus';
+          user.parentVerifiedAt = new Date().toISOString();
           user.status = 'approved';
           user.approvedAt = new Date().toISOString();
-          console.log(`✅ Parental consent GRANTED for ${user.username} — auto-approved`);
+          // Default: publishing and multiplayer OFF for under-13 until parent enables
+          if (user.publishingEnabled === undefined) user.publishingEnabled = false;
+          if (user.multiplayerEnabled === undefined) user.multiplayerEnabled = false;
+          // Generate Parent Command Center token
+          const dashboardToken = await createParentDashboardToken(consent.userId);
+          user.parentDashboardToken = dashboardToken;
+          console.log(`Parental consent GRANTED for ${user.username}`);
         } else {
           user.parentalConsentStatus = 'denied';
           user.status = 'denied';
           user.deniedAt = new Date().toISOString();
-          console.log(`❌ Parental consent DENIED for ${user.username}`);
+          console.log(`Parental consent DENIED for ${user.username}`);
         }
         await writeUser(consent.userId, user);
 
@@ -123,9 +132,17 @@ ${JSON.stringify(data, null, 2)}
     }
 
     if (granted) {
-      const message = consent.action === 'consent'
-        ? 'You have approved your child\'s account. They can log in now! You agreed to our Terms of Service and Privacy Policy, including our use of anonymized data to improve our AI. You may opt out of AI improvement use at any time by emailing us.'
-        : 'Your request has been approved.';
+      let message;
+      if (consent.action === 'consent') {
+        const user = await readUser(consent.userId).catch(() => null);
+        const dashToken = user?.parentDashboardToken;
+        const dashUrl = dashToken ? `${BASE_URL}/parent-dashboard?token=${dashToken}` : null;
+        message = `You have approved your child's account. They can log in now!`
+          + (dashUrl ? `<br><br><strong>Parent Command Center:</strong><br>Manage your child's privacy settings, toggle publishing and multiplayer, review data, or delete the account:<br><a href="${dashUrl}" style="color:#667eea;font-weight:bold">${dashUrl}</a><br><small>Bookmark this link — it's your portal to manage your child's account.</small>` : '')
+          + `<br><br><small>You agreed to our Terms of Service and Privacy Policy. You may opt out of AI improvement data use at any time by emailing ${SUPPORT_EMAIL}.</small>`;
+      } else {
+        message = 'Your request has been approved.';
+      }
       res.send(renderPage('Approved!', message, 'success'));
     } else {
       const message = consent.action === 'consent'

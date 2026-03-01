@@ -168,6 +168,15 @@ CREATE TABLE IF NOT EXISTS esa_waitlist (
 
 ALTER TABLE users ADD COLUMN IF NOT EXISTS improvement_opt_out BOOLEAN NOT NULL DEFAULT false;
 
+-- ========== PARENT COMMAND CENTER (COPPA Session 3) ==========
+-- Parental controls: default-off for under-13, always-on for 13+
+
+ALTER TABLE users ADD COLUMN IF NOT EXISTS publishing_enabled BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS multiplayer_enabled BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS parent_verified_method TEXT;        -- 'email_plus', 'stripe_micro', null
+ALTER TABLE users ADD COLUMN IF NOT EXISTS parent_verified_at TIMESTAMPTZ;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS parent_dashboard_token TEXT;
+
 -- ========== CLEANUP ==========
 -- Automatic cleanup of expired sessions and old rate limit entries.
 -- Run these periodically via a cron job or scheduled task.

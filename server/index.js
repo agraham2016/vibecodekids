@@ -34,6 +34,7 @@ import galleryRouter from './routes/gallery.js';
 import adminRouter from './routes/admin.js';
 import adminAuthRouter from './routes/adminAuth.js';
 import parentRouter from './routes/parent.js';
+import parentDashboardRouter from './routes/parentDashboard.js';
 import createEsaRouter from './routes/esa.js';
 import createFeedbackRouter from './routes/feedback.js';
 import demoRouter from './routes/demo.js';
@@ -158,6 +159,7 @@ app.get('/privacy', (_req, res) => res.sendFile(path.join(PUBLIC_DIR, 'privacy.h
 app.get('/terms', (_req, res) => res.sendFile(path.join(PUBLIC_DIR, 'terms.html')));
 app.get('/esa', (_req, res) => res.sendFile(path.join(PUBLIC_DIR, 'esa.html')));
 app.get('/contact', (_req, res) => res.sendFile(path.join(PUBLIC_DIR, 'contact.html')));
+app.get('/parent-dashboard', (_req, res) => res.sendFile(path.join(PUBLIC_DIR, 'parent-dashboard.html')));
 app.get('/forgot-password/reset', (_req, res) => res.sendFile(path.join(PUBLIC_DIR, 'forgot-password.html')));
 
 // ========== API ROUTES ==========
@@ -279,6 +281,7 @@ app.use('/api/admin', requireAdmin(sessions), adminRouter);
 
 // Parent/COPPA routes (public -- accessed via email links)
 app.use('/api/parent', parentRouter);
+app.use('/api/parent/dashboard', parentDashboardRouter);
 
 // Multiplayer REST endpoints
 app.get('/api/rooms/:code', (req, res) => {

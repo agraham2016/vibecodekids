@@ -139,8 +139,9 @@ export async function getConsentByToken(token) {
 
 /**
  * Mark a consent request as granted or denied.
+ * @param {string} verificationMethod - 'email_plus' or 'stripe_micro'
  */
-export async function resolveConsent(token, granted) {
+export async function resolveConsent(token, granted, verificationMethod = 'email_plus') {
   const status = granted ? 'granted' : 'denied';
   const now = new Date().toISOString();
 
@@ -156,8 +157,43 @@ export async function resolveConsent(token, granted) {
     if (consent) {
       consent.status = status;
       consent.respondedAt = now;
+      consent.verificationMethod = verificationMethod;
       await saveConsents();
     }
+  }
+}
+
+/**
+ * Generate a parent dashboard access token for a given user.
+ * This token is emailed to the parent and gives them access to the
+ * Parent Command Center for their child's account.
+ */
+export async function createParentDashboardToken(userId) {
+  const token = randomBytes(32).toString('hex');
+  const user = await readUser(userId);
+  user.parentDashboardToken = token;
+  await writeUser(userId, user);
+  return token;
+}
+
+/**
+ * Look up a user by their parent dashboard token.
+ */
+export async function getUserByParentToken(token) {
+  if (!token) return null;
+  if (USE_POSTGRES) {
+    const { getPool } = await import('./db.js');
+    const pool = getPool();
+    const { rows } = await pool.query(
+      'SELECT id FROM users WHERE parent_dashboard_token = $1',
+      [token]
+    );
+    if (rows.length === 0) return null;
+    return readUser(rows[0].id);
+  } else {
+    const { listUsers } = await import('./storage.js');
+    const users = await listUsers();
+    return users.find(u => u.parentDashboardToken === token) || null;
   }
 }
 
@@ -183,30 +219,44 @@ export async function sendConsentEmail(parentEmail, childUsername, token, action
     ? `
 Hi there!
 
-Your child (username: ${childUsername}) wants to create an account on ${SITE_NAME}, 
-a kid-friendly game creation platform.
+Your child (username: ${childUsername}) wants to create an account on ${SITE_NAME},
+a kid-friendly game creation platform where kids ages 7-18 build games with AI.
 
-${SITE_NAME} is designed for kids ages 7-18 to learn coding by building games with AI.
-
-Under COPPA (Children's Online Privacy Protection Act), we need your permission 
+Under COPPA (Children's Online Privacy Protection Act), we need your permission
 before your child (under ${COPPA_AGE_THRESHOLD}) can use our platform.
 
-What we collect:
+WHAT WE COLLECT:
 - Username and display name (no real names required)
-- Games they create
-- Basic usage data (anonymized)
+- Age bracket (under 13 / 13-17 / 18+) — we do NOT store the exact age
+- Games they create on the platform
+- Basic anonymized usage data
 
-What we DON'T collect:
-- Real name, address, or phone number
-- Location data
-- Photos or videos
+THIRD-PARTY SERVICE PROVIDERS:
+- AI Generation: Your child's game-creation prompts are sent to Anthropic (Claude)
+  and/or xAI (Grok) to generate game code. We strip personal information from
+  prompts before transmission. These providers process data under contract and
+  do not use children's data for their own training.
+- Email: We use Resend to deliver this email and other transactional messages.
+- Payments: If you upgrade, Stripe processes payment. We do not send your child's
+  information to Stripe.
 
-By approving, you agree to our Terms of Service and Privacy Policy, including our use of anonymized chat data to improve our AI assistants (you may opt out at any time by emailing us).
+WHAT WE DO NOT COLLECT:
+- Real name, home address, or phone number
+- Precise location or GPS data
+- Photos, videos, or audio recordings
 
-To APPROVE your child's account, click here:
+YOUR RIGHTS AS A PARENT:
+After approving, you will receive a link to the Parent Command Center where you can:
+- Review all data collected about your child
+- Toggle public game publishing ON or OFF (default: OFF)
+- Toggle multiplayer features ON or OFF (default: OFF)
+- Request deletion of all your child's data
+- Revoke consent and deactivate the account
+
+To APPROVE your child's account:
 ${consentUrl}
 
-To DENY this request, click here:
+To DENY this request:
 ${denyUrl}
 
 This link expires in 72 hours.
@@ -214,6 +264,7 @@ This link expires in 72 hours.
 If you didn't expect this email, you can safely ignore it.
 
 Questions? Contact us at ${SUPPORT_EMAIL}
+Privacy Policy: ${BASE_URL}/privacy
 
 - The ${SITE_NAME} Team
 `
