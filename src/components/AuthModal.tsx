@@ -72,7 +72,9 @@ export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: A
             throw new Error('You must accept the privacy policy to create an account')
           }
 
-          // Free plan: Regular signup with COPPA fields
+          // COPPA data minimization: convert exact age to bracket client-side
+          const ageBracket = ageNum < 13 ? 'under13' : ageNum < 18 ? '13to17' : '18plus'
+
           const response = await fetch('/api/auth/register', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -80,7 +82,7 @@ export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: A
               username, 
               password, 
               displayName,
-              age: ageNum,
+              ageBracket,
               parentEmail: ageNum < 13 ? parentEmail : undefined,
               recoveryEmail: ageNum >= 13 && recoveryEmail ? recoveryEmail : undefined,
               privacyAccepted,

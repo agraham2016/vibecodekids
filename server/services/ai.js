@@ -400,13 +400,23 @@ export function extractPartialCode(text) {
 
 /**
  * Attempt to continue a truncated response by asking Claude to finish.
+ * Includes core safety rules to prevent content policy bypass via continuation.
  */
 export async function attemptContinuation(partialCode, userId = null) {
   try {
     const response = await anthropic.messages.create({
       model: AI_MODEL,
       max_tokens: 8192,
-      system: 'You were generating an HTML game and your response was cut off. Continue EXACTLY where you left off. Do NOT repeat any code that was already written. Do NOT add any explanation text - ONLY output the remaining code to complete the HTML document. The code must end with </html>. IMPORTANT: Make sure ALL features from the original game are still present in the remaining code.',
+      system: `You were generating an HTML game for a children's platform and your response was cut off. Continue EXACTLY where you left off. Do NOT repeat any code that was already written. Do NOT add any explanation text - ONLY output the remaining code to complete the HTML document. The code must end with </html>. IMPORTANT: Make sure ALL features from the original game are still present in the remaining code.
+
+SAFETY RULES (these still apply during continuation):
+- No realistic blood, gore, or graphic violence
+- No adult/sexual content
+- No real-world tragedies
+- No drug use or self-harm content
+- No personal data collection (no forms asking for names, emails, addresses, phone numbers)
+- No external network requests, tracking pixels, or analytics scripts
+- No localStorage or sessionStorage usage`,
       messages: [{
         role: 'user',
         content: `Continue this HTML code. Pick up EXACTLY where it ends. Make sure all existing game features are preserved:\n\n${partialCode.slice(-3000)}`

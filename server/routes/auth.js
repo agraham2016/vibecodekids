@@ -60,7 +60,7 @@ export default function createAuthRouter(sessions) {
   // Register
   router.post('/register', async (req, res) => {
     try {
-      const { username, password, displayName, age, parentEmail, recoveryEmail, privacyAccepted } = req.body;
+      const { username, password, displayName, age, ageBracket: clientBracket, parentEmail, recoveryEmail, privacyAccepted } = req.body;
 
       if (!username || !password || !displayName) {
         return res.status(400).json({ error: 'Username, password, and display name are required' });
@@ -75,17 +75,21 @@ export default function createAuthRouter(sessions) {
         return res.status(400).json({ error: 'Display name must be 1-30 characters' });
       }
 
-      // COPPA: Require age
-      if (typeof age !== 'number' || age < 5 || age > 120) {
+      // COPPA: Accept age bracket directly (data minimization) or fall back to age
+      const VALID_BRACKETS = ['under13', '13to17', '18plus'];
+      let ageBracket;
+      if (clientBracket && VALID_BRACKETS.includes(clientBracket)) {
+        ageBracket = clientBracket;
+      } else if (typeof age === 'number' && age >= 5 && age <= 120) {
+        ageBracket = getAgeBracket(age);
+      } else {
         return res.status(400).json({ error: 'Please enter a valid age' });
       }
 
-      // COPPA: Require privacy policy acceptance
       if (!privacyAccepted) {
         return res.status(400).json({ error: 'You must accept the privacy policy to create an account' });
       }
 
-      const ageBracket = getAgeBracket(age);
       const needsConsent = requiresParentalConsent(ageBracket);
 
       // COPPA: Under-13 users MUST provide a parent email

@@ -122,14 +122,15 @@ export default function ShareModal({ code, onClose, authToken, userDisplayName, 
               </div>
 
               <div className="form-group">
-                <label>What should we call you?</label>
+                <label>Creator nickname:</label>
                 <input
                   type="text"
                   value={creatorName}
                   onChange={e => setCreatorName(e.target.value)}
-                  placeholder="Your name"
+                  placeholder="Pick a cool nickname!"
                   maxLength={20}
                 />
+                <small style={{ color: '#888', fontSize: '0.75rem' }}>Don't use your real name — pick something fun!</small>
               </div>
 
               <div className="form-group">

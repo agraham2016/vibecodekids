@@ -31,24 +31,32 @@ export function getContentFilter() {
   return [
     // Gore and extreme violence
     'blood', 'gore', 'gory', 'bloody', 'dismember', 'decapitate', 'mutilate',
-    'torture', 'gruesome', 'intestines', 'guts spilling',
+    'torture', 'gruesome', 'intestines', 'guts spilling', 'disembowel',
     // Real-world violence/tragedy
     'murder', 'serial killer', 'mass shooting', 'terrorism', 'terrorist',
-    'school shooting', 'real guns', 'real weapons',
+    'school shooting', 'real guns', 'real weapons', 'columbine', 'bomb threat',
     // Adult content
     'nude', 'naked', 'sex', 'porn', 'adult content', 'xxx', 'nsfw',
-    'erotic', 'sexual',
+    'erotic', 'sexual', 'hentai', 'onlyfans', 'strip club', 'hooker',
+    'prostitut', 'orgasm', 'genital', 'penis', 'vagina', 'boob',
     // Harmful/illegal
     'hack into', 'steal passwords', 'phishing', 'malware', 'virus',
-    'credit card fraud', 'identity theft',
+    'credit card fraud', 'identity theft', 'ddos', 'doxx', 'swat',
     // Self-harm
     'suicide', 'self-harm', 'cutting myself', 'hurt myself', 'kill myself',
+    'end my life', 'want to die',
     // Hard drugs
     'cocaine', 'heroin', 'meth', 'crack', 'fentanyl', 'overdose',
+    'drug dealer', 'buy drugs',
     // Extreme content
     'child abuse', 'animal abuse', 'hate speech', 'racist', 'nazi',
+    'white supremac', 'kkk', 'racial slur', 'homophob', 'transphob',
+    // Grooming / predatory
+    'send me a picture', 'what do you look like', 'where do you live',
+    'how old are you really', 'keep this a secret', 'dont tell your parents',
+    "don't tell your parents", 'meet me in person', 'come to my house',
     // Gambling
-    'real money gambling', 'bet real money',
+    'real money gambling', 'bet real money', 'casino', 'slot machine',
   ];
 }
 

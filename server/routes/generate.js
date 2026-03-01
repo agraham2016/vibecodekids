@@ -19,6 +19,8 @@
 import { Router } from 'express';
 import { detectGameGenre, sanitizeOutput } from '../prompts/index.js';
 import { filterContent } from '../middleware/contentFilter.js';
+import { piiScannerMiddleware } from '../middleware/piiScanner.js';
+import { filterOutputText, filterOutputCode } from '../middleware/outputFilter.js';
 import { checkRateLimits, checkTierLimits, incrementUsage, calculateUsageRemaining } from '../middleware/rateLimit.js';
 import {
   getTemplateCacheKey,
@@ -41,7 +43,7 @@ export default function createGenerateRouter(sessions) {
     return code.includes('Vibe Code Studio') && code.includes('Tell me what you want to create');
   }
 
-  router.post('/', async (req, res) => {
+  router.post('/', piiScannerMiddleware, async (req, res) => {
     try {
       const { 
         message, 
@@ -177,12 +179,19 @@ export default function createGenerateRouter(sessions) {
         }
       }
 
+      // Filter AI output for PII leakage and inappropriate content
+      const cleanedMessage = filterOutputText(result.response);
+      const { code: cleanedCode, warnings: outputWarnings } = filterOutputCode(result.code);
+      if (outputWarnings.length > 0) {
+        console.log(`Output filter warnings: ${outputWarnings.join(', ')}`);
+      }
+
       // Build final response
       const usage = userId ? calculateUsageRemaining(tierCheck.user) : null;
 
       const responsePayload = {
-        message: result.response,
-        code: result.code,
+        message: cleanedMessage,
+        code: cleanedCode,
         usage,
         modelUsed: result.modelUsed,
         isCacheHit: result.isCacheHit,

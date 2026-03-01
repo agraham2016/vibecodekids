@@ -9,6 +9,8 @@ import { Router } from 'express';
 import crypto from 'crypto';
 import { detectGameGenre, sanitizeOutput } from '../prompts/index.js';
 import { filterContent } from '../middleware/contentFilter.js';
+import { scanPII } from '../middleware/piiScanner.js';
+import { filterOutputText, filterOutputCode } from '../middleware/outputFilter.js';
 import {
   getTemplateCacheKey,
   getCachedTemplate,
@@ -76,16 +78,20 @@ router.post('/generate', async (req, res) => {
       });
     }
 
-    const contentCheck = filterContent(message, { source: 'demo' });
+    // Strip PII from demo prompts before content filter or AI transmission
+    const piiResult = scanPII(message);
+    const cleanMessage = piiResult.cleaned;
+
+    const contentCheck = filterContent(cleanMessage, { source: 'demo' });
     if (contentCheck.blocked) {
       return res.json({ message: contentCheck.reason, code: null, promptsRemaining: limit.remaining });
     }
 
-    const gameGenre = detectGameGenre(message);
+    const gameGenre = detectGameGenre(cleanMessage);
     const generationId = `demo_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
 
     // Template cache check
-    const cacheKey = getTemplateCacheKey(message, null);
+    const cacheKey = getTemplateCacheKey(cleanMessage, null);
     const cached = getCachedTemplate(cacheKey);
     if (cached) {
       cached.hits++;
@@ -93,7 +99,7 @@ router.post('/generate', async (req, res) => {
       logDemoEvent({
         type: 'generation',
         generationId,
-        prompt: message.slice(0, 200),
+        prompt: cleanMessage.slice(0, 200),
         modelUsed: 'claude',
         isCacheHit: true,
         success: true,
@@ -112,9 +118,9 @@ router.post('/generate', async (req, res) => {
       });
     }
 
-    // Full AI generation
+    // Full AI generation (using PII-cleaned prompt)
     const result = await generateOrIterateGame({
-      prompt: message,
+      prompt: cleanMessage,
       currentCode: null,
       mode: 'default',
       conversationHistory: [],
@@ -130,10 +136,14 @@ router.post('/generate', async (req, res) => {
       cacheTemplate(cacheKey, result.code, result.response);
     }
 
+    // Filter output for PII and content before sending to child
+    const filteredMessage = filterOutputText(result.response);
+    const { code: filteredCode, warnings: outWarnings } = filterOutputCode(result.code);
+
     logDemoEvent({
       type: 'generation',
       generationId,
-      prompt: message.slice(0, 200),
+      prompt: cleanMessage.slice(0, 200),
       modelUsed: result.modelUsed || 'claude',
       isCacheHit: false,
       success: !!result.code,
@@ -143,8 +153,8 @@ router.post('/generate', async (req, res) => {
     }).catch(() => {});
 
     res.json({
-      message: result.response,
-      code: result.code,
+      message: filteredMessage,
+      code: filteredCode,
       generationId,
       modelUsed: result.modelUsed,
       isCacheHit: false,
