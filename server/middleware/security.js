@@ -11,7 +11,7 @@ export function securityHeaders() {
     res.setHeader('X-Frame-Options', 'SAMEORIGIN');
     res.setHeader('X-XSS-Protection', '1; mode=block');
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-    res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+    res.setHeader('Permissions-Policy', 'camera=(), microphone=(self), geolocation=()');
 
     // 'unsafe-inline' is required: multiple HTML pages (gallery, play, admin)
     // use inline <script> blocks, and AI-generated games contain inline scripts
