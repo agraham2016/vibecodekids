@@ -43,7 +43,7 @@ import demoRouter from './routes/demo.js';
 import demoAnalyticsRouter from './routes/demoAnalytics.js';
 import reportRouter from './routes/report.js';
 import { initMultiplayer, getRoomInfo, getActiveRooms, getAllowedChatPhrases } from './multiplayer.js';
-import { startRetentionJob } from './services/dataRetention.js';
+import { startRetentionSchedule } from './services/dataRetention.js';
 
 // ========== INIT ==========
 
@@ -56,7 +56,6 @@ await ensureDataDirs();
 await sessions.load();
 
 // COPPA data retention — clean inactive child accounts on startup + daily
-import { startRetentionSchedule } from './services/dataRetention.js';
 startRetentionSchedule();
 
 console.log('📍 BASE_URL configured as:', JSON.stringify(BASE_URL));
@@ -329,8 +328,7 @@ app.use('/api/parent', parentRouter);
 app.use('/api/parent/dashboard', parentDashboardRouter);
 app.use('/api/parent/verify-charge', parentVerifyChargeRouter);
 
-// Parent dashboard (email-token authenticated)
-import parentDashboardRouter from './routes/parentDashboard.js';
+// Parent dashboard (alternate path, email-token authenticated)
 app.use('/api/parent-dashboard', parentDashboardRouter);
 
 // Multiplayer REST endpoints
@@ -378,7 +376,6 @@ server.listen(PORT, () => {
   console.log(`   Multiplayer:  ws://localhost:${PORT}/ws/multiplayer`);
   console.log(`   Mode: ${isProduction ? 'Production' : 'Development'}`);
 
-  startRetentionJob();
 });
 
 // ========== GRACEFUL SHUTDOWN ==========

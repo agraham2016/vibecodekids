@@ -16,7 +16,7 @@ import { logAdminAction, readAuditLog } from '../services/adminAuditLog.js';
 import { getContentFilterStats } from '../services/contentFilterStats.js';
 import { readDemoEvents } from '../services/demoEvents.js';
 import { listReports, resolveReport } from '../services/moderation.js';
-import { runRetentionSweep } from '../services/dataRetention.js';
+import { runRetentionCleanup } from '../services/dataRetention.js';
 import { getAlertStatus } from '../services/adminAlerts.js';
 
 const router = Router();
@@ -544,7 +544,7 @@ router.get('/alerts', (_req, res) => {
 // Data retention — manual sweep trigger
 router.post('/retention-sweep', async (req, res) => {
   try {
-    const results = await runRetentionSweep();
+    const results = await runRetentionCleanup();
     logAdminAction({ action: 'retention-sweep', details: results, ip: getAdminIp(req) }).catch(() => {});
     res.json({ success: true, results });
   } catch (error) {

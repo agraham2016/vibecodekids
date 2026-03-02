@@ -374,6 +374,18 @@ export function getRoomInfo(roomCode) {
   };
 }
 
+const ALLOWED_CHAT_PHRASES = [
+  'Good game!', 'Nice move!', 'Wow!', 'Let\'s go!', 'Great job!',
+  'Ready?', 'Yes!', 'No thanks', 'Help!', 'Over here!',
+  'Watch out!', 'GG', 'Rematch?', 'Thanks!', 'You\'re awesome!',
+  'My turn!', 'Your turn!', 'Oops!', 'Haha!', 'So close!',
+  'Try again!', 'High five!', 'Team up?', 'I got it!', 'Wait for me!',
+];
+
+export function getAllowedChatPhrases() {
+  return [...ALLOWED_CHAT_PHRASES];
+}
+
 export function getActiveRooms(projectId = null) {
   const result = [];
   for (const room of rooms.values()) {
