@@ -35,7 +35,7 @@
     "lint:fix": "eslint src/ server/ --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx}\" \"server/**/*.js\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx}\" \"server/**/*.js\"",
-    "prepare": "husky",
+    "prepare": "husky || true",
     "db:migrate": "node scripts/migrate-to-postgres.js",
     "db:migrate:dry": "node scripts/migrate-to-postgres.js --dry-run",
     "db:migrate-passwords": "node scripts/migrate-passwords.js"
