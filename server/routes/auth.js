@@ -8,12 +8,12 @@ import { Router } from 'express';
 import crypto from 'crypto';
 import bcrypt from 'bcrypt';
 import { BCRYPT_ROUNDS, MEMBERSHIP_TIERS } from '../config/index.js';
-import { readUser, writeUser, userExists, listProjects } from '../services/storage.js';
+import { readUser, writeUser, userExists, listProjects, deleteProject } from '../services/storage.js';
 import { generateToken } from '../services/sessions.js';
 import { filterContent } from '../middleware/contentFilter.js';
 import { filterUsername } from '../middleware/usernameFilter.js';
 import { checkAndResetCounters, calculateUsageRemaining } from '../middleware/rateLimit.js';
-import { getAgeBracket, requiresParentalConsent, createConsentRequest, sendConsentEmail, sendPasswordResetEmail } from '../services/consent.js';
+import { getAgeBracket, requiresParentalConsent, createConsentRequest, sendConsentEmail, sendPasswordResetEmail, exportUserData, deleteUserData } from '../services/consent.js';
 import { createResetToken, getResetByToken, consumeToken } from '../services/passwordReset.js';
 
 const loginAttempts = new Map();
@@ -450,6 +450,61 @@ export default function createAuthRouter(sessions) {
     } catch (error) {
       console.error('Get my projects error:', error);
       res.status(500).json({ error: 'Could not load projects' });
+    }
+  });
+
+  // Self-service data export (available to 13+ users)
+  router.get('/my-data', async (req, res) => {
+    try {
+      const token = req.headers.authorization?.replace('Bearer ', '');
+      if (!token) return res.status(401).json({ error: 'No token provided' });
+
+      const session = await sessions.get(token);
+      if (!session) return res.status(401).json({ error: 'Invalid or expired session' });
+
+      const user = await readUser(session.userId);
+      if (user.ageBracket === 'under13') {
+        return res.status(403).json({ error: 'Under-13 data requests must go through the Parent Command Center.' });
+      }
+
+      const data = await exportUserData(session.userId);
+      res.json(data);
+    } catch (error) {
+      console.error('Self-service export error:', error);
+      res.status(500).json({ error: 'Could not export data' });
+    }
+  });
+
+  // Self-service account deletion (available to 13+ users)
+  router.post('/delete-my-account', async (req, res) => {
+    try {
+      const token = req.headers.authorization?.replace('Bearer ', '');
+      if (!token) return res.status(401).json({ error: 'No token provided' });
+
+      const session = await sessions.get(token);
+      if (!session) return res.status(401).json({ error: 'Invalid or expired session' });
+
+      const user = await readUser(session.userId);
+      if (user.ageBracket === 'under13') {
+        return res.status(403).json({ error: 'Under-13 account deletion must go through the Parent Command Center.' });
+      }
+
+      const { password } = req.body;
+      if (!password) return res.status(400).json({ error: 'Password confirmation is required.' });
+
+      const match = await bcrypt.compare(password, user.passwordHash);
+      if (!match) return res.status(403).json({ error: 'Incorrect password.' });
+
+      const result = await deleteUserData(session.userId);
+      await sessions.destroy(token);
+
+      res.json({
+        success: true,
+        message: `Account deleted. ${result.deletedProjects} project(s) removed.`,
+      });
+    } catch (error) {
+      console.error('Self-service delete error:', error);
+      res.status(500).json({ error: 'Could not delete account' });
     }
   });
 

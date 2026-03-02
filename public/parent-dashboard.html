@@ -191,6 +191,12 @@
       </div>
 
       <div class="card">
+        <h2>Games Awaiting Your Approval</h2>
+        <p class="subtitle" style="margin-bottom:16px;">When your child tries to publish a game, it appears here for your review first.</p>
+        <div id="pending-games"><p style="color:#888;font-size:0.9rem;">Loading...</p></div>
+      </div>
+
+      <div class="card">
         <h2>Data & Account Actions</h2>
         <div class="btn-group">
           <button class="btn btn-outline" onclick="exportData()">Download My Child's Data</button>
@@ -232,6 +238,7 @@
         }
         const data = await res.json();
         renderDashboard(data);
+        loadPendingGames();
       } catch (err) {
         showError(err.message);
       }
@@ -245,9 +252,12 @@
       document.getElementById('d-display').textContent = d.displayName;
       document.getElementById('d-age').textContent = formatBracket(d.ageBracket);
       document.getElementById('d-status').innerHTML = statusBadge(d.status);
-      document.getElementById('d-consent').textContent = d.parentalConsentAt
+      const consentStr = d.parentalConsentAt
         ? new Date(d.parentalConsentAt).toLocaleDateString()
         : 'Pending';
+      document.getElementById('d-consent').textContent = d.consentPolicyVersion
+        ? consentStr + ' (Policy v' + d.consentPolicyVersion + ')'
+        : consentStr;
       document.getElementById('d-projects').textContent = d.projectCount;
 
       document.getElementById('t-publishing').checked = d.publishingEnabled;
@@ -335,6 +345,57 @@
       } catch (err) {
         showStatus(err.message, 'error');
       }
+    }
+
+    async function loadPendingGames() {
+      try {
+        const res = await fetch(API + '/pending-games?token=' + TOKEN);
+        const data = await res.json();
+        if (!res.ok) return;
+        const container = document.getElementById('pending-games');
+        if (!container) return;
+        if (!data.pendingGames || data.pendingGames.length === 0) {
+          container.innerHTML = '<p style="color:#888;font-size:0.9rem;">No games awaiting approval.</p>';
+          return;
+        }
+        container.innerHTML = data.pendingGames.map(g =>
+          '<div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:#f8f9fa;border-radius:8px;margin-bottom:8px;">' +
+            '<div><strong>' + g.title + '</strong><br><small style="color:#888">' + g.category + ' &middot; ' + new Date(g.createdAt).toLocaleDateString() + '</small></div>' +
+            '<div>' +
+              '<button onclick="approveGame(\'' + g.id + '\')" style="padding:6px 14px;background:#4caf50;color:#fff;border:none;border-radius:6px;cursor:pointer;margin-right:6px;font-weight:600;">Approve</button>' +
+              '<button onclick="denyGame(\'' + g.id + '\')" style="padding:6px 14px;background:#f44336;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600;">Deny</button>' +
+            '</div>' +
+          '</div>'
+        ).join('');
+      } catch { /* ignore */ }
+    }
+
+    async function approveGame(projectId) {
+      try {
+        const res = await fetch(API + '/approve-game', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: TOKEN, projectId }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+        showStatus(data.message, 'success');
+        loadPendingGames();
+      } catch (err) { showStatus(err.message, 'error'); }
+    }
+
+    async function denyGame(projectId) {
+      try {
+        const res = await fetch(API + '/deny-game', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: TOKEN, projectId }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+        showStatus(data.message, 'success');
+        loadPendingGames();
+      } catch (err) { showStatus(err.message, 'error'); }
     }
 
     function showError(msg) {

@@ -12,7 +12,7 @@
 
 import { Router } from 'express';
 import Stripe from 'stripe';
-import { STRIPE_SECRET_KEY, BASE_URL, SITE_NAME } from '../config/index.js';
+import { STRIPE_SECRET_KEY, BASE_URL, SITE_NAME, CONSENT_POLICY_VERSION } from '../config/index.js';
 import { readUser, writeUser } from '../services/storage.js';
 import { getConsentByToken, resolveConsent, createParentDashboardToken } from '../services/consent.js';
 import { logAdminAction } from '../services/adminAuditLog.js';
@@ -122,6 +122,7 @@ router.post('/confirm', async (req, res) => {
         user.parentalConsentAt = new Date().toISOString();
         user.parentVerifiedMethod = 'stripe_micro';
         user.parentVerifiedAt = new Date().toISOString();
+        user.consentPolicyVersion = CONSENT_POLICY_VERSION;
         user.status = 'approved';
         user.approvedAt = new Date().toISOString();
         if (user.publishingEnabled === undefined) user.publishingEnabled = false;

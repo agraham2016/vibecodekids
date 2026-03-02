@@ -113,18 +113,34 @@
     <div class="card">
       <h2>&#x1F476; COPPA Compliance</h2>
       <p>We comply with the <strong>Children's Online Privacy Protection Act (COPPA)</strong>, which protects children under 13 in the United States.</p>
+      <h3>Two-Tier Age System</h3>
+      <p>We operate two age tiers with distinct protections:</p>
+      <ul>
+        <li><strong>Junior (under 13):</strong> Full COPPA protections apply. Verifiable parental consent is required before the account can be used. All social and public features are locked down by default.</li>
+        <li><strong>Teen (13+):</strong> Standard teen safety protections. COPPA parental consent is not required but strong content moderation, PII filtering, and safety features still apply.</li>
+      </ul>
       <div class="highlight">
-        <strong>For users under 13:</strong> We require verifiable parental consent before allowing account creation. A parent or guardian must approve the account via email before the child can use the platform.
+        <strong>For Junior users (under 13):</strong> We require verifiable parental consent before allowing account use. A parent or guardian must verify their identity via a <strong>credit card micro-charge</strong> (a small refundable charge through Stripe) or by <strong>email confirmation</strong> before the child can access the platform.
       </div>
       <p>Parents receive a link to our <strong>Parent Command Center</strong> when they approve their child's account. From there, parents can at any time:</p>
       <ul>
         <li>Review all data we've collected about their child</li>
+        <li>Approve or deny their child's games before public publishing</li>
         <li>Toggle whether their child can publish games publicly</li>
         <li>Toggle whether their child can use multiplayer features</li>
         <li>Opt their child out of anonymized AI improvement data</li>
         <li>Download a copy of all their child's data</li>
         <li>Request deletion of their child's data and account</li>
         <li>Revoke their consent, which will immediately deactivate the account</li>
+      </ul>
+      <h3>Junior Feature Restrictions</h3>
+      <p>The following features are restricted or unavailable for Junior (under 13) accounts:</p>
+      <ul>
+        <li><strong>Public game publishing</strong> — requires parent approval in the Parent Command Center; each game must be individually approved</li>
+        <li><strong>Multiplayer rooms</strong> — disabled by default; parent must explicitly enable</li>
+        <li><strong>Discord community links</strong> — hidden entirely for Junior accounts</li>
+        <li><strong>External links in games</strong> — blocked by pre-publish scan</li>
+        <li><strong>Profile sharing and social features</strong> — not available</li>
       </ul>
     </div>
 
@@ -195,7 +211,7 @@
       <p>We do <strong>not sell</strong> personal information. We share limited data with trusted service providers solely to operate our platform:</p>
       <ul>
         <li><strong>AI game generation (Anthropic &amp; xAI)</strong> — Game creation prompts are transmitted to Anthropic (Claude) and/or xAI (Grok) to generate game code. Before transmission, prompts are automatically scanned and stripped of any personally identifiable information (PII), including names, emails, phone numbers, and addresses. Neither Anthropic nor xAI train their models on our users' data.</li>
-        <li><strong>Payment processing (Stripe)</strong> — If you purchase a paid membership, Stripe processes the payment. We send only a user identifier and membership tier to Stripe — no passwords, ages, or child information. We do not store credit card numbers on our servers.</li>
+        <li><strong>Payment processing &amp; parental verification (Stripe)</strong> — If you purchase a paid membership, Stripe processes the payment. For Junior accounts, we also offer a Stripe-powered credit card micro-charge ($0.50, immediately refunded) as a method of verifiable parental consent. We send only a user identifier and membership tier to Stripe — no passwords, ages, or child information. We do not store credit card numbers on our servers.</li>
         <li><strong>Transactional email (Resend)</strong> — We use Resend to send essential emails such as parental consent requests and password reset links. Only the recipient email address and message content are shared with Resend.</li>
         <li><strong>Legal requirements</strong> — We may disclose information if required by law or to protect the safety of our users.</li>
       </ul>
@@ -213,7 +229,8 @@
         <li>Resolved moderation reports are purged after 90 days</li>
         <li>Accounts flagged for deletion are permanently removed within 30 days</li>
       </ul>
-      <p>For child accounts (under 13), parents can request data deletion via the <strong>Parent Command Center</strong> (linked in the consent approval email) or by contacting us.</p>
+      <p>For Junior accounts (under 13), parents can request data deletion via the <strong>Parent Command Center</strong> (linked in the consent approval email) or by contacting us.</p>
+      <p>For Teen accounts (13+), users can download their data and delete their account directly from their account settings. Account deletion requires password confirmation.</p>
       <div class="highlight">
         <strong>To request data access or deletion:</strong> Use the Parent Command Center dashboard, or email us at <a href="mailto:admin@vibecodekidz.org" style="color:#00d2ff">admin@vibecodekidz.org</a> with the child's username. We will respond within 48 hours.
       </div>
@@ -235,6 +252,24 @@
     <div class="card">
       <h2>&#x1F504; Changes to This Policy</h2>
       <p>If we make material changes to this privacy policy, we will notify users through the platform and, for child accounts, send an updated consent request to the parent email on file.</p>
+    </div>
+
+    <div class="card">
+      <h2>&#x2753; Frequently Asked Questions</h2>
+      <h3>Does my child need parental consent to use VibeCodeKidz?</h3>
+      <p>If your child is under 13, yes. We require verifiable parental consent before they can use the platform. You can verify via a small refundable credit card charge or by email confirmation.</p>
+      <h3>Are my child's AI prompts shared with third parties?</h3>
+      <p>AI prompts are transmitted to our AI providers (Anthropic and xAI) to generate game code. Before transmission, all prompts are automatically scanned and stripped of personal information (names, emails, addresses, phone numbers). Neither provider trains their models on our data.</p>
+      <h3>Can my child publish games publicly?</h3>
+      <p>For Junior accounts, publishing requires your explicit approval. Each game your child wants to publish appears in your Parent Command Center for review first. For Teen accounts, games are published directly but still undergo an automated safety scan.</p>
+      <h3>Can my child chat with other users?</h3>
+      <p>Multiplayer chat is restricted to a set of preset, kid-safe phrases only (e.g., "Nice!", "Good game!"). Free-text chat is not available. Multiplayer is disabled by default for Junior accounts and must be enabled by a parent.</p>
+      <h3>Does VibeCodeKidz use advertising or tracking?</h3>
+      <p>No. We do not display ads, use advertising networks, employ social media trackers, or use analytics services like Google Analytics. All fonts and assets are self-hosted.</p>
+      <h3>How do I delete my child's account?</h3>
+      <p>Use the <strong>Parent Command Center</strong> (linked in your consent approval email) to download data or delete the account. You can also email <a href="mailto:admin@vibecodekidz.org" style="color:#00d2ff">admin@vibecodekidz.org</a> and we will respond within 48 hours.</p>
+      <h3>What happens if my child types personal information into a prompt?</h3>
+      <p>Our system automatically detects and removes personal information (names, addresses, emails, phone numbers) from prompts before they are sent to AI providers. AI-generated output is also scanned before delivery to your child.</p>
     </div>
 
     <div class="card contact-card">

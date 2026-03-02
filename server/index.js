@@ -327,7 +327,7 @@ app.get('*', async (req, res, next) => {
 // ========== START SERVER ==========
 
 const server = createServer(app);
-initMultiplayer(server);
+initMultiplayer(server, sessions);
 
 server.listen(PORT, () => {
   console.log(`🚀 Vibe Code Studio server running on port ${PORT}`);

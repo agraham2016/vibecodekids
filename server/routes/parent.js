@@ -20,7 +20,7 @@ import {
   createParentDashboardToken,
   getUserByParentToken,
 } from '../services/consent.js';
-import { SITE_NAME, SUPPORT_EMAIL, BASE_URL } from '../config/index.js';
+import { SITE_NAME, SUPPORT_EMAIL, BASE_URL, CONSENT_POLICY_VERSION } from '../config/index.js';
 import { logAdminAction } from '../services/adminAuditLog.js';
 
 const router = Router();
@@ -84,6 +84,7 @@ router.get('/verify', async (req, res) => {
           user.parentalConsentAt = new Date().toISOString();
           user.parentVerifiedMethod = 'email_plus';
           user.parentVerifiedAt = new Date().toISOString();
+          user.consentPolicyVersion = CONSENT_POLICY_VERSION;
           user.status = 'approved';
           user.approvedAt = new Date().toISOString();
           // Default: publishing and multiplayer OFF for under-13 until parent enables

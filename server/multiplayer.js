@@ -4,6 +4,7 @@
 // "Room not found" will occur when users connect to different instances.
 import { WebSocketServer } from 'ws';
 import { randomBytes } from 'crypto';
+import { readUser } from './services/storage.js';
 
 const ALLOWED_CHAT_PHRASES = [
   'Nice!', 'Good game!', 'Let\'s go!', 'Wow!', 'GG',
@@ -139,17 +140,18 @@ class GameRoom {
 }
 
 // Initialize WebSocket server
-export function initMultiplayer(server) {
+export function initMultiplayer(server, sessions) {
   const wss = new WebSocketServer({ server, path: '/ws/multiplayer' });
 
   wss.on('connection', (ws) => {
     let playerId = randomBytes(8).toString('hex');
     let currentRoom = null;
+    let authenticatedUserId = null;
 
     ws.on('message', (data) => {
       try {
         const message = JSON.parse(data.toString());
-        handleMessage(ws, playerId, message, (room) => { currentRoom = room; });
+        handleMessage(ws, playerId, message, (room) => { currentRoom = room; }, sessions, (uid) => { authenticatedUserId = uid; });
       } catch (err) {
         console.error('WebSocket message error:', err);
         ws.send(JSON.stringify({ type: 'error', message: 'Invalid message format' }));
@@ -182,74 +184,98 @@ export function initMultiplayer(server) {
   return wss;
 }
 
+// Verify session token and check multiplayer permission
+async function verifyMultiplayerAccess(token, sessions) {
+  if (!token || !sessions) return { allowed: true, userId: null };
+  try {
+    const session = await sessions.get(token);
+    if (!session) return { allowed: false, reason: 'Invalid session. Please log in again.' };
+    const user = await readUser(session.userId);
+    if (user.status !== 'approved' && user.status !== 'pending') {
+      return { allowed: false, reason: 'Your account is not active.' };
+    }
+    if (user.ageBracket === 'under13' && !user.multiplayerEnabled) {
+      return { allowed: false, reason: 'Multiplayer is not enabled for your account. Ask your parent to enable it in the Parent Command Center.' };
+    }
+    return { allowed: true, userId: session.userId };
+  } catch {
+    return { allowed: true, userId: null };
+  }
+}
+
 // Handle incoming messages
-function handleMessage(ws, playerId, message, setRoom) {
+function handleMessage(ws, playerId, message, setRoom, sessions, setAuthUserId) {
   switch (message.type) {
     case 'create_room': {
-      const { projectId, playerName } = message;
+      const { projectId, playerName, authToken } = message;
       
-      // Create new room
-      const room = new GameRoom(projectId, playerId, playerName);
-      room.addPlayer(playerId, ws, playerName, true);
-      rooms.set(room.code, room);
-      setRoom(room);
+      verifyMultiplayerAccess(authToken, sessions).then(({ allowed, reason, userId }) => {
+        if (!allowed) {
+          ws.send(JSON.stringify({ type: 'error', message: reason }));
+          return;
+        }
+        if (userId) setAuthUserId(userId);
 
-      console.log(`🎮 Room ${room.code} created for project ${projectId}`);
+        const room = new GameRoom(projectId, playerId, playerName);
+        room.addPlayer(playerId, ws, playerName, true);
+        rooms.set(room.code, room);
+        setRoom(room);
 
-      ws.send(JSON.stringify({
-        type: 'room_created',
-        roomCode: room.code,
-        playerId,
-        players: room.getPlayerList()
-      }));
+        console.log(`🎮 Room ${room.code} created for project ${projectId}`);
+
+        ws.send(JSON.stringify({
+          type: 'room_created',
+          roomCode: room.code,
+          playerId,
+          players: room.getPlayerList()
+        }));
+      });
       break;
     }
 
     case 'join_room': {
-      const { playerName } = message;
-      // Normalize room code: trim, uppercase, strip non-alphanumeric (handles copy-paste quirks)
-      const rawCode = (message.roomCode || '').toString().trim();
-      const roomCode = rawCode.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 4);
-      
-      if (!roomCode || roomCode.length !== 4) {
-        ws.send(JSON.stringify({
-          type: 'error',
-          message: 'Please enter a valid 4-character room code.'
-        }));
-        return;
-      }
-      
-      const room = rooms.get(roomCode);
-      if (!room) {
-        const activeCodes = Array.from(rooms.keys()).join(', ') || '(none)';
-        console.log(`🎮 Join failed: room "${roomCode}" not found. Active rooms on this instance: ${activeCodes}`);
-        ws.send(JSON.stringify({
-          type: 'error',
-          message: 'Room not found! Check the code and try again.'
-        }));
-        return;
-      }
+      const { playerName, authToken } = message;
 
-      const result = room.addPlayer(playerId, ws, playerName);
-      if (!result.success) {
+      verifyMultiplayerAccess(authToken, sessions).then(({ allowed, reason, userId }) => {
+        if (!allowed) {
+          ws.send(JSON.stringify({ type: 'error', message: reason }));
+          return;
+        }
+        if (userId) setAuthUserId(userId);
+
+        const rawCode = (message.roomCode || '').toString().trim();
+        const roomCode = rawCode.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 4);
+        
+        if (!roomCode || roomCode.length !== 4) {
+          ws.send(JSON.stringify({ type: 'error', message: 'Please enter a valid 4-character room code.' }));
+          return;
+        }
+        
+        const room = rooms.get(roomCode);
+        if (!room) {
+          console.log(`🎮 Join failed: room "${roomCode}" not found.`);
+          ws.send(JSON.stringify({ type: 'error', message: 'Room not found! Check the code and try again.' }));
+          return;
+        }
+
+        const result = room.addPlayer(playerId, ws, playerName);
+        if (!result.success) {
+          ws.send(JSON.stringify({ type: 'error', message: result.error }));
+          return;
+        }
+
+        setRoom(room);
+        console.log(`🎮 Player ${playerName} joined room ${roomCode}`);
+
         ws.send(JSON.stringify({
-          type: 'error',
-          message: result.error
+          type: 'room_joined',
+          roomCode: room.code,
+          projectId: room.projectId,
+          playerId,
+          players: room.getPlayerList(),
+          gameState: room.gameState
         }));
-        return;
-      }
-
-      setRoom(room);
-      console.log(`🎮 Player ${playerName} joined room ${roomCode}`);
-
-      ws.send(JSON.stringify({
-        type: 'room_joined',
-        roomCode: room.code,
-        projectId: room.projectId,
-        playerId,
-        players: room.getPlayerList(),
-        gameState: room.gameState
-      }));
+      });
       break;
     }
 

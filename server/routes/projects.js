@@ -6,7 +6,7 @@
 
 import { Router } from 'express';
 import { randomBytes } from 'crypto';
-import { readProject, writeProject, deleteProject as removeProject, listProjects, readUser } from '../services/storage.js';
+import { readProject, writeProject, deleteProject as removeProject, listProjects, readUser, writeUser } from '../services/storage.js';
 import { filterContent } from '../middleware/contentFilter.js';
 import { prePublishScan } from '../middleware/prePublishScan.js';
 import { filterUsername } from '../middleware/usernameFilter.js';
@@ -103,6 +103,18 @@ export default function createProjectsRouter(sessions) {
         validThumb = thumbnail;
       }
 
+      // Junior publishing: queue for parent approval instead of direct publish
+      let pendingParentApproval = false;
+      if (allowPublic && userId) {
+        try {
+          const ownerUser = await readUser(userId);
+          if (ownerUser.ageBracket === 'under13') {
+            pendingParentApproval = true;
+            allowPublic = false;
+          }
+        } catch { /* default to safe */ }
+      }
+
       const project = {
         id,
         title: title.slice(0, 50),
@@ -110,6 +122,7 @@ export default function createProjectsRouter(sessions) {
         creatorName: displayName.slice(0, 30),
         userId,
         isPublic: allowPublic,
+        pendingParentApproval,
         multiplayer: allowMultiplayer,
         category: category || 'other',
         thumbnail: validThumb,
@@ -130,7 +143,11 @@ export default function createProjectsRouter(sessions) {
         } catch { /* ignore */ }
       }
 
-      res.json({ success: true, id, shareUrl: `/play/${id}`, usage });
+      const message = pendingParentApproval
+        ? 'Game saved! Your parent needs to approve it before it goes public.'
+        : undefined;
+
+      res.json({ success: true, id, shareUrl: `/play/${id}`, usage, pendingParentApproval, message });
     } catch (error) {
       console.error('Save project error:', error);
       res.status(500).json({ error: 'Could not save project' });

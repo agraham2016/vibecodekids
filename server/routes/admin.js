@@ -8,7 +8,7 @@
 import { Router } from 'express';
 import bcrypt from 'bcrypt';
 import { BCRYPT_ROUNDS } from '../config/index.js';
-import { readUser, writeUser, listUsers, deleteUser, listProjects, deleteProject } from '../services/storage.js';
+import { readUser, writeUser, listUsers, deleteUser, listProjects, deleteProject, readProject, writeProject } from '../services/storage.js';
 import { getUsageStats } from '../services/ai.js';
 import { getResponseCacheStats, clearResponseCache } from '../services/responseCache.js';
 import { getModelPerformanceStats } from '../services/modelPerformance.js';
@@ -580,7 +580,15 @@ router.post('/moderation/:id/resolve', async (req, res) => {
       const reports = await listReports({ status: 'actioned' });
       const report = reports.find(r => r.id === id);
       if (report?.projectId) {
-        try { await deleteProject(report.projectId); } catch { /* may already be deleted */ }
+        try {
+          const project = await readProject(report.projectId);
+          project.isPublic = false;
+          project.removedByModeration = true;
+          project.moderationRemovedAt = new Date().toISOString();
+          await writeProject(report.projectId, project);
+        } catch {
+          try { await deleteProject(report.projectId); } catch { /* may already be deleted */ }
+        }
       }
     }
 

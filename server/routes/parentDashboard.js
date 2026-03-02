@@ -12,7 +12,7 @@
  */
 
 import { Router } from 'express';
-import { readUser, writeUser } from '../services/storage.js';
+import { readUser, writeUser, listProjects, readProject, writeProject } from '../services/storage.js';
 import { getUserByParentToken, exportUserData, deleteUserData } from '../services/consent.js';
 import { logAdminAction } from '../services/adminAuditLog.js';
 
@@ -49,6 +49,7 @@ router.get('/', async (req, res) => {
       parentalConsentStatus: user.parentalConsentStatus,
       parentalConsentAt: user.parentalConsentAt,
       parentVerifiedMethod: user.parentVerifiedMethod || 'email_plus',
+      consentPolicyVersion: user.consentPolicyVersion || null,
       publishingEnabled: user.publishingEnabled ?? false,
       multiplayerEnabled: user.multiplayerEnabled ?? false,
       projectCount: user.projectCount || 0,
@@ -114,6 +115,82 @@ router.post('/delete', async (req, res) => {
   } catch (error) {
     console.error('Parent delete error:', error);
     res.status(500).json({ error: 'Could not delete data' });
+  }
+});
+
+// GET pending games awaiting parent approval
+router.get('/pending-games', async (req, res) => {
+  try {
+    const user = await authenticateParent(req, res);
+    if (!user) return;
+
+    const allProjects = await listProjects();
+    const pending = allProjects
+      .filter(p => p.userId === user.id && p.pendingParentApproval)
+      .map(p => ({ id: p.id, title: p.title, category: p.category, createdAt: p.createdAt }));
+
+    res.json({ pendingGames: pending });
+  } catch (error) {
+    console.error('Pending games error:', error);
+    res.status(500).json({ error: 'Could not load pending games' });
+  }
+});
+
+// POST approve a pending game for publication
+router.post('/approve-game', async (req, res) => {
+  try {
+    const user = await authenticateParent(req, res);
+    if (!user) return;
+
+    const { projectId } = req.body;
+    if (!projectId) return res.status(400).json({ error: 'projectId is required' });
+
+    const project = await readProject(projectId);
+    if (project.userId !== user.id) {
+      return res.status(403).json({ error: 'This game does not belong to your child' });
+    }
+    if (!project.pendingParentApproval) {
+      return res.status(400).json({ error: 'This game is not awaiting approval' });
+    }
+
+    project.isPublic = true;
+    project.pendingParentApproval = false;
+    project.parentApprovedAt = new Date().toISOString();
+    await writeProject(projectId, project);
+
+    logAdminAction({ action: 'parent_approve_game', targetId: projectId, details: { username: user.username, title: project.title } }).catch(() => {});
+    res.json({ success: true, message: 'Game approved and published!' });
+  } catch (error) {
+    if (error.code === 'ENOENT') return res.status(404).json({ error: 'Game not found' });
+    console.error('Approve game error:', error);
+    res.status(500).json({ error: 'Could not approve game' });
+  }
+});
+
+// POST deny a pending game (keep private)
+router.post('/deny-game', async (req, res) => {
+  try {
+    const user = await authenticateParent(req, res);
+    if (!user) return;
+
+    const { projectId } = req.body;
+    if (!projectId) return res.status(400).json({ error: 'projectId is required' });
+
+    const project = await readProject(projectId);
+    if (project.userId !== user.id) {
+      return res.status(403).json({ error: 'This game does not belong to your child' });
+    }
+
+    project.isPublic = false;
+    project.pendingParentApproval = false;
+    await writeProject(projectId, project);
+
+    logAdminAction({ action: 'parent_deny_game', targetId: projectId, details: { username: user.username, title: project.title } }).catch(() => {});
+    res.json({ success: true, message: 'Game kept private.' });
+  } catch (error) {
+    if (error.code === 'ENOENT') return res.status(404).json({ error: 'Game not found' });
+    console.error('Deny game error:', error);
+    res.status(500).json({ error: 'Could not process request' });
   }
 });
 

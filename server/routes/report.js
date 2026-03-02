@@ -7,6 +7,7 @@
 
 import { Router } from 'express';
 import { createReport } from '../services/moderation.js';
+import { readProject } from '../services/storage.js';
 
 const router = Router();
 
@@ -44,6 +45,16 @@ router.post('/', async (req, res) => {
     }
     if (!reason || !VALID_REASONS.includes(reason)) {
       return res.status(400).json({ error: 'Invalid reason', validReasons: VALID_REASONS });
+    }
+
+    try {
+      const project = await readProject(projectId);
+      if (!project.isPublic) {
+        return res.status(400).json({ error: 'This project cannot be reported.' });
+      }
+    } catch (err) {
+      if (err.code === 'ENOENT') return res.status(400).json({ error: 'Project not found.' });
+      throw err;
     }
 
     await createReport({ projectId, reason, reporterIp: ip, reporterUserId: null });
