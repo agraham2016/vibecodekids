@@ -7,10 +7,25 @@ import { randomBytes } from 'crypto';
 import { readUser } from './services/storage.js';
 
 const ALLOWED_CHAT_PHRASES = [
-  'Nice!', 'Good game!', 'Let\'s go!', 'Wow!', 'GG',
-  'Ready?', 'Yes!', 'No!', 'Wait!', 'Help!',
-  'Awesome!', 'Oops!', 'My turn!', 'Your turn!',
-  'High five!', 'Try again!', 'So close!', 'LOL', 'Yay!',
+  'Nice!',
+  'Good game!',
+  "Let's go!",
+  'Wow!',
+  'GG',
+  'Ready?',
+  'Yes!',
+  'No!',
+  'Wait!',
+  'Help!',
+  'Awesome!',
+  'Oops!',
+  'My turn!',
+  'Your turn!',
+  'High five!',
+  'Try again!',
+  'So close!',
+  'LOL',
+  'Yay!',
 ];
 
 const MAX_STATE_SIZE = 8192;
@@ -25,15 +40,19 @@ function sanitizeValue(val, depth = 0) {
     return val;
   }
   if (typeof val === 'string') {
-    return val.slice(0, 500).replace(/<script/gi, '').replace(/on\w+\s*=/gi, '');
+    return val
+      .slice(0, 500)
+      .replace(/<script/gi, '')
+      .replace(/on\w+\s*=/gi, '');
   }
   if (Array.isArray(val)) {
-    return val.slice(0, 50).map(v => sanitizeValue(v, depth + 1));
+    return val.slice(0, 50).map((v) => sanitizeValue(v, depth + 1));
   }
   if (typeof val === 'object') {
     const out = {};
     const keys = Object.keys(val).slice(0, MAX_STATE_KEYS);
     for (const k of keys) {
+      if (k === '__proto__' || k === 'constructor' || k === 'prototype') continue;
       const cleanKey = String(k).slice(0, 64);
       out[cleanKey] = sanitizeValue(val[k], depth + 1);
     }
@@ -89,14 +108,17 @@ class GameRoom {
     }
 
     this.players.set(playerId, { ws, name, isHost });
-    
+
     // Notify all players about the new player
-    this.broadcast({
-      type: 'player_joined',
+    this.broadcast(
+      {
+        type: 'player_joined',
+        playerId,
+        playerName: name,
+        players: this.getPlayerList(),
+      },
       playerId,
-      playerName: name,
-      players: this.getPlayerList()
-    }, playerId);
+    );
 
     return { success: true };
   }
@@ -115,11 +137,11 @@ class GameRoom {
         newHost[1].isHost = true;
         this.hostId = newHost[0];
         this.hostName = newHost[1].name;
-        
+
         this.broadcast({
           type: 'host_changed',
           newHostId: newHost[0],
-          newHostName: newHost[1].name
+          newHostName: newHost[1].name,
         });
       }
     }
@@ -129,7 +151,7 @@ class GameRoom {
       type: 'player_left',
       playerId,
       playerName: player.name,
-      players: this.getPlayerList()
+      players: this.getPlayerList(),
     });
 
     return this.players.size === 0;
@@ -139,7 +161,7 @@ class GameRoom {
     return Array.from(this.players.entries()).map(([id, player]) => ({
       id,
       name: player.name,
-      isHost: player.isHost
+      isHost: player.isHost,
     }));
   }
 
@@ -163,23 +185,29 @@ class GameRoom {
     const sanitized = sanitizeGameState(state);
     if (!sanitized) return;
     this.gameState = { ...this.gameState, ...sanitized, lastUpdatedBy: playerId };
-    
-    this.broadcast({
-      type: 'game_state',
-      state: this.gameState,
-      fromPlayerId: playerId
-    }, playerId);
+
+    this.broadcast(
+      {
+        type: 'game_state',
+        state: this.gameState,
+        fromPlayerId: playerId,
+      },
+      playerId,
+    );
   }
 
   sendGameInput(fromPlayerId, input) {
     const sanitized = sanitizeGameInput(input);
     if (!sanitized) return;
-    this.broadcast({
-      type: 'player_input',
+    this.broadcast(
+      {
+        type: 'player_input',
+        fromPlayerId,
+        fromPlayerName: this.players.get(fromPlayerId)?.name,
+        input: sanitized,
+      },
       fromPlayerId,
-      fromPlayerName: this.players.get(fromPlayerId)?.name,
-      input: sanitized
-    }, fromPlayerId);
+    );
   }
 }
 
@@ -190,12 +218,23 @@ export function initMultiplayer(server, sessions) {
   wss.on('connection', (ws) => {
     let playerId = randomBytes(8).toString('hex');
     let currentRoom = null;
-    let authenticatedUserId = null;
+    let _authenticatedUserId = null;
 
     ws.on('message', (data) => {
       try {
         const message = JSON.parse(data.toString());
-        handleMessage(ws, playerId, message, (room) => { currentRoom = room; }, sessions, (uid) => { authenticatedUserId = uid; });
+        handleMessage(
+          ws,
+          playerId,
+          message,
+          (room) => {
+            currentRoom = room;
+          },
+          sessions,
+          (uid) => {
+            _authenticatedUserId = uid;
+          },
+        );
       } catch (err) {
         console.error('WebSocket message error:', err);
         ws.send(JSON.stringify({ type: 'error', message: 'Invalid message format' }));
@@ -217,10 +256,12 @@ export function initMultiplayer(server, sessions) {
     });
 
     // Send welcome message with player ID
-    ws.send(JSON.stringify({
-      type: 'welcome',
-      playerId
-    }));
+    ws.send(
+      JSON.stringify({
+        type: 'welcome',
+        playerId,
+      }),
+    );
   });
 
   console.log('🎮 Multiplayer WebSocket server initialized');
@@ -239,7 +280,11 @@ async function verifyMultiplayerAccess(token, sessions) {
       return { allowed: false, reason: 'Your account is not active.' };
     }
     if (user.ageBracket === 'under13' && !user.multiplayerEnabled) {
-      return { allowed: false, reason: 'Multiplayer is not enabled for your account. Ask your parent to enable it in the Parent Command Center.' };
+      return {
+        allowed: false,
+        reason:
+          'Multiplayer is not enabled for your account. Ask your parent to enable it in the Parent Command Center.',
+      };
     }
     return { allowed: true, userId: session.userId };
   } catch {
@@ -252,7 +297,7 @@ function handleMessage(ws, playerId, message, setRoom, sessions, setAuthUserId) 
   switch (message.type) {
     case 'create_room': {
       const { projectId, playerName, authToken } = message;
-      
+
       verifyMultiplayerAccess(authToken, sessions).then(({ allowed, reason, userId }) => {
         if (!allowed) {
           ws.send(JSON.stringify({ type: 'error', message: reason }));
@@ -267,12 +312,14 @@ function handleMessage(ws, playerId, message, setRoom, sessions, setAuthUserId) 
 
         console.log(`🎮 Room ${room.code} created for project ${projectId}`);
 
-        ws.send(JSON.stringify({
-          type: 'room_created',
-          roomCode: room.code,
-          playerId,
-          players: room.getPlayerList()
-        }));
+        ws.send(
+          JSON.stringify({
+            type: 'room_created',
+            roomCode: room.code,
+            playerId,
+            players: room.getPlayerList(),
+          }),
+        );
       });
       break;
     }
@@ -288,13 +335,16 @@ function handleMessage(ws, playerId, message, setRoom, sessions, setAuthUserId) 
         if (userId) setAuthUserId(userId);
 
         const rawCode = (message.roomCode || '').toString().trim();
-        const roomCode = rawCode.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 4);
-        
+        const roomCode = rawCode
+          .replace(/[^A-Za-z0-9]/g, '')
+          .toUpperCase()
+          .slice(0, 4);
+
         if (!roomCode || roomCode.length !== 4) {
           ws.send(JSON.stringify({ type: 'error', message: 'Please enter a valid 4-character room code.' }));
           return;
         }
-        
+
         const room = rooms.get(roomCode);
         if (!room) {
           console.log(`🎮 Join failed: room "${roomCode}" not found.`);
@@ -311,14 +361,16 @@ function handleMessage(ws, playerId, message, setRoom, sessions, setAuthUserId) 
         setRoom(room);
         console.log(`🎮 Player ${playerName} joined room ${roomCode}`);
 
-        ws.send(JSON.stringify({
-          type: 'room_joined',
-          roomCode: room.code,
-          projectId: room.projectId,
-          playerId,
-          players: room.getPlayerList(),
-          gameState: room.gameState
-        }));
+        ws.send(
+          JSON.stringify({
+            type: 'room_joined',
+            roomCode: room.code,
+            projectId: room.projectId,
+            playerId,
+            players: room.getPlayerList(),
+            gameState: room.gameState,
+          }),
+        );
       });
       break;
     }
@@ -367,7 +419,7 @@ function handleMessage(ws, playerId, message, setRoom, sessions, setAuthUserId) 
           type: 'chat',
           fromPlayerId: playerId,
           fromPlayerName: player?.name || 'Player',
-          message: phrase
+          message: phrase,
         });
       }
       break;
@@ -379,10 +431,12 @@ function handleMessage(ws, playerId, message, setRoom, sessions, setAuthUserId) 
     }
 
     default:
-      ws.send(JSON.stringify({
-        type: 'error',
-        message: 'Unknown message type'
-      }));
+      ws.send(
+        JSON.stringify({
+          type: 'error',
+          message: 'Unknown message type',
+        }),
+      );
   }
 }
 
@@ -407,7 +461,7 @@ export function getRoomInfo(roomCode) {
     hostName: room.hostName,
     playerCount: room.players.size,
     maxPlayers: room.maxPlayers,
-    createdAt: room.createdAt
+    createdAt: room.createdAt,
   };
 }
 
@@ -424,7 +478,7 @@ export function getActiveRooms(projectId = null) {
         projectId: room.projectId,
         hostName: room.hostName,
         playerCount: room.players.size,
-        maxPlayers: room.maxPlayers
+        maxPlayers: room.maxPlayers,
       });
     }
   }

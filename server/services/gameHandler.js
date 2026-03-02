@@ -1,10 +1,10 @@
 /**
  * Game Handler — Core Dual-Model Routing Engine
- * 
+ *
  * This is the brain of the dual-AI system. It decides which model to call
  * (Claude or Grok), manages the response cache, and handles special modes
  * like critic loops and "Ask the Other Buddy".
- * 
+ *
  * ROUTING LOGIC:
  * ─────────────────────────────────────────────────────────────
  * Mode              │ What happens
@@ -17,17 +17,13 @@
  * 'ask-other-buddy' │ Send to whichever model WASN'T used last
  * 'critic'          │ Claude generates → Grok critiques → Claude polishes
  * ─────────────────────────────────────────────────────────────
- * 
+ *
  * Returns: { response, code, modelUsed, isCacheHit, alternateResponse? }
  */
 
 import { getSystemPrompt } from '../prompts/index.js';
 import { detectMultiplayerIntent } from '../prompts/genres.js';
-import {
-  getPersonalityWrapper,
-  GROK_CRITIC_PROMPT,
-  CLAUDE_POLISH_PROMPT,
-} from '../prompts/personalities.js';
+import { getPersonalityWrapper, GROK_CRITIC_PROMPT, CLAUDE_POLISH_PROMPT } from '../prompts/personalities.js';
 import {
   formatMessageContent,
   calculateMaxTokens,
@@ -84,40 +80,40 @@ const CREATIVE_TRIGGERS = [
  */
 const DEBUG_TRIGGERS = [
   "doesn't work",
-  "doesnt work",
-  "not working",
-  "it broke",
+  'doesnt work',
+  'not working',
+  'it broke',
   "it's broken",
-  "its broken",
-  "broken",
-  "bug",
-  "glitch",
+  'its broken',
+  'broken',
+  'bug',
+  'glitch',
   "won't load",
-  "wont load",
+  'wont load',
   "can't play",
-  "cant play",
-  "nothing happens",
-  "stuck",
-  "crashed",
-  "error",
+  'cant play',
+  'nothing happens',
+  'stuck',
+  'crashed',
+  'error',
   "help it's",
-  "help its",
-  "fix it",
-  "fix this",
+  'help its',
+  'fix it',
+  'fix this',
   "something's wrong",
-  "somethings wrong",
+  'somethings wrong',
 ];
 
 /**
  * Detect the best mode based on the kid's prompt text.
  * Returns the auto-detected mode, or null if no special detection.
- * 
+ *
  * @param {string} prompt - The user's message
  * @returns {string|null} Detected mode or null
  */
 export function autoDetectMode(prompt) {
   const lower = (prompt || '').toLowerCase().trim();
-  
+
   // Check creative triggers
   for (const trigger of CREATIVE_TRIGGERS) {
     if (lower.includes(trigger)) return 'creative';
@@ -135,14 +131,14 @@ export function autoDetectMode(prompt) {
 
 /**
  * Generate or iterate on a game using the dual-model AI system.
- * 
+ *
  * This is THE core function that the route calls. It handles:
  * 1. Cache lookup (instant serve if hit)
  * 2. Mode-based routing to the right model
  * 3. Response extraction and code parsing
  * 4. Cache storage for future hits
  * 5. Truncation recovery
- * 
+ *
  * @param {object} params
  * @param {string} params.prompt - The kid's message
  * @param {string|null} params.currentCode - Current game code (null for new games)
@@ -153,7 +149,7 @@ export function autoDetectMode(prompt) {
  * @param {string|null} params.userId - For usage tracking
  * @param {string|null} params.lastModelUsed - Which model was used in the previous turn
  * @param {number} params.debugAttempt - Current attempt number for debug mode (internal)
- * 
+ *
  * @returns {Promise<{
  *   response: string,
  *   code: string|null,
@@ -197,7 +193,9 @@ export async function generateOrIterateGame({
 
   // ===== DETERMINE TARGET MODEL =====
   const targetModel = resolveTargetModel(effectiveMode, lastModelUsed);
-  console.log(`🎯 Mode: "${effectiveMode}" → Model: ${targetModel} | hasCode: ${!!currentCode} | history: ${conversationHistory.length}`);
+  console.log(
+    `🎯 Mode: "${effectiveMode}" → Model: ${targetModel} | hasCode: ${!!currentCode} | history: ${conversationHistory.length}`,
+  );
 
   // ===== CACHE CHECK =====
   const cacheKey = generateCacheKey(prompt, currentCode, targetModel, effectiveMode);
@@ -221,16 +219,40 @@ export async function generateOrIterateGame({
       break;
 
     case 'debug':
-      result = await handleDebugMode({ prompt, currentCode, conversationHistory, gameConfig, image, userId, debugAttempt });
+      result = await handleDebugMode({
+        prompt,
+        currentCode,
+        conversationHistory,
+        gameConfig,
+        image,
+        userId,
+        debugAttempt,
+      });
       break;
 
     case 'ask-other-buddy':
-      result = await handleAskOtherBuddy({ prompt, currentCode, conversationHistory, gameConfig, image, userId, lastModelUsed });
+      result = await handleAskOtherBuddy({
+        prompt,
+        currentCode,
+        conversationHistory,
+        gameConfig,
+        image,
+        userId,
+        lastModelUsed,
+      });
       break;
 
     default:
       // Standard single-model call (claude, grok, creative, default)
-      result = await handleSingleModel({ prompt, currentCode, conversationHistory, gameConfig, image, userId, targetModel });
+      result = await handleSingleModel({
+        prompt,
+        currentCode,
+        conversationHistory,
+        gameConfig,
+        image,
+        userId,
+        targetModel,
+      });
       break;
   }
 
@@ -312,7 +334,8 @@ async function handleSingleModel({ prompt, currentCode, conversationHistory, gam
   const maxTokens = calculateMaxTokens(currentCode);
 
   // If multiplayer intent detected, prepend a hard reminder to the user message
-  const isMultiplayerRequest = detectMultiplayerIntent(prompt) ||
+  const isMultiplayerRequest =
+    detectMultiplayerIntent(prompt) ||
     (gameConfig && gameConfig.customNotes && detectMultiplayerIntent(gameConfig.customNotes)) ||
     (currentCode && currentCode.includes('VibeMultiplayer'));
   const finalPrompt = isMultiplayerRequest
@@ -321,11 +344,11 @@ async function handleSingleModel({ prompt, currentCode, conversationHistory, gam
 
   // Build conversation messages
   const rawMessages = [
-    ...conversationHistory.map(msg => ({
+    ...conversationHistory.map((msg) => ({
       role: msg.role,
-      content: formatMessageContent(msg.content, msg.image)
+      content: formatMessageContent(msg.content, msg.image),
     })),
-    { role: 'user', content: formatMessageContent(finalPrompt, image) }
+    { role: 'user', content: formatMessageContent(finalPrompt, image) },
   ];
   const messages = trimConversationHistory(rawMessages, 12);
 
@@ -366,7 +389,10 @@ async function handleSingleModel({ prompt, currentCode, conversationHistory, gam
     const fixupMessages = [
       ...messages,
       { role: 'assistant', content: assistantText },
-      { role: 'user', content: `CRITICAL: This game was supposed to be an ONLINE MULTIPLAYER game, but you forgot to integrate the window.VibeMultiplayer API. The API is already injected into the iframe — you do NOT need to load anything. You MUST:\n1. Check if window.VibeMultiplayer exists on load\n2. If it exists, show a lobby with player name input, "Create Room" button (calls VibeMultiplayer.createRoom(name)), room code input + "Join Room" button (calls VibeMultiplayer.joinRoom(code, name))\n3. Use VibeMultiplayer.onRoomCreated, onRoomJoined, onPlayerJoined callbacks to start the game when 2 players are connected\n4. Use VibeMultiplayer.sendInput() to send moves and VibeMultiplayer.onInputReceived to receive opponent moves\n5. If VibeMultiplayer does NOT exist, fall back to local mode\n\nPlease regenerate the COMPLETE game code with proper VibeMultiplayer integration. Output the full HTML.` }
+      {
+        role: 'user',
+        content: `CRITICAL: This game was supposed to be an ONLINE MULTIPLAYER game, but you forgot to integrate the window.VibeMultiplayer API. The API is already injected into the iframe — you do NOT need to load anything. You MUST:\n1. Check if window.VibeMultiplayer exists on load\n2. If it exists, show a lobby with player name input, "Create Room" button (calls VibeMultiplayer.createRoom(name)), room code input + "Join Room" button (calls VibeMultiplayer.joinRoom(code, name))\n3. Use VibeMultiplayer.onRoomCreated, onRoomJoined, onPlayerJoined callbacks to start the game when 2 players are connected\n4. Use VibeMultiplayer.sendInput() to send moves and VibeMultiplayer.onInputReceived to receive opponent moves\n5. If VibeMultiplayer does NOT exist, fall back to local mode\n\nPlease regenerate the COMPLETE game code with proper VibeMultiplayer integration. Output the full HTML.`,
+      },
     ];
     const trimmedFixup = trimConversationHistory(fixupMessages, 12);
     try {
@@ -420,12 +446,12 @@ function summarizeCodeChange(prompt, category) {
   const summaries = {
     'speed-up': 'Increased speed/velocity values, reduced delays, or increased game tick rate.',
     'slow-down': 'Decreased speed/velocity values, added delays, or reduced game tick rate.',
-    'harder': 'Increased enemy count/speed, reduced player lives/health, or narrowed hit windows.',
-    'easier': 'Decreased enemy count/speed, increased player lives/health, or widened hit windows.',
+    harder: 'Increased enemy count/speed, reduced player lives/health, or narrowed hit windows.',
+    easier: 'Decreased enemy count/speed, increased player lives/health, or widened hit windows.',
     'color-change': 'Modified fillStyle/backgroundColor/CSS color values to match the requested colors.',
-    'bigger': 'Increased width/height/radius/scale values for the target objects.',
-    'smaller': 'Decreased width/height/radius/scale values for the target objects.',
-    'background': 'Changed the canvas background color or CSS background of the game container.',
+    bigger: 'Increased width/height/radius/scale values for the target objects.',
+    smaller: 'Decreased width/height/radius/scale values for the target objects.',
+    background: 'Changed the canvas background color or CSS background of the game container.',
     'add-sound': 'Added Web Audio API sound effects (beeps, explosions, jumps) using oscillator and gain nodes.',
     'add-score': 'Added a score variable, increment logic on events, and HUD display with ctx.fillText or DOM element.',
     'add-lives': 'Added lives/health counter, damage logic, death/respawn, and HUD hearts or health bar.',
@@ -437,7 +463,8 @@ function summarizeCodeChange(prompt, category) {
     'fix-bug': `Fixed the bug described in: "${prompt.slice(0, 100)}". Checked event listeners, game loop, and collision logic.`,
     'fix-jump': 'Fixed jump mechanics: ensured onGround check, proper gravity reset, and collision with platforms.',
     'fix-collision': 'Fixed collision detection: corrected AABB overlap check or boundary conditions.',
-    'fix-movement': 'Fixed movement: ensured key listeners are attached, velocity is applied in game loop, and boundaries are checked.',
+    'fix-movement':
+      'Fixed movement: ensured key listeners are attached, velocity is applied in game loop, and boundaries are checked.',
   };
   return summaries[category] || `Applied "${category}" changes as requested: "${prompt.slice(0, 80)}"`;
 }
@@ -499,14 +526,23 @@ async function handleDebugMode({ prompt, currentCode, conversationHistory, gameC
  * "Ask the Other Buddy" — sends current code + issue to the model
  * that WASN'T used last time. Kid-triggered model switching.
  */
-async function handleAskOtherBuddy({ prompt, currentCode, conversationHistory, gameConfig, image, userId, lastModelUsed }) {
-  const otherModel = (lastModelUsed === 'grok') ? 'claude' : 'grok';
+async function handleAskOtherBuddy({
+  prompt,
+  currentCode,
+  conversationHistory,
+  gameConfig,
+  image,
+  userId,
+  lastModelUsed,
+}) {
+  const otherModel = lastModelUsed === 'grok' ? 'claude' : 'grok';
   console.log(`🔄 Ask Other Buddy: switching from ${lastModelUsed || 'unknown'} → ${otherModel}`);
 
-  const buddyName = otherModel === 'grok' ? 'VibeGrok' : 'Professor Claude';
-  const contextPrompt = lastModelUsed === 'grok'
-    ? `Professor Claude here! 🎓 VibeGrok was working on this game and the kid wants a second opinion.\n\nThe kid says: "${prompt}"\n\nPlease review the current code carefully, fix any issues, and explain what you changed in a simple, encouraging way.`
-    : `YOOO VibeGrok jumping in! 🚀🔥 Professor Claude was building this game and the kid wants MY take on it!\n\nThe kid says: "${prompt}"\n\nLet me check this out, fix anything that's off, and add some extra sauce! 😎`;
+  const _buddyName = otherModel === 'grok' ? 'VibeGrok' : 'Professor Claude';
+  const contextPrompt =
+    lastModelUsed === 'grok'
+      ? `Professor Claude here! 🎓 VibeGrok was working on this game and the kid wants a second opinion.\n\nThe kid says: "${prompt}"\n\nPlease review the current code carefully, fix any issues, and explain what you changed in a simple, encouraging way.`
+      : `YOOO VibeGrok jumping in! 🚀🔥 Professor Claude was building this game and the kid wants MY take on it!\n\nThe kid says: "${prompt}"\n\nLet me check this out, fix anything that's off, and add some extra sauce! 😎`;
 
   const result = await handleSingleModel({
     prompt: contextPrompt,
@@ -526,7 +562,7 @@ async function handleAskOtherBuddy({ prompt, currentCode, conversationHistory, g
 /**
  * Critic loop: Claude generates → Grok critiques → Claude polishes.
  * This produces the highest quality output but costs 3 API calls.
- * 
+ *
  * Returns both the polished result AND the intermediate critique.
  */
 async function handleCriticMode({ prompt, currentCode, conversationHistory, gameConfig, image, userId }) {
@@ -551,7 +587,7 @@ async function handleCriticMode({ prompt, currentCode, conversationHistory, game
   }
 
   // Step 2: Grok critiques Claude's output
-  console.log('  Step 2/3: Grok reviewing Claude\'s output...');
+  console.log("  Step 2/3: Grok reviewing Claude's output...");
   const critiquePrompt = `${GROK_CRITIC_PROMPT}\n\nHere is the game code from Professor Claude:\n\`\`\`html\n${claudeResult.code}\n\`\`\`\n\nThe kid originally asked: "${prompt}"\n\nReview it and provide your critique + improved version!`;
 
   const critiqueResult = await handleSingleModel({
@@ -565,7 +601,7 @@ async function handleCriticMode({ prompt, currentCode, conversationHistory, game
   });
 
   // Step 3: Claude polishes with Grok's feedback
-  console.log('  Step 3/3: Claude polishing with Grok\'s feedback...');
+  console.log("  Step 3/3: Claude polishing with Grok's feedback...");
   const polishPrompt = `${CLAUDE_POLISH_PROMPT}\n\nOriginal kid request: "${prompt}"\n\nYour original code:\n\`\`\`html\n${claudeResult.code}\n\`\`\`\n\nVibeGrok's review:\n${critiqueResult.response}\n\n${critiqueResult.code ? `VibeGrok's suggested code:\n\`\`\`html\n${critiqueResult.code}\n\`\`\`` : ''}\n\nPlease produce the final polished version with improvements incorporated.`;
 
   const polishedResult = await handleSingleModel({
@@ -601,7 +637,7 @@ async function handleCriticMode({ prompt, currentCode, conversationHistory, game
  */
 function cleanAssistantMessage(text, wasTruncated) {
   if (wasTruncated) {
-    return "That game got really big! 😅 Let me try a simpler approach — ask me to add one feature at a time! 🎮";
+    return 'That game got really big! 😅 Let me try a simpler approach — ask me to add one feature at a time! 🎮';
   }
 
   // Import the sanitizer from prompts
@@ -628,7 +664,7 @@ function cleanAssistantMessage(text, wasTruncated) {
     .trim();
 
   if (!cleaned || cleaned.length < 5) {
-    return "I made it! Check out your creation in the preview! 🎉";
+    return 'I made it! Check out your creation in the preview! 🎉';
   }
 
   return cleaned;

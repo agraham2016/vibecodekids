@@ -1,6 +1,6 @@
 /**
  * Application Configuration
- * 
+ *
  * Centralizes all environment variables, constants, and tier definitions.
  */
 
@@ -26,9 +26,8 @@ export const BASE_URL = (process.env.BASE_URL || 'https://vibecodekidz.org').tri
 export const SERVER_DIR = path.join(__dirname, '..');
 export const ROOT_DIR = path.join(SERVER_DIR, '..');
 // Use tmp dir in production when DATA_DIR not set (fixes read-only filesystem on Railway, Heroku, etc.)
-const defaultDataDir = IS_PRODUCTION && !process.env.DATA_DIR
-  ? path.join(os.tmpdir(), 'vibecodekidz-data')
-  : path.join(ROOT_DIR, 'data');
+const defaultDataDir =
+  IS_PRODUCTION && !process.env.DATA_DIR ? path.join(os.tmpdir(), 'vibecodekidz-data') : path.join(ROOT_DIR, 'data');
 export const DATA_DIR = process.env.DATA_DIR || defaultDataDir;
 export const PROJECTS_DIR = path.join(DATA_DIR, 'projects');
 export const USERS_DIR = path.join(DATA_DIR, 'users');
@@ -75,16 +74,16 @@ export const GROK_BASE_URL = 'https://api.x.ai/v1';
 // ========== DUAL-MODEL SETTINGS ==========
 
 export const SESSION_TOKEN_CAP = parseInt(process.env.SESSION_TOKEN_CAP || '200000', 10);
-export const DEBUG_MAX_CLAUDE_ATTEMPTS = 2;   // How many Claude tries before auto-routing to Grok for debugging
+export const DEBUG_MAX_CLAUDE_ATTEMPTS = 2; // How many Claude tries before auto-routing to Grok for debugging
 export const RESPONSE_CACHE_TTL = 60 * 60 * 1000; // 1 hour TTL for response cache
-export const RESPONSE_CACHE_MAX_SIZE = 500;         // Max entries in response cache
+export const RESPONSE_CACHE_MAX_SIZE = 500; // Max entries in response cache
 
 // ========== REFERENCE CODE SYSTEM ==========
 
 export const GITHUB_TOKEN = process.env.GITHUB_TOKEN || null; // Optional — raises rate limit from 60 to 5000 req/hr
 export const REFERENCE_MAX_CHARS = parseInt(process.env.REFERENCE_MAX_CHARS || '30000', 10);
-export const GITHUB_CACHE_TTL = 24 * 60 * 60 * 1000;  // 24 hours
-export const GITHUB_MAX_FILE_SIZE = 100000;              // Skip files larger than 100KB
+export const GITHUB_CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
+export const GITHUB_MAX_FILE_SIZE = 100000; // Skip files larger than 100KB
 export const GITHUB_MAX_FETCHES_PER_SESSION = 3;
 
 // ========== STRIPE ==========
@@ -93,14 +92,14 @@ export const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
 export const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET;
 export const STRIPE_PRICES = {
   creator: process.env.STRIPE_CREATOR_PRICE_ID || 'price_1Swp0yFORYWq7U9VvV0bCabA',
-  pro: process.env.STRIPE_PRO_PRICE_ID || 'price_1Swp2cFORYWq7U9VF15M6NY8'
+  pro: process.env.STRIPE_PRO_PRICE_ID || 'price_1Swp2cFORYWq7U9VF15M6NY8',
 };
 
 // ========== MEMBERSHIP TIERS ==========
 
 export const MEMBERSHIP_TIERS = {
   free: {
-    name: "Free Trial",
+    name: 'Free Trial',
     price: 0,
     trialDays: 30,
     gamesPerMonth: 3,
@@ -108,10 +107,10 @@ export const MEMBERSHIP_TIERS = {
     playsPerDay: 50,
     aiCoversPerMonth: 0,
     aiSpritesPerMonth: 0,
-    canAccessPremiumAssets: false
+    canAccessPremiumAssets: false,
   },
   creator: {
-    name: "Creator",
+    name: 'Creator',
     price: 13,
     gamesPerMonth: 15,
     promptsPerDay: 50,
@@ -119,10 +118,10 @@ export const MEMBERSHIP_TIERS = {
     aiCoversPerMonth: 5,
     aiSpritesPerMonth: 0,
     canAccessPremiumAssets: true,
-    stripePriceId: STRIPE_PRICES.creator
+    stripePriceId: STRIPE_PRICES.creator,
   },
   pro: {
-    name: "Pro",
+    name: 'Pro',
     price: 21,
     gamesPerMonth: 40,
     promptsPerDay: 80,
@@ -130,18 +129,18 @@ export const MEMBERSHIP_TIERS = {
     aiCoversPerMonth: 20,
     aiSpritesPerMonth: 10,
     canAccessPremiumAssets: true,
-    stripePriceId: STRIPE_PRICES.pro
+    stripePriceId: STRIPE_PRICES.pro,
   },
   tester: {
-    name: "Tester",
+    name: 'Tester',
     price: 0,
     gamesPerMonth: Infinity,
     promptsPerDay: Infinity,
     playsPerDay: Infinity,
     aiCoversPerMonth: Infinity,
     aiSpritesPerMonth: Infinity,
-    canAccessPremiumAssets: true
-  }
+    canAccessPremiumAssets: true,
+  },
 };
 
 // ========== CLASSWALLET / ESA ==========
@@ -152,16 +151,20 @@ export const CLASSWALLET_ENABLED = !!CLASSWALLET_API_KEY;
 export const CLASSWALLET_BASE_URL = process.env.CLASSWALLET_BASE_URL || 'https://app.classwallet.com';
 
 export const ESA_PRICING = {
-  creator_monthly:   { tier: 'creator', amount: 1300, label: '$13 / month',   months: 1 },
-  creator_annual:    { tier: 'creator', amount: 13000, label: '$130 / year',  months: 12 },
-  pro_monthly:       { tier: 'pro',     amount: 2100, label: '$21 / month',   months: 1 },
-  pro_annual:        { tier: 'pro',     amount: 21000, label: '$210 / year',  months: 12 },
+  creator_monthly: { tier: 'creator', amount: 1300, label: '$13 / month', months: 1 },
+  creator_annual: { tier: 'creator', amount: 13000, label: '$130 / year', months: 12 },
+  pro_monthly: { tier: 'pro', amount: 2100, label: '$21 / month', months: 1 },
+  pro_annual: { tier: 'pro', amount: 21000, label: '$210 / year', months: 12 },
 };
+
+// ========== MONITORING ==========
+
+export const SENTRY_DSN = process.env.SENTRY_DSN || null;
 
 // ========== RATE LIMITS ==========
 
 export const RATE_LIMITS = {
   promptsPerMinute: 5,
   promptsPerHour: 30,
-  cooldownMinutes: 5
+  cooldownMinutes: 5,
 };

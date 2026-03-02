@@ -1,6 +1,6 @@
 /**
  * AI Service (Dual-Model: Claude + Grok)
- * 
+ *
  * Handles all AI API interactions with:
  * - Claude (Anthropic API) — "Professor Claude": patient teacher
  * - Grok (xAI API via OpenAI SDK) — "VibeGrok": hype gamer buddy
@@ -14,18 +14,22 @@
 
 import Anthropic from '@anthropic-ai/sdk';
 import OpenAI from 'openai';
-import { 
-  ANTHROPIC_API_KEY, AI_MODEL, AI_BASE_TOKENS, AI_MAX_TOKENS, 
-  AI_RETRY_COUNT, AI_RETRY_DELAY_MS,
-  XAI_API_KEY, GROK_MODEL, GROK_BASE_URL
+import {
+  ANTHROPIC_API_KEY,
+  AI_MODEL,
+  AI_BASE_TOKENS,
+  AI_MAX_TOKENS,
+  AI_RETRY_COUNT,
+  AI_RETRY_DELAY_MS,
+  XAI_API_KEY,
+  GROK_MODEL,
+  GROK_BASE_URL,
 } from '../config/index.js';
 
 const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
 
 // Grok client — xAI API is OpenAI-compatible, just different baseURL
-const grokClient = XAI_API_KEY 
-  ? new OpenAI({ apiKey: XAI_API_KEY, baseURL: GROK_BASE_URL })
-  : null;
+const grokClient = XAI_API_KEY ? new OpenAI({ apiKey: XAI_API_KEY, baseURL: GROK_BASE_URL }) : null;
 
 /**
  * Check if Grok is available (API key configured).
@@ -50,15 +54,15 @@ const usageStats = {
 // Claude Sonnet pricing (per million tokens)
 const PRICING = {
   claude: {
-    input: 3.00,       // $3.00 / 1M input tokens
-    output: 15.00,     // $15.00 / 1M output tokens
-    cacheWrite: 3.75,  // $3.75 / 1M tokens (cache write)
-    cacheRead: 0.30,   // $0.30 / 1M tokens (cache hit)
+    input: 3.0, // $3.00 / 1M input tokens
+    output: 15.0, // $15.00 / 1M output tokens
+    cacheWrite: 3.75, // $3.75 / 1M tokens (cache write)
+    cacheRead: 0.3, // $0.30 / 1M tokens (cache hit)
   },
   // Grok-3-fast pricing (xAI) — updated Feb 2026
   grok: {
-    input: 3.00,       // $3.00 / 1M input tokens
-    output: 15.00,     // $15.00 / 1M output tokens
+    input: 3.0, // $3.00 / 1M input tokens
+    output: 15.0, // $15.00 / 1M output tokens
   },
 };
 
@@ -78,10 +82,8 @@ function trackUsage(response, userId = null, model = 'claude') {
     // OpenAI-compatible usage format
     inputTokens = usage.prompt_tokens || 0;
     outputTokens = usage.completion_tokens || 0;
-    costCents = (
-      (inputTokens / 1_000_000) * PRICING.grok.input * 100 +
-      (outputTokens / 1_000_000) * PRICING.grok.output * 100
-    );
+    costCents =
+      (inputTokens / 1_000_000) * PRICING.grok.input * 100 + (outputTokens / 1_000_000) * PRICING.grok.output * 100;
   } else {
     // Anthropic usage format
     inputTokens = usage.input_tokens || 0;
@@ -90,12 +92,11 @@ function trackUsage(response, userId = null, model = 'claude') {
     const cacheRead = usage.cache_read_input_tokens || 0;
 
     const regularInput = inputTokens - cacheCreation - cacheRead;
-    costCents = (
+    costCents =
       (regularInput / 1_000_000) * PRICING.claude.input * 100 +
       (outputTokens / 1_000_000) * PRICING.claude.output * 100 +
       (cacheCreation / 1_000_000) * PRICING.claude.cacheWrite * 100 +
-      (cacheRead / 1_000_000) * PRICING.claude.cacheRead * 100
-    );
+      (cacheRead / 1_000_000) * PRICING.claude.cacheRead * 100;
 
     if (cacheRead > 0) usageStats.cacheHits++;
     if (cacheCreation > 0) usageStats.cacheMisses++;
@@ -108,7 +109,14 @@ function trackUsage(response, userId = null, model = 'claude') {
 
   // Per-user tracking
   if (userId) {
-    const userStats = usageStats.byUser.get(userId) || { requests: 0, inputTokens: 0, outputTokens: 0, costCents: 0, claudeCalls: 0, grokCalls: 0 };
+    const userStats = usageStats.byUser.get(userId) || {
+      requests: 0,
+      inputTokens: 0,
+      outputTokens: 0,
+      costCents: 0,
+      claudeCalls: 0,
+      grokCalls: 0,
+    };
     userStats.requests++;
     userStats.inputTokens += inputTokens;
     userStats.outputTokens += outputTokens;
@@ -120,7 +128,9 @@ function trackUsage(response, userId = null, model = 'claude') {
 
   // Log summary
   const modelTag = model === 'grok' ? '🤖 Grok' : '🧠 Claude';
-  console.log(`💰 ${modelTag}: ${inputTokens}in/${outputTokens}out | $${(costCents / 100).toFixed(4)} | Total: $${(usageStats.totalCostCents / 100).toFixed(4)}`);
+  console.log(
+    `💰 ${modelTag}: ${inputTokens}in/${outputTokens}out | $${(costCents / 100).toFixed(4)} | Total: $${(usageStats.totalCostCents / 100).toFixed(4)}`,
+  );
 }
 
 /**
@@ -130,9 +140,8 @@ export function getUsageStats() {
   return {
     ...usageStats,
     byUser: Object.fromEntries(usageStats.byUser),
-    cacheHitRate: usageStats.totalRequests > 0 
-      ? (usageStats.cacheHits / usageStats.totalRequests * 100).toFixed(1) + '%' 
-      : '0%',
+    cacheHitRate:
+      usageStats.totalRequests > 0 ? ((usageStats.cacheHits / usageStats.totalRequests) * 100).toFixed(1) + '%' : '0%',
   };
 }
 
@@ -153,10 +162,10 @@ export function formatMessageContent(text, imageBase64) {
       source: {
         type: 'base64',
         media_type: matches[1],
-        data: matches[2]
-      }
+        data: matches[2],
+      },
     },
-    { type: 'text', text }
+    { type: 'text', text },
   ];
 }
 
@@ -177,12 +186,13 @@ export function trimConversationHistory(messages, maxMessages = 10) {
   // Add a context bridge so the AI knows messages were trimmed
   const trimmed = [
     first,
-    { 
-      role: 'user', 
-      content: '[Earlier conversation about building and modifying this game was trimmed for space. The current game code is provided in the system context.]' 
+    {
+      role: 'user',
+      content:
+        '[Earlier conversation about building and modifying this game was trimmed for space. The current game code is provided in the system context.]',
     },
     { role: 'assistant', content: 'Got it! I can see the current game. What would you like me to change? 🎮' },
-    ...recent
+    ...recent,
   ];
 
   console.log(`✂️ Trimmed conversation: ${messages.length} → ${trimmed.length} messages`);
@@ -208,7 +218,7 @@ export function calculateMaxTokens(currentCode) {
 
 /**
  * Build the system prompt blocks with cache_control for prompt caching.
- * 
+ *
  * Claude's prompt caching works by marking parts of the system prompt as cacheable.
  * The static parts (personality, rules, knowledge base) are cached.
  * The dynamic parts (current code, genre rules) are NOT cached.
@@ -218,14 +228,14 @@ function buildSystemBlocks(staticPrompt, dynamicContext = '') {
     {
       type: 'text',
       text: staticPrompt,
-      cache_control: { type: 'ephemeral' }
-    }
+      cache_control: { type: 'ephemeral' },
+    },
   ];
 
   if (dynamicContext) {
     blocks.push({
       type: 'text',
-      text: dynamicContext
+      text: dynamicContext,
     });
   }
 
@@ -234,7 +244,7 @@ function buildSystemBlocks(staticPrompt, dynamicContext = '') {
 
 /**
  * Call Claude API with retry logic and prompt caching.
- * 
+ *
  * @param {string} staticPrompt - The cacheable portion of the system prompt
  * @param {string} dynamicContext - The per-request dynamic context (current code, genre rules)
  * @param {Array} messages - Conversation messages
@@ -251,17 +261,19 @@ export async function callClaude(staticPrompt, dynamicContext, messages, maxToke
         model: AI_MODEL,
         max_tokens: maxTokens,
         system: systemBlocks,
-        messages
+        messages,
       });
       trackUsage(response, userId);
       return response;
     } catch (apiError) {
       console.error(`⚠️ Claude API attempt ${attempt}/${AI_RETRY_COUNT} failed:`, apiError.status, apiError.message);
       if (attempt === AI_RETRY_COUNT) {
-        throw new Error(`Claude API failed after ${AI_RETRY_COUNT} attempts: ${apiError.status || ''} ${apiError.message || 'Unknown error'}`);
+        throw new Error(
+          `Claude API failed after ${AI_RETRY_COUNT} attempts: ${apiError.status || ''} ${apiError.message || 'Unknown error'}`,
+        );
       }
       // Exponential backoff: 1s, 2s, 4s...
-      await new Promise(r => setTimeout(r, AI_RETRY_DELAY_MS * Math.pow(2, attempt - 1)));
+      await new Promise((r) => setTimeout(r, AI_RETRY_DELAY_MS * Math.pow(2, attempt - 1)));
     }
   }
 }
@@ -269,21 +281,21 @@ export async function callClaude(staticPrompt, dynamicContext, messages, maxToke
 /**
  * Call Claude with streaming for real-time response delivery.
  * Returns an async iterator of text chunks.
- * 
+ *
  * @param {string} staticPrompt - Cacheable system prompt
  * @param {string} dynamicContext - Per-request context
  * @param {Array} messages - Conversation messages
  * @param {number} maxTokens - Max output tokens
  * @param {string|null} userId - For usage tracking
  */
-export async function callClaudeStreaming(staticPrompt, dynamicContext, messages, maxTokens, userId = null) {
+export async function callClaudeStreaming(staticPrompt, dynamicContext, messages, maxTokens, _userId = null) {
   const systemBlocks = buildSystemBlocks(staticPrompt, dynamicContext);
 
   const stream = await anthropic.messages.stream({
     model: AI_MODEL,
     max_tokens: maxTokens,
     system: systemBlocks,
-    messages
+    messages,
   });
 
   return stream;
@@ -293,7 +305,7 @@ export async function callClaudeStreaming(staticPrompt, dynamicContext, messages
 
 /**
  * Call Grok (xAI) API via OpenAI-compatible SDK with retry logic.
- * 
+ *
  * @param {string} systemPrompt - The full system prompt (personality + context)
  * @param {Array} messages - Conversation messages [{role, content}]
  * @param {number} maxTokens - Max output tokens
@@ -309,15 +321,19 @@ export async function callGrok(systemPrompt, messages, maxTokens, userId = null)
   // (they're already {role, content} but we need to ensure the system prompt is first)
   const openAIMessages = [
     { role: 'system', content: systemPrompt },
-    ...messages.map(msg => ({
+    ...messages.map((msg) => ({
       role: msg.role,
       // Handle Claude's multi-part content format (image + text) → flatten to text for Grok
-      content: typeof msg.content === 'string' 
-        ? msg.content 
-        : Array.isArray(msg.content) 
-          ? msg.content.filter(p => p.type === 'text').map(p => p.text).join('\n')
-          : String(msg.content)
-    }))
+      content:
+        typeof msg.content === 'string'
+          ? msg.content
+          : Array.isArray(msg.content)
+            ? msg.content
+                .filter((p) => p.type === 'text')
+                .map((p) => p.text)
+                .join('\n')
+            : String(msg.content),
+    })),
   ];
 
   let response;
@@ -327,16 +343,18 @@ export async function callGrok(systemPrompt, messages, maxTokens, userId = null)
         model: GROK_MODEL,
         max_tokens: maxTokens,
         messages: openAIMessages,
-        temperature: 0.7,  // Slightly creative for fun factor
+        temperature: 0.7, // Slightly creative for fun factor
       });
       trackUsage(response, userId, 'grok');
       return response;
     } catch (apiError) {
       console.error(`⚠️ Grok API attempt ${attempt}/${AI_RETRY_COUNT} failed:`, apiError.status, apiError.message);
       if (attempt === AI_RETRY_COUNT) {
-        throw new Error(`Grok API failed after ${AI_RETRY_COUNT} attempts: ${apiError.status || ''} ${apiError.message || 'Unknown error'}`);
+        throw new Error(
+          `Grok API failed after ${AI_RETRY_COUNT} attempts: ${apiError.status || ''} ${apiError.message || 'Unknown error'}`,
+        );
       }
-      await new Promise(r => setTimeout(r, AI_RETRY_DELAY_MS * Math.pow(2, attempt - 1)));
+      await new Promise((r) => setTimeout(r, AI_RETRY_DELAY_MS * Math.pow(2, attempt - 1)));
     }
   }
 }
@@ -417,10 +435,12 @@ SAFETY RULES (these still apply during continuation):
 - No personal data collection (no forms asking for names, emails, addresses, phone numbers)
 - No external network requests, tracking pixels, or analytics scripts
 - No localStorage or sessionStorage usage`,
-      messages: [{
-        role: 'user',
-        content: `Continue this HTML code. Pick up EXACTLY where it ends. Make sure all existing game features are preserved:\n\n${partialCode.slice(-3000)}`
-      }]
+      messages: [
+        {
+          role: 'user',
+          content: `Continue this HTML code. Pick up EXACTLY where it ends. Make sure all existing game features are preserved:\n\n${partialCode.slice(-3000)}`,
+        },
+      ],
     });
 
     trackUsage(response, userId);
@@ -458,7 +478,7 @@ SAFETY RULES (these still apply during continuation):
  * Simple in-memory cache for common game templates.
  * When a user asks for a common game type with no modifications,
  * we can serve a cached template instead of burning AI tokens.
- * 
+ *
  * Cache entries expire after 24 hours.
  */
 const templateCache = new Map();
@@ -470,14 +490,11 @@ const TEMPLATE_CACHE_TTL = 24 * 60 * 60 * 1000;
  */
 export function getTemplateCacheKey(message, gameConfig) {
   if (!gameConfig) return null; // Only cache survey-based games
-  
-  const key = [
-    gameConfig.gameType,
-    gameConfig.dimension || '2d',
-    gameConfig.theme,
-    gameConfig.visualStyle,
-  ].join('|').toLowerCase();
-  
+
+  const key = [gameConfig.gameType, gameConfig.dimension || '2d', gameConfig.theme, gameConfig.visualStyle]
+    .join('|')
+    .toLowerCase();
+
   return key;
 }
 

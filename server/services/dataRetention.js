@@ -14,7 +14,7 @@
 import { promises as fs } from 'fs';
 import path from 'path';
 import { DATA_DIR, USE_POSTGRES } from '../config/index.js';
-import { listUsers, readUser, writeUser, deleteUser } from './storage.js';
+import { listUsers, deleteUser } from './storage.js';
 
 const DEMO_EVENTS_FILE = path.join(DATA_DIR, 'demo_events.jsonl');
 const REPORTS_FILE = path.join(DATA_DIR, 'reports.jsonl');
@@ -28,7 +28,9 @@ async function purgeExpiredSessions() {
     const pool = getPool();
     const { rowCount } = await pool.query('DELETE FROM sessions WHERE expires_at < NOW()');
     return rowCount;
-  } catch { return 0; }
+  } catch {
+    return 0;
+  }
 }
 
 async function purgeOldRateLimitEntries() {
@@ -36,9 +38,13 @@ async function purgeOldRateLimitEntries() {
   try {
     const { getPool } = await import('./db.js');
     const pool = getPool();
-    const { rowCount } = await pool.query("DELETE FROM rate_limit_requests WHERE requested_at < NOW() - INTERVAL '1 hour'");
+    const { rowCount } = await pool.query(
+      "DELETE FROM rate_limit_requests WHERE requested_at < NOW() - INTERVAL '1 hour'",
+    );
     return rowCount;
-  } catch { return 0; }
+  } catch {
+    return 0;
+  }
 }
 
 async function purgeOldDemoEvents(maxAgeDays = 90) {
@@ -47,19 +53,26 @@ async function purgeOldDemoEvents(maxAgeDays = 90) {
     const cutoff = Date.now() - maxAgeDays * MS_PER_DAY;
     const lines = data.trim().split('\n').filter(Boolean);
     let removed = 0;
-    const kept = lines.filter(line => {
+    const kept = lines.filter((line) => {
       try {
         const e = JSON.parse(line);
         const ts = new Date(e.timestamp || e.ts || 0).getTime();
-        if (ts < cutoff) { removed++; return false; }
+        if (ts < cutoff) {
+          removed++;
+          return false;
+        }
         return true;
-      } catch { return true; }
+      } catch {
+        return true;
+      }
     });
     if (removed > 0) {
       await fs.writeFile(DEMO_EVENTS_FILE, kept.join('\n') + (kept.length ? '\n' : ''));
     }
     return removed;
-  } catch { return 0; }
+  } catch {
+    return 0;
+  }
 }
 
 async function purgeOldResolvedReports(maxAgeDays = 90) {
@@ -69,7 +82,7 @@ async function purgeOldResolvedReports(maxAgeDays = 90) {
       const pool = getPool();
       const { rowCount } = await pool.query(
         "DELETE FROM moderation_reports WHERE status IN ('actioned','dismissed') AND reviewed_at < NOW() - $1::INTERVAL",
-        [`${maxAgeDays} days`]
+        [`${maxAgeDays} days`],
       );
       return rowCount;
     }
@@ -78,20 +91,27 @@ async function purgeOldResolvedReports(maxAgeDays = 90) {
     const cutoff = Date.now() - maxAgeDays * MS_PER_DAY;
     const lines = data.trim().split('\n').filter(Boolean);
     let removed = 0;
-    const kept = lines.filter(line => {
+    const kept = lines.filter((line) => {
       try {
         const r = JSON.parse(line);
         if ((r.status === 'actioned' || r.status === 'dismissed') && r.reviewedAt) {
-          if (new Date(r.reviewedAt).getTime() < cutoff) { removed++; return false; }
+          if (new Date(r.reviewedAt).getTime() < cutoff) {
+            removed++;
+            return false;
+          }
         }
         return true;
-      } catch { return true; }
+      } catch {
+        return true;
+      }
     });
     if (removed > 0) {
       await fs.writeFile(REPORTS_FILE, kept.join('\n') + (kept.length ? '\n' : ''));
     }
     return removed;
-  } catch { return 0; }
+  } catch {
+    return 0;
+  }
 }
 
 async function purgeDeletionRequests(graceDays = 30) {
@@ -105,12 +125,16 @@ async function purgeDeletionRequests(graceDays = 30) {
           try {
             await deleteUser(u.id);
             purged++;
-          } catch { /* skip */ }
+          } catch {
+            /* skip */
+          }
         }
       }
     }
     return purged;
-  } catch { return 0; }
+  } catch {
+    return 0;
+  }
 }
 
 export async function runRetentionSweep() {
@@ -123,7 +147,7 @@ export async function runRetentionSweep() {
     timestamp: new Date().toISOString(),
   };
 
-  const total = Object.values(results).reduce((a, b) => typeof b === 'number' ? a + b : a, 0);
+  const total = Object.values(results).reduce((a, b) => (typeof b === 'number' ? a + b : a), 0);
   if (total > 0) {
     console.log(`Data retention sweep: ${JSON.stringify(results)}`);
   }
@@ -137,11 +161,11 @@ export function startRetentionJob(intervalMs = 6 * 60 * 60 * 1000) {
 
   // Run first sweep after 60s to let server finish booting
   setTimeout(() => {
-    runRetentionSweep().catch(err => console.error('Retention sweep error:', err.message));
+    runRetentionSweep().catch((err) => console.error('Retention sweep error:', err.message));
   }, 60_000);
 
   retentionTimer = setInterval(() => {
-    runRetentionSweep().catch(err => console.error('Retention sweep error:', err.message));
+    runRetentionSweep().catch((err) => console.error('Retention sweep error:', err.message));
   }, intervalMs);
 
   console.log(`Data retention job scheduled every ${Math.round(intervalMs / 3600000)}h`);

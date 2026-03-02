@@ -1,24 +1,23 @@
 /**
  * Parent / COPPA Routes
- * 
+ *
  * Handles parental consent verification, data access requests,
  * and data deletion requests as required by COPPA.
- * 
+ *
  * These routes are PUBLIC (no auth required) because parents
  * access them via email links.
  */
 
 import { Router } from 'express';
 import { readUser, writeUser } from '../services/storage.js';
-import { 
-  getConsentByToken, 
-  resolveConsent, 
-  exportUserData, 
+import {
+  getConsentByToken,
+  resolveConsent,
+  exportUserData,
   deleteUserData,
   createConsentRequest,
   sendConsentEmail,
   createParentDashboardToken,
-  getUserByParentToken,
 } from '../services/consent.js';
 import { SITE_NAME, SUPPORT_EMAIL, BASE_URL, CONSENT_POLICY_VERSION } from '../config/index.js';
 import { logAdminAction } from '../services/adminAuditLog.js';
@@ -27,7 +26,7 @@ const router = Router();
 
 /**
  * GET /api/parent/verify?token=...&action=grant|deny
- * 
+ *
  * Called when a parent clicks the approve/deny link in their email.
  * Returns a simple HTML page confirming the action.
  */
@@ -36,39 +35,53 @@ router.get('/verify', async (req, res) => {
     const { token, action } = req.query;
 
     if (!token || !['grant', 'deny'].includes(action)) {
-      return res.status(400).send(renderPage(
-        'Invalid Link',
-        'This link is invalid or malformed. Please check the email you received.',
-        'error'
-      ));
+      return res
+        .status(400)
+        .send(
+          renderPage(
+            'Invalid Link',
+            'This link is invalid or malformed. Please check the email you received.',
+            'error',
+          ),
+        );
     }
 
     const consent = await getConsentByToken(token);
 
     if (!consent) {
-      return res.status(404).send(renderPage(
-        'Link Not Found',
-        'This consent link was not found. It may have already been used or expired.',
-        'error'
-      ));
+      return res
+        .status(404)
+        .send(
+          renderPage(
+            'Link Not Found',
+            'This consent link was not found. It may have already been used or expired.',
+            'error',
+          ),
+        );
     }
 
     if (consent.status !== 'pending') {
-      return res.send(renderPage(
-        'Already Responded',
-        `This consent request has already been ${consent.status}. No further action is needed.`,
-        'info'
-      ));
+      return res.send(
+        renderPage(
+          'Already Responded',
+          `This consent request has already been ${consent.status}. No further action is needed.`,
+          'info',
+        ),
+      );
     }
 
     // Check expiry
     if (new Date(consent.expiresAt) < new Date()) {
       await resolveConsent(token, false);
-      return res.status(410).send(renderPage(
-        'Link Expired',
-        'This consent link has expired. Your child can request a new one by trying to register again.',
-        'error'
-      ));
+      return res
+        .status(410)
+        .send(
+          renderPage(
+            'Link Expired',
+            'This consent link has expired. Your child can request a new one by trying to register again.',
+            'error',
+          ),
+        );
     }
 
     const granted = action === 'grant';
@@ -93,39 +106,49 @@ router.get('/verify', async (req, res) => {
           // Generate Parent Command Center token
           const dashboardToken = await createParentDashboardToken(consent.userId);
           user.parentDashboardToken = dashboardToken;
-          logAdminAction({ action: 'consent_granted', targetId: consent.userId, details: { username: user.username, method: 'email_plus' } }).catch(() => {});
+          logAdminAction({
+            action: 'consent_granted',
+            targetId: consent.userId,
+            details: { username: user.username, method: 'email_plus' },
+          }).catch(() => {});
         } else {
           user.parentalConsentStatus = 'denied';
           user.status = 'denied';
           user.deniedAt = new Date().toISOString();
-          logAdminAction({ action: 'consent_denied', targetId: consent.userId, details: { username: user.username } }).catch(() => {});
+          logAdminAction({
+            action: 'consent_denied',
+            targetId: consent.userId,
+            details: { username: user.username },
+          }).catch(() => {});
         }
         await writeUser(consent.userId, user);
-
       } else if (consent.action === 'data_access') {
         // Data export request
         if (granted) {
           const data = await exportUserData(consent.userId);
-          return res.send(renderPage(
-            'Data Export',
-            `<p>Here is all data stored for <strong>${user.username}</strong>:</p>
+          return res.send(
+            renderPage(
+              'Data Export',
+              `<p>Here is all data stored for <strong>${user.username}</strong>:</p>
              <pre style="background:#f0f0f0;padding:12px;border-radius:8px;overflow-x:auto;font-size:12px;max-height:400px">
 ${JSON.stringify(data, null, 2)}
              </pre>
              <p>If you'd like this data deleted, contact us at <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a>.</p>`,
-            'success'
-          ));
+              'success',
+            ),
+          );
         }
-
       } else if (consent.action === 'data_delete') {
         // Data deletion request
         if (granted) {
           const result = await deleteUserData(consent.userId);
-          return res.send(renderPage(
-            'Data Deleted',
-            `All data for this account has been deleted (${result.deletedProjects} project(s) removed, account anonymized). This action cannot be undone.`,
-            'success'
-          ));
+          return res.send(
+            renderPage(
+              'Data Deleted',
+              `All data for this account has been deleted (${result.deletedProjects} project(s) removed, account anonymized). This action cannot be undone.`,
+              'success',
+            ),
+          );
         }
       }
     } catch (err) {
@@ -139,33 +162,40 @@ ${JSON.stringify(data, null, 2)}
         const user = await readUser(consent.userId).catch(() => null);
         const dashToken = user?.parentDashboardToken;
         const dashUrl = dashToken ? `${BASE_URL}/parent-dashboard?token=${dashToken}` : null;
-        message = `You have approved your child's account. They can log in now!`
-          + (dashUrl ? `<br><br><strong>Parent Command Center:</strong><br>Manage your child's privacy settings, toggle publishing and multiplayer, review data, or delete the account:<br><a href="${dashUrl}" style="color:#667eea;font-weight:bold">${dashUrl}</a><br><small>Bookmark this link — it's your portal to manage your child's account.</small>` : '')
-          + `<br><br><small>You agreed to our Terms of Service and Privacy Policy. You may opt out of AI improvement data use at any time by emailing ${SUPPORT_EMAIL}.</small>`;
+        message =
+          `You have approved your child's account. They can log in now!` +
+          (dashUrl
+            ? `<br><br><strong>Parent Command Center:</strong><br>Manage your child's privacy settings, toggle publishing and multiplayer, review data, or delete the account:<br><a href="${dashUrl}" style="color:#667eea;font-weight:bold">${dashUrl}</a><br><small>Bookmark this link — it's your portal to manage your child's account.</small>`
+            : '') +
+          `<br><br><small>You agreed to our Terms of Service and Privacy Policy. You may opt out of AI improvement data use at any time by emailing ${SUPPORT_EMAIL}.</small>`;
       } else {
         message = 'Your request has been approved.';
       }
       res.send(renderPage('Approved!', message, 'success'));
     } else {
-      const message = consent.action === 'consent'
-        ? 'You have denied your child\'s account request. No account will be created.'
-        : 'The request has been denied.';
+      const message =
+        consent.action === 'consent'
+          ? "You have denied your child's account request. No account will be created."
+          : 'The request has been denied.';
       res.send(renderPage('Denied', message, 'info'));
     }
-
   } catch (error) {
     console.error('Consent verify error:', error);
-    res.status(500).send(renderPage(
-      'Something Went Wrong',
-      'We encountered an error processing your request. Please try again or contact support.',
-      'error'
-    ));
+    res
+      .status(500)
+      .send(
+        renderPage(
+          'Something Went Wrong',
+          'We encountered an error processing your request. Please try again or contact support.',
+          'error',
+        ),
+      );
   }
 });
 
 /**
  * POST /api/parent/request-data
- * 
+ *
  * Parent can request to see their child's data.
  * Requires: { parentEmail, childUsername }
  * Sends a verification email to the parent.
@@ -182,7 +212,7 @@ router.post('/request-data', async (req, res) => {
     let user;
     try {
       user = await readUser(userId);
-    } catch (err) {
+    } catch (_err) {
       // Don't reveal whether account exists
       return res.json({ success: true, message: 'If this account exists, a verification email has been sent.' });
     }
@@ -204,7 +234,7 @@ router.post('/request-data', async (req, res) => {
 
 /**
  * POST /api/parent/request-deletion
- * 
+ *
  * Parent can request deletion of their child's data.
  * Requires: { parentEmail, childUsername }
  * Sends a verification email to confirm deletion.
@@ -221,7 +251,7 @@ router.post('/request-deletion', async (req, res) => {
     let user;
     try {
       user = await readUser(userId);
-    } catch (err) {
+    } catch (_err) {
       return res.json({ success: true, message: 'If this account exists, a verification email has been sent.' });
     }
 
@@ -232,7 +262,10 @@ router.post('/request-deletion', async (req, res) => {
     const token = await createConsentRequest(userId, parentEmail, 'data_delete');
     await sendConsentEmail(parentEmail, childUsername, token, 'data_delete');
 
-    res.json({ success: true, message: 'A verification email has been sent. Data will only be deleted after you confirm via email.' });
+    res.json({
+      success: true,
+      message: 'A verification email has been sent. Data will only be deleted after you confirm via email.',
+    });
   } catch (error) {
     console.error('Deletion request error:', error);
     res.status(500).json({ error: 'Could not process request' });
@@ -265,7 +298,7 @@ router.get('/privacy', (_req, res) => {
     ],
     parentalRights: [
       'Review data collected about your child',
-      'Request deletion of your child\'s data',
+      "Request deletion of your child's data",
       'Revoke consent at any time',
       'Contact us at ' + SUPPORT_EMAIL,
     ],

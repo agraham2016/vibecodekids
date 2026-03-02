@@ -1,23 +1,17 @@
 /**
  * Parental Consent Service
- * 
+ *
  * Handles COPPA-compliant parental consent flow:
  * - Generate consent tokens and send to parent email
  * - Verify consent tokens
  * - Track consent status per user
- * 
+ *
  * Email delivery is abstracted behind sendConsentEmail().
  * Currently logs to console; replace with real email provider (SendGrid, SES, etc.)
  */
 
 import { randomBytes } from 'crypto';
-import { 
-  CONSENT_TOKEN_EXPIRY_MS, 
-  BASE_URL, 
-  SITE_NAME, 
-  SUPPORT_EMAIL,
-  COPPA_AGE_THRESHOLD 
-} from '../config/index.js';
+import { CONSENT_TOKEN_EXPIRY_MS, BASE_URL, SITE_NAME, SUPPORT_EMAIL, COPPA_AGE_THRESHOLD } from '../config/index.js';
 import { readUser, writeUser } from './storage.js';
 
 // ========== CONSENT TOKEN STORE ==========
@@ -97,10 +91,13 @@ export async function createConsentRequest(userId, parentEmail, action = 'consen
   if (USE_POSTGRES) {
     const { getPool } = await import('./db.js');
     const pool = getPool();
-    await pool.query(`
+    await pool.query(
+      `
       INSERT INTO parental_consents (token, user_id, parent_email, action, status, created_at, expires_at)
       VALUES ($1, $2, $3, $4, $5, $6, $7)
-    `, [token, userId, parentEmail, action, 'pending', consent.createdAt, consent.expiresAt]);
+    `,
+      [token, userId, parentEmail, action, 'pending', consent.createdAt, consent.expiresAt],
+    );
   } else {
     consentTokens.set(token, consent);
     await saveConsents();
@@ -116,10 +113,7 @@ export async function getConsentByToken(token) {
   if (USE_POSTGRES) {
     const { getPool } = await import('./db.js');
     const pool = getPool();
-    const { rows } = await pool.query(
-      'SELECT * FROM parental_consents WHERE token = $1',
-      [token]
-    );
+    const { rows } = await pool.query('SELECT * FROM parental_consents WHERE token = $1', [token]);
     if (rows.length === 0) return null;
     const r = rows[0];
     return {
@@ -148,10 +142,11 @@ export async function resolveConsent(token, granted, verificationMethod = 'email
   if (USE_POSTGRES) {
     const { getPool } = await import('./db.js');
     const pool = getPool();
-    await pool.query(
-      'UPDATE parental_consents SET status = $1, responded_at = $2 WHERE token = $3',
-      [status, now, token]
-    );
+    await pool.query('UPDATE parental_consents SET status = $1, responded_at = $2 WHERE token = $3', [
+      status,
+      now,
+      token,
+    ]);
   } else {
     const consent = consentTokens.get(token);
     if (consent) {
@@ -184,16 +179,13 @@ export async function getUserByParentToken(token) {
   if (USE_POSTGRES) {
     const { getPool } = await import('./db.js');
     const pool = getPool();
-    const { rows } = await pool.query(
-      'SELECT id FROM users WHERE parent_dashboard_token = $1',
-      [token]
-    );
+    const { rows } = await pool.query('SELECT id FROM users WHERE parent_dashboard_token = $1', [token]);
     if (rows.length === 0) return null;
     return readUser(rows[0].id);
   } else {
     const { listUsers } = await import('./storage.js');
     const users = await listUsers();
-    return users.find(u => u.parentDashboardToken === token) || null;
+    return users.find((u) => u.parentDashboardToken === token) || null;
   }
 }
 
@@ -201,7 +193,7 @@ export async function getUserByParentToken(token) {
 
 /**
  * Send parental consent email.
- * 
+ *
  * TODO: Replace console.log with real email provider (SendGrid, SES, Resend, etc.)
  * For now, logs the consent URL so you can manually verify during development.
  */
@@ -210,14 +202,16 @@ export async function sendConsentEmail(parentEmail, childUsername, token, action
   const denyUrl = `${BASE_URL}/api/parent/verify?token=${token}&action=deny`;
   const verifyChargeUrl = `${BASE_URL}/parent-verify-charge?token=${token}`;
 
-  const subject = action === 'consent'
-    ? `${SITE_NAME}: Your child wants to create an account`
-    : action === 'data_access'
-      ? `${SITE_NAME}: Data access request for your child's account`
-      : `${SITE_NAME}: Data deletion request for your child's account`;
+  const subject =
+    action === 'consent'
+      ? `${SITE_NAME}: Your child wants to create an account`
+      : action === 'data_access'
+        ? `${SITE_NAME}: Data access request for your child's account`
+        : `${SITE_NAME}: Data deletion request for your child's account`;
 
-  const body = action === 'consent' 
-    ? `
+  const body =
+    action === 'consent'
+      ? `
 Hi there!
 
 Your child (username: ${childUsername}) wants to create an account on ${SITE_NAME},
@@ -274,7 +268,7 @@ Privacy Policy: ${BASE_URL}/privacy
 
 - The ${SITE_NAME} Team
 `
-    : `
+      : `
 Hi there!
 
 A request has been made regarding your child's account (username: ${childUsername}) 
@@ -301,7 +295,7 @@ Questions? Contact us at ${SUPPORT_EMAIL}
     try {
       const resp = await fetch('https://api.resend.com/emails', {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+        headers: { Authorization: `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           from: `${SITE_NAME} <${SUPPORT_EMAIL}>`,
           to: [parentEmail],
@@ -363,7 +357,7 @@ Questions? Contact us at ${SUPPORT_EMAIL}
     try {
       const resp = await fetch('https://api.resend.com/emails', {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+        headers: { Authorization: `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           from: `${SITE_NAME} <${SUPPORT_EMAIL}>`,
           to: [to],
@@ -400,26 +394,25 @@ Questions? Contact us at ${SUPPORT_EMAIL}
  */
 export async function exportUserData(userId) {
   const { listProjects } = await import('./storage.js');
-  
+
   const user = await readUser(userId);
   const allProjects = await listProjects();
-  const userProjects = allProjects.filter(p => p.userId === userId);
+  const userProjects = allProjects.filter((p) => p.userId === userId);
 
   // Strip sensitive fields
-  const { passwordHash, recentRequests, rateLimitedUntil, ...safeUser } = user;
+  const { passwordHash: _ph, recentRequests: _rr, rateLimitedUntil: _rl, ...safeUser } = user;
 
   return {
     exportedAt: new Date().toISOString(),
     user: safeUser,
-    projects: userProjects.map(p => ({
+    projects: userProjects.map((p) => ({
       id: p.id,
       title: p.title,
       category: p.category,
       isPublic: p.isPublic,
       createdAt: p.createdAt,
       updatedAt: p.updatedAt,
-      // Code included for full transparency
-      codeLength: p.code?.length || 0,
+      code: p.code || '',
     })),
     projectCount: userProjects.length,
   };
@@ -433,11 +426,11 @@ export async function exportUserData(userId) {
  */
 export async function deleteUserData(userId) {
   const { listProjects, deleteProject } = await import('./storage.js');
-  
+
   // Delete all user projects
   const allProjects = await listProjects();
-  const userProjects = allProjects.filter(p => p.userId === userId);
-  
+  const userProjects = allProjects.filter((p) => p.userId === userId);
+
   let deletedProjects = 0;
   for (const project of userProjects) {
     try {

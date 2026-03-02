@@ -34,7 +34,9 @@ async function writeAdmin2FA(config) {
     await fs.writeFile(ADMIN_2FA_FILE, JSON.stringify(config, null, 2), 'utf-8');
   } catch (err) {
     if (err.code === 'EACCES' || err.code === 'EROFS') {
-      const e = new Error(`Cannot write admin 2FA config. Set DATA_DIR to a writable path (e.g. /tmp/data). ${err.message}`);
+      const e = new Error(
+        `Cannot write admin 2FA config. Set DATA_DIR to a writable path (e.g. /tmp/data). ${err.message}`,
+      );
       e.code = err.code;
       throw e;
     }
@@ -157,6 +159,6 @@ export async function confirm2FASetup(code) {
  * Disable 2FA (admin must be authenticated).
  */
 export async function disable2FA() {
-  const cfg = await readAdmin2FA();
+  await readAdmin2FA();
   await writeAdmin2FA({ enabled: false, email: null, pendingCode: null, pendingExpiresAt: null });
 }

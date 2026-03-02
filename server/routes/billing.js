@@ -1,13 +1,19 @@
 /**
  * Billing Routes
- * 
+ *
  * Stripe checkout, webhooks, membership management.
  */
 
 import { Router } from 'express';
 import Stripe from 'stripe';
 import bcrypt from 'bcrypt';
-import { STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, BASE_URL, MEMBERSHIP_TIERS, BCRYPT_ROUNDS, COPPA_AGE_THRESHOLD } from '../config/index.js';
+import {
+  STRIPE_SECRET_KEY,
+  STRIPE_WEBHOOK_SECRET,
+  BASE_URL,
+  MEMBERSHIP_TIERS,
+  BCRYPT_ROUNDS,
+} from '../config/index.js';
 import { readUser, writeUser, userExists, findUserBySubscriptionId } from '../services/storage.js';
 import { checkAndResetCounters, calculateUsageRemaining } from '../middleware/rateLimit.js';
 import { getAgeBracket, requiresParentalConsent, createConsentRequest, sendConsentEmail } from '../services/consent.js';
@@ -79,7 +85,9 @@ export default function createBillingRouter(sessions) {
       const needsConsent = requiresParentalConsent(ageBracket);
 
       if (needsConsent && !parentEmail) {
-        return res.status(400).json({ error: 'A parent or guardian email is required for users under 13', requiresParentEmail: true });
+        return res
+          .status(400)
+          .json({ error: 'A parent or guardian email is required for users under 13', requiresParentEmail: true });
       }
       if (needsConsent && parentEmail) {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -151,13 +159,13 @@ export default function createBillingRouter(sessions) {
         metadata: {
           userId,
           tier,
-        }
+        },
       });
 
       res.json({ success: true, checkoutUrl: session.url, sessionId: session.id });
     } catch (error) {
       console.error('Stripe checkout error:', error);
-      const msg = (error.type && error.message) ? error.message : 'Could not create checkout session';
+      const msg = error.type && error.message ? error.message : 'Could not create checkout session';
       res.status(500).json({ error: msg });
     }
   });
@@ -176,7 +184,11 @@ export default function createBillingRouter(sessions) {
       if (!userId) return res.redirect('/?error=payment_failed');
 
       let user;
-      try { user = await readUser(userId); } catch { return res.redirect('/?error=account_creation_failed'); }
+      try {
+        user = await readUser(userId);
+      } catch {
+        return res.redirect('/?error=account_creation_failed');
+      }
 
       if (user.status === 'pending_payment') {
         const needsConsent = user.parentalConsentStatus === 'pending';
@@ -266,13 +278,13 @@ export default function createBillingRouter(sessions) {
         success_url: `${BASE_URL}/api/stripe/upgrade-success?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${BASE_URL}/?upgrade_cancelled=true`,
         customer_email: user.email || undefined,
-        metadata: { userId: session.userId, tier }
+        metadata: { userId: session.userId, tier },
       });
 
       res.json({ success: true, checkoutUrl: checkoutSession.url });
     } catch (error) {
       console.error('Upgrade error:', error);
-      const msg = (error.type && error.message) ? error.message : 'Could not process upgrade';
+      const msg = error.type && error.message ? error.message : 'Could not process upgrade';
       res.status(500).json({ error: msg });
     }
   });

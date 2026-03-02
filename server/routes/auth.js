@@ -1,6 +1,6 @@
 /**
  * Authentication Routes
- * 
+ *
  * Registration, login, logout, session validation, user projects.
  */
 
@@ -8,12 +8,20 @@ import { Router } from 'express';
 import crypto from 'crypto';
 import bcrypt from 'bcrypt';
 import { BCRYPT_ROUNDS, MEMBERSHIP_TIERS } from '../config/index.js';
-import { readUser, writeUser, userExists, listProjects, deleteProject } from '../services/storage.js';
+import { readUser, writeUser, userExists, listProjects } from '../services/storage.js';
 import { generateToken } from '../services/sessions.js';
 import { filterContent } from '../middleware/contentFilter.js';
 import { filterUsername } from '../middleware/usernameFilter.js';
 import { checkAndResetCounters, calculateUsageRemaining } from '../middleware/rateLimit.js';
-import { getAgeBracket, requiresParentalConsent, createConsentRequest, sendConsentEmail, sendPasswordResetEmail, exportUserData, deleteUserData } from '../services/consent.js';
+import {
+  getAgeBracket,
+  requiresParentalConsent,
+  createConsentRequest,
+  sendConsentEmail,
+  sendPasswordResetEmail,
+  exportUserData,
+  deleteUserData,
+} from '../services/consent.js';
 import { checkAbuse } from '../services/abuseDetection.js';
 import { generateJuniorNameOptions } from '../services/juniorNameGenerator.js';
 import { createResetToken, getResetByToken, consumeToken } from '../services/passwordReset.js';
@@ -69,7 +77,16 @@ export default function createAuthRouter(sessions) {
         return res.status(429).json({ error: 'Too many accounts created. Please try again later.' });
       }
 
-      const { username, password, displayName, age, ageBracket: clientBracket, parentEmail, recoveryEmail, privacyAccepted } = req.body;
+      const {
+        username,
+        password,
+        displayName,
+        age,
+        ageBracket: clientBracket,
+        parentEmail,
+        recoveryEmail,
+        privacyAccepted,
+      } = req.body;
 
       if (!username || !password || !displayName) {
         return res.status(400).json({ error: 'Username, password, and display name are required' });
@@ -77,8 +94,8 @@ export default function createAuthRouter(sessions) {
       if (!/^[a-zA-Z0-9_]{3,20}$/.test(username)) {
         return res.status(400).json({ error: 'Username must be 3-20 characters (letters, numbers, underscore only)' });
       }
-      if (password.length < 4) {
-        return res.status(400).json({ error: 'Password must be at least 4 characters' });
+      if (password.length < 8) {
+        return res.status(400).json({ error: 'Password must be at least 8 characters' });
       }
       if (displayName.length < 1 || displayName.length > 30) {
         return res.status(400).json({ error: 'Display name must be 1-30 characters' });
@@ -103,9 +120,9 @@ export default function createAuthRouter(sessions) {
 
       // COPPA: Under-13 users MUST provide a parent email
       if (needsConsent && !parentEmail) {
-        return res.status(400).json({ 
+        return res.status(400).json({
           error: 'A parent or guardian email is required for users under 13',
-          requiresParentEmail: true
+          requiresParentEmail: true,
         });
       }
 
@@ -191,19 +208,20 @@ export default function createAuthRouter(sessions) {
       if (needsConsent) {
         const token = await createConsentRequest(userId, parentEmail, 'consent');
         await sendConsentEmail(parentEmail, username, token, 'consent');
-        responseMessage = 'Account created! We\'ve sent an email to your parent/guardian for approval. They need to approve before you can log in.';
+        responseMessage =
+          "Account created! We've sent an email to your parent/guardian for approval. They need to approve before you can log in.";
         console.log(`Under-13 registration: ${username} → consent email sent`);
       } else {
         responseMessage = 'Account created! You can log in now.';
       }
 
-      res.json({ 
-        success: true, 
+      res.json({
+        success: true,
         message: responseMessage,
         requiresParentalConsent: needsConsent,
       });
     } catch (error) {
-      console.error('Register error:', error);
+      console.error('Register error:', error?.stack || error);
       res.status(500).json({ error: 'Could not create account' });
     }
   });
@@ -256,9 +274,16 @@ export default function createAuthRouter(sessions) {
       if (user.status === 'pending') {
         // Check if waiting on parental consent or admin approval
         if (user.parentalConsentStatus === 'pending') {
-          return res.status(403).json({ error: 'We\'re still waiting for your parent/guardian to approve your account. Ask them to check their email!' });
+          return res
+            .status(403)
+            .json({
+              error:
+                "We're still waiting for your parent/guardian to approve your account. Ask them to check their email!",
+            });
         }
-        return res.status(403).json({ error: 'Your account is pending approval. Please wait for an admin to approve it.' });
+        return res
+          .status(403)
+          .json({ error: 'Your account is pending approval. Please wait for an admin to approve it.' });
       }
       if (user.status === 'denied') {
         return res.status(403).json({ error: 'Your account has been denied. Please contact support.' });
@@ -283,7 +308,9 @@ export default function createAuthRouter(sessions) {
       }
       // COPPA: Block login if parental consent was revoked
       if (user.parentalConsentStatus === 'revoked' || user.parentalConsentStatus === 'denied') {
-        return res.status(403).json({ error: 'Parental consent is required for this account. Please contact support.' });
+        return res
+          .status(403)
+          .json({ error: 'Parental consent is required for this account. Please contact support.' });
       }
 
       const token = generateToken();
@@ -291,15 +318,13 @@ export default function createAuthRouter(sessions) {
         userId: user.id,
         username: user.username,
         displayName: user.displayName,
-        createdAt: Date.now()
+        createdAt: Date.now(),
       });
 
       user.lastLoginAt = new Date().toISOString();
       const updatedUser = checkAndResetCounters(user);
 
-      const showUpgradePrompt = (
-        updatedUser.membershipTier === 'free' && !updatedUser.hasSeenUpgradePrompt
-      );
+      const showUpgradePrompt = updatedUser.membershipTier === 'free' && !updatedUser.hasSeenUpgradePrompt;
       if (showUpgradePrompt) {
         updatedUser.hasSeenUpgradePrompt = true;
       }
@@ -307,7 +332,13 @@ export default function createAuthRouter(sessions) {
       await writeUser(userId, updatedUser);
 
       const usage = calculateUsageRemaining(updatedUser);
-      const { passwordHash, recentRequests, rateLimitedUntil, parentEmail, ...safeUser } = updatedUser;
+      const {
+        passwordHash: _ph,
+        recentRequests: _rr,
+        rateLimitedUntil: _rl,
+        parentEmail: _pe,
+        ...safeUser
+      } = updatedUser;
 
       res.json({
         success: true,
@@ -315,10 +346,10 @@ export default function createAuthRouter(sessions) {
         user: safeUser,
         membership: usage,
         showUpgradePrompt,
-        tiers: MEMBERSHIP_TIERS
+        tiers: MEMBERSHIP_TIERS,
       });
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('Login error:', error?.stack || error);
       res.status(500).json({ error: 'Could not log in' });
     }
   });
@@ -340,11 +371,11 @@ export default function createAuthRouter(sessions) {
 
       user = checkAndResetCounters(user);
       const usage = calculateUsageRemaining(user);
-      const { passwordHash, recentRequests, rateLimitedUntil, parentEmail, ...safeUser } = user;
+      const { passwordHash: _ph2, recentRequests: _rr2, rateLimitedUntil: _rl2, parentEmail: _pe2, ...safeUser } = user;
 
       res.json({ user: safeUser, membership: usage });
     } catch (error) {
-      console.error('Auth check error:', error);
+      console.error('Auth check error:', error?.stack || error);
       res.status(500).json({ error: 'Could not verify session' });
     }
   });
@@ -357,7 +388,10 @@ export default function createAuthRouter(sessions) {
   });
 
   // Forgot password (COPPA-compliant: under-13 → parent email, 13+ → recovery email)
-  const genericForgotSuccess = { success: true, message: "If an account exists and has a recovery email on file, we've sent reset instructions." };
+  const genericForgotSuccess = {
+    success: true,
+    message: "If an account exists and has a recovery email on file, we've sent reset instructions.",
+  };
   router.post('/forgot-password', async (req, res) => {
     try {
       const clientIp = req.ip || req.connection?.remoteAddress || 'unknown';
@@ -395,7 +429,7 @@ export default function createAuthRouter(sessions) {
 
       return res.json(genericForgotSuccess);
     } catch (error) {
-      console.error('Forgot password error:', error);
+      console.error('Forgot password error:', error?.stack || error);
       return res.json(genericForgotSuccess);
     }
   });
@@ -407,8 +441,8 @@ export default function createAuthRouter(sessions) {
       if (!token || !newPassword) {
         return res.status(400).json({ error: 'Token and new password are required' });
       }
-      if (typeof newPassword !== 'string' || newPassword.length < 4) {
-        return res.status(400).json({ error: 'Password must be at least 4 characters' });
+      if (typeof newPassword !== 'string' || newPassword.length < 8) {
+        return res.status(400).json({ error: 'Password must be at least 8 characters' });
       }
 
       const record = await getResetByToken(token);
@@ -426,7 +460,7 @@ export default function createAuthRouter(sessions) {
       if (error.code === 'ENOENT') {
         return res.status(400).json({ error: 'This reset link is invalid or expired. Please request a new one.' });
       }
-      console.error('Reset password error:', error);
+      console.error('Reset password error:', error?.stack || error);
       return res.status(500).json({ error: 'Could not reset password. Please try again or contact support.' });
     }
   });
@@ -442,21 +476,21 @@ export default function createAuthRouter(sessions) {
 
       const allProjects = await listProjects();
       const userProjects = allProjects
-        .filter(p => p.userId === session.userId)
-        .map(p => ({
+        .filter((p) => p.userId === session.userId)
+        .map((p) => ({
           id: p.id,
           title: p.title,
           category: p.category,
           isPublic: p.isPublic,
           createdAt: p.createdAt,
           views: p.views || 0,
-          likes: p.likes || 0
+          likes: p.likes || 0,
         }))
         .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
       res.json(userProjects);
     } catch (error) {
-      console.error('Get my projects error:', error);
+      console.error('Get my projects error:', error?.stack || error);
       res.status(500).json({ error: 'Could not load projects' });
     }
   });
@@ -483,7 +517,7 @@ export default function createAuthRouter(sessions) {
       const data = await exportUserData(session.userId);
       res.json(data);
     } catch (error) {
-      console.error('Self-service export error:', error);
+      console.error('Self-service export error:', error?.stack || error);
       res.status(500).json({ error: 'Could not export data' });
     }
   });
@@ -516,7 +550,7 @@ export default function createAuthRouter(sessions) {
         message: `Account deleted. ${result.deletedProjects} project(s) removed.`,
       });
     } catch (error) {
-      console.error('Self-service delete error:', error);
+      console.error('Self-service delete error:', error?.stack || error);
       res.status(500).json({ error: 'Could not delete account' });
     }
   });

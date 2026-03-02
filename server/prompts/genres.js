@@ -6,17 +6,107 @@
 // Keywords for detecting game genre from free-text messages
 export const GENRE_KEYWORDS = {
   racing: ['racing', 'race', 'car game', 'driving', 'dodge cars', 'racing game', 'car racing', 'drive'],
-  'street-racing': ['street rod', 'street racing', 'drag race', 'drag racing', 'muscle car', 'hot rod', 'garage racing', 'car customization', 'tuning', 'nitro'],
-  shooter: ['shooter', 'shooting', 'space invaders', 'shoot', 'laser', 'zombie', 'space shooter', 'shoot em up', 'shmup', 'bullet'],
-  platformer: ['platformer', 'jumping', 'mario', 'jump game', 'side scroller', 'platform game', 'jumping game', 'collect coins'],
-  'endless-runner': ['endless runner', 'infinite runner', 'temple run', 'subway surfer', 'run game', 'auto runner', 'runner game'],
+  'street-racing': [
+    'street rod',
+    'street racing',
+    'drag race',
+    'drag racing',
+    'muscle car',
+    'hot rod',
+    'garage racing',
+    'car customization',
+    'tuning',
+    'nitro',
+  ],
+  shooter: [
+    'shooter',
+    'shooting',
+    'space invaders',
+    'shoot',
+    'laser',
+    'zombie',
+    'space shooter',
+    'shoot em up',
+    'shmup',
+    'bullet',
+  ],
+  platformer: [
+    'platformer',
+    'jumping',
+    'mario',
+    'jump game',
+    'side scroller',
+    'platform game',
+    'jumping game',
+    'collect coins',
+  ],
+  'endless-runner': [
+    'endless runner',
+    'infinite runner',
+    'temple run',
+    'subway surfer',
+    'run game',
+    'auto runner',
+    'runner game',
+  ],
   frogger: ['frogger', 'crossing', 'cross the road', 'dodge traffic', 'crossy', 'road crossing'],
-  puzzle: ['puzzle', 'matching', 'memory game', 'match 3', 'tile', 'memory', 'card matching', 'match game', 'jigsaw', 'wordle', 'sudoku'],
+  puzzle: [
+    'puzzle',
+    'matching',
+    'memory game',
+    'match 3',
+    'tile',
+    'memory',
+    'card matching',
+    'match game',
+    'jigsaw',
+    'wordle',
+    'sudoku',
+  ],
   clicker: ['clicker', 'clicking', 'idle', 'tapper', 'cookie clicker', 'idle game', 'tap game', 'incremental'],
-  rpg: ['rpg', 'adventure', 'quest', 'explore', 'adventure game', 'story game', 'exploration', 'rpg game', 'role playing'],
-  fighting: ['fighting game', 'fighter', 'street fighter', 'beat em up', 'brawler', 'boxing', 'wrestling', 'mortal kombat', 'punch', 'kick fight'],
-  'tower-defense': ['tower defense', 'td game', 'defend the base', 'tower game', 'place towers', 'defense game', 'castle defense'],
-  card: ['card game', 'cards', 'solitaire', 'poker', 'blackjack', 'uno', 'card battle', 'deck building', 'trading card'],
+  rpg: [
+    'rpg',
+    'adventure',
+    'quest',
+    'explore',
+    'adventure game',
+    'story game',
+    'exploration',
+    'rpg game',
+    'role playing',
+  ],
+  fighting: [
+    'fighting game',
+    'fighter',
+    'street fighter',
+    'beat em up',
+    'brawler',
+    'boxing',
+    'wrestling',
+    'mortal kombat',
+    'punch',
+    'kick fight',
+  ],
+  'tower-defense': [
+    'tower defense',
+    'td game',
+    'defend the base',
+    'tower game',
+    'place towers',
+    'defense game',
+    'castle defense',
+  ],
+  card: [
+    'card game',
+    'cards',
+    'solitaire',
+    'poker',
+    'blackjack',
+    'uno',
+    'card battle',
+    'deck building',
+    'trading card',
+  ],
   sports: ['sports', 'soccer', 'football', 'basketball', 'baseball', 'tennis', 'golf', 'hockey', 'bowling'],
   simulation: ['simulation', 'simulator', 'tycoon', 'farm', 'city builder', 'restaurant', 'life sim'],
   snake: ['snake', 'snake game', 'grow longer', 'worm game', 'slither'],
@@ -36,7 +126,7 @@ export const GENRE_KEYWORDS = {
 export function detectGameGenre(message) {
   const lower = message.toLowerCase();
   for (const [type, keywords] of Object.entries(GENRE_KEYWORDS)) {
-    if (keywords.some(kw => lower.includes(kw))) {
+    if (keywords.some((kw) => lower.includes(kw))) {
       return type;
     }
   }
@@ -372,18 +462,43 @@ RULES:
 
 // Multiplayer intent detection keywords
 export const MULTIPLAYER_KEYWORDS = [
-  '2 player', 'two player', '2-player', 'two-player',
-  'multiplayer', 'multi player', 'multi-player',
-  'play with friend', 'play with friends', 'play together',
-  'with my friend', 'with my friends', 'with friends',
-  'play online', 'online game', 'online chess', 'online checkers',
-  'online tic tac toe', 'online connect',
-  'versus', 'vs ',
-  'pvp', 'player vs player', 'play against',
-  '1v1', '1 vs 1', 'head to head',
-  'against my friend', 'against a friend', 'challenge a friend',
-  'invite a friend', 'room code',
-  'fighting', 'battle', 'sports game', 'beat em up', 'fighter',
+  '2 player',
+  'two player',
+  '2-player',
+  'two-player',
+  'multiplayer',
+  'multi player',
+  'multi-player',
+  'play with friend',
+  'play with friends',
+  'play together',
+  'with my friend',
+  'with my friends',
+  'with friends',
+  'play online',
+  'online game',
+  'online chess',
+  'online checkers',
+  'online tic tac toe',
+  'online connect',
+  'versus',
+  'vs ',
+  'pvp',
+  'player vs player',
+  'play against',
+  '1v1',
+  '1 vs 1',
+  'head to head',
+  'against my friend',
+  'against a friend',
+  'challenge a friend',
+  'invite a friend',
+  'room code',
+  'fighting',
+  'battle',
+  'sports game',
+  'beat em up',
+  'fighter',
 ];
 
 /**
@@ -393,7 +508,7 @@ export const MULTIPLAYER_KEYWORDS = [
  */
 export function detectMultiplayerIntent(message) {
   const lower = (message || '').toLowerCase();
-  return MULTIPLAYER_KEYWORDS.some(kw => lower.includes(kw));
+  return MULTIPLAYER_KEYWORDS.some((kw) => lower.includes(kw));
 }
 
 // Phaser 2D game rules (general, injected when Phaser code is detected)
@@ -407,7 +522,7 @@ PHASER 2D GAME - IMPORTANT RULES:
 - Use Phaser.Math.Between() for random values, Phaser.Math.Clamp() for clamping
 - For game over: display text overlay and this.input.keyboard.once('keydown-SPACE', () => this.scene.restart())
 - ALWAYS output the COMPLETE HTML file from <!DOCTYPE html> to </html> with the Phaser CDN script tag
-- The Phaser CDN tag MUST be: <script src="https://cdn.jsdelivr.net/npm/phaser@3.86.0/dist/phaser.min.js"><\/script>
+- The Phaser CDN tag MUST be: <script src="https://cdn.jsdelivr.net/npm/phaser@3.86.0/dist/phaser.min.js"></script>
 
 MOBILE / RESPONSIVE RULES (MANDATORY for every game):
 - ALWAYS include scale config: scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH }

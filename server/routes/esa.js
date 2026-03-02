@@ -10,14 +10,23 @@ import { Router } from 'express';
 import crypto from 'crypto';
 import bcrypt from 'bcrypt';
 import {
-  CLASSWALLET_ENABLED, CLASSWALLET_API_KEY, CLASSWALLET_VENDOR_ID,
-  CLASSWALLET_BASE_URL, ESA_PRICING, BASE_URL, BCRYPT_ROUNDS,
-  COPPA_AGE_THRESHOLD, MEMBERSHIP_TIERS
+  CLASSWALLET_ENABLED,
+  CLASSWALLET_VENDOR_ID,
+  CLASSWALLET_BASE_URL,
+  ESA_PRICING,
+  BCRYPT_ROUNDS,
 } from '../config/index.js';
 import {
-  readUser, writeUser, userExists,
-  createEsaOrder, getEsaOrder, updateEsaOrderStatus, listEsaOrders,
-  addEsaWaitlist, listEsaWaitlist, countEsaWaitlist
+  readUser,
+  writeUser,
+  userExists,
+  createEsaOrder,
+  getEsaOrder,
+  updateEsaOrderStatus,
+  listEsaOrders,
+  addEsaWaitlist,
+  listEsaWaitlist,
+  countEsaWaitlist,
 } from '../services/storage.js';
 import { getAgeBracket, requiresParentalConsent, createConsentRequest, sendConsentEmail } from '../services/consent.js';
 import { filterContent } from '../middleware/contentFilter.js';
@@ -42,7 +51,7 @@ export default function createEsaRouter(sessions) {
         return res.status(400).json({ error: 'Please enter a valid email address' });
       }
       await addEsaWaitlist(email.toLowerCase().trim());
-      res.json({ success: true, message: 'You\'re on the list! We\'ll notify you when ESA payments go live.' });
+      res.json({ success: true, message: "You're on the list! We'll notify you when ESA payments go live." });
     } catch (error) {
       console.error('ESA waitlist error:', error);
       res.status(500).json({ error: 'Could not add to waitlist' });
@@ -53,7 +62,8 @@ export default function createEsaRouter(sessions) {
 
   router.post('/checkout', async (req, res) => {
     try {
-      const { pricingKey, username, displayName, password, age, parentEmail, recoveryEmail, privacyAccepted } = req.body;
+      const { pricingKey, username, displayName, password, age, parentEmail, recoveryEmail, privacyAccepted } =
+        req.body;
 
       const pricing = ESA_PRICING[pricingKey];
       if (!pricing) return res.status(400).json({ error: 'Invalid pricing option' });
@@ -86,7 +96,9 @@ export default function createEsaRouter(sessions) {
       const needsConsent = requiresParentalConsent(ageBracket);
 
       if (needsConsent && !parentEmail) {
-        return res.status(400).json({ error: 'A parent or guardian email is required for users under 13', requiresParentEmail: true });
+        return res
+          .status(400)
+          .json({ error: 'A parent or guardian email is required for users under 13', requiresParentEmail: true });
       }
       if (needsConsent && parentEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(parentEmail)) {
         return res.status(400).json({ error: 'Please enter a valid parent email address' });
@@ -104,7 +116,7 @@ export default function createEsaRouter(sessions) {
       if (!CLASSWALLET_ENABLED) {
         return res.json({
           comingSoon: true,
-          message: 'ESA payments are launching soon! Sign up for our waitlist to be notified.'
+          message: 'ESA payments are launching soon! Sign up for our waitlist to be notified.',
         });
       }
 
@@ -139,7 +151,7 @@ export default function createEsaRouter(sessions) {
         hasSeenUpgradePrompt: true,
         lastLoginAt: null,
         ageBracket: ageBracket || 'unknown',
-        parentEmail: parentEmail || null,
+        parentEmail: needsConsent && parentEmail ? parentEmail.toLowerCase().trim() : null,
         recoveryEmail: !needsConsent && recoveryEmail ? recoveryEmail.toLowerCase().trim() : null,
         parentalConsentStatus: needsConsent ? 'pending' : 'not_required',
         parentalConsentAt: null,
@@ -156,7 +168,9 @@ export default function createEsaRouter(sessions) {
 
       await writeUser(userId, user);
       await createEsaOrder({
-        orderRef, userId, tier: pricing.tier,
+        orderRef,
+        userId,
+        tier: pricing.tier,
         billingPeriod: user.esaBillingPeriod,
         amountCents: pricing.amount,
       });
@@ -209,7 +223,11 @@ export default function createEsaRouter(sessions) {
   router.get('/cancel', async (req, res) => {
     const { order_ref } = req.query;
     if (order_ref) {
-      try { await updateEsaOrderStatus(order_ref, 'cancelled'); } catch { /* ignore */ }
+      try {
+        await updateEsaOrderStatus(order_ref, 'cancelled');
+      } catch {
+        /* ignore */
+      }
     }
     res.redirect('/esa?cancelled=true');
   });
@@ -246,7 +264,7 @@ export default function createEsaRouter(sessions) {
             user.approvedAt = new Date().toISOString();
           }
           const pricingEntry = Object.values(ESA_PRICING).find(
-            p => p.tier === order.tier && p.amount === order.amount_cents
+            (p) => p.tier === order.tier && p.amount === order.amount_cents,
           );
           if (pricingEntry) {
             const exp = new Date();
@@ -254,7 +272,9 @@ export default function createEsaRouter(sessions) {
             user.membershipExpires = exp.toISOString();
           }
           await writeUser(user.id, user);
-        } catch { /* user may have been deleted */ }
+        } catch {
+          /* user may have been deleted */
+        }
       }
 
       res.json({ success: true, message: 'Order marked as paid and user activated' });

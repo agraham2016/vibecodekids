@@ -1,6 +1,6 @@
 /**
  * GitHub Fetcher Service
- * 
+ *
  * Fetches code from public GitHub repos to use as reference material
  * for the AI when generating games. Handles:
  * - URL parsing (github.com/user/repo)
@@ -11,13 +11,7 @@
  * - Character budget enforcement
  */
 
-import { createHash } from 'crypto';
-import {
-  GITHUB_TOKEN,
-  GITHUB_CACHE_TTL,
-  GITHUB_MAX_FILE_SIZE,
-  REFERENCE_MAX_CHARS,
-} from '../config/index.js';
+import { GITHUB_TOKEN, GITHUB_CACHE_TTL, GITHUB_MAX_FILE_SIZE, REFERENCE_MAX_CHARS } from '../config/index.js';
 
 // ========== CACHE ==========
 
@@ -31,7 +25,7 @@ const repoCache = new Map();
  *   - https://github.com/owner/repo
  *   - github.com/owner/repo
  *   - owner/repo (shorthand)
- * 
+ *
  * @param {string} input - URL or shorthand
  * @returns {{ owner: string, repo: string } | null}
  */
@@ -74,7 +68,7 @@ export function detectGitHubUrl(prompt) {
  */
 function githubHeaders() {
   const headers = {
-    'Accept': 'application/vnd.github.v3+json',
+    Accept: 'application/vnd.github.v3+json',
     'User-Agent': 'VibeCodeKidz/1.0',
   };
   if (GITHUB_TOKEN) {
@@ -89,7 +83,7 @@ function githubHeaders() {
 async function fetchRepoTree(owner, repo) {
   const url = `https://api.github.com/repos/${owner}/${repo}/git/trees/HEAD?recursive=1`;
   const res = await fetch(url, { headers: githubHeaders() });
-  
+
   if (!res.ok) {
     if (res.status === 404) throw new Error(`Repository ${owner}/${repo} not found`);
     if (res.status === 403) throw new Error('GitHub API rate limit exceeded');
@@ -106,9 +100,9 @@ async function fetchRepoTree(owner, repo) {
 async function fetchFileContent(owner, repo, path) {
   const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
   const res = await fetch(url, { headers: githubHeaders() });
-  
+
   if (!res.ok) return null;
-  
+
   const data = await res.json();
   if (data.encoding === 'base64' && data.content) {
     return Buffer.from(data.content, 'base64').toString('utf-8');
@@ -140,18 +134,34 @@ const SKIP_PATTERNS = [
   /eslint/i,
   /tsconfig/,
   /\.d\.ts$/,
-  /\.png$/i, /\.jpg$/i, /\.gif$/i, /\.svg$/i, /\.ico$/i,
-  /\.mp3$/i, /\.wav$/i, /\.ogg$/i,
-  /\.woff/i, /\.ttf$/i, /\.eot$/i,
+  /\.png$/i,
+  /\.jpg$/i,
+  /\.gif$/i,
+  /\.svg$/i,
+  /\.ico$/i,
+  /\.mp3$/i,
+  /\.wav$/i,
+  /\.ogg$/i,
+  /\.woff/i,
+  /\.ttf$/i,
+  /\.eot$/i,
 ];
 
 /**
  * Priority files to look for first (common game entry points).
  */
 const PRIORITY_FILENAMES = [
-  'index.html', 'game.html', 'main.html',
-  'game.js', 'main.js', 'app.js', 'index.js', 'script.js',
-  'game.ts', 'main.ts', 'app.ts',
+  'index.html',
+  'game.html',
+  'main.html',
+  'game.js',
+  'main.js',
+  'app.js',
+  'index.js',
+  'script.js',
+  'game.ts',
+  'main.ts',
+  'app.ts',
 ];
 
 /**
@@ -164,7 +174,7 @@ function scoreFile(filePath, size) {
   let score = 0;
 
   // Skip obvious non-game files
-  if (SKIP_PATTERNS.some(p => p.test(lower))) return -1;
+  if (SKIP_PATTERNS.some((p) => p.test(lower))) return -1;
   if (size > GITHUB_MAX_FILE_SIZE) return -1;
 
   // Priority filenames get a big boost
@@ -173,7 +183,7 @@ function scoreFile(filePath, size) {
   // Extension scoring
   const ext = '.' + name.split('.').pop();
   const extIdx = GAME_EXTENSIONS.indexOf(ext);
-  if (extIdx >= 0) score += (GAME_EXTENSIONS.length - extIdx);
+  if (extIdx >= 0) score += GAME_EXTENSIONS.length - extIdx;
   else return -1; // Not a game-relevant extension
 
   // Depth penalty (prefer files closer to root)
@@ -195,13 +205,13 @@ function scoreFile(filePath, size) {
 function selectFiles(tree, hintFiles = []) {
   // Score and sort all files
   const scored = tree
-    .filter(f => f.type === 'blob')
-    .map(f => ({ path: f.path, size: f.size || 0, score: scoreFile(f.path, f.size || 0) }))
-    .filter(f => f.score >= 0);
+    .filter((f) => f.type === 'blob')
+    .map((f) => ({ path: f.path, size: f.size || 0, score: scoreFile(f.path, f.size || 0) }))
+    .filter((f) => f.score >= 0);
 
   // Boost hint files (from known-repos.json mainFiles)
   for (const sf of scored) {
-    if (hintFiles.some(h => sf.path.endsWith(h) || sf.path === h)) {
+    if (hintFiles.some((h) => sf.path.endsWith(h) || sf.path === h)) {
       sf.score += 20;
     }
   }
@@ -237,10 +247,10 @@ function sanitizeCode(code) {
 
   // Strip potential secrets (anything that looks like an API key)
   cleaned = cleaned.replace(/(['"`])(?:sk-|api[_-]?key|token|secret|password)[^'"`]*\1/gi, "'REDACTED'");
-  
+
   // Remove external network calls (keep internal ones)
   cleaned = cleaned.replace(/fetch\s*\(\s*['"`]https?:\/\/[^)]+\)/gi, '/* fetch removed for safety */');
-  
+
   // Remove eval
   cleaned = cleaned.replace(/\beval\s*\(/g, '/* eval removed */ (');
 
@@ -252,7 +262,7 @@ function sanitizeCode(code) {
 /**
  * Fetch game-relevant code from a GitHub repo.
  * Returns a formatted string ready to inject into the AI prompt.
- * 
+ *
  * @param {string} owner - Repo owner
  * @param {string} repo - Repo name
  * @param {string[]} hintFiles - Optional list of known main files
@@ -289,16 +299,14 @@ export async function fetchRepoCode(owner, repo, hintFiles = []) {
       filePaths.map(async (fp) => {
         const content = await fetchFileContent(owner, repo, fp);
         return content ? { path: fp, content: sanitizeCode(content) } : null;
-      })
+      }),
     );
 
     const validFiles = fileContents.filter(Boolean);
     if (!validFiles.length) return null;
 
     // 4. Format as a single reference string
-    const parts = validFiles.map(f => 
-      `// ===== FILE: ${f.path} =====\n${f.content}`
-    );
+    const parts = validFiles.map((f) => `// ===== FILE: ${f.path} =====\n${f.content}`);
     const code = parts.join('\n\n');
 
     // 5. Truncate if over budget
@@ -307,7 +315,7 @@ export async function fetchRepoCode(owner, repo, hintFiles = []) {
 
     const result = {
       code: finalCode,
-      files: validFiles.map(f => f.path),
+      files: validFiles.map((f) => f.path),
     };
 
     // Cache it

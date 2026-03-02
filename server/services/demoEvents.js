@@ -13,8 +13,14 @@ import { DATA_DIR } from '../config/index.js';
 const DEMO_EVENTS_FILE = path.join(DATA_DIR, 'demo_events.jsonl');
 
 async function ensureFile() {
-  try { await fs.mkdir(DATA_DIR, { recursive: true }); } catch {}
-  try { await fs.access(DEMO_EVENTS_FILE); } catch {
+  try {
+    await fs.mkdir(DATA_DIR, { recursive: true });
+  } catch {
+    /* ignore */
+  }
+  try {
+    await fs.access(DEMO_EVENTS_FILE);
+  } catch {
     await fs.writeFile(DEMO_EVENTS_FILE, '');
   }
 }
@@ -57,13 +63,22 @@ export async function readDemoEvents(opts = {}) {
   try {
     await ensureFile();
     const content = await fs.readFile(DEMO_EVENTS_FILE, 'utf-8');
-    let events = content.trim().split('\n').filter(Boolean).map(line => {
-      try { return JSON.parse(line); } catch { return null; }
-    }).filter(Boolean);
+    let events = content
+      .trim()
+      .split('\n')
+      .filter(Boolean)
+      .map((line) => {
+        try {
+          return JSON.parse(line);
+        } catch {
+          return null;
+        }
+      })
+      .filter(Boolean);
 
     if (opts.sinceDays) {
       const cutoff = Date.now() - opts.sinceDays * 86400000;
-      events = events.filter(e => new Date(e.timestamp).getTime() >= cutoff);
+      events = events.filter((e) => new Date(e.timestamp).getTime() >= cutoff);
     }
     return events;
   } catch (err) {

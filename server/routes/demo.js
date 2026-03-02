@@ -7,15 +7,11 @@
 
 import { Router } from 'express';
 import crypto from 'crypto';
-import { detectGameGenre, sanitizeOutput } from '../prompts/index.js';
+import { detectGameGenre } from '../prompts/index.js';
 import { filterContent } from '../middleware/contentFilter.js';
 import { scanPII } from '../middleware/piiScanner.js';
 import { filterOutputText, filterOutputCode } from '../middleware/outputFilter.js';
-import {
-  getTemplateCacheKey,
-  getCachedTemplate,
-  cacheTemplate,
-} from '../services/ai.js';
+import { getTemplateCacheKey, getCachedTemplate, cacheTemplate } from '../services/ai.js';
 import { generateOrIterateGame } from '../services/gameHandler.js';
 import { logDemoEvent } from '../services/demoEvents.js';
 
@@ -27,12 +23,15 @@ const DEMO_MAX = 5;
 const DEMO_WINDOW_MS = 24 * 60 * 60 * 1000;
 const demoLimits = new Map(); // Map<ip, { count, resetAt }>
 
-setInterval(() => {
-  const now = Date.now();
-  for (const [ip, entry] of demoLimits) {
-    if (now > entry.resetAt) demoLimits.delete(ip);
-  }
-}, 60 * 60 * 1000);
+setInterval(
+  () => {
+    const now = Date.now();
+    for (const [ip, entry] of demoLimits) {
+      if (now > entry.resetAt) demoLimits.delete(ip);
+    }
+  },
+  60 * 60 * 1000,
+);
 
 function getClientIp(req) {
   return req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || 'unknown';
@@ -52,7 +51,7 @@ function checkDemoLimit(ip) {
   return { allowed: true, remaining: DEMO_MAX - entry.count };
 }
 
-function isDefaultCode(code) {
+function _isDefaultCode(code) {
   if (!code) return true;
   return code.includes('Vibe Code Studio') && code.includes('Tell me what you want to create');
 }
@@ -87,7 +86,7 @@ router.post('/generate', async (req, res) => {
       return res.json({ message: contentCheck.reason, code: null, promptsRemaining: limit.remaining });
     }
 
-    const gameGenre = detectGameGenre(cleanMessage);
+    const _gameGenre = detectGameGenre(cleanMessage);
     const generationId = `demo_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
 
     // Template cache check
@@ -138,7 +137,17 @@ router.post('/generate', async (req, res) => {
 
     // Filter output for PII and content before sending to child
     const filteredMessage = filterOutputText(result.response);
-    const { code: filteredCode, warnings: outWarnings } = filterOutputCode(result.code);
+    const { code: filteredCode, warnings: _outWarnings, blocked } = filterOutputCode(result.code);
+
+    if (blocked) {
+      console.error(`BLOCKED demo output, ip=${ip?.slice(0, 8)}, prompt="${cleanMessage?.slice(0, 80)}"`);
+      return res.json({
+        message: "Hmm, that didn't come out right! Try describing your game a different way.",
+        code: null,
+        promptsRemaining: limit.remaining,
+        blocked: true,
+      });
+    }
 
     logDemoEvent({
       type: 'generation',
@@ -160,11 +169,10 @@ router.post('/generate', async (req, res) => {
       isCacheHit: false,
       promptsRemaining: limit.remaining,
     });
-
   } catch (error) {
     console.error('Demo generate error:', error.message || error);
     res.status(500).json({
-      message: "Oops! Something went wrong. Try again in a moment.",
+      message: 'Oops! Something went wrong. Try again in a moment.',
       code: null,
       promptsRemaining: null,
     });

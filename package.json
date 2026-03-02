@@ -19,6 +19,8 @@
     "docker:build": "docker build -t vibecodekidz .",
     "docker:run": "docker run -p 3001:3001 --env-file .env vibecodekidz",
     "test": "npx playwright test",
+    "test:safety": "node server/tests/safety.test.js",
+    "test:ci": "npm run test:safety && npx playwright test kid-bot",
     "test:bot": "npx playwright test interactive-bot --headed",
     "test:all": "npx playwright test kid-bot --headed",
     "test:quick": "npx playwright test kid-bot --headed --grep=\"API health|gallery\"",
@@ -29,6 +31,11 @@
     "test:game4": "npx playwright test game-builder-bot --headed --grep=\"Game 4\"",
     "test:game5": "npx playwright test game-builder-bot --headed --grep=\"Game 5\"",
     "test:report": "npx playwright show-report",
+    "lint": "eslint src/ server/",
+    "lint:fix": "eslint src/ server/ --fix",
+    "format": "prettier --write \"src/**/*.{ts,tsx}\" \"server/**/*.js\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx}\" \"server/**/*.js\"",
+    "prepare": "husky",
     "db:migrate": "node scripts/migrate-to-postgres.js",
     "db:migrate:dry": "node scripts/migrate-to-postgres.js --dry-run",
     "db:migrate-passwords": "node scripts/migrate-passwords.js"
@@ -36,6 +43,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.24.0",
     "@monaco-editor/react": "^4.6.0",
+    "@sentry/node": "^10.40.0",
     "bcrypt": "^6.0.0",
     "compression": "^1.8.1",
     "cors": "^2.8.5",
@@ -49,11 +57,31 @@
     "ws": "^8.19.0"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.3",
     "@playwright/test": "^1.58.1",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
     "@vitejs/plugin-react": "^4.2.0",
+    "eslint": "^9.39.3",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.5.2",
+    "globals": "^17.4.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.3.1",
+    "prettier": "^3.8.1",
     "typescript": "^5.3.0",
+    "typescript-eslint": "^8.56.1",
     "vite": "^5.0.0"
+  },
+  "lint-staged": {
+    "src/**/*.{ts,tsx}": [
+      "eslint",
+      "prettier --write"
+    ],
+    "server/**/*.js": [
+      "eslint",
+      "prettier --write"
+    ]
   }
 }

@@ -1,10 +1,11 @@
 /**
  * Vibe Code Studio - Server Entry Point
- * 
+ *
  * Mounts middleware, routes, and starts the server.
  * All business logic lives in routes/, services/, and middleware/.
  */
 
+import * as Sentry from '@sentry/node';
 import express from 'express';
 import cors from 'cors';
 import compression from 'compression';
@@ -14,7 +15,21 @@ import { promises as fs } from 'fs';
 import { createServer } from 'http';
 
 // Config
-import { PORT, BASE_URL, PUBLIC_DIR, DIST_DIR, DATA_DIR, USE_POSTGRES, ANTHROPIC_API_KEY, XAI_API_KEY, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, STRIPE_PRICES } from './config/index.js';
+import {
+  PORT,
+  BASE_URL,
+  PUBLIC_DIR,
+  DIST_DIR,
+  DATA_DIR,
+  USE_POSTGRES,
+  IS_PRODUCTION,
+  ANTHROPIC_API_KEY,
+  XAI_API_KEY,
+  STRIPE_SECRET_KEY,
+  STRIPE_WEBHOOK_SECRET,
+  STRIPE_PRICES,
+  SENTRY_DSN,
+} from './config/index.js';
 
 // Services
 import { ensureDataDirs } from './services/storage.js';
@@ -50,12 +65,44 @@ const app = express();
 const sessions = new SessionStore();
 const startTime = Date.now();
 
+// ========== PRODUCTION SAFETY GUARDS ==========
+if (IS_PRODUCTION && !USE_POSTGRES) {
+  console.error('FATAL: DATABASE_URL is required in production. File-based storage must not hold child data.');
+  console.error('Set DATABASE_URL to a PostgreSQL connection string and restart.');
+  process.exit(1);
+}
+if (IS_PRODUCTION && !ANTHROPIC_API_KEY) {
+  console.error('FATAL: ANTHROPIC_API_KEY is required in production. AI features will not function.');
+  process.exit(1);
+}
+
+// ========== ERROR MONITORING ==========
+if (SENTRY_DSN) {
+  Sentry.init({
+    dsn: SENTRY_DSN,
+    environment: IS_PRODUCTION ? 'production' : 'development',
+    tracesSampleRate: IS_PRODUCTION ? 0.1 : 1.0,
+    beforeSend(event) {
+      if (event.request?.headers) {
+        delete event.request.headers['authorization'];
+        delete event.request.headers['cookie'];
+      }
+      return event;
+    },
+  });
+  console.log('📡 Sentry error monitoring enabled');
+}
+
 // Ensure data directories exist, then load sessions
 await ensureDataDirs();
 await sessions.load();
 
 console.log('📍 BASE_URL configured as:', JSON.stringify(BASE_URL));
-console.log('📂 Data directory:', DATA_DIR, DATA_DIR.includes(os.tmpdir()) ? '(tmp — set DATA_DIR for persistence)' : '');
+console.log(
+  '📂 Data directory:',
+  DATA_DIR,
+  DATA_DIR.includes(os.tmpdir()) ? '(tmp — set DATA_DIR for persistence)' : '',
+);
 console.log(`💾 Storage backend: ${USE_POSTGRES ? 'PostgreSQL' : 'JSON files'}`);
 
 // ========== MIDDLEWARE ==========
@@ -63,7 +110,12 @@ console.log(`💾 Storage backend: ${USE_POSTGRES ? 'PostgreSQL' : 'JSON files'}
 app.use(securityHeaders());
 app.use(compression());
 app.use(requestLogger());
-app.use(cors());
+app.use(
+  cors({
+    origin: IS_PRODUCTION ? [BASE_URL] : [/localhost:\d+$/, /127\.0\.0\.1:\d+$/],
+    credentials: true,
+  }),
+);
 
 // Stripe webhooks need the raw body for signature verification —
 // must be registered BEFORE the global JSON parser
@@ -75,21 +127,34 @@ app.use(express.urlencoded({ limit: '10mb', extended: true }));
 // ========== STATIC FILES ==========
 
 // Check if running in production (built frontend exists)
-const isProduction = await fs.access(DIST_DIR).then(() => true).catch(() => false);
+const isProduction = await fs
+  .access(DIST_DIR)
+  .then(() => true)
+  .catch(() => false);
 
 // Static assets with long cache (sprites, sounds rarely change)
 app.use('/assets', express.static(path.join(PUBLIC_DIR, 'assets'), { maxAge: '7d' }));
 
 // Serve static files from public folder (short cache for HTML)
-app.use(express.static(PUBLIC_DIR, { maxAge: '5m', setHeaders: (res, filePath) => {
-  if (filePath.endsWith('.html')) res.setHeader('Cache-Control', 'no-cache');
-}}));
+app.use(
+  express.static(PUBLIC_DIR, {
+    maxAge: '5m',
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith('.html')) res.setHeader('Cache-Control', 'no-cache');
+    },
+  }),
+);
 
 // In production, serve the built React app
 if (isProduction) {
-  app.use(express.static(DIST_DIR, { maxAge: '1d', setHeaders: (res, filePath) => {
-    if (filePath.endsWith('.html')) res.setHeader('Cache-Control', 'no-cache');
-  }}));
+  app.use(
+    express.static(DIST_DIR, {
+      maxAge: '1d',
+      setHeaders: (res, filePath) => {
+        if (filePath.endsWith('.html')) res.setHeader('Cache-Control', 'no-cache');
+      },
+    }),
+  );
 }
 
 // Sitemap (dynamically generated)
@@ -97,7 +162,7 @@ app.get('/sitemap.xml', async (_req, res) => {
   try {
     const { listProjects } = await import('./services/storage.js');
     const projects = await listProjects();
-    const publicProjects = projects.filter(p => p.isPublic);
+    const publicProjects = projects.filter((p) => p.isPublic);
 
     let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
     xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
@@ -135,19 +200,19 @@ app.get('/play/:id', async (req, res) => {
       html = html.replace(/<title>[^<]*<\/title>/, `<title>${title} - VibeCodeKidz</title>`);
       html = html.replace(
         /<meta property="og:title"[^>]*>/,
-        `<meta property="og:title" content="${title} - VibeCodeKidz" />`
+        `<meta property="og:title" content="${title} - VibeCodeKidz" />`,
       );
       html = html.replace(
         /<meta property="og:description"[^>]*>/,
-        `<meta property="og:description" content="${desc}" />`
+        `<meta property="og:description" content="${desc}" />`,
       );
       html = html.replace(
         /<meta name="twitter:title"[^>]*>/,
-        `<meta name="twitter:title" content="${title} - VibeCodeKidz" />`
+        `<meta name="twitter:title" content="${title} - VibeCodeKidz" />`,
       );
       html = html.replace(
         /<meta name="twitter:description"[^>]*>/,
-        `<meta name="twitter:description" content="${desc}" />`
+        `<meta name="twitter:description" content="${desc}" />`,
       );
     }
 
@@ -245,7 +310,10 @@ app.post('/api/contact', async (req, res) => {
       return res.status(400).json({ error: 'All fields are required' });
     }
     const submission = {
-      name, email, subject, message,
+      name,
+      email,
+      subject,
+      message,
       timestamp: new Date().toISOString(),
       ip: req.ip,
     };
@@ -326,6 +394,25 @@ app.get('*', async (req, res, next) => {
   }
 });
 
+// ========== ERROR HANDLING ==========
+
+if (SENTRY_DSN) {
+  Sentry.setupExpressErrorHandler(app);
+}
+
+app.use((err, _req, res, _next) => {
+  const status = err.status || err.statusCode || 500;
+  console.error(`[${new Date().toISOString()}] Unhandled error (${status}):`, err.stack || err.message || err);
+
+  if (!SENTRY_DSN && IS_PRODUCTION) {
+    console.error('⚠ Sentry is not configured — set SENTRY_DSN to capture errors in production');
+  }
+
+  res.status(status).json({
+    error: IS_PRODUCTION ? 'An internal error occurred.' : err.message || 'Internal Server Error',
+  });
+});
+
 // ========== START SERVER ==========
 
 const server = createServer(app);
@@ -374,3 +461,14 @@ async function shutdown(signal) {
 
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 process.on('SIGINT', () => shutdown('SIGINT'));
+
+process.on('unhandledRejection', (reason) => {
+  console.error('[unhandledRejection]', reason);
+  Sentry.captureException(reason);
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('[uncaughtException]', err);
+  Sentry.captureException(err);
+  shutdown('uncaughtException');
+});

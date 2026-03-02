@@ -12,7 +12,7 @@
  */
 
 import { Router } from 'express';
-import { readUser, writeUser, listProjects, readProject, writeProject } from '../services/storage.js';
+import { writeUser, listProjects, readProject, writeProject } from '../services/storage.js';
 import { getUserByParentToken, exportUserData, deleteUserData } from '../services/consent.js';
 import { logAdminAction } from '../services/adminAuditLog.js';
 
@@ -77,7 +77,11 @@ router.post('/toggle', async (req, res) => {
     user[setting] = Boolean(enabled);
     await writeUser(user.id, user);
 
-    logAdminAction({ action: 'parent_toggle', targetId: user.id, details: { username: user.username, setting, enabled: Boolean(enabled) } }).catch(() => {});
+    logAdminAction({
+      action: 'parent_toggle',
+      targetId: user.id,
+      details: { username: user.username, setting, enabled: Boolean(enabled) },
+    }).catch(() => {});
     res.json({ success: true, [setting]: user[setting] });
   } catch (error) {
     console.error('Parent toggle error:', error);
@@ -92,7 +96,9 @@ router.get('/export', async (req, res) => {
     if (!user) return;
 
     const data = await exportUserData(user.id);
-    logAdminAction({ action: 'parent_data_export', targetId: user.id, details: { username: user.username } }).catch(() => {});
+    logAdminAction({ action: 'parent_data_export', targetId: user.id, details: { username: user.username } }).catch(
+      () => {},
+    );
     res.json(data);
   } catch (error) {
     console.error('Parent export error:', error);
@@ -107,7 +113,11 @@ router.post('/delete', async (req, res) => {
     if (!user) return;
 
     const result = await deleteUserData(user.id);
-    logAdminAction({ action: 'parent_data_deletion', targetId: user.id, details: { username: user.username, deletedProjects: result.deletedProjects } }).catch(() => {});
+    logAdminAction({
+      action: 'parent_data_deletion',
+      targetId: user.id,
+      details: { username: user.username, deletedProjects: result.deletedProjects },
+    }).catch(() => {});
     res.json({
       success: true,
       message: `Account anonymized and ${result.deletedProjects} project(s) deleted. This cannot be undone.`,
@@ -126,8 +136,8 @@ router.get('/pending-games', async (req, res) => {
 
     const allProjects = await listProjects();
     const pending = allProjects
-      .filter(p => p.userId === user.id && p.pendingParentApproval)
-      .map(p => ({ id: p.id, title: p.title, category: p.category, createdAt: p.createdAt }));
+      .filter((p) => p.userId === user.id && p.pendingParentApproval)
+      .map((p) => ({ id: p.id, title: p.title, category: p.category, createdAt: p.createdAt }));
 
     res.json({ pendingGames: pending });
   } catch (error) {
@@ -158,7 +168,11 @@ router.post('/approve-game', async (req, res) => {
     project.parentApprovedAt = new Date().toISOString();
     await writeProject(projectId, project);
 
-    logAdminAction({ action: 'parent_approve_game', targetId: projectId, details: { username: user.username, title: project.title } }).catch(() => {});
+    logAdminAction({
+      action: 'parent_approve_game',
+      targetId: projectId,
+      details: { username: user.username, title: project.title },
+    }).catch(() => {});
     res.json({ success: true, message: 'Game approved and published!' });
   } catch (error) {
     if (error.code === 'ENOENT') return res.status(404).json({ error: 'Game not found' });
@@ -185,7 +199,11 @@ router.post('/deny-game', async (req, res) => {
     project.pendingParentApproval = false;
     await writeProject(projectId, project);
 
-    logAdminAction({ action: 'parent_deny_game', targetId: projectId, details: { username: user.username, title: project.title } }).catch(() => {});
+    logAdminAction({
+      action: 'parent_deny_game',
+      targetId: projectId,
+      details: { username: user.username, title: project.title },
+    }).catch(() => {});
     res.json({ success: true, message: 'Game kept private.' });
   } catch (error) {
     if (error.code === 'ENOENT') return res.status(404).json({ error: 'Game not found' });
@@ -206,10 +224,13 @@ router.post('/revoke', async (req, res) => {
     user.multiplayerEnabled = false;
     await writeUser(user.id, user);
 
-    logAdminAction({ action: 'consent_revoked', targetId: user.id, details: { username: user.username } }).catch(() => {});
+    logAdminAction({ action: 'consent_revoked', targetId: user.id, details: { username: user.username } }).catch(
+      () => {},
+    );
     res.json({
       success: true,
-      message: 'Consent revoked. Your child\'s account has been deactivated. Data is preserved but the account cannot be used until consent is re-granted.',
+      message:
+        "Consent revoked. Your child's account has been deactivated. Data is preserved but the account cannot be used until consent is re-granted.",
     });
   } catch (error) {
     console.error('Parent revoke error:', error);

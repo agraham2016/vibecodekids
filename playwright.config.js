@@ -1,5 +1,7 @@
 import { defineConfig } from '@playwright/test';
 
+const isCI = !!process.env.CI;
+
 export default defineConfig({
   testDir: './tests',
   timeout: 60000,
@@ -7,8 +9,8 @@ export default defineConfig({
     timeout: 10000
   },
   fullyParallel: false,
-  forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
+  forbidOnly: isCI,
+  retries: isCI ? 2 : 0,
   workers: 1,
   reporter: [
     ['html', { open: 'never' }],
@@ -19,7 +21,7 @@ export default defineConfig({
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
-    headless: false, // Set to true for CI, false to watch the bot
+    headless: isCI,
   },
   projects: [
     {
@@ -30,5 +32,18 @@ export default defineConfig({
       },
     },
   ],
-  webServer: undefined, // We'll start servers manually
+  webServer: isCI ? [
+    {
+      command: 'npm run dev:server',
+      port: 3001,
+      reuseExistingServer: false,
+      timeout: 30000,
+    },
+    {
+      command: 'npm run dev',
+      port: 3000,
+      reuseExistingServer: false,
+      timeout: 30000,
+    },
+  ] : undefined,
 });

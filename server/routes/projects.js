@@ -1,16 +1,23 @@
 /**
  * Project Routes
- * 
+ *
  * CRUD operations, sharing, gallery, versions, likes.
  */
 
 import { Router } from 'express';
 import { randomBytes } from 'crypto';
-import { readProject, writeProject, deleteProject as removeProject, listProjects, readUser, writeUser } from '../services/storage.js';
+import {
+  readProject,
+  writeProject,
+  deleteProject as removeProject,
+  listProjects,
+  readUser,
+} from '../services/storage.js';
 import { filterContent } from '../middleware/contentFilter.js';
 import { prePublishScan } from '../middleware/prePublishScan.js';
 import { filterUsername } from '../middleware/usernameFilter.js';
 import { checkTierLimits, incrementUsage, calculateUsageRemaining } from '../middleware/rateLimit.js';
+import { ageGate } from '../middleware/ageGate.js';
 
 function generateProjectId() {
   const chars = 'abcdefghjkmnpqrstuvwxyz23456789';
@@ -30,7 +37,15 @@ export default function createProjectsRouter(sessions) {
   // Save/publish a project
   router.post('/', async (req, res) => {
     try {
-      const { title, code, creatorName, isPublic = false, category = 'other', multiplayer = false, thumbnail } = req.body;
+      const {
+        title,
+        code,
+        creatorName,
+        isPublic = false,
+        category = 'other',
+        multiplayer = false,
+        thumbnail,
+      } = req.body;
 
       if (!code || !title) {
         return res.status(400).json({ error: 'Title and code are required' });
@@ -58,21 +73,28 @@ export default function createProjectsRouter(sessions) {
         }
       }
 
-      // COPPA: Enforce parent publishing toggle for under-13
       let allowPublic = Boolean(isPublic);
       let allowMultiplayer = Boolean(multiplayer);
       if (userId) {
         try {
           const ownerUser = await readUser(userId);
-          if (ownerUser.ageBracket === 'under13') {
-            if (allowPublic && !ownerUser.publishingEnabled) {
+
+          if (allowPublic) {
+            const publishCheck = ageGate(ownerUser, 'publish');
+            if (!publishCheck.allowed) {
               allowPublic = false;
             }
-            if (allowMultiplayer && !ownerUser.multiplayerEnabled) {
+          }
+
+          if (allowMultiplayer) {
+            const mpCheck = ageGate(ownerUser, 'multiplayer');
+            if (!mpCheck.allowed) {
               allowMultiplayer = false;
             }
           }
-        } catch { /* user read failed — default to safe */ }
+        } catch {
+          /* user read failed — default to safe */
+        }
       }
 
       // Pre-publish content + PII scan when making a game public
@@ -92,14 +114,19 @@ export default function createProjectsRouter(sessions) {
       // Filter creatorName to prevent PII disclosure in public games
       if (allowPublic && displayName) {
         const nameCheck = filterUsername(displayName);
-        if (!nameCheck.allowed) {
+        if (nameCheck.blocked) {
           displayName = 'Creator';
         }
       }
 
       const id = generateProjectId();
       let validThumb = null;
-      if (thumbnail && typeof thumbnail === 'string' && thumbnail.startsWith('data:image/') && thumbnail.length < 100000) {
+      if (
+        thumbnail &&
+        typeof thumbnail === 'string' &&
+        thumbnail.startsWith('data:image/') &&
+        thumbnail.length < 100000
+      ) {
         validThumb = thumbnail;
       }
 
@@ -112,7 +139,9 @@ export default function createProjectsRouter(sessions) {
             pendingParentApproval = true;
             allowPublic = false;
           }
-        } catch { /* default to safe */ }
+        } catch {
+          /* default to safe */
+        }
       }
 
       const project = {
@@ -128,7 +157,7 @@ export default function createProjectsRouter(sessions) {
         thumbnail: validThumb,
         createdAt: new Date().toISOString(),
         views: 0,
-        likes: 0
+        likes: 0,
       };
 
       await writeProject(id, project);
@@ -140,7 +169,9 @@ export default function createProjectsRouter(sessions) {
         try {
           const user = await readUser(userId);
           usage = calculateUsageRemaining(user);
-        } catch { /* ignore */ }
+        } catch {
+          /* ignore */
+        }
       }
 
       const message = pendingParentApproval
@@ -149,7 +180,7 @@ export default function createProjectsRouter(sessions) {
 
       res.json({ success: true, id, shareUrl: `/play/${id}`, usage, pendingParentApproval, message });
     } catch (error) {
-      console.error('Save project error:', error);
+      console.error('Save project error:', error?.stack || error);
       res.status(500).json({ error: 'Could not save project' });
     }
   });
@@ -191,7 +222,7 @@ export default function createProjectsRouter(sessions) {
                   code: existing.code,
                   title: existing.title,
                   savedAt: now,
-                  autoSave: true
+                  autoSave: true,
                 };
               } else {
                 existing.versions.push({
@@ -199,7 +230,7 @@ export default function createProjectsRouter(sessions) {
                   code: existing.code,
                   title: existing.title,
                   savedAt: now,
-                  autoSave: true
+                  autoSave: true,
                 });
               }
             } else {
@@ -208,7 +239,7 @@ export default function createProjectsRouter(sessions) {
                 code: existing.code,
                 title: existing.title,
                 savedAt: existing.updatedAt || existing.createdAt,
-                autoSave: false
+                autoSave: false,
               });
             }
             if (existing.versions.length > 20) {
@@ -235,7 +266,12 @@ export default function createProjectsRouter(sessions) {
           return res.json({
             success: true,
             message: 'Project saved!',
-            project: { id: existing.id, title: existing.title, updatedAt: existing.updatedAt, versionsCount: existing.versions.length }
+            project: {
+              id: existing.id,
+              title: existing.title,
+              updatedAt: existing.updatedAt,
+              versionsCount: existing.versions.length,
+            },
           });
         } catch (err) {
           if (err.code !== 'ENOENT') throw err;
@@ -257,7 +293,7 @@ export default function createProjectsRouter(sessions) {
         updatedAt: now,
         views: 0,
         likes: 0,
-        versions: []
+        versions: [],
       };
 
       await writeProject(id, newProject);
@@ -265,10 +301,10 @@ export default function createProjectsRouter(sessions) {
       res.json({
         success: true,
         message: 'Project created!',
-        project: { id: newProject.id, title: newProject.title, createdAt: newProject.createdAt, versionsCount: 0 }
+        project: { id: newProject.id, title: newProject.title, createdAt: newProject.createdAt, versionsCount: 0 },
       });
     } catch (error) {
-      console.error('Save project error:', error);
+      console.error('Save project error:', error?.stack || error);
       res.status(500).json({ error: 'Could not save project' });
     }
   });
@@ -291,14 +327,14 @@ export default function createProjectsRouter(sessions) {
         if (!project.isPublic) {
           return res.status(404).json({ error: 'Project not found' });
         }
-        const { userId, ageMode, parentEmail, ...safeProject } = project;
+        const { userId: _uid, ageMode: _am, parentEmail: _pe, ...safeProject } = project;
         return res.json(safeProject);
       }
 
       res.json(project);
     } catch (error) {
       if (error.code === 'ENOENT') return res.status(404).json({ error: 'Project not found' });
-      console.error('Get project error:', error);
+      console.error('Get project error:', error?.stack || error);
       res.status(500).json({ error: 'Could not load project' });
     }
   });
@@ -324,7 +360,7 @@ export default function createProjectsRouter(sessions) {
       res.json({ success: true, message: 'Project deleted' });
     } catch (error) {
       if (error.code === 'ENOENT') return res.status(404).json({ error: 'Project not found' });
-      console.error('Delete project error:', error);
+      console.error('Delete project error:', error?.stack || error);
       res.status(500).json({ error: 'Could not delete project' });
     }
   });
@@ -385,7 +421,7 @@ export default function createProjectsRouter(sessions) {
         versionId: v.versionId,
         title: v.title,
         savedAt: v.savedAt,
-        versionNumber: index + 1
+        versionNumber: index + 1,
       }));
 
       versions.push({
@@ -393,13 +429,13 @@ export default function createProjectsRouter(sessions) {
         title: project.title + ' (Current)',
         savedAt: project.updatedAt || project.createdAt,
         versionNumber: versions.length + 1,
-        isCurrent: true
+        isCurrent: true,
       });
 
       res.json({ projectId: project.id, projectTitle: project.title, versions: versions.reverse() });
     } catch (error) {
       if (error.code === 'ENOENT') return res.status(404).json({ error: 'Project not found' });
-      console.error('Get versions error:', error);
+      console.error('Get versions error:', error?.stack || error);
       res.status(500).json({ error: 'Could not load version history' });
     }
   });
@@ -423,16 +459,22 @@ export default function createProjectsRouter(sessions) {
       }
 
       if (versionId === 'current') {
-        return res.json({ versionId: 'current', title: project.title, code: project.code, savedAt: project.updatedAt || project.createdAt, isCurrent: true });
+        return res.json({
+          versionId: 'current',
+          title: project.title,
+          code: project.code,
+          savedAt: project.updatedAt || project.createdAt,
+          isCurrent: true,
+        });
       }
 
-      const version = (project.versions || []).find(v => v.versionId === versionId);
+      const version = (project.versions || []).find((v) => v.versionId === versionId);
       if (!version) return res.status(404).json({ error: 'Version not found' });
 
       res.json({ versionId: version.versionId, title: version.title, code: version.code, savedAt: version.savedAt });
     } catch (error) {
       if (error.code === 'ENOENT') return res.status(404).json({ error: 'Project not found' });
-      console.error('Get version error:', error);
+      console.error('Get version error:', error?.stack || error);
       res.status(500).json({ error: 'Could not load version' });
     }
   });
@@ -457,7 +499,7 @@ export default function createProjectsRouter(sessions) {
         return res.json({ success: true, message: 'Already on current version' });
       }
 
-      const version = (project.versions || []).find(v => v.versionId === versionId);
+      const version = (project.versions || []).find((v) => v.versionId === versionId);
       if (!version) return res.status(404).json({ error: 'Version not found' });
 
       if (!project.versions) project.versions = [];
@@ -466,7 +508,7 @@ export default function createProjectsRouter(sessions) {
         code: project.code,
         title: project.title,
         savedAt: project.updatedAt || project.createdAt,
-        autoSave: false
+        autoSave: false,
       });
       if (project.versions.length > 20) project.versions = project.versions.slice(-20);
 
@@ -478,7 +520,7 @@ export default function createProjectsRouter(sessions) {
       res.json({ success: true, message: 'Version restored!', code: project.code });
     } catch (error) {
       if (error.code === 'ENOENT') return res.status(404).json({ error: 'Project not found' });
-      console.error('Restore version error:', error);
+      console.error('Restore version error:', error?.stack || error);
       res.status(500).json({ error: 'Could not restore version' });
     }
   });

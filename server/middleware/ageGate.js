@@ -71,4 +71,41 @@ export function ageGate(user, feature) {
   return { allowed: true };
 }
 
+/**
+ * Express middleware factory that enforces ageGate for a given feature.
+ * Extracts user from session if req.userId is not already set.
+ * Falls through for unauthenticated requests (auth middleware handles that).
+ *
+ * @param {string} feature - Feature key from FEATURE_RULES
+ * @param {object} sessions - SessionStore instance
+ */
+export function requireConsent(feature, sessions) {
+  return async (req, res, next) => {
+    let userId = req.userId;
+
+    if (!userId) {
+      const token = req.headers.authorization?.replace('Bearer ', '');
+      if (token && sessions) {
+        const session = await sessions.get(token);
+        if (session) userId = session.userId;
+      }
+    }
+
+    if (!userId) return next();
+
+    try {
+      const { readUser } = await import('../services/storage.js');
+      const user = await readUser(userId);
+      const check = ageGate(user, feature);
+      if (!check.allowed) {
+        return res.status(403).json({ error: check.reason });
+      }
+    } catch {
+      // User read failed — allow through (other middleware handles missing users)
+    }
+
+    next();
+  };
+}
+
 export { FEATURE_RULES };

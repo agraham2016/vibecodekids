@@ -1,89 +1,100 @@
-import { useState } from 'react'
-import { TierInfo } from '../types'
-import './UpgradeModal.css'
+import { useState } from 'react';
+import { TierInfo } from '../types';
+import './UpgradeModal.css';
 
 interface UpgradeModalProps {
-  isOpen: boolean
-  onClose: () => void
-  currentTier: 'free' | 'creator' | 'pro'
-  tiers: Record<string, TierInfo>
-  isWelcomePrompt?: boolean
+  isOpen: boolean;
+  onClose: () => void;
+  currentTier: 'free' | 'creator' | 'pro';
+  tiers: Record<string, TierInfo>;
+  isWelcomePrompt?: boolean;
 }
 
-export default function UpgradeModal({ 
-  isOpen, 
-  onClose, 
-  currentTier, 
+export default function UpgradeModal({
+  isOpen,
+  onClose,
+  currentTier,
   tiers: _tiers,
-  isWelcomePrompt = false
+  isWelcomePrompt = false,
 }: UpgradeModalProps) {
-  void _tiers
-  const [loading, setLoading] = useState<string | null>(null)
-  const [error, setError] = useState('')
+  void _tiers;
+  const [loading, setLoading] = useState<string | null>(null);
+  const [error, setError] = useState('');
 
-  if (!isOpen) return null
+  if (!isOpen) return null;
 
   const handleUpgrade = async (selectedTier: string) => {
-    setLoading(selectedTier)
-    setError('')
+    setLoading(selectedTier);
+    setError('');
     try {
-      const token = localStorage.getItem('authToken')
+      const token = localStorage.getItem('authToken');
       if (!token) {
-        setError('Please log in first')
-        setLoading(null)
-        return
+        setError('Please log in first');
+        setLoading(null);
+        return;
       }
       const response = await fetch('/api/stripe/upgrade', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ tier: selectedTier })
-      })
+        body: JSON.stringify({ tier: selectedTier }),
+      });
 
-      const contentType = response.headers.get('content-type')
+      const contentType = response.headers.get('content-type');
       if (!contentType?.includes('application/json')) {
-        throw new Error('Server error — please try again later')
+        throw new Error('Server error — please try again later');
       }
-      const data = await response.json()
+      const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Could not start checkout')
+        throw new Error(data.error || 'Could not start checkout');
       }
 
-      window.location.href = data.checkoutUrl
+      window.location.href = data.checkoutUrl;
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Something went wrong'
-      setError(message)
-      setLoading(null)
+      const message = err instanceof Error ? err.message : 'Something went wrong';
+      setError(message);
+      setLoading(null);
     }
-  }
+  };
 
   const handleMaybeLater = async () => {
     // Dismiss the prompt
     try {
-      const token = localStorage.getItem('authToken')
+      const token = localStorage.getItem('authToken');
       if (token) {
         await fetch('/api/stripe/dismiss-prompt', {
           method: 'POST',
-          headers: { 'Authorization': `Bearer ${token}` }
-        })
+          headers: { Authorization: `Bearer ${token}` },
+        });
       }
-    } catch (e) {
+    } catch (_e) {
       // Ignore errors
     }
-    onClose()
-  }
+    onClose();
+  };
 
   return (
     <div className="modal-overlay" onClick={onClose} role="dialog" aria-modal="true" aria-label="Upgrade your plan">
-      <div className="upgrade-modal" onClick={e => e.stopPropagation()}>
-        <button className="close-btn" onClick={onClose} aria-label="Close dialog">✕</button>
+      <div className="upgrade-modal" onClick={(e) => e.stopPropagation()}>
+        <button className="close-btn" onClick={onClose} aria-label="Close dialog">
+          ✕
+        </button>
 
         {/* Header */}
         <div className="upgrade-header">
-          <img src="/images/logo.png" alt="VibeCode Kids" style={{ width: '120px', height: 'auto', marginBottom: '12px', filter: 'drop-shadow(0 0 12px rgba(167,139,250,0.4))' }} />
+          <img
+            src="/images/logo.png"
+            alt="VibeCode Kids"
+            style={{
+              width: '120px',
+              height: 'auto',
+              marginBottom: '12px',
+              filter: 'drop-shadow(0 0 12px rgba(167,139,250,0.4))',
+            }}
+          />
           {isWelcomePrompt ? (
             <>
               <div className="welcome-badge">🎉 SPECIAL OFFER</div>
@@ -186,11 +197,9 @@ export default function UpgradeModal({
               Maybe Later
             </button>
           )}
-          <p className="footer-note">
-            💳 Secure payment powered by Stripe
-          </p>
+          <p className="footer-note">💳 Secure payment powered by Stripe</p>
         </div>
       </div>
     </div>
-  )
+  );
 }

@@ -29,7 +29,7 @@ async function ensureFile() {
  * Log an admin action.
  *
  * @param {object} opts
- * @param {string} opts.action - approve | deny | suspend | unsuspend | reset-password | delete-user | delete-project | set-tier | opt-out-improvement | cache-clear
+ * @param {string} opts.action - approve | deny | suspend | unsuspend | reset-password | delete-user | delete-project | set-tier | opt-out-improvement | cache-clear | data-access | consent_granted | retention-sweep
  * @param {string} [opts.targetId] - user id, project id, etc.
  * @param {object} [opts.details] - extra context (e.g. { username, reason, tier })
  * @param {string} [opts.ip] - requester IP
@@ -61,7 +61,7 @@ export async function readAuditLog(opts = {}) {
     await ensureFile();
     const content = await fs.readFile(AUDIT_FILE, 'utf-8');
     let lines = content.trim().split('\n').filter(Boolean);
-    const entries = lines
+    let entries = lines
       .map((line) => {
         try {
           return JSON.parse(line);

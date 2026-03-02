@@ -1,18 +1,18 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
-import './LandingPage.css'
+import { useState, useEffect, useCallback, useRef } from 'react';
+import './LandingPage.css';
 
 interface LandingPageProps {
-  onLoginClick: () => void
-  onSignupClick: () => void
+  onLoginClick: () => void;
+  onSignupClick: () => void;
 }
 
 interface FeaturedGame {
-  id: string
-  title: string
-  creatorName?: string
-  displayName?: string
-  views?: number
-  genre?: string
+  id: string;
+  title: string;
+  creatorName?: string;
+  displayName?: string;
+  views?: number;
+  genre?: string;
 }
 
 const DEMO_SCENARIOS = [
@@ -24,7 +24,11 @@ const DEMO_SCENARIOS = [
     elements: [
       { emoji: '🦕', className: 'demo-player demo-bounce', style: { bottom: '42%', left: '22%', fontSize: '2.4rem' } },
       { emoji: '💎', className: 'demo-item demo-float', style: { bottom: '62%', left: '55%', fontSize: '1.4rem' } },
-      { emoji: '💎', className: 'demo-item demo-float-delay', style: { bottom: '72%', left: '75%', fontSize: '1.4rem' } },
+      {
+        emoji: '💎',
+        className: 'demo-item demo-float-delay',
+        style: { bottom: '72%', left: '75%', fontSize: '1.4rem' },
+      },
       { emoji: '💎', className: 'demo-item demo-float', style: { bottom: '55%', left: '35%', fontSize: '1.2rem' } },
       { emoji: '☁️', className: 'demo-cloud demo-drift', style: { top: '10%', left: '15%', fontSize: '2rem' } },
       { emoji: '☁️', className: 'demo-cloud demo-drift-delay', style: { top: '5%', left: '65%', fontSize: '1.6rem' } },
@@ -38,7 +42,7 @@ const DEMO_SCENARIOS = [
   },
   {
     prompt: 'I want a space shooter where I blast aliens!',
-    aiReply: "Launching your space shooter! Fly your ship, blast alien waves, and rack up your high score!",
+    aiReply: 'Launching your space shooter! Fly your ship, blast alien waves, and rack up your high score!',
     label: 'Space Shooter',
     bg: 'linear-gradient(180deg, #0a0a20 0%, #1a0a40 100%)',
     elements: [
@@ -46,10 +50,26 @@ const DEMO_SCENARIOS = [
       { emoji: '👾', className: 'demo-enemy demo-sway', style: { top: '15%', left: '20%', fontSize: '1.8rem' } },
       { emoji: '👾', className: 'demo-enemy demo-sway-delay', style: { top: '12%', left: '50%', fontSize: '1.8rem' } },
       { emoji: '👾', className: 'demo-enemy demo-sway', style: { top: '18%', left: '75%', fontSize: '1.8rem' } },
-      { emoji: '✦', className: 'demo-star demo-twinkle', style: { top: '30%', left: '10%', fontSize: '0.5rem', color: '#fff' } },
-      { emoji: '✦', className: 'demo-star demo-twinkle-delay', style: { top: '50%', left: '80%', fontSize: '0.4rem', color: '#fff' } },
-      { emoji: '✦', className: 'demo-star demo-twinkle', style: { top: '70%', left: '30%', fontSize: '0.3rem', color: '#fff' } },
-      { emoji: '✦', className: 'demo-star demo-twinkle-delay', style: { top: '25%', left: '90%', fontSize: '0.6rem', color: '#fff' } },
+      {
+        emoji: '✦',
+        className: 'demo-star demo-twinkle',
+        style: { top: '30%', left: '10%', fontSize: '0.5rem', color: '#fff' },
+      },
+      {
+        emoji: '✦',
+        className: 'demo-star demo-twinkle-delay',
+        style: { top: '50%', left: '80%', fontSize: '0.4rem', color: '#fff' },
+      },
+      {
+        emoji: '✦',
+        className: 'demo-star demo-twinkle',
+        style: { top: '70%', left: '30%', fontSize: '0.3rem', color: '#fff' },
+      },
+      {
+        emoji: '✦',
+        className: 'demo-star demo-twinkle-delay',
+        style: { top: '25%', left: '90%', fontSize: '0.6rem', color: '#fff' },
+      },
     ],
     platforms: [],
     scoreText: 'SCORE: 2400  WAVE: 3',
@@ -70,39 +90,175 @@ const DEMO_SCENARIOS = [
     platforms: [],
     scoreText: 'LENGTH: 5  SCORE: 40',
   },
-]
+];
 
 const GAME_TEMPLATES = [
-  { title: 'Jump & Run', genre: 'Platformer', description: 'Hop across platforms and collect coins', gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)', sprite: '/assets/sprites/platformer/player.png', emoji: '🏃' },
-  { title: 'Space Blaster', genre: 'Shooter', description: 'Blast aliens and dodge enemy fire', gradient: 'linear-gradient(180deg, #0a0a20 0%, #1a0a50 100%)', sprite: '/assets/sprites/shooter/ship.png', emoji: '🚀' },
-  { title: 'Speed Racer', genre: 'Racing', description: 'Dodge traffic and race to the finish', gradient: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)', sprite: '/assets/sprites/racing/car-player.png', emoji: '🏎️' },
-  { title: 'Road Crosser', genre: 'Frogger', description: 'Hop across busy lanes to safety', gradient: 'linear-gradient(135deg, #1a472a 0%, #2d6a4f 50%, #40916c 100%)', sprite: '/assets/sprites/frogger/frog.png', emoji: '🐸' },
-  { title: 'Gem Match', genre: 'Puzzle', description: 'Match colorful gems to score big', gradient: 'linear-gradient(135deg, #4a1a6b 0%, #2a1040 50%, #6b21a8 100%)', sprite: '/assets/sprites/puzzle/gems.png', emoji: '💎' },
-  { title: 'Tap Frenzy', genre: 'Clicker', description: 'Click the gem, buy upgrades, go wild', gradient: 'linear-gradient(135deg, #1a0533 0%, #2d1b69 50%, #4c1d95 100%)', sprite: '/assets/sprites/clicker/gem.png', emoji: '👆' },
-  { title: 'Adventure Quest', genre: 'RPG', description: 'Explore, find treasure, talk to NPCs', gradient: 'linear-gradient(135deg, #1b4332 0%, #2d6a4f 50%, #52b788 100%)', sprite: '/assets/sprites/rpg/hero.png', emoji: '⚔️' },
-  { title: 'Endless Runner', genre: 'Runner', description: 'Run, jump, and dodge obstacles at top speed', gradient: 'linear-gradient(135deg, #ff6b35 0%, #f7c948 50%, #1a1a2e 100%)', sprite: '/assets/sprites/endless-runner/player.png', emoji: '🏃‍♂️' },
-  { title: 'Tower Defense', genre: 'Strategy', description: 'Place towers and defend against enemy waves', gradient: 'linear-gradient(135deg, #2d3436 0%, #636e72 50%, #00b894 100%)', sprite: '/assets/sprites/tower-defense/tower.png', emoji: '🏰' },
-  { title: "Beat 'Em Up", genre: 'Fighting', description: 'Punch and kick your way through enemies', gradient: 'linear-gradient(135deg, #d63031 0%, #e17055 50%, #2d3436 100%)', sprite: '/assets/sprites/fighting/fighter.png', emoji: '🥊' },
-  { title: 'Snake', genre: 'Classic', description: 'Eat food, grow longer, avoid your tail', gradient: 'linear-gradient(135deg, #00b894 0%, #00cec9 50%, #0984e3 100%)', sprite: '/assets/sprites/snake/head.png', emoji: '🐍' },
-  { title: 'Soccer', genre: 'Sports', description: 'Score goals and beat the AI opponent', gradient: 'linear-gradient(135deg, #27ae60 0%, #2ecc71 50%, #1abc9c 100%)', sprite: '/assets/sprites/sports/ball.png', emoji: '⚽' },
-  { title: 'Brick Breaker', genre: 'Arcade', description: 'Smash bricks with a bouncing ball', gradient: 'linear-gradient(135deg, #6c5ce7 0%, #a29bfe 50%, #fd79a8 100%)', sprite: '/assets/sprites/brick-breaker/paddle.png', emoji: '🧱' },
-  { title: 'Flappy Bird', genre: 'Casual', description: 'Tap to fly through the pipes', gradient: 'linear-gradient(135deg, #74b9ff 0%, #a29bfe 50%, #55efc4 100%)', sprite: '/assets/sprites/flappy/bird.png', emoji: '🐦' },
-  { title: 'Bubble Pop', genre: 'Puzzle', description: 'Aim and pop matching colored bubbles', gradient: 'linear-gradient(135deg, #fd79a8 0%, #e84393 50%, #6c5ce7 100%)', sprite: '/assets/sprites/bubble-shooter/bubbles.png', emoji: '🫧' },
-  { title: 'Block Stack', genre: 'Puzzle', description: 'Stack falling blocks and clear full lines', gradient: 'linear-gradient(135deg, #0984e3 0%, #6c5ce7 50%, #00cec9 100%)', sprite: '/assets/sprites/falling-blocks/blocks.png', emoji: '🟦' },
-  { title: 'Rhythm Beats', genre: 'Music', description: 'Hit the arrows to the beat of the music', gradient: 'linear-gradient(135deg, #e84393 0%, #fd79a8 50%, #fdcb6e 100%)', sprite: '/assets/sprites/rhythm/arrows.png', emoji: '🎵' },
-  { title: 'Pet Buddy', genre: 'Sim', description: 'Feed, play with, and care for your pet', gradient: 'linear-gradient(135deg, #fdcb6e 0%, #f39c12 50%, #e17055 100%)', sprite: '/assets/sprites/pet-sim/pet.png', emoji: '🐾' },
-]
+  {
+    title: 'Jump & Run',
+    genre: 'Platformer',
+    description: 'Hop across platforms and collect coins',
+    gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)',
+    sprite: '/assets/sprites/platformer/player.png',
+    emoji: '🏃',
+  },
+  {
+    title: 'Space Blaster',
+    genre: 'Shooter',
+    description: 'Blast aliens and dodge enemy fire',
+    gradient: 'linear-gradient(180deg, #0a0a20 0%, #1a0a50 100%)',
+    sprite: '/assets/sprites/shooter/ship.png',
+    emoji: '🚀',
+  },
+  {
+    title: 'Speed Racer',
+    genre: 'Racing',
+    description: 'Dodge traffic and race to the finish',
+    gradient: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
+    sprite: '/assets/sprites/racing/car-player.png',
+    emoji: '🏎️',
+  },
+  {
+    title: 'Road Crosser',
+    genre: 'Frogger',
+    description: 'Hop across busy lanes to safety',
+    gradient: 'linear-gradient(135deg, #1a472a 0%, #2d6a4f 50%, #40916c 100%)',
+    sprite: '/assets/sprites/frogger/frog.png',
+    emoji: '🐸',
+  },
+  {
+    title: 'Gem Match',
+    genre: 'Puzzle',
+    description: 'Match colorful gems to score big',
+    gradient: 'linear-gradient(135deg, #4a1a6b 0%, #2a1040 50%, #6b21a8 100%)',
+    sprite: '/assets/sprites/puzzle/gems.png',
+    emoji: '💎',
+  },
+  {
+    title: 'Tap Frenzy',
+    genre: 'Clicker',
+    description: 'Click the gem, buy upgrades, go wild',
+    gradient: 'linear-gradient(135deg, #1a0533 0%, #2d1b69 50%, #4c1d95 100%)',
+    sprite: '/assets/sprites/clicker/gem.png',
+    emoji: '👆',
+  },
+  {
+    title: 'Adventure Quest',
+    genre: 'RPG',
+    description: 'Explore, find treasure, talk to NPCs',
+    gradient: 'linear-gradient(135deg, #1b4332 0%, #2d6a4f 50%, #52b788 100%)',
+    sprite: '/assets/sprites/rpg/hero.png',
+    emoji: '⚔️',
+  },
+  {
+    title: 'Endless Runner',
+    genre: 'Runner',
+    description: 'Run, jump, and dodge obstacles at top speed',
+    gradient: 'linear-gradient(135deg, #ff6b35 0%, #f7c948 50%, #1a1a2e 100%)',
+    sprite: '/assets/sprites/endless-runner/player.png',
+    emoji: '🏃‍♂️',
+  },
+  {
+    title: 'Tower Defense',
+    genre: 'Strategy',
+    description: 'Place towers and defend against enemy waves',
+    gradient: 'linear-gradient(135deg, #2d3436 0%, #636e72 50%, #00b894 100%)',
+    sprite: '/assets/sprites/tower-defense/tower.png',
+    emoji: '🏰',
+  },
+  {
+    title: "Beat 'Em Up",
+    genre: 'Fighting',
+    description: 'Punch and kick your way through enemies',
+    gradient: 'linear-gradient(135deg, #d63031 0%, #e17055 50%, #2d3436 100%)',
+    sprite: '/assets/sprites/fighting/fighter.png',
+    emoji: '🥊',
+  },
+  {
+    title: 'Snake',
+    genre: 'Classic',
+    description: 'Eat food, grow longer, avoid your tail',
+    gradient: 'linear-gradient(135deg, #00b894 0%, #00cec9 50%, #0984e3 100%)',
+    sprite: '/assets/sprites/snake/head.png',
+    emoji: '🐍',
+  },
+  {
+    title: 'Soccer',
+    genre: 'Sports',
+    description: 'Score goals and beat the AI opponent',
+    gradient: 'linear-gradient(135deg, #27ae60 0%, #2ecc71 50%, #1abc9c 100%)',
+    sprite: '/assets/sprites/sports/ball.png',
+    emoji: '⚽',
+  },
+  {
+    title: 'Brick Breaker',
+    genre: 'Arcade',
+    description: 'Smash bricks with a bouncing ball',
+    gradient: 'linear-gradient(135deg, #6c5ce7 0%, #a29bfe 50%, #fd79a8 100%)',
+    sprite: '/assets/sprites/brick-breaker/paddle.png',
+    emoji: '🧱',
+  },
+  {
+    title: 'Flappy Bird',
+    genre: 'Casual',
+    description: 'Tap to fly through the pipes',
+    gradient: 'linear-gradient(135deg, #74b9ff 0%, #a29bfe 50%, #55efc4 100%)',
+    sprite: '/assets/sprites/flappy/bird.png',
+    emoji: '🐦',
+  },
+  {
+    title: 'Bubble Pop',
+    genre: 'Puzzle',
+    description: 'Aim and pop matching colored bubbles',
+    gradient: 'linear-gradient(135deg, #fd79a8 0%, #e84393 50%, #6c5ce7 100%)',
+    sprite: '/assets/sprites/bubble-shooter/bubbles.png',
+    emoji: '🫧',
+  },
+  {
+    title: 'Block Stack',
+    genre: 'Puzzle',
+    description: 'Stack falling blocks and clear full lines',
+    gradient: 'linear-gradient(135deg, #0984e3 0%, #6c5ce7 50%, #00cec9 100%)',
+    sprite: '/assets/sprites/falling-blocks/blocks.png',
+    emoji: '🟦',
+  },
+  {
+    title: 'Rhythm Beats',
+    genre: 'Music',
+    description: 'Hit the arrows to the beat of the music',
+    gradient: 'linear-gradient(135deg, #e84393 0%, #fd79a8 50%, #fdcb6e 100%)',
+    sprite: '/assets/sprites/rhythm/arrows.png',
+    emoji: '🎵',
+  },
+  {
+    title: 'Pet Buddy',
+    genre: 'Sim',
+    description: 'Feed, play with, and care for your pet',
+    gradient: 'linear-gradient(135deg, #fdcb6e 0%, #f39c12 50%, #e17055 100%)',
+    sprite: '/assets/sprites/pet-sim/pet.png',
+    emoji: '🐾',
+  },
+];
 
 const SHOWCASE_NAMES = [
-  'Mia', 'Jayden', 'Zoe', 'Ethan', 'Luna', 'Noah',
-  'Ava', 'Liam', 'Chloe', 'Oliver', 'Sophia', 'Mason',
-]
+  'Mia',
+  'Jayden',
+  'Zoe',
+  'Ethan',
+  'Luna',
+  'Noah',
+  'Ava',
+  'Liam',
+  'Chloe',
+  'Oliver',
+  'Sophia',
+  'Mason',
+];
 
 function friendlyCreatorName(raw: string | undefined, index: number): string {
   if (!raw || /test/i.test(raw) || /^user/i.test(raw)) {
-    return SHOWCASE_NAMES[index % SHOWCASE_NAMES.length]
+    return SHOWCASE_NAMES[index % SHOWCASE_NAMES.length];
   }
-  return raw
+  return raw;
 }
 
 const FAQ_ITEMS = [
@@ -130,162 +286,168 @@ const FAQ_ITEMS = [
     q: 'Do you accept Arizona ESA funds?',
     a: 'Yes! VibeCode Kids qualifies as an approved ESA educational technology expense. Arizona ESA families can pay with their ClassWallet funds. Visit our ESA page for details on quarterly and annual billing options.',
   },
-]
+];
 
 export default function LandingPage({ onLoginClick, onSignupClick }: LandingPageProps) {
-  const [demoIndex, setDemoIndex] = useState(0)
-  const [typedPrompt, setTypedPrompt] = useState('')
-  const [showAiReply, setShowAiReply] = useState(false)
-  const [typedReply, setTypedReply] = useState('')
-  const [phase, setPhase] = useState<'typing' | 'building' | 'done'>('typing')
-  const [featuredGames, setFeaturedGames] = useState<FeaturedGame[]>([])
-  const [openFaq, setOpenFaq] = useState<number | null>(null)
-  const navRef = useRef<HTMLElement | null>(null)
-  const [previewGameId, setPreviewGameId] = useState<string | null>(null)
-  const [previewLoaded, setPreviewLoaded] = useState(false)
-  const hoverTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const restartInterval = useRef<ReturnType<typeof setInterval> | null>(null)
-  const previewIframeRef = useRef<HTMLIFrameElement | null>(null)
-  const pageRef = useRef<HTMLDivElement | null>(null)
+  const [demoIndex, setDemoIndex] = useState(0);
+  const [typedPrompt, setTypedPrompt] = useState('');
+  const [showAiReply, setShowAiReply] = useState(false);
+  const [typedReply, setTypedReply] = useState('');
+  const [phase, setPhase] = useState<'typing' | 'building' | 'done'>('typing');
+  const [featuredGames, setFeaturedGames] = useState<FeaturedGame[]>([]);
+  const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const navRef = useRef<HTMLElement | null>(null);
+  const [previewGameId, setPreviewGameId] = useState<string | null>(null);
+  const [previewLoaded, setPreviewLoaded] = useState(false);
+  const hoverTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const restartInterval = useRef<ReturnType<typeof setInterval> | null>(null);
+  const previewIframeRef = useRef<HTMLIFrameElement | null>(null);
+  const pageRef = useRef<HTMLDivElement | null>(null);
 
   // Native click listener for path links — fixes tap/click not working on mobile (iOS/Android)
   useEffect(() => {
-    const root = pageRef.current
-    if (!root) return
+    const root = pageRef.current;
+    if (!root) return;
     const handleLink = (e: Event) => {
-      const ev = e as MouseEvent
-      if (ev.button !== 0 || ev.ctrlKey || ev.metaKey || ev.shiftKey) return
-      const target = (e.target as HTMLElement).closest('a[href^="/"]:not([href^="//"])')
-      if (!target) return
-      const href = (target as HTMLAnchorElement).getAttribute('href') || ''
+      const ev = e as MouseEvent;
+      if (ev.button !== 0 || ev.ctrlKey || ev.metaKey || ev.shiftKey) return;
+      const target = (e.target as HTMLElement).closest('a[href^="/"]:not([href^="//"])');
+      if (!target) return;
+      const href = (target as HTMLAnchorElement).getAttribute('href') || '';
       if (href && href !== '#' && (window.innerWidth <= 768 || 'ontouchstart' in window)) {
-        e.preventDefault()
-        e.stopPropagation()
-        window.location.href = href
+        e.preventDefault();
+        e.stopPropagation();
+        window.location.href = href;
       }
-    }
-    root.addEventListener('click', handleLink, true)
-    return () => root.removeEventListener('click', handleLink, true)
-  }, [])
+    };
+    root.addEventListener('click', handleLink, true);
+    return () => root.removeEventListener('click', handleLink, true);
+  }, []);
 
   const handleFooterPathLink = useCallback((e: React.MouseEvent<HTMLAnchorElement>) => {
-    const href = e.currentTarget.getAttribute('href') || ''
+    const href = e.currentTarget.getAttribute('href') || '';
     if (href.startsWith('/') && !href.startsWith('//') && (window.innerWidth <= 768 || 'ontouchstart' in window)) {
-      e.preventDefault()
-      window.location.href = href
+      e.preventDefault();
+      window.location.href = href;
     }
-  }, [])
+  }, []);
 
   const cleanupPreview = useCallback(() => {
-    if (restartInterval.current) { clearInterval(restartInterval.current); restartInterval.current = null }
-    if (hoverTimeout.current) { clearTimeout(hoverTimeout.current); hoverTimeout.current = null }
-    setPreviewGameId(null)
-    setPreviewLoaded(false)
-    previewIframeRef.current = null
-  }, [])
+    if (restartInterval.current) {
+      clearInterval(restartInterval.current);
+      restartInterval.current = null;
+    }
+    if (hoverTimeout.current) {
+      clearTimeout(hoverTimeout.current);
+      hoverTimeout.current = null;
+    }
+    setPreviewGameId(null);
+    setPreviewLoaded(false);
+    previewIframeRef.current = null;
+  }, []);
 
   const handleCardMouseEnter = useCallback((gameId: string) => {
-    if ('ontouchstart' in window) return
-    if (hoverTimeout.current) clearTimeout(hoverTimeout.current)
+    if ('ontouchstart' in window) return;
+    if (hoverTimeout.current) clearTimeout(hoverTimeout.current);
     hoverTimeout.current = setTimeout(() => {
-      if (restartInterval.current) clearInterval(restartInterval.current)
-      setPreviewLoaded(false)
-      setPreviewGameId(gameId)
+      if (restartInterval.current) clearInterval(restartInterval.current);
+      setPreviewLoaded(false);
+      setPreviewGameId(gameId);
       restartInterval.current = setInterval(() => {
-        setPreviewLoaded(false)
-        setPreviewGameId(null)
-        setTimeout(() => setPreviewGameId(gameId), 100)
-      }, 6000)
-    }, 300)
-  }, [])
+        setPreviewLoaded(false);
+        setPreviewGameId(null);
+        setTimeout(() => setPreviewGameId(gameId), 100);
+      }, 6000);
+    }, 300);
+  }, []);
 
   const handleCardMouseLeave = useCallback(() => {
-    cleanupPreview()
-  }, [cleanupPreview])
+    cleanupPreview();
+  }, [cleanupPreview]);
 
-  const scenario = DEMO_SCENARIOS[demoIndex]
+  const scenario = DEMO_SCENARIOS[demoIndex];
 
   const startScenario = useCallback((index: number) => {
-    setDemoIndex(index)
-    setTypedPrompt('')
-    setTypedReply('')
-    setShowAiReply(false)
-    setPhase('typing')
-  }, [])
+    setDemoIndex(index);
+    setTypedPrompt('');
+    setTypedReply('');
+    setShowAiReply(false);
+    setPhase('typing');
+  }, []);
 
   // Demo typing animation
   useEffect(() => {
-    const prompt = DEMO_SCENARIOS[demoIndex].prompt
-    if (phase !== 'typing') return
+    const prompt = DEMO_SCENARIOS[demoIndex].prompt;
+    if (phase !== 'typing') return;
     if (typedPrompt.length < prompt.length) {
-      const speed = 25 + Math.random() * 20
-      const timer = setTimeout(() => setTypedPrompt(prompt.slice(0, typedPrompt.length + 1)), speed)
-      return () => clearTimeout(timer)
+      const speed = 25 + Math.random() * 20;
+      const timer = setTimeout(() => setTypedPrompt(prompt.slice(0, typedPrompt.length + 1)), speed);
+      return () => clearTimeout(timer);
     }
     const timer = setTimeout(() => {
-      setShowAiReply(true)
-      setPhase('building')
-    }, 400)
-    return () => clearTimeout(timer)
-  }, [typedPrompt, phase, demoIndex])
+      setShowAiReply(true);
+      setPhase('building');
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [typedPrompt, phase, demoIndex]);
 
   useEffect(() => {
-    const reply = DEMO_SCENARIOS[demoIndex].aiReply
-    if (phase !== 'building') return
+    const reply = DEMO_SCENARIOS[demoIndex].aiReply;
+    if (phase !== 'building') return;
     if (typedReply.length < reply.length) {
-      const speed = 18 + Math.random() * 12
-      const timer = setTimeout(() => setTypedReply(reply.slice(0, typedReply.length + 1)), speed)
-      return () => clearTimeout(timer)
+      const speed = 18 + Math.random() * 12;
+      const timer = setTimeout(() => setTypedReply(reply.slice(0, typedReply.length + 1)), speed);
+      return () => clearTimeout(timer);
     }
-    const timer = setTimeout(() => setPhase('done'), 300)
-    return () => clearTimeout(timer)
-  }, [typedReply, phase, demoIndex])
+    const timer = setTimeout(() => setPhase('done'), 300);
+    return () => clearTimeout(timer);
+  }, [typedReply, phase, demoIndex]);
 
   useEffect(() => {
-    if (phase !== 'done') return
+    if (phase !== 'done') return;
     const timer = setTimeout(() => {
-      startScenario((demoIndex + 1) % DEMO_SCENARIOS.length)
-    }, 5000)
-    return () => clearTimeout(timer)
-  }, [phase, demoIndex, startScenario])
+      startScenario((demoIndex + 1) % DEMO_SCENARIOS.length);
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, [phase, demoIndex, startScenario]);
 
   useEffect(() => {
-    return () => cleanupPreview()
-  }, [cleanupPreview])
+    return () => cleanupPreview();
+  }, [cleanupPreview]);
 
   // Fetch featured games
   useEffect(() => {
     fetch('/api/gallery?limit=6')
-      .then(r => r.ok ? r.json() : [])
-      .then(data => {
-        const games = Array.isArray(data) ? data : (data.games || [])
-        setFeaturedGames(games.slice(0, 6))
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data) => {
+        const games = Array.isArray(data) ? data : data.games || [];
+        setFeaturedGames(games.slice(0, 6));
       })
-      .catch(() => {})
-  }, [])
+      .catch(() => {});
+  }, []);
 
   // Nav scroll effect — direct DOM toggle to avoid React re-renders during scroll
   useEffect(() => {
-    let ticking = false
+    let ticking = false;
     const onScroll = () => {
-      if (ticking) return
-      ticking = true
+      if (ticking) return;
+      ticking = true;
       requestAnimationFrame(() => {
-        const nav = navRef.current
+        const nav = navRef.current;
         if (nav) {
-          const scrolled = window.scrollY > 40
+          const scrolled = window.scrollY > 40;
           if (scrolled && !nav.classList.contains('nav-scrolled')) {
-            nav.classList.add('nav-scrolled')
+            nav.classList.add('nav-scrolled');
           } else if (!scrolled && nav.classList.contains('nav-scrolled')) {
-            nav.classList.remove('nav-scrolled')
+            nav.classList.remove('nav-scrolled');
           }
         }
-        ticking = false
-      })
-    }
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
-  }, [])
+        ticking = false;
+      });
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   return (
     <div ref={pageRef} className="landing-page">
@@ -305,14 +467,17 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
             <a href="/contact">Contact</a>
           </div>
           <div className="nav-actions">
-            <button className="nav-login" onClick={onLoginClick}>Log In</button>
-            <button className="nav-cta" onClick={onSignupClick}>Get Started Free</button>
+            <button className="nav-login" onClick={onLoginClick}>
+              Log In
+            </button>
+            <button className="nav-cta" onClick={onSignupClick}>
+              Get Started Free
+            </button>
           </div>
         </div>
       </nav>
 
       <div className="landing-content" id="main-content">
-
         {/* ── 2. Hero ── */}
         <section className="landing-hero">
           <div className="hero-logo">
@@ -345,9 +510,7 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
             </button>
           </div>
 
-          <p className="hero-note">
-            Start your free 30-day trial — 3 games and 10 prompts/day
-          </p>
+          <p className="hero-note">Start your free 30-day trial — 3 games and 10 prompts/day</p>
         </section>
 
         {/* ── 3. How It Works ── */}
@@ -395,7 +558,9 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
           <div className="demo-window">
             <div className="demo-window-header">
               <div className="preview-dots">
-                <span /><span /><span />
+                <span />
+                <span />
+                <span />
               </div>
               <span className="preview-title">vibe-code-studio</span>
             </div>
@@ -481,7 +646,7 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
                           ref={previewIframeRef}
                           className={`sgc-preview-frame${previewLoaded ? ' visible' : ''}`}
                           src={`/play/${game.id}?preview=1`}
-                          sandbox="allow-scripts"
+                          sandbox="allow-scripts allow-pointer-lock"
                           loading="lazy"
                           onLoad={() => setPreviewLoaded(true)}
                         />
@@ -493,13 +658,17 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
                   </div>
                   <div className="sgc-info">
                     <span className="sgc-title">{game.title || 'Untitled'}</span>
-                    <span className="sgc-creator">by {friendlyCreatorName(game.displayName || game.creatorName, i)}</span>
+                    <span className="sgc-creator">
+                      by {friendlyCreatorName(game.displayName || game.creatorName, i)}
+                    </span>
                   </div>
                   <div className="sgc-play">Play</div>
                 </a>
               ))}
             </div>
-            <a href="/gallery" className="section-cta-link">Browse all games in the Arcade</a>
+            <a href="/gallery" className="section-cta-link">
+              Browse all games in the Arcade
+            </a>
           </section>
         )}
 
@@ -512,7 +681,9 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
               <button key={tmpl.title} className="template-card" onClick={onSignupClick}>
                 <div className="template-card-bg" style={{ background: tmpl.gradient }}>
                   <img src={tmpl.sprite} alt={tmpl.title} className="template-card-sprite" />
-                  <span className="template-card-emoji" aria-hidden="true">{tmpl.emoji}</span>
+                  <span className="template-card-emoji" aria-hidden="true">
+                    {tmpl.emoji}
+                  </span>
                 </div>
                 <div className="template-card-info">
                   <span className="template-card-genre">{tmpl.genre}</span>
@@ -550,16 +721,25 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
                 role="button"
                 tabIndex={0}
                 onClick={onSignupClick}
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSignupClick(); } }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onSignupClick();
+                  }
+                }}
               >
-                <span className="scratch-card-icon" aria-hidden="true">{icon}</span>
+                <span className="scratch-card-icon" aria-hidden="true">
+                  {icon}
+                </span>
                 <span className="scratch-card-quote">{quote}</span>
               </div>
             ))}
           </div>
           <div className="scratch-bottom">
             <p className="scratch-hint">Type anything you want — the only limit is your imagination</p>
-            <button className="section-cta" onClick={onSignupClick}>Start Vibecoding — Free</button>
+            <button className="section-cta" onClick={onSignupClick}>
+              Start Vibecoding — Free
+            </button>
           </div>
         </section>
 
@@ -571,22 +751,34 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
             <div className="parent-card">
               <span className="parent-card-icon">🛡️</span>
               <h3>Safe &amp; COPPA Compliant</h3>
-              <p>Parental consent for under-13 users, minimal data collection, and full compliance with children's privacy law.</p>
+              <p>
+                Parental consent for under-13 users, minimal data collection, and full compliance with children's
+                privacy law.
+              </p>
             </div>
             <div className="parent-card">
               <span className="parent-card-icon">🧠</span>
               <h3>Real Coding Skills</h3>
-              <p>Kids learn game design, computational thinking, and can view and edit the real source code behind every game.</p>
+              <p>
+                Kids learn game design, computational thinking, and can view and edit the real source code behind every
+                game.
+              </p>
             </div>
             <div className="parent-card">
               <span className="parent-card-icon">✅</span>
               <h3>Kid-Friendly Content Only</h3>
-              <p>AI content moderation ensures all games stay E-rated. Swords and spells are fine — graphic violence is not.</p>
+              <p>
+                AI content moderation ensures all games stay E-rated. Swords and spells are fine — graphic violence is
+                not.
+              </p>
             </div>
             <div className="parent-card">
               <span className="parent-card-icon">👨‍👩‍👧</span>
               <h3>You Stay in Control</h3>
-              <p>View your child's creations, request data access or deletion anytime, and set daily usage limits through your account.</p>
+              <p>
+                View your child's creations, request data access or deletion anytime, and set daily usage limits through
+                your account.
+              </p>
             </div>
           </div>
         </section>
@@ -606,7 +798,9 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
                 <li>Unlimited plays</li>
                 <li>Share to Arcade</li>
               </ul>
-              <button className="price-card-btn" onClick={onSignupClick}>Start Free Trial</button>
+              <button className="price-card-btn" onClick={onSignupClick}>
+                Start Free Trial
+              </button>
             </div>
             <div className="price-card featured">
               <div className="price-card-badge">Most Popular</div>
@@ -620,7 +814,9 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
                 <li>Share to Arcade</li>
                 <li>Priority support</li>
               </ul>
-              <button className="price-card-btn" onClick={onSignupClick}>Get Started</button>
+              <button className="price-card-btn" onClick={onSignupClick}>
+                Get Started
+              </button>
             </div>
             <div className="price-card">
               <h3 className="price-card-name">Pro</h3>
@@ -633,7 +829,9 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
                 <li>Share to Arcade</li>
                 <li>Priority support</li>
               </ul>
-              <button className="price-card-btn" onClick={onSignupClick}>Get Started</button>
+              <button className="price-card-btn" onClick={onSignupClick}>
+                Get Started
+              </button>
             </div>
           </div>
           <p className="pricing-esa-note">
@@ -654,9 +852,15 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
                   aria-controls={`faq-answer-${i}`}
                 >
                   <span>{item.q}</span>
-                  <span className="faq-toggle" aria-hidden="true">{openFaq === i ? '−' : '+'}</span>
+                  <span className="faq-toggle" aria-hidden="true">
+                    {openFaq === i ? '−' : '+'}
+                  </span>
                 </button>
-                {openFaq === i && <div className="faq-answer" id={`faq-answer-${i}`} role="region">{item.a}</div>}
+                {openFaq === i && (
+                  <div className="faq-answer" id={`faq-answer-${i}`} role="region">
+                    {item.a}
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -666,7 +870,9 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
         <section className="final-cta-section">
           <h2>Ready to start vibecoding?</h2>
           <p>Your child's next favorite game is one sentence away.</p>
-          <button className="section-cta" onClick={onSignupClick}>Get Started Free</button>
+          <button className="section-cta" onClick={onSignupClick}>
+            Get Started Free
+          </button>
         </section>
       </div>
 
@@ -679,31 +885,43 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
           </div>
           <div className="footer-col">
             <h4>Product</h4>
-            <a href="/" onClick={handleFooterPathLink}>Studio</a>
-            <a href="/gallery" onClick={handleFooterPathLink}>Arcade</a>
+            <a href="/" onClick={handleFooterPathLink}>
+              Studio
+            </a>
+            <a href="/gallery" onClick={handleFooterPathLink}>
+              Arcade
+            </a>
             <a href="#pricing">Pricing</a>
           </div>
           <div className="footer-col">
             <h4>Parents</h4>
-            <a href="/esa" onClick={handleFooterPathLink}>ESA Families</a>
+            <a href="/esa" onClick={handleFooterPathLink}>
+              ESA Families
+            </a>
             <a href="#parents">Safety</a>
             <a href="#faq">FAQ</a>
           </div>
           <div className="footer-col">
             <h4>Community</h4>
-            <a href="/contact" onClick={handleFooterPathLink}>Contact Us</a>
-            <a href="/gallery" onClick={handleFooterPathLink}>Game Arcade</a>
+            <a href="/contact" onClick={handleFooterPathLink}>
+              Contact Us
+            </a>
+            <a href="/gallery" onClick={handleFooterPathLink}>
+              Game Arcade
+            </a>
           </div>
           <div className="footer-col">
             <h4>Legal</h4>
-            <a href="/privacy" onClick={handleFooterPathLink}>Privacy Policy</a>
-            <a href="/terms" onClick={handleFooterPathLink}>Terms of Service</a>
+            <a href="/privacy" onClick={handleFooterPathLink}>
+              Privacy Policy
+            </a>
+            <a href="/terms" onClick={handleFooterPathLink}>
+              Terms of Service
+            </a>
           </div>
         </div>
-        <div className="footer-bottom">
-          &copy; 2026 VibeCode Kids. All rights reserved.
-        </div>
+        <div className="footer-bottom">&copy; 2026 VibeCode Kids. All rights reserved.</div>
       </footer>
     </div>
-  )
+  );
 }

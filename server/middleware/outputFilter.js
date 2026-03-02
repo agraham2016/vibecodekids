@@ -70,7 +70,8 @@ export function filterOutputCode(code) {
     }
   }
 
-  return { code: filtered, warnings };
+  const hasBlockedContent = warnings.some((w) => w.startsWith('blocked_content:'));
+  return { code: filtered, warnings, blocked: hasBlockedContent };
 }
 
 /**

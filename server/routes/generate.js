@@ -1,15 +1,15 @@
 /**
  * AI Generation Route (Dual-Model: Claude + Grok)
- * 
+ *
  * POST /api/generate - Generate or modify game code using dual AI models.
- * 
+ *
  * Supports:
  * - Mode-based routing (default/claude/grok/creative/debug/ask-other-buddy/critic)
  * - Response caching across BOTH models
  * - Template cache for brand-new games
  * - Auto-detection of creative/debug intent from prompt
  * - Token usage tracking per user per model
- * 
+ *
  * New request body fields:
  * - mode: 'default' | 'claude' | 'grok' | 'creative' | 'debug' | 'ask-other-buddy' | 'critic'
  * - lastModelUsed: 'claude' | 'grok' (for ask-other-buddy routing)
@@ -17,22 +17,18 @@
  */
 
 import { Router } from 'express';
-import { detectGameGenre, sanitizeOutput } from '../prompts/index.js';
+import { detectGameGenre } from '../prompts/index.js';
 import { filterContent } from '../middleware/contentFilter.js';
 import { piiScannerMiddleware, scanPII } from '../middleware/piiScanner.js';
 import { filterOutputText, filterOutputCode } from '../middleware/outputFilter.js';
 import { checkRateLimits, checkTierLimits, incrementUsage, calculateUsageRemaining } from '../middleware/rateLimit.js';
-import {
-  getTemplateCacheKey,
-  getCachedTemplate,
-  cacheTemplate,
-  isGrokAvailable,
-} from '../services/ai.js';
+import { getTemplateCacheKey, getCachedTemplate, cacheTemplate, isGrokAvailable } from '../services/ai.js';
 import { generateOrIterateGame } from '../services/gameHandler.js';
 import { logGenerateEvent } from '../services/eventStore.js';
 import { readUser } from '../services/storage.js';
 import { recordViolation } from '../services/discipline.js';
 import { checkAbuse } from '../services/abuseDetection.js';
+import { ageGate } from '../middleware/ageGate.js';
 
 export default function createGenerateRouter(sessions) {
   const router = Router();
@@ -47,11 +43,11 @@ export default function createGenerateRouter(sessions) {
 
   router.post('/', piiScannerMiddleware, async (req, res) => {
     try {
-      const { 
-        message, 
-        image, 
-        currentCode, 
-        conversationHistory = [], 
+      const {
+        message,
+        image,
+        currentCode,
+        conversationHistory = [],
         gameConfig = null,
         // ---- DUAL-MODEL FIELDS ----
         mode = 'default',
@@ -62,13 +58,22 @@ export default function createGenerateRouter(sessions) {
         startingModel = null,
       } = req.body;
 
-      console.log(`🎮 Generate request: "${(message || '').slice(0, 80)}" | mode: ${mode} | model-hint: ${lastModelUsed || 'none'} | gameConfig: ${gameConfig ? gameConfig.gameType : 'none'} | hasCode: ${!!currentCode} | historyLen: ${conversationHistory.length}`);
+      console.log(
+        `🎮 Generate request: "${(message || '').slice(0, 80)}" | mode: ${mode} | model-hint: ${lastModelUsed || 'none'} | gameConfig: ${gameConfig ? gameConfig.gameType : 'none'} | hasCode: ${!!currentCode} | historyLen: ${conversationHistory.length}`,
+      );
 
       // IP-level abuse detection for unauthenticated burst generation
       const genIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || '';
       const abuseCheck = checkAbuse(genIp, 'generate');
       if (!abuseCheck.allowed) {
-        return res.status(429).json({ message: 'Too many requests. Please slow down and try again in a few minutes.', code: null, modelUsed: null, isCacheHit: false });
+        return res
+          .status(429)
+          .json({
+            message: 'Too many requests. Please slow down and try again in a few minutes.',
+            code: null,
+            modelUsed: null,
+            isCacheHit: false,
+          });
       }
 
       // Get user from session
@@ -79,14 +84,29 @@ export default function createGenerateRouter(sessions) {
         if (session) userId = session.userId;
       }
 
-      // Block suspended/deleted users
+      // Block suspended/deleted users and enforce consent for under-13
       if (userId) {
         try {
           const user = await readUser(userId);
           if (user.status === 'suspended' || user.status === 'deleted' || user.status === 'denied') {
-            return res.status(403).json({ message: 'Your account is not active. Please contact support.', code: null, modelUsed: null, isCacheHit: false });
+            return res
+              .status(403)
+              .json({
+                message: 'Your account is not active. Please contact support.',
+                code: null,
+                modelUsed: null,
+                isCacheHit: false,
+              });
           }
-        } catch { /* user not found — allow anonymous */ }
+          const consentCheck = ageGate(user, 'generate');
+          if (!consentCheck.allowed) {
+            return res
+              .status(403)
+              .json({ message: consentCheck.reason, code: null, modelUsed: null, isCacheHit: false });
+          }
+        } catch {
+          /* user not found — allow anonymous */
+        }
       }
 
       // Check rate limits
@@ -98,7 +118,7 @@ export default function createGenerateRouter(sessions) {
           modelUsed: null,
           isCacheHit: false,
           rateLimited: true,
-          waitSeconds: rateLimitCheck.waitSeconds
+          waitSeconds: rateLimitCheck.waitSeconds,
         });
       }
 
@@ -111,7 +131,7 @@ export default function createGenerateRouter(sessions) {
           modelUsed: null,
           isCacheHit: false,
           upgradeRequired: tierCheck.upgradeRequired,
-          reason: tierCheck.reason
+          reason: tierCheck.reason,
         });
       }
 
@@ -119,9 +139,7 @@ export default function createGenerateRouter(sessions) {
       const contentCheck = filterContent(message, { source: 'generate' });
       if (contentCheck.blocked) {
         const discipline = await recordViolation(userId);
-        const msg = discipline.message
-          ? `${contentCheck.reason}\n\n${discipline.message}`
-          : contentCheck.reason;
+        const msg = discipline.message ? `${contentCheck.reason}\n\n${discipline.message}` : contentCheck.reason;
         return res.json({ message: msg, code: null, modelUsed: null, isCacheHit: false });
       }
 
@@ -137,7 +155,7 @@ export default function createGenerateRouter(sessions) {
       // ===== TEMPLATE CACHE CHECK (for brand-new survey-based games) =====
       const isNewGame = !currentCode || isDefaultCode(currentCode);
       const hasNoHistory = conversationHistory.length === 0;
-      
+
       if (isNewGame && hasNoHistory && !image && mode === 'default') {
         const cacheKey = getTemplateCacheKey(message, gameConfig);
         const cached = getCachedTemplate(cacheKey);
@@ -154,7 +172,9 @@ export default function createGenerateRouter(sessions) {
               const user = await readUser(userId);
               improvementOptOut = !!user.improvementOptOut;
               ageBracket = user.ageBracket || null;
-            } catch { /* user not found */ }
+            } catch {
+              /* user not found */
+            }
           }
           logGenerateEvent({
             sessionId,
@@ -167,9 +187,9 @@ export default function createGenerateRouter(sessions) {
             improvementOptOut,
           }).catch((err) => console.error('Event log error:', err?.message));
 
-          return res.json({ 
-            message: cached.message, 
-            code: cached.code, 
+          return res.json({
+            message: cached.message,
+            code: cached.code,
             usage,
             modelUsed: 'claude',
             isCacheHit: true,
@@ -179,7 +199,7 @@ export default function createGenerateRouter(sessions) {
       }
 
       // Re-scan conversation history for PII before sending to AI
-      const cleanedHistory = conversationHistory.map(msg => {
+      const cleanedHistory = conversationHistory.map((msg) => {
         if (msg.content && typeof msg.content === 'string') {
           const { cleaned } = scanPII(msg.content);
           return { ...msg, content: cleaned };
@@ -213,9 +233,20 @@ export default function createGenerateRouter(sessions) {
 
       // Filter AI output for PII leakage and inappropriate content
       const cleanedMessage = filterOutputText(result.response);
-      const { code: cleanedCode, warnings: outputWarnings } = filterOutputCode(result.code);
+      const { code: cleanedCode, warnings: outputWarnings, blocked } = filterOutputCode(result.code);
       if (outputWarnings.length > 0) {
-        console.log(`Output filter warnings: ${outputWarnings.join(', ')}`);
+        console.warn(`Output filter warnings [user=${userId}]: ${outputWarnings.join(', ')}`);
+      }
+      if (blocked) {
+        console.error(`BLOCKED output for user=${userId}, prompt="${message?.slice(0, 80)}"`);
+        return res.json({
+          message:
+            "Hmm, that didn't come out right! Let me try a different approach. Can you describe your game again?",
+          code: null,
+          usage: userId ? calculateUsageRemaining(tierCheck.user) : null,
+          modelUsed: result.modelUsed,
+          blocked: true,
+        });
       }
 
       // Build final response
@@ -253,7 +284,9 @@ export default function createGenerateRouter(sessions) {
           const user = await readUser(userId);
           improvementOptOut = !!user.improvementOptOut;
           ageBracket = user.ageBracket || null;
-        } catch { /* user not found */ }
+        } catch {
+          /* user not found */
+        }
       }
       logGenerateEvent({
         sessionId,
@@ -267,12 +300,11 @@ export default function createGenerateRouter(sessions) {
       }).catch((err) => console.error('Event log error:', err?.message));
 
       res.json(responsePayload);
-
     } catch (error) {
       console.error('API Error:', error.message || error);
       console.error('Stack:', error.stack);
 
-      let friendlyMessage = "Oops! My brain got a little confused. 🤔 Can you try asking me again?";
+      let friendlyMessage = 'Oops! My brain got a little confused. 🤔 Can you try asking me again?';
       let statusCode = 500;
 
       const errMsg = (error.message || '').toLowerCase();
@@ -280,20 +312,20 @@ export default function createGenerateRouter(sessions) {
         friendlyMessage = "I'm a little busy right now! 🐢 Wait a moment and try again.";
         statusCode = 429;
       } else if (errMsg.includes('timeout') || errMsg.includes('timed out')) {
-        friendlyMessage = "That took too long! 🕐 Try asking for something a bit simpler.";
+        friendlyMessage = 'That took too long! 🕐 Try asking for something a bit simpler.';
       } else if (errMsg.includes('overloaded') || errMsg.includes('529')) {
-        friendlyMessage = "The servers are super busy! 🚀 Try again in a minute.";
+        friendlyMessage = 'The servers are super busy! 🚀 Try again in a minute.';
         statusCode = 503;
       } else if (errMsg.includes('xai') || errMsg.includes('grok')) {
-        friendlyMessage = "VibeGrok is taking a nap! 😴 Let me switch to Professor Claude...";
+        friendlyMessage = 'VibeGrok is taking a nap! 😴 Let me switch to Professor Claude...';
         statusCode = 503;
       }
 
-      res.status(statusCode).json({ 
-        message: friendlyMessage, 
-        code: null, 
-        modelUsed: null, 
-        isCacheHit: false 
+      res.status(statusCode).json({
+        message: friendlyMessage,
+        code: null,
+        modelUsed: null,
+        isCacheHit: false,
       });
     }
   });
