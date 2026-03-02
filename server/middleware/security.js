@@ -7,45 +7,26 @@
 
 export function securityHeaders() {
   return (_req, res, next) => {
-    // Prevent MIME-type sniffing
     res.setHeader('X-Content-Type-Options', 'nosniff');
-
-    // Prevent clickjacking
     res.setHeader('X-Frame-Options', 'SAMEORIGIN');
-
-    // Enable browser XSS filter
-    res.setHeader('X-XSS-Protection', '1; mode=block');
-
-    // Prevent exposing referrer to other sites
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    res.setHeader('Permissions-Policy', 'camera=(), microphone=(self), geolocation=()');
 
-    // Restrict browser permissions (camera, mic, etc.)
-    res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
-
-    // Remove Express fingerprint
-    res.removeHeader('X-Powered-By');
-
-    // HSTS — force HTTPS for 1 year + includeSubDomains
-    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
-
-    // Content-Security-Policy
-    // 'unsafe-inline' for style-src because HTML pages use inline <style> blocks
-    // 'unsafe-inline' for script-src because HTML pages have inline <script> blocks
-    // The SPA bundle is loaded from 'self'. External script/style sources limited to
-    // self-hosted fonts (after P0-9 migration) and data: for SVG backgrounds.
-    const csp = [
+    res.setHeader('Content-Security-Policy', [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' https://js.stripe.com",
-      "style-src 'self' 'unsafe-inline'",
-      "font-src 'self' data:",
+      "script-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com",
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+      "font-src 'self' https://fonts.gstatic.com",
       "img-src 'self' data: blob:",
-      "connect-src 'self' wss: ws: https://api.stripe.com",
-      "frame-src 'self' blob: https://js.stripe.com",
+      "connect-src 'self' https://api.stripe.com",
+      "frame-src 'none'",
       "object-src 'none'",
       "base-uri 'self'",
-      "form-action 'self'",
-    ].join('; ');
-    res.setHeader('Content-Security-Policy', csp);
+    ].join('; '));
+
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+
+    res.removeHeader('X-Powered-By');
 
     next();
   };

@@ -56,38 +56,10 @@ export default function PreviewPanel({ code }: PreviewPanelProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const fullscreenIframeRef = useRef<HTMLIFrameElement>(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
-  const [key, setKey] = useState(0) // Force iframe refresh
+  const [key, setKey] = useState(0)
 
-  // Inject libraries into the code
+  // Inject libraries into the code (used as srcdoc for sandboxing)
   const enhancedCode = injectLibraries(code)
-
-  // Update main preview iframe
-  useEffect(() => {
-    if (iframeRef.current) {
-      const iframe = iframeRef.current
-      const doc = iframe.contentDocument || iframe.contentWindow?.document
-      
-      if (doc) {
-        doc.open()
-        doc.write(enhancedCode)
-        doc.close()
-      }
-    }
-  }, [enhancedCode, key])
-
-  // Update fullscreen iframe when opened
-  useEffect(() => {
-    if (isFullscreen && fullscreenIframeRef.current) {
-      const iframe = fullscreenIframeRef.current
-      const doc = iframe.contentDocument || iframe.contentWindow?.document
-      
-      if (doc) {
-        doc.open()
-        doc.write(enhancedCode)
-        doc.close()
-      }
-    }
-  }, [isFullscreen, enhancedCode])
 
   // Handle Escape key to exit fullscreen
   useEffect(() => {
@@ -136,6 +108,7 @@ export default function PreviewPanel({ code }: PreviewPanelProps) {
           <iframe
             key={key}
             ref={iframeRef}
+            srcDoc={enhancedCode}
             title="Preview"
             sandbox="allow-scripts allow-pointer-lock"
             className="preview-iframe"
@@ -161,6 +134,7 @@ export default function PreviewPanel({ code }: PreviewPanelProps) {
           <div className="play-mode-content">
             <iframe
               ref={fullscreenIframeRef}
+              srcDoc={enhancedCode}
               title="Fullscreen Preview"
               sandbox="allow-scripts allow-pointer-lock"
               className="play-mode-iframe"

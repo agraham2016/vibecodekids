@@ -27,10 +27,18 @@ const PROJECT_ID_REGEX = /^[a-z0-9]{6}$/;
 export default function createProjectsRouter(sessions) {
   const router = Router();
 
-  // Save/publish a project
+  // Save/publish a project (requires auth)
   router.post('/', async (req, res) => {
     try {
-      const { title, code, creatorName, isPublic = false, category = 'other', multiplayer = false, thumbnail } = req.body;
+      const token = req.headers.authorization?.replace('Bearer ', '');
+      if (!token) return res.status(401).json({ error: 'Please log in to publish projects' });
+      const session = await sessions.get(token);
+      if (!session) return res.status(401).json({ error: 'Session expired. Please log in again.' });
+
+      const userId = session.userId;
+      const displayName = session.displayName;
+
+      const { title, code, isPublic = false, category = 'other', multiplayer = false, thumbnail } = req.body;
 
       if (!code || !title) {
         return res.status(400).json({ error: 'Title and code are required' });
@@ -41,21 +49,9 @@ export default function createProjectsRouter(sessions) {
         return res.status(400).json({ error: 'Please choose a different title' });
       }
 
-      const token = req.headers.authorization?.replace('Bearer ', '');
-      let userId = null;
-      let displayName = creatorName || 'Anonymous';
-
-      if (token) {
-        const session = await sessions.get(token);
-        if (session) {
-          userId = session.userId;
-          displayName = session.displayName;
-
-          const tierCheck = await checkTierLimits(userId, 'save_game');
-          if (!tierCheck.allowed) {
-            return res.status(403).json({ error: tierCheck.message, upgradeRequired: tierCheck.upgradeRequired });
-          }
-        }
+      const tierCheck = await checkTierLimits(userId, 'save_game');
+      if (!tierCheck.allowed) {
+        return res.status(403).json({ error: tierCheck.message, upgradeRequired: tierCheck.upgradeRequired });
       }
 
       // COPPA: Enforce parent publishing toggle for under-13
@@ -329,14 +325,24 @@ export default function createProjectsRouter(sessions) {
     }
   });
 
-  // Like a project
+  // Like a project (requires auth, one like per user per project)
   router.post('/:id/like', async (req, res) => {
     try {
+      const token = req.headers.authorization?.replace('Bearer ', '');
+      if (!token) return res.status(401).json({ error: 'Please log in to like projects' });
+      const session = await sessions.get(token);
+      if (!session) return res.status(401).json({ error: 'Session expired' });
+
       const { id } = req.params;
       if (!PROJECT_ID_REGEX.test(id)) return res.status(400).json({ error: 'Invalid project ID' });
 
       const project = await readProject(id);
-      project.likes = Math.max(0, (project.likes || 0) + 1);
+      if (!project.likedBy) project.likedBy = [];
+      if (project.likedBy.includes(session.userId)) {
+        return res.json({ likes: project.likes || 0, alreadyLiked: true });
+      }
+      project.likedBy.push(session.userId);
+      project.likes = project.likedBy.length;
       await writeProject(id, project);
 
       res.json({ likes: project.likes });
@@ -346,17 +352,27 @@ export default function createProjectsRouter(sessions) {
     }
   });
 
-  // Unlike a project (toggle - removes one like)
+  // Unlike a project (requires auth)
   router.delete('/:id/like', async (req, res) => {
     try {
+      const token = req.headers.authorization?.replace('Bearer ', '');
+      if (!token) return res.status(401).json({ error: 'Please log in' });
+      const session = await sessions.get(token);
+      if (!session) return res.status(401).json({ error: 'Session expired' });
+
       const { id } = req.params;
       if (!PROJECT_ID_REGEX.test(id)) return res.status(400).json({ error: 'Invalid project ID' });
 
       const project = await readProject(id);
-      project.likes = Math.max(0, (project.likes || 0) - 1);
-      await writeProject(id, project);
+      if (!project.likedBy) project.likedBy = [];
+      const idx = project.likedBy.indexOf(session.userId);
+      if (idx !== -1) {
+        project.likedBy.splice(idx, 1);
+        project.likes = project.likedBy.length;
+        await writeProject(id, project);
+      }
 
-      res.json({ likes: project.likes });
+      res.json({ likes: project.likes || 0 });
     } catch (error) {
       if (error.code === 'ENOENT') return res.status(404).json({ error: 'Project not found' });
       res.status(500).json({ error: 'Could not unlike project' });

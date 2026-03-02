@@ -60,7 +60,7 @@ class FileSessionStore {
     }
   }
 
-  get(token) {
+  get(token, reqContext) {
     const session = this._map.get(token);
     if (!session) return undefined;
     if (session.createdAt && (Date.now() - session.createdAt) > SESSION_MAX_AGE_MS) {
@@ -68,7 +68,34 @@ class FileSessionStore {
       this._dirty = true;
       return undefined;
     }
+    // Session binding: flag if IP or user-agent changed significantly
+    if (reqContext && session.boundIp) {
+      if (reqContext.ip && reqContext.ip !== session.boundIp) {
+        session._ipChanged = true;
+      }
+      if (reqContext.userAgent && session.boundUserAgent &&
+          reqContext.userAgent !== session.boundUserAgent) {
+        session._uaChanged = true;
+      }
+    }
     return session;
+  }
+
+  /**
+   * Rotate a session token: delete old token, create new one with same session data.
+   * Returns the new token.
+   */
+  rotate(oldToken) {
+    const session = this._map.get(oldToken);
+    if (!session) return null;
+    this._map.delete(oldToken);
+    const newToken = generateToken();
+    session.rotatedAt = Date.now();
+    this._map.set(newToken, session);
+    this._dirty = true;
+    clearTimeout(this._persistTimer);
+    this._persistTimer = setTimeout(() => this._persist(), 1000);
+    return newToken;
   }
 
   set(token, session) {

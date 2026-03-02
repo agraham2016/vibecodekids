@@ -454,6 +454,7 @@ export async function deleteUserData(userId) {
   user.displayName = 'Deleted User';
   user.passwordHash = 'DELETED';
   user.parentEmail = null;
+  user.recoveryEmail = null;
   user.dataDeletionRequested = true;
   user.dataDeletionAt = new Date().toISOString();
   user.recentRequests = [];

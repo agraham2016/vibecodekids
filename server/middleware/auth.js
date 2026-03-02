@@ -9,19 +9,46 @@ import { readUser } from '../services/storage.js';
 import { is2FAEnabled } from '../services/admin2FA.js';
 import { verifyAdminToken } from '../routes/adminAuth.js';
 
+const TOKEN_ROTATION_INTERVAL_MS = 4 * 60 * 60 * 1000; // 4 hours
+
+function getReqContext(req) {
+  return {
+    ip: req.ip || req.connection?.remoteAddress,
+    userAgent: req.headers['user-agent'],
+  };
+}
+
 /**
  * Extract user from session token (non-blocking).
  * Attaches req.userId, req.session if valid token found.
+ * Handles sliding token rotation every 4 hours.
  */
 export function extractUser(sessions) {
-  return async (req, _res, next) => {
+  return async (req, res, next) => {
     const token = req.headers.authorization?.replace('Bearer ', '');
     if (token) {
-      const session = await sessions.get(token);
+      const session = await sessions.get(token, getReqContext(req));
       if (session) {
         req.userId = session.userId;
         req.session = session;
         req.authToken = token;
+
+        // Bind IP/UA on first request if not yet set
+        if (!session.boundIp) {
+          session.boundIp = req.ip || req.connection?.remoteAddress;
+          session.boundUserAgent = req.headers['user-agent'];
+          sessions.set(token, session);
+        }
+
+        // Sliding token rotation
+        const lastRotation = session.rotatedAt || session.createdAt || 0;
+        if (Date.now() - lastRotation > TOKEN_ROTATION_INTERVAL_MS && sessions.rotate) {
+          const newToken = sessions.rotate(token);
+          if (newToken) {
+            req.authToken = newToken;
+            res.setHeader('X-New-Token', newToken);
+          }
+        }
       }
     }
     next();
@@ -37,7 +64,7 @@ export function requireAuth(sessions) {
     if (!token) {
       return res.status(401).json({ error: 'No token provided' });
     }
-    const session = await sessions.get(token);
+    const session = await sessions.get(token, getReqContext(req));
     if (!session) {
       return res.status(401).json({ error: 'Invalid or expired session' });
     }

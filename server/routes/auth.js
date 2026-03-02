@@ -8,14 +8,11 @@ import { Router } from 'express';
 import crypto from 'crypto';
 import bcrypt from 'bcrypt';
 import { BCRYPT_ROUNDS, MEMBERSHIP_TIERS } from '../config/index.js';
-import { readUser, writeUser, userExists, listProjects, deleteProject } from '../services/storage.js';
+import { readUser, writeUser, userExists, listProjects } from '../services/storage.js';
 import { generateToken } from '../services/sessions.js';
 import { filterContent } from '../middleware/contentFilter.js';
-import { filterUsername } from '../middleware/usernameFilter.js';
 import { checkAndResetCounters, calculateUsageRemaining } from '../middleware/rateLimit.js';
-import { getAgeBracket, requiresParentalConsent, createConsentRequest, sendConsentEmail, sendPasswordResetEmail, exportUserData, deleteUserData } from '../services/consent.js';
-import { checkAbuse } from '../services/abuseDetection.js';
-import { generateJuniorNameOptions } from '../services/juniorNameGenerator.js';
+import { getAgeBracket, requiresParentalConsent, createConsentRequest, sendConsentEmail, sendPasswordResetEmail } from '../services/consent.js';
 import { createResetToken, getResetByToken, consumeToken } from '../services/passwordReset.js';
 
 const loginAttempts = new Map();
@@ -63,13 +60,7 @@ export default function createAuthRouter(sessions) {
   // Register
   router.post('/register', async (req, res) => {
     try {
-      const regIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || '';
-      const abuseCheck = checkAbuse(regIp, 'registration');
-      if (!abuseCheck.allowed) {
-        return res.status(429).json({ error: 'Too many accounts created. Please try again later.' });
-      }
-
-      const { username, password, displayName, age, ageBracket: clientBracket, parentEmail, recoveryEmail, privacyAccepted } = req.body;
+      const { username, password, displayName, age, parentEmail, recoveryEmail, privacyAccepted } = req.body;
 
       if (!username || !password || !displayName) {
         return res.status(400).json({ error: 'Username, password, and display name are required' });
@@ -77,28 +68,24 @@ export default function createAuthRouter(sessions) {
       if (!/^[a-zA-Z0-9_]{3,20}$/.test(username)) {
         return res.status(400).json({ error: 'Username must be 3-20 characters (letters, numbers, underscore only)' });
       }
-      if (password.length < 4) {
-        return res.status(400).json({ error: 'Password must be at least 4 characters' });
+      if (password.length < 8) {
+        return res.status(400).json({ error: "Password must be at least 8 characters. Try a fun phrase like 'pizza-dragon-rainbow'!" });
       }
       if (displayName.length < 1 || displayName.length > 30) {
         return res.status(400).json({ error: 'Display name must be 1-30 characters' });
       }
 
-      // COPPA: Accept age bracket directly (data minimization) or fall back to age
-      const VALID_BRACKETS = ['under13', '13to17', '18plus'];
-      let ageBracket;
-      if (clientBracket && VALID_BRACKETS.includes(clientBracket)) {
-        ageBracket = clientBracket;
-      } else if (typeof age === 'number' && age >= 5 && age <= 120) {
-        ageBracket = getAgeBracket(age);
-      } else {
+      // COPPA: Require age
+      if (typeof age !== 'number' || age < 5 || age > 120) {
         return res.status(400).json({ error: 'Please enter a valid age' });
       }
 
+      // COPPA: Require privacy policy acceptance
       if (!privacyAccepted) {
         return res.status(400).json({ error: 'You must accept the privacy policy to create an account' });
       }
 
+      const ageBracket = getAgeBracket(age);
       const needsConsent = requiresParentalConsent(ageBracket);
 
       // COPPA: Under-13 users MUST provide a parent email
@@ -129,16 +116,6 @@ export default function createAuthRouter(sessions) {
       const displayNameCheck = filterContent(displayName, { source: 'auth' });
       if (usernameCheck.blocked || displayNameCheck.blocked) {
         return res.status(400).json({ error: 'Please choose a different username or display name' });
-      }
-
-      // COPPA: Block usernames that look like real names or contain PII
-      const usernameNameCheck = filterUsername(username);
-      const displayNameNameCheck = filterUsername(displayName);
-      if (usernameNameCheck.blocked) {
-        return res.status(400).json({ error: usernameNameCheck.reason });
-      }
-      if (displayNameNameCheck.blocked) {
-        return res.status(400).json({ error: displayNameNameCheck.reason });
       }
 
       const userId = `user_${username.toLowerCase()}`;
@@ -176,12 +153,6 @@ export default function createAuthRouter(sessions) {
         parentalConsentAt: null,
         approvedAt: needsConsent ? null : now.toISOString(),
         privacyAcceptedAt: now.toISOString(),
-        // Parent controls: under-13 default OFF, 13+ default ON
-        publishingEnabled: !needsConsent,
-        multiplayerEnabled: !needsConsent,
-        parentVerifiedMethod: null,
-        parentVerifiedAt: null,
-        parentDashboardToken: null,
       };
 
       await writeUser(userId, user);
@@ -192,7 +163,7 @@ export default function createAuthRouter(sessions) {
         const token = await createConsentRequest(userId, parentEmail, 'consent');
         await sendConsentEmail(parentEmail, username, token, 'consent');
         responseMessage = 'Account created! We\'ve sent an email to your parent/guardian for approval. They need to approve before you can log in.';
-        console.log(`Under-13 registration: ${username} → consent email sent`);
+        console.log(`👶 Under-13 registration: ${username} → consent email sent to ${parentEmail}`);
       } else {
         responseMessage = 'Account created! You can log in now.';
       }
@@ -228,7 +199,7 @@ export default function createAuthRouter(sessions) {
         user = await readUser(userId);
       } catch (err) {
         if (err.code === 'ENOENT') {
-          return res.status(401).json({ error: 'Username not found' });
+          return res.status(401).json({ error: 'Invalid username or password' });
         }
         throw err;
       }
@@ -250,7 +221,7 @@ export default function createAuthRouter(sessions) {
       }
 
       if (!passwordValid) {
-        return res.status(401).json({ error: 'Incorrect password' });
+        return res.status(401).json({ error: 'Invalid username or password' });
       }
 
       if (user.status === 'pending') {
@@ -407,8 +378,8 @@ export default function createAuthRouter(sessions) {
       if (!token || !newPassword) {
         return res.status(400).json({ error: 'Token and new password are required' });
       }
-      if (typeof newPassword !== 'string' || newPassword.length < 4) {
-        return res.status(400).json({ error: 'Password must be at least 4 characters' });
+      if (typeof newPassword !== 'string' || newPassword.length < 8) {
+        return res.status(400).json({ error: "Password must be at least 8 characters. Try a fun phrase like 'pizza-dragon-rainbow'!" });
       }
 
       const record = await getResetByToken(token);
@@ -461,63 +432,95 @@ export default function createAuthRouter(sessions) {
     }
   });
 
-  // Generate safe display name suggestions for under-13 users
-  router.get('/junior-names', (_req, res) => {
-    res.json({ names: generateJuniorNameOptions(5) });
+  // ===== PASSPHRASE SUGGESTIONS (kid-friendly passwords) =====
+
+  router.get('/passphrase-suggestions', (_req, res) => {
+    import('../services/passphrase.js').then(({ generatePassphraseOptions }) => {
+      res.json({ suggestions: generatePassphraseOptions(4) });
+    }).catch(() => {
+      res.status(500).json({ error: 'Could not generate suggestions' });
+    });
   });
 
-  // Self-service data export (available to 13+ users)
-  router.get('/my-data', async (req, res) => {
+  // ===== MAGIC LINK LOGIN (parent-initiated) =====
+
+  const magicTokens = new Map();
+  const MAGIC_TTL = 10 * 60 * 1000; // 10 minutes
+
+  router.post('/magic-link', async (req, res) => {
+    const { parentEmail, username } = req.body;
+    if (!parentEmail || !username) {
+      return res.status(400).json({ error: 'Parent email and username are required' });
+    }
+
+    const userId = `user_${username.toLowerCase()}`;
     try {
-      const token = req.headers.authorization?.replace('Bearer ', '');
-      if (!token) return res.status(401).json({ error: 'No token provided' });
-
-      const session = await sessions.get(token);
-      if (!session) return res.status(401).json({ error: 'Invalid or expired session' });
-
-      const user = await readUser(session.userId);
-      if (user.ageBracket === 'under13') {
-        return res.status(403).json({ error: 'Under-13 data requests must go through the Parent Command Center.' });
+      const user = await readUser(userId);
+      if (!user.parentEmail || user.parentEmail.toLowerCase() !== parentEmail.toLowerCase()) {
+        return res.json({ ok: true, message: 'If the account exists, a login link has been sent.' });
       }
 
-      const data = await exportUserData(session.userId);
-      res.json(data);
-    } catch (error) {
-      console.error('Self-service export error:', error);
-      res.status(500).json({ error: 'Could not export data' });
+      const magicToken = crypto.randomBytes(32).toString('hex');
+      magicTokens.set(magicToken, { userId, expiresAt: Date.now() + MAGIC_TTL });
+
+      const { BASE_URL } = await import('../config/index.js');
+      const loginUrl = `${BASE_URL}/api/auth/magic-verify?token=${magicToken}`;
+
+      try {
+        const { Resend } = await import('resend');
+        const resendKey = process.env.RESEND_API_KEY;
+        if (resendKey) {
+          const resend = new Resend(resendKey);
+          await resend.emails.send({
+            from: `Vibe Code Kidz <noreply@${new URL(BASE_URL).hostname}>`,
+            to: parentEmail.toLowerCase(),
+            subject: 'Vibe Code Kidz - Login Link',
+            html: `<h2>Login Link for ${user.displayName}</h2>
+                   <p>Click below to log your child in. This link expires in 10 minutes.</p>
+                   <p><a href="${loginUrl}" style="background: #4CAF50; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Log In</a></p>`,
+          });
+        } else {
+          console.log(`📧 [DEV] Magic link for ${username}: ${loginUrl}`);
+        }
+      } catch (err) {
+        console.error('Failed to send magic link:', err.message);
+      }
+
+      res.json({ ok: true, message: 'If the account exists, a login link has been sent.' });
+    } catch (err) {
+      // Don't reveal whether user exists
+      res.json({ ok: true, message: 'If the account exists, a login link has been sent.' });
     }
   });
 
-  // Self-service account deletion (available to 13+ users)
-  router.post('/delete-my-account', async (req, res) => {
+  router.get('/magic-verify', async (req, res) => {
+    const { token } = req.query;
+    const entry = magicTokens.get(token);
+
+    if (!entry || Date.now() > entry.expiresAt) {
+      magicTokens.delete(token);
+      return res.status(401).send('<html><body><h2>Link expired or invalid.</h2></body></html>');
+    }
+
+    magicTokens.delete(token);
+
     try {
-      const token = req.headers.authorization?.replace('Bearer ', '');
-      if (!token) return res.status(401).json({ error: 'No token provided' });
-
-      const session = await sessions.get(token);
-      if (!session) return res.status(401).json({ error: 'Invalid or expired session' });
-
-      const user = await readUser(session.userId);
-      if (user.ageBracket === 'under13') {
-        return res.status(403).json({ error: 'Under-13 account deletion must go through the Parent Command Center.' });
-      }
-
-      const { password } = req.body;
-      if (!password) return res.status(400).json({ error: 'Password confirmation is required.' });
-
-      const match = await bcrypt.compare(password, user.passwordHash);
-      if (!match) return res.status(403).json({ error: 'Incorrect password.' });
-
-      const result = await deleteUserData(session.userId);
-      await sessions.destroy(token);
-
-      res.json({
-        success: true,
-        message: `Account deleted. ${result.deletedProjects} project(s) removed.`,
+      const user = await readUser(entry.userId);
+      const sessionToken = generateToken();
+      await sessions.set(sessionToken, {
+        userId: user.id,
+        username: user.username,
+        displayName: user.displayName,
+        createdAt: Date.now(),
       });
-    } catch (error) {
-      console.error('Self-service delete error:', error);
-      res.status(500).json({ error: 'Could not delete account' });
+
+      user.lastLoginAt = new Date().toISOString();
+      await writeUser(entry.userId, user);
+
+      const { BASE_URL } = await import('../config/index.js');
+      res.redirect(`${BASE_URL}/?token=${sessionToken}&magic=1`);
+    } catch {
+      res.status(500).send('<html><body><h2>Login failed. Please try again.</h2></body></html>');
     }
   });
 

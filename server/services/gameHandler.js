@@ -234,6 +234,16 @@ export async function generateOrIterateGame({
       break;
   }
 
+  // ===== VALIDATE & SANITIZE AI OUTPUT =====
+  if (result && result.code) {
+    const { validateAIOutput, sanitizeAIOutput } = await import('./outputValidator.js');
+    const validation = validateAIOutput(result.code);
+    if (!validation.safe) {
+      console.warn(`⚠️ AI output contained dangerous patterns: ${validation.violations.join(', ')}`);
+      result.code = sanitizeAIOutput(result.code);
+    }
+  }
+
   // ===== CACHE THE RESULT =====
   if (result && !result.wasTruncated) {
     setCachedResponse(cacheKey, {

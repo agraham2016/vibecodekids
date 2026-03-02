@@ -873,7 +873,12 @@
       }
       
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const wsUrl = `${protocol}//${window.location.host}/ws/multiplayer`;
+      const authToken = localStorage.getItem('authToken') || '';
+      if (!authToken) {
+        sendToGame({ type: 'mp_error', message: 'Please log in to use multiplayer!' });
+        return;
+      }
+      const wsUrl = `${protocol}//${window.location.host}/ws/multiplayer?token=${encodeURIComponent(authToken)}`;
       
       ws = new WebSocket(wsUrl);
 

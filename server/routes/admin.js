@@ -96,8 +96,8 @@ router.post('/users/:id/reset-password', async (req, res) => {
     const { newPassword } = req.body;
 
     if (!/^[a-zA-Z0-9_-]+$/.test(id)) return res.status(400).json({ error: 'Invalid user ID' });
-    if (!newPassword || typeof newPassword !== 'string' || newPassword.length < 4) {
-      return res.status(400).json({ error: 'Password must be at least 4 characters' });
+    if (!newPassword || typeof newPassword !== 'string' || newPassword.length < 8) {
+      return res.status(400).json({ error: "Password must be at least 8 characters. Try a fun phrase like 'pizza-dragon-rainbow'!" });
     }
 
     const user = await readUser(id);
