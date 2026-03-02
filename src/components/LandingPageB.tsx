@@ -1,18 +1,18 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
-import { getVisitorId } from '../lib/abVariant'
-import './LandingPageB.css'
-import './LandingPage.css'
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { getVisitorId } from '../lib/abVariant';
+import './LandingPageB.css';
+import './LandingPage.css';
 
 interface LandingPageBProps {
-  onLoginClick: () => void
-  onSignupClick: () => void
+  onLoginClick: () => void;
+  onSignupClick: () => void;
 }
 
 interface Generation {
-  generationId: string
-  prompt: string
-  code: string
-  thumbs: 'up' | 'down' | null
+  generationId: string;
+  prompt: string;
+  code: string;
+  thumbs: 'up' | 'down' | null;
 }
 
 const GAME_STARTERS = [
@@ -22,161 +22,219 @@ const GAME_STARTERS = [
   { label: 'Racing', prompt: 'A top-down racing game dodging traffic' },
   { label: 'Flappy Bird', prompt: 'A flappy bird style game with a dragon' },
   { label: 'Brick Breaker', prompt: 'A brick breaker game with power-ups' },
-]
+];
 
-const MAX_FREE_PROMPTS = 5
+const MAX_FREE_PROMPTS = 5;
+const DEMO_TIMEOUT_MS = 90_000;
 
-type Phase = 'idle' | 'loading' | 'playing' | 'gated'
+const LOADING_MESSAGES = [
+  'AI is building your game...',
+  'Designing the game world...',
+  'Writing game logic...',
+  'Adding the fun stuff...',
+  'Polishing the pixels...',
+  'Almost there — hang tight!',
+  'Still working — big games take a moment...',
+  'Putting the finishing touches on...',
+];
+
+type Phase = 'idle' | 'loading' | 'playing' | 'gated';
 
 function injectLibraries(code: string): string {
-  const hasFullStructure = code.toLowerCase().includes('<!doctype') || code.toLowerCase().includes('<html')
-  const previewScrollStyle = `<style>html,body{overflow-y:auto!important;overflow-x:hidden;min-height:100%}</style>`
-  const libraryScripts = `<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script><script>window.THREE=THREE;</script>`
-  const headInject = previewScrollStyle + libraryScripts
+  const hasFullStructure = code.toLowerCase().includes('<!doctype') || code.toLowerCase().includes('<html');
+  const previewScrollStyle = `<style>html,body{overflow-y:auto!important;overflow-x:hidden;min-height:100%}</style>`;
+  const libraryScripts = `<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script><script>window.THREE=THREE;</script>`;
+  const headInject = previewScrollStyle + libraryScripts;
   if (hasFullStructure) {
-    if (code.includes('</head>')) return code.replace('</head>', `${headInject}</head>`)
-    if (code.includes('<body')) return code.replace(/<body/i, `${previewScrollStyle}<body`)
+    if (code.includes('</head>')) return code.replace('</head>', `${headInject}</head>`);
+    if (code.includes('<body')) return code.replace(/<body/i, `${previewScrollStyle}<body`);
   }
-  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">${headInject}</head><body>${code}</body></html>`
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">${headInject}</head><body>${code}</body></html>`;
 }
 
 export default function LandingPageB({ onLoginClick, onSignupClick }: LandingPageBProps) {
-  const [customPrompt, setCustomPrompt] = useState('')
-  const [phase, setPhase] = useState<Phase>('idle')
-  const [generations, setGenerations] = useState<Generation[]>([])
-  const [currentCode, setCurrentCode] = useState('')
-  const [currentGenId, setCurrentGenId] = useState('')
+  const [customPrompt, setCustomPrompt] = useState('');
+  const [phase, setPhase] = useState<Phase>('idle');
+  const [generations, setGenerations] = useState<Generation[]>([]);
+  const [currentCode, setCurrentCode] = useState('');
+  const [currentGenId, setCurrentGenId] = useState('');
   const [promptsUsed, setPromptsUsed] = useState(() => {
-    const saved = sessionStorage.getItem('vck_demo_prompts_used')
-    return saved ? parseInt(saved, 10) : 0
-  })
-  const [aiMessage, setAiMessage] = useState('')
-  const [errorMsg, setErrorMsg] = useState('')
-  const iframeRef = useRef<HTMLIFrameElement>(null)
-  const tryItRef = useRef<HTMLDivElement>(null)
-  const visitorId = useRef(getVisitorId())
-  const navRef = useRef<HTMLElement | null>(null)
+    const saved = sessionStorage.getItem('vck_demo_prompts_used');
+    return saved ? parseInt(saved, 10) : 0;
+  });
+  const [aiMessage, setAiMessage] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
+  const [loadingMsgIndex, setLoadingMsgIndex] = useState(0);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const tryItRef = useRef<HTMLDivElement>(null);
+  const visitorId = useRef(getVisitorId());
+  const navRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
-    sessionStorage.setItem('vck_demo_prompts_used', String(promptsUsed))
-  }, [promptsUsed])
+    sessionStorage.setItem('vck_demo_prompts_used', String(promptsUsed));
+  }, [promptsUsed]);
+
+  useEffect(() => {
+    if (phase !== 'loading') {
+      setLoadingMsgIndex(0);
+      return;
+    }
+    const interval = setInterval(() => {
+      setLoadingMsgIndex((prev) => (prev + 1) % LOADING_MESSAGES.length);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [phase]);
 
   useEffect(() => {
     if (iframeRef.current && currentCode) {
-      const doc = iframeRef.current.contentDocument || iframeRef.current.contentWindow?.document
+      const doc = iframeRef.current.contentDocument || iframeRef.current.contentWindow?.document;
       if (doc) {
-        doc.open()
-        doc.write(injectLibraries(currentCode))
-        doc.close()
+        doc.open();
+        doc.write(injectLibraries(currentCode));
+        doc.close();
       }
     }
-  }, [currentCode])
+  }, [currentCode]);
 
   const logEvent = useCallback((payload: Record<string, any>) => {
     fetch('/api/demo/event', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ visitorId: visitorId.current, variant: 'b', ...payload }),
-    }).catch(() => {})
-  }, [])
+    }).catch(() => {});
+  }, []);
 
   useEffect(() => {
-    logEvent({ type: 'pageview', referrer: document.referrer, device: /Mobi/i.test(navigator.userAgent) ? 'mobile' : 'desktop' })
-  }, [logEvent])
+    logEvent({
+      type: 'pageview',
+      referrer: document.referrer,
+      device: /Mobi/i.test(navigator.userAgent) ? 'mobile' : 'desktop',
+    });
+  }, [logEvent]);
 
-  const handleGenerate = useCallback(async (prompt: string) => {
-    if (!prompt.trim()) return
+  const handleGenerate = useCallback(
+    async (prompt: string) => {
+      if (!prompt.trim()) return;
 
-    if (promptsUsed >= MAX_FREE_PROMPTS) {
-      localStorage.setItem('vck_draft_code', currentCode)
-      localStorage.setItem('vck_draft_prompt', generations[generations.length - 1]?.prompt || '')
-      localStorage.setItem('vck_draft_ts', String(Date.now()))
-      setPhase('gated')
-      logEvent({ type: 'signup', promptsUsed })
-      return
-    }
-
-    setPhase('loading')
-    setErrorMsg('')
-    setAiMessage('')
-
-    try {
-      const res = await fetch('/api/demo/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: prompt, visitorId: visitorId.current, variant: 'b' }),
-      })
-      const data = await res.json()
-
-      if (data.gated) {
-        localStorage.setItem('vck_draft_code', currentCode)
-        localStorage.setItem('vck_draft_prompt', prompt)
-        localStorage.setItem('vck_draft_ts', String(Date.now()))
-        setPhase('gated')
-        logEvent({ type: 'signup', promptsUsed })
-        return
+      if (promptsUsed >= MAX_FREE_PROMPTS) {
+        localStorage.setItem('vck_draft_code', currentCode);
+        localStorage.setItem('vck_draft_prompt', generations[generations.length - 1]?.prompt || '');
+        localStorage.setItem('vck_draft_ts', String(Date.now()));
+        setPhase('gated');
+        logEvent({ type: 'signup', promptsUsed });
+        return;
       }
 
-      if (!data.code) {
-        setAiMessage(data.message || 'Something went wrong.')
-        setPhase('idle')
-        return
-      }
+      setPhase('loading');
+      setErrorMsg('');
+      setAiMessage('');
 
-      const gen: Generation = {
-        generationId: data.generationId,
-        prompt,
-        code: data.code,
-        thumbs: null,
-      }
-      setGenerations(prev => [...prev, gen])
-      setCurrentCode(data.code)
-      setCurrentGenId(data.generationId)
-      setAiMessage(data.message || '')
-      setPromptsUsed(prev => prev + 1)
-      setCustomPrompt('')
-      setPhase('playing')
-    } catch {
-      setErrorMsg('Something went wrong. Please try again!')
-      setPhase('idle')
-    }
-  }, [promptsUsed, currentCode, generations, logEvent])
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), DEMO_TIMEOUT_MS);
 
-  const handleThumbsFeedback = useCallback((thumbsUp: boolean) => {
-    setGenerations(prev =>
-      prev.map(g => g.generationId === currentGenId ? { ...g, thumbs: thumbsUp ? 'up' : 'down' } : g)
-    )
-    logEvent({ type: 'feedback', generationId: currentGenId, thumbsUp })
-  }, [currentGenId, logEvent])
+      try {
+        const res = await fetch('/api/demo/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: prompt, visitorId: visitorId.current, variant: 'b' }),
+          signal: controller.signal,
+        });
+
+        if (!res.ok) {
+          let msg = 'Something went wrong. Please try again!';
+          try {
+            const errData = await res.json();
+            if (errData.message) msg = errData.message;
+          } catch {
+            /* non-JSON error body */
+          }
+          setErrorMsg(msg);
+          setPhase('idle');
+          return;
+        }
+
+        const data = await res.json();
+
+        if (data.gated) {
+          localStorage.setItem('vck_draft_code', currentCode);
+          localStorage.setItem('vck_draft_prompt', prompt);
+          localStorage.setItem('vck_draft_ts', String(Date.now()));
+          setPhase('gated');
+          logEvent({ type: 'signup', promptsUsed });
+          return;
+        }
+
+        if (!data.code) {
+          setErrorMsg(data.message || 'Something went wrong — try a different game idea!');
+          setPhase('idle');
+          return;
+        }
+
+        const gen: Generation = {
+          generationId: data.generationId,
+          prompt,
+          code: data.code,
+          thumbs: null,
+        };
+        setGenerations((prev) => [...prev, gen]);
+        setCurrentCode(data.code);
+        setCurrentGenId(data.generationId);
+        setAiMessage(data.message || '');
+        setPromptsUsed((prev) => prev + 1);
+        setCustomPrompt('');
+        setPhase('playing');
+      } catch (err) {
+        if (err instanceof DOMException && err.name === 'AbortError') {
+          setErrorMsg('That took too long! Try a simpler game idea or try again.');
+        } else {
+          setErrorMsg('Something went wrong. Please try again!');
+        }
+        setPhase('idle');
+      } finally {
+        clearTimeout(timeout);
+      }
+    },
+    [promptsUsed, currentCode, generations, logEvent],
+  );
+
+  const handleThumbsFeedback = useCallback(
+    (thumbsUp: boolean) => {
+      setGenerations((prev) =>
+        prev.map((g) => (g.generationId === currentGenId ? { ...g, thumbs: thumbsUp ? 'up' : 'down' } : g)),
+      );
+      logEvent({ type: 'feedback', generationId: currentGenId, thumbsUp });
+    },
+    [currentGenId, logEvent],
+  );
 
   const handleSignupFromGate = useCallback(() => {
-    localStorage.setItem('vck_draft_code', currentCode)
-    localStorage.setItem('vck_draft_prompt', generations[generations.length - 1]?.prompt || '')
-    localStorage.setItem('vck_draft_ts', String(Date.now()))
-    onSignupClick()
-  }, [currentCode, generations, onSignupClick])
+    localStorage.setItem('vck_draft_code', currentCode);
+    localStorage.setItem('vck_draft_prompt', generations[generations.length - 1]?.prompt || '');
+    localStorage.setItem('vck_draft_ts', String(Date.now()));
+    onSignupClick();
+  }, [currentCode, generations, onSignupClick]);
 
   useEffect(() => {
-    let ticking = false
+    let ticking = false;
     const onScroll = () => {
-      if (ticking) return
-      ticking = true
+      if (ticking) return;
+      ticking = true;
       requestAnimationFrame(() => {
-        const nav = navRef.current
+        const nav = navRef.current;
         if (nav) {
-          const scrolled = window.scrollY > 40
-          if (scrolled && !nav.classList.contains('nav-scrolled')) nav.classList.add('nav-scrolled')
-          else if (!scrolled && nav.classList.contains('nav-scrolled')) nav.classList.remove('nav-scrolled')
+          const scrolled = window.scrollY > 40;
+          if (scrolled && !nav.classList.contains('nav-scrolled')) nav.classList.add('nav-scrolled');
+          else if (!scrolled && nav.classList.contains('nav-scrolled')) nav.classList.remove('nav-scrolled');
         }
-        ticking = false
-      })
-    }
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
-  }, [])
+        ticking = false;
+      });
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
-  const currentThumb = generations.find(g => g.generationId === currentGenId)?.thumbs ?? null
-  const remaining = MAX_FREE_PROMPTS - promptsUsed
+  const currentThumb = generations.find((g) => g.generationId === currentGenId)?.thumbs ?? null;
+  const remaining = MAX_FREE_PROMPTS - promptsUsed;
 
   return (
     <div className="landing-page">
@@ -195,14 +253,17 @@ export default function LandingPageB({ onLoginClick, onSignupClick }: LandingPag
             <a href="/esa">ESA</a>
           </div>
           <div className="nav-actions">
-            <button className="nav-login" onClick={onLoginClick}>Log In</button>
-            <button className="nav-cta" onClick={onSignupClick}>Get Started Free</button>
+            <button className="nav-login" onClick={onLoginClick}>
+              Log In
+            </button>
+            <button className="nav-cta" onClick={onSignupClick}>
+              Get Started Free
+            </button>
           </div>
         </div>
       </nav>
 
       <div className="landing-content">
-
         {/* Hero */}
         <section className="landing-hero">
           <div className="hero-logo">
@@ -212,16 +273,27 @@ export default function LandingPageB({ onLoginClick, onSignupClick }: LandingPag
           <p className="hero-subtitle">Try it right now — no signup needed.</p>
 
           <div className="hero-features">
-            <div className="feature"><span className="feature-icon">💬</span><span>Describe It</span></div>
-            <div className="feature"><span className="feature-icon">🤖</span><span>AI Builds It</span></div>
-            <div className="feature"><span className="feature-icon">🎮</span><span>Play It Instantly</span></div>
+            <div className="feature">
+              <span className="feature-icon">💬</span>
+              <span>Describe It</span>
+            </div>
+            <div className="feature">
+              <span className="feature-icon">🤖</span>
+              <span>AI Builds It</span>
+            </div>
+            <div className="feature">
+              <span className="feature-icon">🎮</span>
+              <span>Play It Instantly</span>
+            </div>
           </div>
 
           <div className="hero-buttons">
             <button className="btn-signup" onClick={() => tryItRef.current?.scrollIntoView({ behavior: 'smooth' })}>
               Try It Now
             </button>
-            <button className="btn-login" onClick={onLoginClick}>Log In</button>
+            <button className="btn-login" onClick={onLoginClick}>
+              Log In
+            </button>
           </div>
         </section>
 
@@ -248,7 +320,7 @@ export default function LandingPageB({ onLoginClick, onSignupClick }: LandingPag
 
           {/* Preset prompts */}
           <div className="tryit-presets">
-            {GAME_STARTERS.map(s => (
+            {GAME_STARTERS.map((s) => (
               <button
                 key={s.label}
                 className="tryit-preset-btn"
@@ -267,8 +339,10 @@ export default function LandingPageB({ onLoginClick, onSignupClick }: LandingPag
               type="text"
               placeholder="Or describe your own game..."
               value={customPrompt}
-              onChange={e => setCustomPrompt(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') handleGenerate(customPrompt) }}
+              onChange={(e) => setCustomPrompt(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleGenerate(customPrompt);
+              }}
               disabled={phase === 'loading'}
               maxLength={200}
             />
@@ -296,7 +370,9 @@ export default function LandingPageB({ onLoginClick, onSignupClick }: LandingPag
           {phase === 'loading' && (
             <div className="tryit-loading">
               <div className="tryit-spinner" />
-              <span>AI is building your game...</span>
+              <span key={loadingMsgIndex} className="tryit-loading-msg">
+                {LOADING_MESSAGES[loadingMsgIndex]}
+              </span>
             </div>
           )}
 
@@ -333,7 +409,10 @@ export default function LandingPageB({ onLoginClick, onSignupClick }: LandingPag
               </div>
               <button
                 className="tryit-another-btn"
-                onClick={() => { setPhase('idle'); setCustomPrompt('') }}
+                onClick={() => {
+                  setPhase('idle');
+                  setCustomPrompt('');
+                }}
               >
                 Try Another
               </button>
@@ -374,22 +453,34 @@ export default function LandingPageB({ onLoginClick, onSignupClick }: LandingPag
             <div className="parent-card">
               <span className="parent-card-icon">&#128737;&#65039;</span>
               <h3>Safe &amp; COPPA Compliant</h3>
-              <p>Parental consent for under-13 users, minimal data collection, and full compliance with children's privacy law.</p>
+              <p>
+                Parental consent for under-13 users, minimal data collection, and full compliance with children's
+                privacy law.
+              </p>
             </div>
             <div className="parent-card">
               <span className="parent-card-icon">&#129504;</span>
               <h3>Real Coding Skills</h3>
-              <p>Kids learn game design, computational thinking, and can view and edit the real source code behind every game.</p>
+              <p>
+                Kids learn game design, computational thinking, and can view and edit the real source code behind every
+                game.
+              </p>
             </div>
             <div className="parent-card">
               <span className="parent-card-icon">&#9989;</span>
               <h3>Kid-Friendly Content Only</h3>
-              <p>AI content moderation ensures all games stay E-rated. Swords and spells are fine — graphic violence is not.</p>
+              <p>
+                AI content moderation ensures all games stay E-rated. Swords and spells are fine — graphic violence is
+                not.
+              </p>
             </div>
             <div className="parent-card">
               <span className="parent-card-icon">&#128104;&#8205;&#128105;&#8205;&#128103;</span>
               <h3>You Stay in Control</h3>
-              <p>View your child's creations, request data access or deletion anytime, and set daily usage limits through your account.</p>
+              <p>
+                View your child's creations, request data access or deletion anytime, and set daily usage limits through
+                your account.
+              </p>
             </div>
           </div>
         </section>
@@ -409,7 +500,9 @@ export default function LandingPageB({ onLoginClick, onSignupClick }: LandingPag
                 <li>Unlimited plays</li>
                 <li>Share to Arcade</li>
               </ul>
-              <button className="price-card-btn" onClick={onSignupClick}>Start Free Trial</button>
+              <button className="price-card-btn" onClick={onSignupClick}>
+                Start Free Trial
+              </button>
             </div>
             <div className="price-card featured">
               <div className="price-card-badge">Most Popular</div>
@@ -423,7 +516,9 @@ export default function LandingPageB({ onLoginClick, onSignupClick }: LandingPag
                 <li>Share to Arcade</li>
                 <li>Priority support</li>
               </ul>
-              <button className="price-card-btn" onClick={onSignupClick}>Get Started</button>
+              <button className="price-card-btn" onClick={onSignupClick}>
+                Get Started
+              </button>
             </div>
             <div className="price-card">
               <h3 className="price-card-name">Pro</h3>
@@ -436,7 +531,9 @@ export default function LandingPageB({ onLoginClick, onSignupClick }: LandingPag
                 <li>Share to Arcade</li>
                 <li>Priority support</li>
               </ul>
-              <button className="price-card-btn" onClick={onSignupClick}>Get Started</button>
+              <button className="price-card-btn" onClick={onSignupClick}>
+                Get Started
+              </button>
             </div>
           </div>
           <p className="pricing-esa-note">
@@ -448,7 +545,9 @@ export default function LandingPageB({ onLoginClick, onSignupClick }: LandingPag
         <section className="final-cta-section">
           <h2>Ready to start vibecoding?</h2>
           <p>Your child's next favorite game is one sentence away.</p>
-          <button className="section-cta" onClick={onSignupClick}>Get Started Free</button>
+          <button className="section-cta" onClick={onSignupClick}>
+            Get Started Free
+          </button>
         </section>
       </div>
 
@@ -484,5 +583,5 @@ export default function LandingPageB({ onLoginClick, onSignupClick }: LandingPag
         <div className="footer-bottom">&copy; 2026 VibeCode Kids. All rights reserved.</div>
       </footer>
     </div>
-  )
+  );
 }
