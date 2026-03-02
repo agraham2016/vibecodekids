@@ -25,7 +25,7 @@ import { logAdminAction, readAuditLog } from '../services/adminAuditLog.js';
 import { getContentFilterStats } from '../services/contentFilterStats.js';
 import { readDemoEvents } from '../services/demoEvents.js';
 import { listReports, resolveReport } from '../services/moderation.js';
-import { runRetentionSweep } from '../services/dataRetention.js';
+import { runRetentionCleanup } from '../services/dataRetention.js';
 import { getAlertStatus } from '../services/adminAlerts.js';
 
 const router = Router();
@@ -125,8 +125,10 @@ router.post('/users/:id/reset-password', async (req, res) => {
     const { newPassword } = req.body;
 
     if (!/^[a-zA-Z0-9_-]+$/.test(id)) return res.status(400).json({ error: 'Invalid user ID' });
-    if (!newPassword || typeof newPassword !== 'string' || newPassword.length < 4) {
-      return res.status(400).json({ error: 'Password must be at least 4 characters' });
+    if (!newPassword || typeof newPassword !== 'string' || newPassword.length < 8) {
+      return res
+        .status(400)
+        .json({ error: "Password must be at least 8 characters. Try a fun phrase like 'pizza-dragon-rainbow'!" });
     }
 
     const user = await readUser(id);
@@ -634,7 +636,7 @@ router.get('/alerts', (_req, res) => {
 // Data retention — manual sweep trigger
 router.post('/retention-sweep', async (req, res) => {
   try {
-    const results = await runRetentionSweep();
+    const results = await runRetentionCleanup();
     logAdminAction({ action: 'retention-sweep', details: results, ip: getAdminIp(req) }).catch(() => {});
     res.json({ success: true, results });
   } catch (error) {

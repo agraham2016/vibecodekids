@@ -1,6 +1,6 @@
 /**
  * Session Store (Auto-Switch)
- * 
+ *
  * Uses Postgres-backed sessions when DATABASE_URL is set,
  * otherwise falls back to file-backed JSON persistence.
  */
@@ -30,7 +30,7 @@ class FileSessionStore {
       const now = Date.now();
       let expired = 0;
       for (const [token, session] of entries) {
-        if (session.createdAt && (now - session.createdAt) > SESSION_MAX_AGE_MS) {
+        if (session.createdAt && now - session.createdAt > SESSION_MAX_AGE_MS) {
           expired++;
           continue;
         }
@@ -60,15 +60,41 @@ class FileSessionStore {
     }
   }
 
-  get(token) {
+  get(token, reqContext) {
     const session = this._map.get(token);
     if (!session) return undefined;
-    if (session.createdAt && (Date.now() - session.createdAt) > SESSION_MAX_AGE_MS) {
+    if (session.createdAt && Date.now() - session.createdAt > SESSION_MAX_AGE_MS) {
       this._map.delete(token);
       this._dirty = true;
       return undefined;
     }
+    // Session binding: flag if IP or user-agent changed significantly
+    if (reqContext && session.boundIp) {
+      if (reqContext.ip && reqContext.ip !== session.boundIp) {
+        session._ipChanged = true;
+      }
+      if (reqContext.userAgent && session.boundUserAgent && reqContext.userAgent !== session.boundUserAgent) {
+        session._uaChanged = true;
+      }
+    }
     return session;
+  }
+
+  /**
+   * Rotate a session token: delete old token, create new one with same session data.
+   * Returns the new token.
+   */
+  rotate(oldToken) {
+    const session = this._map.get(oldToken);
+    if (!session) return null;
+    this._map.delete(oldToken);
+    const newToken = generateToken();
+    session.rotatedAt = Date.now();
+    this._map.set(newToken, session);
+    this._dirty = true;
+    clearTimeout(this._persistTimer);
+    this._persistTimer = setTimeout(() => this._persist(), 1000);
+    return newToken;
   }
 
   set(token, session) {
@@ -97,9 +123,7 @@ class PgSessionStore {
     const { getPool } = await import('./db.js');
     this._pool = getPool();
     // Clean expired sessions on startup
-    const { rowCount } = await this._pool.query(
-      'DELETE FROM sessions WHERE expires_at < NOW()'
-    );
+    const { rowCount } = await this._pool.query('DELETE FROM sessions WHERE expires_at < NOW()');
     if (rowCount > 0) {
       console.log(`🧹 Cleaned ${rowCount} expired session(s)`);
     }
@@ -108,10 +132,7 @@ class PgSessionStore {
   }
 
   async get(token) {
-    const { rows } = await this._pool.query(
-      'SELECT * FROM sessions WHERE token = $1 AND expires_at > NOW()',
-      [token]
-    );
+    const { rows } = await this._pool.query('SELECT * FROM sessions WHERE token = $1 AND expires_at > NOW()', [token]);
     if (rows.length === 0) return undefined;
     const row = rows[0];
     return {
@@ -123,7 +144,8 @@ class PgSessionStore {
   }
 
   async set(token, session) {
-    await this._pool.query(`
+    await this._pool.query(
+      `
       INSERT INTO sessions (token, user_id, username, display_name, created_at, expires_at)
       VALUES ($1, $2, $3, $4, $5, NOW() + INTERVAL '24 hours')
       ON CONFLICT (token) DO UPDATE SET
@@ -131,13 +153,9 @@ class PgSessionStore {
         username = EXCLUDED.username,
         display_name = EXCLUDED.display_name,
         expires_at = NOW() + INTERVAL '24 hours'
-    `, [
-      token,
-      session.userId,
-      session.username,
-      session.displayName,
-      session.createdAt || Date.now(),
-    ]);
+    `,
+      [token, session.userId, session.username, session.displayName, session.createdAt || Date.now()],
+    );
   }
 
   async delete(token) {

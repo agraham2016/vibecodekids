@@ -1,6 +1,6 @@
 /**
  * Prompt Composer
- * 
+ *
  * Assembles the complete system prompt from modular pieces based on
  * the current game context (genre, dimension, existing code).
  */
@@ -15,7 +15,7 @@ import {
   PLATFORMER_SAFETY_RULES,
   PHASER_GAME_RULES,
   MULTIPLAYER_GAME_RULES,
-  detectMultiplayerIntent
+  detectMultiplayerIntent,
 } from './genres.js';
 import { MODIFICATION_SAFETY_RULES } from './safety.js';
 
@@ -30,33 +30,124 @@ export { detectGameGenre };
 export function getContentFilter() {
   return [
     // Gore and extreme violence
-    'blood', 'gore', 'gory', 'bloody', 'dismember', 'decapitate', 'mutilate',
-    'torture', 'gruesome', 'intestines', 'guts spilling', 'disembowel',
+    'blood',
+    'gore',
+    'gory',
+    'bloody',
+    'dismember',
+    'decapitate',
+    'mutilate',
+    'torture',
+    'gruesome',
+    'intestines',
+    'guts spilling',
+    'disembowel',
     // Real-world violence/tragedy
-    'murder', 'serial killer', 'mass shooting', 'terrorism', 'terrorist',
-    'school shooting', 'real guns', 'real weapons', 'columbine', 'bomb threat',
+    'murder',
+    'serial killer',
+    'mass shooting',
+    'terrorism',
+    'terrorist',
+    'school shooting',
+    'real guns',
+    'real weapons',
+    'columbine',
+    'bomb threat',
     // Adult content
-    'nude', 'naked', 'sex', 'porn', 'adult content', 'xxx', 'nsfw',
-    'erotic', 'sexual', 'hentai', 'onlyfans', 'strip club', 'hooker',
-    'prostitut', 'orgasm', 'genital', 'penis', 'vagina', 'boob',
+    'nude',
+    'naked',
+    'sex',
+    'porn',
+    'adult content',
+    'xxx',
+    'nsfw',
+    'erotic',
+    'sexual',
+    'hentai',
+    'onlyfans',
+    'strip club',
+    'hooker',
+    'prostitut',
+    'orgasm',
+    'genital',
+    'penis',
+    'vagina',
+    'boob',
     // Harmful/illegal
-    'hack into', 'steal passwords', 'phishing', 'malware', 'virus',
-    'credit card fraud', 'identity theft', 'ddos', 'doxx', 'swat',
+    'hack into',
+    'steal passwords',
+    'phishing',
+    'malware',
+    'virus',
+    'credit card fraud',
+    'identity theft',
+    'ddos',
+    'doxx',
+    'swat',
     // Self-harm
-    'suicide', 'self-harm', 'cutting myself', 'hurt myself', 'kill myself',
-    'end my life', 'want to die',
+    'suicide',
+    'self-harm',
+    'cutting myself',
+    'hurt myself',
+    'kill myself',
+    'end my life',
+    'want to die',
     // Hard drugs
-    'cocaine', 'heroin', 'meth', 'crack', 'fentanyl', 'overdose',
-    'drug dealer', 'buy drugs',
+    'cocaine',
+    'heroin',
+    'meth',
+    'crack',
+    'fentanyl',
+    'overdose',
+    'drug dealer',
+    'buy drugs',
     // Extreme content
-    'child abuse', 'animal abuse', 'hate speech', 'racist', 'nazi',
-    'white supremac', 'kkk', 'racial slur', 'homophob', 'transphob',
+    'child abuse',
+    'animal abuse',
+    'hate speech',
+    'racist',
+    'nazi',
+    'white supremac',
+    'kkk',
+    'racial slur',
+    'homophob',
+    'transphob',
     // Grooming / predatory
-    'send me a picture', 'what do you look like', 'where do you live',
-    'how old are you really', 'keep this a secret', 'dont tell your parents',
-    "don't tell your parents", 'meet me in person', 'come to my house',
+    'send me a picture',
+    'what do you look like',
+    'where do you live',
+    'how old are you really',
+    'keep this a secret',
+    'dont tell your parents',
+    "don't tell your parents",
+    'meet me in person',
+    'come to my house',
     // Gambling
-    'real money gambling', 'bet real money', 'casino', 'slot machine',
+    'real money gambling',
+    'bet real money',
+    'casino',
+    'slot machine',
+    // Prompt injection defense
+    'ignore all previous instructions',
+    'ignore previous instructions',
+    'disregard prior rules',
+    'disregard all rules',
+    'disregard your instructions',
+    'dan mode',
+    'do anything now',
+    'developer mode',
+    'bypass content filter',
+    'bypass filter',
+    'bypass safety',
+    'no restrictions',
+    'pretend there are no rules',
+    'pretend no rules',
+    'act as if you have no',
+    'act without restrictions',
+    'jailbreak',
+    'override system prompt',
+    'forget all previous instructions',
+    'forget your instructions',
   ];
 }
 
@@ -93,17 +184,39 @@ export function sanitizeOutput(message) {
 
   // Remove technical terms
   const technicalTerms = [
-    /\bHTML\b/gi, /\bCSS\b/gi, /\bJavaScript\b/gi, /\bJS\b/g,
-    /\bfunction\b/gi, /\bvariable\b/gi, /\bcode\b/gi, /\bscript\b/gi,
-    /\belement\b/gi, /\bclass\b/gi, /\bstyle\b/gi, /\bdiv\b/gi,
-    /\bspan\b/gi, /\bcanvas\b/gi, /\bAPI\b/gi, /\bDOM\b/gi,
-    /\bsyntax\b/gi, /\bparameter\b/gi, /\bargument\b/gi, /\bmethod\b/gi,
-    /\bobject\b/gi, /\barray\b/gi, /\bloop\b/gi, /\bif statement\b/gi,
-    /\bcondition\b/gi, /\bevent listener\b/gi, /\bcallback\b/gi,
-    /\basync\b/gi, /\bprogramming\b/gi, /\bdeveloper\b/gi,
+    /\bHTML\b/gi,
+    /\bCSS\b/gi,
+    /\bJavaScript\b/gi,
+    /\bJS\b/g,
+    /\bfunction\b/gi,
+    /\bvariable\b/gi,
+    /\bcode\b/gi,
+    /\bscript\b/gi,
+    /\belement\b/gi,
+    /\bclass\b/gi,
+    /\bstyle\b/gi,
+    /\bdiv\b/gi,
+    /\bspan\b/gi,
+    /\bcanvas\b/gi,
+    /\bAPI\b/gi,
+    /\bDOM\b/gi,
+    /\bsyntax\b/gi,
+    /\bparameter\b/gi,
+    /\bargument\b/gi,
+    /\bmethod\b/gi,
+    /\bobject\b/gi,
+    /\barray\b/gi,
+    /\bloop\b/gi,
+    /\bif statement\b/gi,
+    /\bcondition\b/gi,
+    /\bevent listener\b/gi,
+    /\bcallback\b/gi,
+    /\basync\b/gi,
+    /\bprogramming\b/gi,
+    /\bdeveloper\b/gi,
   ];
 
-  technicalTerms.forEach(term => {
+  technicalTerms.forEach((term) => {
     cleaned = cleaned.replace(term, '');
   });
 
@@ -116,7 +229,7 @@ export function sanitizeOutput(message) {
     .trim();
 
   if (!cleaned || cleaned.length < 10) {
-    return "I made it! Check out your creation in the preview! 🎉";
+    return 'I made it! Check out your creation in the preview! 🎉';
   }
 
   return cleaned;
@@ -124,11 +237,11 @@ export function sanitizeOutput(message) {
 
 /**
  * Generate the complete system prompt based on context.
- * 
+ *
  * Returns { staticPrompt, dynamicContext } for prompt caching.
  * The staticPrompt is the same across all requests (cacheable).
  * The dynamicContext changes per request (not cached).
- * 
+ *
  * @param {string} currentCode - The current project code (if any)
  * @param {object|null} gameConfig - Game configuration from the survey
  * @param {string|null} gameGenre - Detected game genre
@@ -166,54 +279,59 @@ USE THIS CONFIG to make the game feel personal:
   }
 
   // Detect multiplayer intent (from code, user prompt, game config, or genre)
-  const hasMultiplayerCode = currentCode && (
-    currentCode.includes('VibeMultiplayer') ||
-    currentCode.includes('multiplayer_state') ||
-    currentCode.includes('multiplayer_input')
-  );
-  const wantsMultiplayer = detectMultiplayerIntent(userPrompt) ||
+  const hasMultiplayerCode =
+    currentCode &&
+    (currentCode.includes('VibeMultiplayer') ||
+      currentCode.includes('multiplayer_state') ||
+      currentCode.includes('multiplayer_input'));
+  const wantsMultiplayer =
+    detectMultiplayerIntent(userPrompt) ||
     (gameConfig && gameConfig.customNotes && detectMultiplayerIntent(gameConfig.customNotes)) ||
     (gameGenre && detectMultiplayerIntent(gameGenre));
   if (hasMultiplayerCode || wantsMultiplayer) {
     // PREPEND (not push) so multiplayer rules appear FIRST in dynamic context
-    dynamicParts.unshift(`⚠️ MANDATORY: The user is requesting a MULTIPLAYER ONLINE game. You MUST integrate the window.VibeMultiplayer API as described below. The game MUST include an in-game lobby with Create Room / Join Room UI. This is NOT optional — a game without VibeMultiplayer integration is WRONG.\n\n` + MULTIPLAYER_GAME_RULES);
+    dynamicParts.unshift(
+      `⚠️ MANDATORY: The user is requesting a MULTIPLAYER ONLINE game. You MUST integrate the window.VibeMultiplayer API as described below. The game MUST include an in-game lobby with Create Room / Join Room UI. This is NOT optional — a game without VibeMultiplayer integration is WRONG.\n\n` +
+        MULTIPLAYER_GAME_RULES,
+    );
   }
 
   // Detect Phaser code
-  const isPhaserCode = currentCode && (
-    currentCode.includes('Phaser.Game') ||
-    currentCode.includes('Phaser.AUTO') ||
-    currentCode.includes('phaser.min.js')
-  );
+  const isPhaserCode =
+    currentCode &&
+    (currentCode.includes('Phaser.Game') ||
+      currentCode.includes('Phaser.AUTO') ||
+      currentCode.includes('phaser.min.js'));
   if (isPhaserCode) {
     dynamicParts.push(PHASER_GAME_RULES);
   }
 
   // Detect platformer code
-  const isPlatformerCode = currentCode && (
-    currentCode.includes('generateInitialLevel') ||
-    currentCode.includes('createPlatform') ||
-    currentCode.includes('generateChunk') ||
-    currentCode.includes('setGravityY') ||
-    currentCode.includes('touching.down')
-  );
+  const isPlatformerCode =
+    currentCode &&
+    (currentCode.includes('generateInitialLevel') ||
+      currentCode.includes('createPlatform') ||
+      currentCode.includes('generateChunk') ||
+      currentCode.includes('setGravityY') ||
+      currentCode.includes('touching.down'));
   if (gameGenre === 'platformer' || isPlatformerCode) {
     dynamicParts.push(PLATFORMER_SAFETY_RULES);
   }
 
   // Detect 3D code/request
-  const is3DCode = currentCode && (
-    currentCode.includes('THREE.Scene') ||
-    currentCode.includes('THREE.PerspectiveCamera') ||
-    currentCode.includes('WebGLRenderer') ||
-    currentCode.includes('three.js') ||
-    currentCode.includes('three.min.js')
-  );
+  const is3DCode =
+    currentCode &&
+    (currentCode.includes('THREE.Scene') ||
+      currentCode.includes('THREE.PerspectiveCamera') ||
+      currentCode.includes('WebGLRenderer') ||
+      currentCode.includes('three.js') ||
+      currentCode.includes('three.min.js'));
   const wants3D = gameConfig && gameConfig.dimension === '3d';
-  const is3DRequest = wants3D || (gameConfig && (
-    (gameConfig.gameType || '').toLowerCase().includes('3d') ||
-    (gameConfig.customNotes || '').toLowerCase().includes('3d')
-  ));
+  const is3DRequest =
+    wants3D ||
+    (gameConfig &&
+      ((gameConfig.gameType || '').toLowerCase().includes('3d') ||
+        (gameConfig.customNotes || '').toLowerCase().includes('3d')));
   const is3D = is3DCode || is3DRequest;
 
   if (is3D) {
@@ -221,21 +339,19 @@ USE THIS CONFIG to make the game feel personal:
   }
 
   // Detect 3D racing
-  const isRacing = (
+  const isRacing =
     gameGenre === 'racing' ||
     (gameConfig && (gameConfig.gameType || '').toLowerCase().includes('racing')) ||
-    (currentCode && currentCode.includes('THREE') && /car|race|road|driving/i.test(currentCode))
-  );
+    (currentCode && currentCode.includes('THREE') && /car|race|road|driving/i.test(currentCode));
   if (is3D && isRacing) {
     dynamicParts.push(THREE_D_RACING_RULES);
   }
 
   // Detect 3D shooter
-  const isShooter = (
+  const isShooter =
     gameGenre === 'shooter' ||
     (gameConfig && (gameConfig.gameType || '').toLowerCase().includes('shooter')) ||
-    (currentCode && currentCode.includes('THREE') && /shoot|gun|bullet|projectile|fps/i.test(currentCode))
-  );
+    (currentCode && currentCode.includes('THREE') && /shoot|gun|bullet|projectile|fps/i.test(currentCode));
   if (is3D && isShooter) {
     dynamicParts.push(THREE_D_SHOOTER_RULES);
   }

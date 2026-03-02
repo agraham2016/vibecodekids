@@ -66,14 +66,12 @@ export default function createGenerateRouter(sessions) {
       const genIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || '';
       const abuseCheck = checkAbuse(genIp, 'generate');
       if (!abuseCheck.allowed) {
-        return res
-          .status(429)
-          .json({
-            message: 'Too many requests. Please slow down and try again in a few minutes.',
-            code: null,
-            modelUsed: null,
-            isCacheHit: false,
-          });
+        return res.status(429).json({
+          message: 'Too many requests. Please slow down and try again in a few minutes.',
+          code: null,
+          modelUsed: null,
+          isCacheHit: false,
+        });
       }
 
       // Get user from session
@@ -89,14 +87,12 @@ export default function createGenerateRouter(sessions) {
         try {
           const user = await readUser(userId);
           if (user.status === 'suspended' || user.status === 'deleted' || user.status === 'denied') {
-            return res
-              .status(403)
-              .json({
-                message: 'Your account is not active. Please contact support.',
-                code: null,
-                modelUsed: null,
-                isCacheHit: false,
-              });
+            return res.status(403).json({
+              message: 'Your account is not active. Please contact support.',
+              code: null,
+              modelUsed: null,
+              isCacheHit: false,
+            });
           }
           const consentCheck = ageGate(user, 'generate');
           if (!consentCheck.allowed) {
@@ -164,7 +160,7 @@ export default function createGenerateRouter(sessions) {
           await incrementUsage(userId, 'generate');
           const usage = userId ? calculateUsageRemaining(tierCheck.user) : null;
 
-          // Log event for monitoring (skip if opted out)
+          // Log event for monitoring (skip under-13 and opted-out users for COPPA)
           let improvementOptOut = false;
           let ageBracket = null;
           if (userId) {
@@ -172,20 +168,23 @@ export default function createGenerateRouter(sessions) {
               const user = await readUser(userId);
               improvementOptOut = !!user.improvementOptOut;
               ageBracket = user.ageBracket || null;
+              if (ageBracket === 'under13') improvementOptOut = true;
             } catch {
               /* user not found */
             }
           }
-          logGenerateEvent({
-            sessionId,
-            startingModel,
-            modelUsed: 'claude',
-            mode,
-            hasCode: !!cached.code,
-            userId,
-            ageBracket,
-            improvementOptOut,
-          }).catch((err) => console.error('Event log error:', err?.message));
+          if (!improvementOptOut) {
+            logGenerateEvent({
+              sessionId,
+              startingModel,
+              modelUsed: 'claude',
+              mode,
+              hasCode: !!cached.code,
+              userId: ageBracket === 'under13' ? null : userId,
+              ageBracket,
+              improvementOptOut,
+            }).catch((err) => console.error('Event log error:', err?.message));
+          }
 
           return res.json({
             message: cached.message,
@@ -276,7 +275,7 @@ export default function createGenerateRouter(sessions) {
         responsePayload.referenceSources = result.referenceSources;
       }
 
-      // Log event for AI monitoring (skip if opted out)
+      // Log event for AI monitoring (skip under-13 and opted-out users for COPPA)
       let improvementOptOut = false;
       let ageBracket = null;
       if (userId) {
@@ -284,20 +283,23 @@ export default function createGenerateRouter(sessions) {
           const user = await readUser(userId);
           improvementOptOut = !!user.improvementOptOut;
           ageBracket = user.ageBracket || null;
+          if (ageBracket === 'under13') improvementOptOut = true;
         } catch {
           /* user not found */
         }
       }
-      logGenerateEvent({
-        sessionId,
-        startingModel,
-        modelUsed: result.modelUsed,
-        mode,
-        hasCode: !!result.code,
-        userId,
-        ageBracket,
-        improvementOptOut,
-      }).catch((err) => console.error('Event log error:', err?.message));
+      if (!improvementOptOut) {
+        logGenerateEvent({
+          sessionId,
+          startingModel,
+          modelUsed: result.modelUsed,
+          mode,
+          hasCode: !!result.code,
+          userId: ageBracket === 'under13' ? null : userId,
+          ageBracket,
+          improvementOptOut,
+        }).catch((err) => console.error('Event log error:', err?.message));
+      }
 
       res.json(responsePayload);
     } catch (error) {

@@ -4,29 +4,8 @@
 // "Room not found" will occur when users connect to different instances.
 import { WebSocketServer } from 'ws';
 import { randomBytes } from 'crypto';
-import { readUser } from './services/storage.js';
-
-const ALLOWED_CHAT_PHRASES = [
-  'Nice!',
-  'Good game!',
-  "Let's go!",
-  'Wow!',
-  'GG',
-  'Ready?',
-  'Yes!',
-  'No!',
-  'Wait!',
-  'Help!',
-  'Awesome!',
-  'Oops!',
-  'My turn!',
-  'Your turn!',
-  'High five!',
-  'Try again!',
-  'So close!',
-  'LOL',
-  'Yay!',
-];
+import { filterContent } from './middleware/contentFilter.js';
+import { moderateText } from './services/contentModeration.js';
 
 const MAX_STATE_SIZE = 8192;
 const MAX_INPUT_SIZE = 512;
@@ -80,7 +59,7 @@ const rooms = new Map();
 
 // Generate a kid-friendly room code (4 characters, easy to type)
 function generateRoomCode() {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // No confusing chars
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let code = '';
   const bytes = randomBytes(4);
   for (let i = 0; i < 4; i++) {
@@ -96,8 +75,8 @@ class GameRoom {
     this.projectId = projectId;
     this.hostId = hostId;
     this.hostName = hostName;
-    this.players = new Map(); // playerId -> { ws, name, isHost }
-    this.gameState = {}; // Shared game state
+    this.players = new Map();
+    this.gameState = {};
     this.createdAt = Date.now();
     this.maxPlayers = 8;
   }
@@ -109,7 +88,6 @@ class GameRoom {
 
     this.players.set(playerId, { ws, name, isHost });
 
-    // Notify all players about the new player
     this.broadcast(
       {
         type: 'player_joined',
@@ -130,7 +108,6 @@ class GameRoom {
     const wasHost = player.isHost;
     this.players.delete(playerId);
 
-    // If host left, assign new host or close room
     if (wasHost && this.players.size > 0) {
       const newHost = this.players.entries().next().value;
       if (newHost) {
@@ -146,7 +123,6 @@ class GameRoom {
       }
     }
 
-    // Notify remaining players
     this.broadcast({
       type: 'player_left',
       playerId,
@@ -211,14 +187,34 @@ class GameRoom {
   }
 }
 
-// Initialize WebSocket server
+// Initialize WebSocket server (requires session store for auth)
 export function initMultiplayer(server, sessions) {
   const wss = new WebSocketServer({ server, path: '/ws/multiplayer' });
 
-  wss.on('connection', (ws) => {
-    let playerId = randomBytes(8).toString('hex');
+  wss.on('connection', async (ws, req) => {
+    let playerId;
+    let playerDisplayName;
+    try {
+      const url = new URL(req.url, `http://${req.headers.host}`);
+      const token = url.searchParams.get('token');
+      if (!token) {
+        ws.close(4001, 'Authentication required');
+        return;
+      }
+      const session = await sessions.get(token);
+      if (!session) {
+        ws.close(4001, 'Invalid or expired session');
+        return;
+      }
+      playerId = session.userId;
+      playerDisplayName = session.displayName;
+    } catch (err) {
+      console.error('WebSocket auth error:', err);
+      ws.close(4001, 'Authentication failed');
+      return;
+    }
+
     let currentRoom = null;
-    let _authenticatedUserId = null;
 
     ws.on('message', (data) => {
       try {
@@ -230,10 +226,7 @@ export function initMultiplayer(server, sessions) {
           (room) => {
             currentRoom = room;
           },
-          sessions,
-          (uid) => {
-            _authenticatedUserId = uid;
-          },
+          playerDisplayName,
         );
       } catch (err) {
         console.error('WebSocket message error:', err);
@@ -246,7 +239,7 @@ export function initMultiplayer(server, sessions) {
         const isEmpty = currentRoom.removePlayer(playerId);
         if (isEmpty) {
           rooms.delete(currentRoom.code);
-          console.log(`🎮 Room ${currentRoom.code} closed (empty)`);
+          console.log(`Room ${currentRoom.code} closed (empty)`);
         }
       }
     });
@@ -255,7 +248,6 @@ export function initMultiplayer(server, sessions) {
       console.error('WebSocket error:', err);
     });
 
-    // Send welcome message with player ID
     ws.send(
       JSON.stringify({
         type: 'welcome',
@@ -264,114 +256,90 @@ export function initMultiplayer(server, sessions) {
     );
   });
 
-  console.log('🎮 Multiplayer WebSocket server initialized');
+  console.log('Multiplayer WebSocket server initialized');
 
   return wss;
 }
 
-// Verify session token and check multiplayer permission
-async function verifyMultiplayerAccess(token, sessions) {
-  if (!token || !sessions) return { allowed: true, userId: null };
-  try {
-    const session = await sessions.get(token);
-    if (!session) return { allowed: false, reason: 'Invalid session. Please log in again.' };
-    const user = await readUser(session.userId);
-    if (user.status !== 'approved' && user.status !== 'pending') {
-      return { allowed: false, reason: 'Your account is not active.' };
-    }
-    if (user.ageBracket === 'under13' && !user.multiplayerEnabled) {
-      return {
-        allowed: false,
-        reason:
-          'Multiplayer is not enabled for your account. Ask your parent to enable it in the Parent Command Center.',
-      };
-    }
-    return { allowed: true, userId: session.userId };
-  } catch {
-    return { allowed: true, userId: null };
-  }
-}
-
 // Handle incoming messages
-function handleMessage(ws, playerId, message, setRoom, sessions, setAuthUserId) {
+function handleMessage(ws, playerId, message, setRoom, authenticatedName) {
   switch (message.type) {
     case 'create_room': {
-      const { projectId, playerName, authToken } = message;
+      const { projectId, playerName } = message;
 
-      verifyMultiplayerAccess(authToken, sessions).then(({ allowed, reason, userId }) => {
-        if (!allowed) {
-          ws.send(JSON.stringify({ type: 'error', message: reason }));
-          return;
-        }
-        if (userId) setAuthUserId(userId);
+      const room = new GameRoom(projectId, playerId, playerName);
+      room.addPlayer(playerId, ws, playerName, true);
+      rooms.set(room.code, room);
+      setRoom(room);
 
-        const room = new GameRoom(projectId, playerId, playerName);
-        room.addPlayer(playerId, ws, playerName, true);
-        rooms.set(room.code, room);
-        setRoom(room);
+      console.log(`Room ${room.code} created for project ${projectId}`);
 
-        console.log(`🎮 Room ${room.code} created for project ${projectId}`);
-
-        ws.send(
-          JSON.stringify({
-            type: 'room_created',
-            roomCode: room.code,
-            playerId,
-            players: room.getPlayerList(),
-          }),
-        );
-      });
+      ws.send(
+        JSON.stringify({
+          type: 'room_created',
+          roomCode: room.code,
+          playerId,
+          players: room.getPlayerList(),
+        }),
+      );
       break;
     }
 
     case 'join_room': {
-      const { playerName, authToken } = message;
+      const { playerName } = message;
+      const rawCode = (message.roomCode || '').toString().trim();
+      const roomCode = rawCode
+        .replace(/[^A-Za-z0-9]/g, '')
+        .toUpperCase()
+        .slice(0, 4);
 
-      verifyMultiplayerAccess(authToken, sessions).then(({ allowed, reason, userId }) => {
-        if (!allowed) {
-          ws.send(JSON.stringify({ type: 'error', message: reason }));
-          return;
-        }
-        if (userId) setAuthUserId(userId);
-
-        const rawCode = (message.roomCode || '').toString().trim();
-        const roomCode = rawCode
-          .replace(/[^A-Za-z0-9]/g, '')
-          .toUpperCase()
-          .slice(0, 4);
-
-        if (!roomCode || roomCode.length !== 4) {
-          ws.send(JSON.stringify({ type: 'error', message: 'Please enter a valid 4-character room code.' }));
-          return;
-        }
-
-        const room = rooms.get(roomCode);
-        if (!room) {
-          console.log(`🎮 Join failed: room "${roomCode}" not found.`);
-          ws.send(JSON.stringify({ type: 'error', message: 'Room not found! Check the code and try again.' }));
-          return;
-        }
-
-        const result = room.addPlayer(playerId, ws, playerName);
-        if (!result.success) {
-          ws.send(JSON.stringify({ type: 'error', message: result.error }));
-          return;
-        }
-
-        setRoom(room);
-        console.log(`🎮 Player ${playerName} joined room ${roomCode}`);
-
+      if (!roomCode || roomCode.length !== 4) {
         ws.send(
           JSON.stringify({
-            type: 'room_joined',
-            roomCode: room.code,
-            projectId: room.projectId,
-            playerId,
-            players: room.getPlayerList(),
-            gameState: room.gameState,
+            type: 'error',
+            message: 'Please enter a valid 4-character room code.',
           }),
         );
-      });
+        return;
+      }
+
+      const room = rooms.get(roomCode);
+      if (!room) {
+        const activeCodes = Array.from(rooms.keys()).join(', ') || '(none)';
+        console.log(`Join failed: room "${roomCode}" not found. Active rooms on this instance: ${activeCodes}`);
+        ws.send(
+          JSON.stringify({
+            type: 'error',
+            message: 'Room not found! Check the code and try again.',
+          }),
+        );
+        return;
+      }
+
+      const result = room.addPlayer(playerId, ws, playerName);
+      if (!result.success) {
+        ws.send(
+          JSON.stringify({
+            type: 'error',
+            message: result.error,
+          }),
+        );
+        return;
+      }
+
+      setRoom(room);
+      console.log(`Player ${playerName} joined room ${roomCode}`);
+
+      ws.send(
+        JSON.stringify({
+          type: 'room_joined',
+          roomCode: room.code,
+          projectId: room.projectId,
+          playerId,
+          players: room.getPlayerList(),
+          gameState: room.gameState,
+        }),
+      );
       break;
     }
 
@@ -381,7 +349,7 @@ function handleMessage(ws, playerId, message, setRoom, sessions, setAuthUserId) 
         const isEmpty = room.removePlayer(playerId);
         if (isEmpty) {
           rooms.delete(room.code);
-          console.log(`🎮 Room ${room.code} closed (empty)`);
+          console.log(`Room ${room.code} closed (empty)`);
         }
         setRoom(null);
       }
@@ -409,18 +377,35 @@ function handleMessage(ws, playerId, message, setRoom, sessions, setAuthUserId) 
     case 'chat': {
       const room = getRoomByPlayerId(playerId);
       if (room) {
-        const phrase = message.text;
-        if (!ALLOWED_CHAT_PHRASES.includes(phrase)) {
-          ws.send(JSON.stringify({ type: 'error', message: 'Only preset phrases are allowed' }));
+        const chatText = (message.text || '').slice(0, 200);
+        const chatCheck = filterContent(chatText, { source: 'multiplayer-chat' });
+        if (chatCheck.blocked) {
+          ws.send(JSON.stringify({ type: 'chat_blocked', message: "Let's keep chat friendly!" }));
           break;
         }
-        const player = room.players.get(playerId);
-        room.broadcast({
-          type: 'chat',
-          fromPlayerId: playerId,
-          fromPlayerName: player?.name || 'Player',
-          message: phrase,
-        });
+        moderateText(chatText)
+          .then((mlResult) => {
+            if (mlResult.flagged) {
+              ws.send(JSON.stringify({ type: 'chat_blocked', message: "Let's keep chat friendly!" }));
+              return;
+            }
+            const player = room.players.get(playerId);
+            room.broadcast({
+              type: 'chat',
+              fromPlayerId: playerId,
+              fromPlayerName: player?.name || 'Player',
+              message: chatText,
+            });
+          })
+          .catch(() => {
+            const player = room.players.get(playerId);
+            room.broadcast({
+              type: 'chat',
+              fromPlayerId: playerId,
+              fromPlayerName: player?.name || 'Player',
+              message: chatText,
+            });
+          });
       }
       break;
     }
@@ -465,8 +450,36 @@ export function getRoomInfo(roomCode) {
   };
 }
 
+const ALLOWED_CHAT_PHRASES = [
+  'Good game!',
+  'Nice move!',
+  'Wow!',
+  "Let's go!",
+  'Great job!',
+  'Ready?',
+  'Yes!',
+  'No thanks',
+  'Help!',
+  'Over here!',
+  'Watch out!',
+  'GG',
+  'Rematch?',
+  'Thanks!',
+  "You're awesome!",
+  'My turn!',
+  'Your turn!',
+  'Oops!',
+  'Haha!',
+  'So close!',
+  'Try again!',
+  'High five!',
+  'Team up?',
+  'I got it!',
+  'Wait for me!',
+];
+
 export function getAllowedChatPhrases() {
-  return ALLOWED_CHAT_PHRASES;
+  return [...ALLOWED_CHAT_PHRASES];
 }
 
 export function getActiveRooms(projectId = null) {

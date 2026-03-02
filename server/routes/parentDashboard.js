@@ -1,240 +1,231 @@
 /**
- * Parent Command Center API Routes
+ * Parent Dashboard Routes
  *
- * Authenticated via ?token= (parent dashboard token), NOT user session.
- * Parents receive this token in the consent-approval confirmation page.
- *
- * GET  /api/parent/dashboard?token=...         — child's account summary
- * POST /api/parent/dashboard/toggle            — toggle publishing / multiplayer
- * POST /api/parent/dashboard/delete            — request data deletion
- * POST /api/parent/dashboard/revoke            — revoke consent + deactivate
- * GET  /api/parent/dashboard/export?token=...  — download all child data as JSON
+ * Provides a parent-facing portal authenticated via email-token flow.
+ * Parents can view their child's activity, request data export/deletion,
+ * and revoke consent.
  */
 
 import { Router } from 'express';
-import { writeUser, listProjects, readProject, writeProject } from '../services/storage.js';
-import { getUserByParentToken, exportUserData, deleteUserData } from '../services/consent.js';
+import crypto from 'crypto';
+import { readUser, writeUser, listProjects, readProject, writeProject } from '../services/storage.js';
+import { exportUserData, deleteUserData, sendConsentEmail } from '../services/consent.js';
 import { logAdminAction } from '../services/adminAuditLog.js';
+import { SITE_NAME, SUPPORT_EMAIL, BASE_URL } from '../config/index.js';
 
 const router = Router();
 
-async function authenticateParent(req, res) {
-  const token = req.query.token || req.body?.token;
-  if (!token) {
-    res.status(401).json({ error: 'Parent dashboard token is required' });
-    return null;
-  }
-  const user = await getUserByParentToken(token);
-  if (!user) {
-    res.status(404).json({ error: 'Invalid or expired parent token' });
-    return null;
-  }
-  return user;
+// In-memory parent session tokens (parentEmail -> { token, expiresAt })
+const parentSessions = new Map();
+const PARENT_SESSION_TTL = 30 * 60 * 1000; // 30 minutes
+
+function generateParentToken() {
+  return crypto.randomBytes(32).toString('hex');
 }
 
-// GET dashboard summary
-router.get('/', async (req, res) => {
+function findChildrenByParentEmail(users, parentEmail) {
+  return users.filter(
+    (u) => u.parentEmail && u.parentEmail.toLowerCase() === parentEmail.toLowerCase() && u.status !== 'deleted',
+  );
+}
+
+/**
+ * POST /api/parent-dashboard/request-access
+ * Send a magic link to the parent's email address.
+ */
+router.post('/request-access', async (req, res) => {
+  const { email } = req.body;
+  if (!email || typeof email !== 'string') {
+    return res.status(400).json({ error: 'Email is required' });
+  }
+
+  const normalizedEmail = email.toLowerCase().trim();
+  const token = generateParentToken();
+  parentSessions.set(token, {
+    email: normalizedEmail,
+    expiresAt: Date.now() + PARENT_SESSION_TTL,
+  });
+
+  const dashboardUrl = `${BASE_URL}/api/parent-dashboard/auth?token=${token}`;
+
   try {
-    const user = await authenticateParent(req, res);
-    if (!user) return;
+    const { Resend } = await import('resend');
+    const resendKey = process.env.RESEND_API_KEY;
+    if (resendKey) {
+      const resend = new Resend(resendKey);
+      await resend.emails.send({
+        from: `${SITE_NAME} <noreply@${new URL(BASE_URL).hostname}>`,
+        to: normalizedEmail,
+        subject: `${SITE_NAME} - Parent Dashboard Access`,
+        html: `
+          <h2>Parent Dashboard Access</h2>
+          <p>Click the link below to access your parent dashboard. This link expires in 30 minutes.</p>
+          <p><a href="${dashboardUrl}" style="background: #4CAF50; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Open Parent Dashboard</a></p>
+          <p style="color: #666; font-size: 12px;">If you didn't request this, you can safely ignore this email.</p>
+          <p style="color: #666; font-size: 12px;">— ${SITE_NAME} Team (${SUPPORT_EMAIL})</p>
+        `,
+      });
+    } else {
+      console.log(`📧 [DEV] Parent dashboard link for ${normalizedEmail}: ${dashboardUrl}`);
+    }
+  } catch (err) {
+    console.error('Failed to send parent dashboard email:', err.message);
+  }
+
+  // Always return success to avoid email enumeration
+  res.json({ ok: true, message: 'If an account exists with that email, a dashboard link has been sent.' });
+});
+
+/**
+ * GET /api/parent-dashboard/auth?token=...
+ * Validate the magic link token and redirect to the dashboard page.
+ */
+router.get('/auth', (req, res) => {
+  const { token } = req.query;
+  const session = parentSessions.get(token);
+
+  if (!session || Date.now() > session.expiresAt) {
+    parentSessions.delete(token);
+    return res
+      .status(401)
+      .send('<html><body><h2>Link expired or invalid.</h2><p>Please request a new dashboard link.</p></body></html>');
+  }
+
+  // Set a cookie-like header with the session token for subsequent API calls
+  res.redirect(`/parent-dashboard.html?session=${token}`);
+});
+
+/**
+ * Middleware: validate parent session token from query or Authorization header
+ */
+function requireParentAuth(req, res, next) {
+  const token = req.query.session || req.headers.authorization?.replace('Bearer ', '');
+  const session = parentSessions.get(token);
+
+  if (!session || Date.now() > session.expiresAt) {
+    if (token) parentSessions.delete(token);
+    return res.status(401).json({ error: 'Session expired. Please request a new dashboard link.' });
+  }
+
+  req.parentEmail = session.email;
+  req.parentToken = token;
+  next();
+}
+
+/**
+ * GET /api/parent-dashboard/children
+ * List all children associated with the parent's email.
+ */
+router.get('/children', requireParentAuth, async (req, res) => {
+  try {
+    const { listUsers } = await import('../services/storage.js');
+    const users = await listUsers();
+    const children = findChildrenByParentEmail(users, req.parentEmail);
+
+    const childData = children.map((child) => ({
+      userId: child.id,
+      username: child.username,
+      displayName: child.displayName,
+      ageBracket: child.ageBracket,
+      createdAt: child.createdAt,
+      lastLoginAt: child.lastLoginAt,
+      tier: child.tier || 'free',
+      consentStatus: child.consentStatus,
+    }));
+
+    res.json({ children: childData });
+  } catch (err) {
+    console.error('Parent dashboard - list children error:', err);
+    res.status(500).json({ error: 'Failed to load children data' });
+  }
+});
+
+/**
+ * GET /api/parent-dashboard/child/:userId/activity
+ * View a specific child's activity summary.
+ */
+router.get('/child/:userId/activity', requireParentAuth, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const user = await readUser(userId);
+
+    if (!user.parentEmail || user.parentEmail.toLowerCase() !== req.parentEmail.toLowerCase()) {
+      return res.status(403).json({ error: 'You can only view your own children' });
+    }
+
+    const allProjects = await listProjects();
+    const childProjects = allProjects.filter((p) => p.userId === userId);
 
     res.json({
       username: user.username,
       displayName: user.displayName,
-      ageBracket: user.ageBracket,
-      status: user.status,
-      createdAt: user.createdAt,
       lastLoginAt: user.lastLoginAt,
-      membershipTier: user.membershipTier,
-      parentalConsentStatus: user.parentalConsentStatus,
-      parentalConsentAt: user.parentalConsentAt,
-      parentVerifiedMethod: user.parentVerifiedMethod || 'email_plus',
-      consentPolicyVersion: user.consentPolicyVersion || null,
-      publishingEnabled: user.publishingEnabled ?? false,
-      multiplayerEnabled: user.multiplayerEnabled ?? false,
-      projectCount: user.projectCount || 0,
-      improvementOptOut: user.improvementOptOut ?? false,
+      projectCount: childProjects.length,
+      projects: childProjects.slice(0, 20).map((p) => ({
+        id: p.id,
+        title: p.title,
+        createdAt: p.createdAt,
+        likes: p.likes || 0,
+        isPublic: p.isPublic,
+      })),
+      generationCount: user.recentRequests?.length || 0,
     });
-  } catch (error) {
-    console.error('Parent dashboard error:', error);
-    res.status(500).json({ error: 'Could not load dashboard' });
+  } catch (err) {
+    if (err.code === 'ENOENT') return res.status(404).json({ error: 'Child not found' });
+    console.error('Parent dashboard - child activity error:', err);
+    res.status(500).json({ error: 'Failed to load activity' });
   }
 });
 
-// POST toggle settings
-router.post('/toggle', async (req, res) => {
+/**
+ * POST /api/parent-dashboard/child/:userId/export
+ * Request data export for a child.
+ */
+router.post('/child/:userId/export', requireParentAuth, async (req, res) => {
   try {
-    const user = await authenticateParent(req, res);
-    if (!user) return;
+    const { userId } = req.params;
+    const user = await readUser(userId);
 
-    const { setting, enabled } = req.body;
-    const ALLOWED_TOGGLES = ['publishingEnabled', 'multiplayerEnabled', 'improvementOptOut'];
-
-    if (!ALLOWED_TOGGLES.includes(setting)) {
-      return res.status(400).json({ error: 'Invalid setting' });
+    if (!user.parentEmail || user.parentEmail.toLowerCase() !== req.parentEmail.toLowerCase()) {
+      return res.status(403).json({ error: "You can only export your own children's data" });
     }
 
-    user[setting] = Boolean(enabled);
-    await writeUser(user.id, user);
-
-    logAdminAction({
-      action: 'parent_toggle',
-      targetId: user.id,
-      details: { username: user.username, setting, enabled: Boolean(enabled) },
-    }).catch(() => {});
-    res.json({ success: true, [setting]: user[setting] });
-  } catch (error) {
-    console.error('Parent toggle error:', error);
-    res.status(500).json({ error: 'Could not update setting' });
-  }
-});
-
-// GET export child data
-router.get('/export', async (req, res) => {
-  try {
-    const user = await authenticateParent(req, res);
-    if (!user) return;
-
-    const data = await exportUserData(user.id);
-    logAdminAction({ action: 'parent_data_export', targetId: user.id, details: { username: user.username } }).catch(
+    const data = await exportUserData(userId);
+    logAdminAction({ action: 'parent_data_export', targetId: userId, details: { parentEmail: req.parentEmail } }).catch(
       () => {},
     );
-    res.json(data);
-  } catch (error) {
-    console.error('Parent export error:', error);
-    res.status(500).json({ error: 'Could not export data' });
+    res.json({ export: data });
+  } catch (err) {
+    if (err.code === 'ENOENT') return res.status(404).json({ error: 'Child not found' });
+    console.error('Parent dashboard - export error:', err);
+    res.status(500).json({ error: 'Failed to export data' });
   }
 });
 
-// POST delete all child data
-router.post('/delete', async (req, res) => {
+/**
+ * DELETE /api/parent-dashboard/child/:userId
+ * Delete all data for a child (revoke consent).
+ */
+router.delete('/child/:userId', requireParentAuth, async (req, res) => {
   try {
-    const user = await authenticateParent(req, res);
-    if (!user) return;
+    const { userId } = req.params;
+    const user = await readUser(userId);
 
-    const result = await deleteUserData(user.id);
+    if (!user.parentEmail || user.parentEmail.toLowerCase() !== req.parentEmail.toLowerCase()) {
+      return res.status(403).json({ error: "You can only delete your own children's data" });
+    }
+
+    const result = await deleteUserData(userId);
     logAdminAction({
       action: 'parent_data_deletion',
-      targetId: user.id,
-      details: { username: user.username, deletedProjects: result.deletedProjects },
+      targetId: userId,
+      details: { parentEmail: req.parentEmail },
     }).catch(() => {});
-    res.json({
-      success: true,
-      message: `Account anonymized and ${result.deletedProjects} project(s) deleted. This cannot be undone.`,
-    });
-  } catch (error) {
-    console.error('Parent delete error:', error);
-    res.status(500).json({ error: 'Could not delete data' });
-  }
-});
-
-// GET pending games awaiting parent approval
-router.get('/pending-games', async (req, res) => {
-  try {
-    const user = await authenticateParent(req, res);
-    if (!user) return;
-
-    const allProjects = await listProjects();
-    const pending = allProjects
-      .filter((p) => p.userId === user.id && p.pendingParentApproval)
-      .map((p) => ({ id: p.id, title: p.title, category: p.category, createdAt: p.createdAt }));
-
-    res.json({ pendingGames: pending });
-  } catch (error) {
-    console.error('Pending games error:', error);
-    res.status(500).json({ error: 'Could not load pending games' });
-  }
-});
-
-// POST approve a pending game for publication
-router.post('/approve-game', async (req, res) => {
-  try {
-    const user = await authenticateParent(req, res);
-    if (!user) return;
-
-    const { projectId } = req.body;
-    if (!projectId) return res.status(400).json({ error: 'projectId is required' });
-
-    const project = await readProject(projectId);
-    if (project.userId !== user.id) {
-      return res.status(403).json({ error: 'This game does not belong to your child' });
-    }
-    if (!project.pendingParentApproval) {
-      return res.status(400).json({ error: 'This game is not awaiting approval' });
-    }
-
-    project.isPublic = true;
-    project.pendingParentApproval = false;
-    project.parentApprovedAt = new Date().toISOString();
-    await writeProject(projectId, project);
-
-    logAdminAction({
-      action: 'parent_approve_game',
-      targetId: projectId,
-      details: { username: user.username, title: project.title },
-    }).catch(() => {});
-    res.json({ success: true, message: 'Game approved and published!' });
-  } catch (error) {
-    if (error.code === 'ENOENT') return res.status(404).json({ error: 'Game not found' });
-    console.error('Approve game error:', error);
-    res.status(500).json({ error: 'Could not approve game' });
-  }
-});
-
-// POST deny a pending game (keep private)
-router.post('/deny-game', async (req, res) => {
-  try {
-    const user = await authenticateParent(req, res);
-    if (!user) return;
-
-    const { projectId } = req.body;
-    if (!projectId) return res.status(400).json({ error: 'projectId is required' });
-
-    const project = await readProject(projectId);
-    if (project.userId !== user.id) {
-      return res.status(403).json({ error: 'This game does not belong to your child' });
-    }
-
-    project.isPublic = false;
-    project.pendingParentApproval = false;
-    await writeProject(projectId, project);
-
-    logAdminAction({
-      action: 'parent_deny_game',
-      targetId: projectId,
-      details: { username: user.username, title: project.title },
-    }).catch(() => {});
-    res.json({ success: true, message: 'Game kept private.' });
-  } catch (error) {
-    if (error.code === 'ENOENT') return res.status(404).json({ error: 'Game not found' });
-    console.error('Deny game error:', error);
-    res.status(500).json({ error: 'Could not process request' });
-  }
-});
-
-// POST revoke consent (deactivate account without deleting data)
-router.post('/revoke', async (req, res) => {
-  try {
-    const user = await authenticateParent(req, res);
-    if (!user) return;
-
-    user.parentalConsentStatus = 'revoked';
-    user.status = 'suspended';
-    user.publishingEnabled = false;
-    user.multiplayerEnabled = false;
-    await writeUser(user.id, user);
-
-    logAdminAction({ action: 'consent_revoked', targetId: user.id, details: { username: user.username } }).catch(
-      () => {},
-    );
-    res.json({
-      success: true,
-      message:
-        "Consent revoked. Your child's account has been deactivated. Data is preserved but the account cannot be used until consent is re-granted.",
-    });
-  } catch (error) {
-    console.error('Parent revoke error:', error);
-    res.status(500).json({ error: 'Could not revoke consent' });
+    res.json({ ok: true, ...result });
+  } catch (err) {
+    if (err.code === 'ENOENT') return res.status(404).json({ error: 'Child not found' });
+    console.error('Parent dashboard - delete error:', err);
+    res.status(500).json({ error: 'Failed to delete data' });
   }
 });
 

@@ -38,6 +38,7 @@ import { SessionStore } from './services/sessions.js';
 // Middleware
 import { requireAdmin } from './middleware/auth.js';
 import { securityHeaders } from './middleware/security.js';
+import { wafMiddleware } from './middleware/waf.js';
 import { requestLogger } from './middleware/requestLogger.js';
 
 // Routes
@@ -57,7 +58,7 @@ import demoRouter from './routes/demo.js';
 import demoAnalyticsRouter from './routes/demoAnalytics.js';
 import reportRouter from './routes/report.js';
 import { initMultiplayer, getRoomInfo, getActiveRooms, getAllowedChatPhrases } from './multiplayer.js';
-import { startRetentionJob } from './services/dataRetention.js';
+import { startRetentionSchedule } from './services/dataRetention.js';
 
 // ========== INIT ==========
 
@@ -97,6 +98,9 @@ if (SENTRY_DSN) {
 await ensureDataDirs();
 await sessions.load();
 
+// COPPA data retention — clean inactive child accounts on startup + daily
+startRetentionSchedule();
+
 console.log('📍 BASE_URL configured as:', JSON.stringify(BASE_URL));
 console.log(
   '📂 Data directory:',
@@ -107,12 +111,15 @@ console.log(`💾 Storage backend: ${USE_POSTGRES ? 'PostgreSQL' : 'JSON files'}
 
 // ========== MIDDLEWARE ==========
 
+app.use(wafMiddleware());
 app.use(securityHeaders());
 app.use(compression());
 app.use(requestLogger());
 app.use(
   cors({
     origin: IS_PRODUCTION ? [BASE_URL] : [/localhost:\d+$/, /127\.0\.0\.1:\d+$/],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Admin-Key'],
     credentials: true,
   }),
 );
@@ -121,8 +128,8 @@ app.use(
 // must be registered BEFORE the global JSON parser
 app.use('/api/stripe/webhook', express.raw({ type: 'application/json' }));
 
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ limit: '10mb', extended: true }));
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ limit: '1mb', extended: true }));
 
 // ========== STATIC FILES ==========
 
@@ -302,9 +309,34 @@ app.get('/api/health', async (_req, res) => {
   res.status(checks.status === 'ok' ? 200 : 503).json(checks);
 });
 
-// Contact form submissions
+// Contact form rate limiter (5 per hour per IP)
+const contactLimits = new Map();
+const CONTACT_WINDOW_MS = 60 * 60 * 1000;
+const CONTACT_MAX = 5;
+setInterval(
+  () => {
+    const now = Date.now();
+    for (const [ip, entry] of contactLimits) {
+      if (now > entry.resetAt) contactLimits.delete(ip);
+    }
+  },
+  10 * 60 * 1000,
+);
+
 app.post('/api/contact', async (req, res) => {
   try {
+    const clientIp = req.ip || req.connection?.remoteAddress || 'unknown';
+    const now = Date.now();
+    let entry = contactLimits.get(clientIp);
+    if (!entry || now > entry.resetAt) {
+      entry = { count: 0, resetAt: now + CONTACT_WINDOW_MS };
+      contactLimits.set(clientIp, entry);
+    }
+    if (entry.count >= CONTACT_MAX) {
+      return res.status(429).json({ error: 'Too many submissions. Please try again later.' });
+    }
+    entry.count++;
+
     const { name, email, subject, message } = req.body;
     if (!name || !email || !subject || !message) {
       return res.status(400).json({ error: 'All fields are required' });
@@ -315,7 +347,6 @@ app.post('/api/contact', async (req, res) => {
       subject,
       message,
       timestamp: new Date().toISOString(),
-      ip: req.ip,
     };
     const contactDir = path.join(DATA_DIR, 'contact');
     await fs.mkdir(contactDir, { recursive: true });
@@ -331,7 +362,7 @@ app.post('/api/contact', async (req, res) => {
 
 app.use('/api/auth', createAuthRouter(sessions));
 app.use('/api/projects', createProjectsRouter(sessions));
-app.use('/api/generate', createGenerateRouter(sessions));
+app.use('/api/generate', express.json({ limit: '6mb' }), createGenerateRouter(sessions));
 app.use('/api/feedback', createFeedbackRouter(sessions));
 app.use('/api/gallery', galleryRouter);
 
@@ -360,6 +391,9 @@ app.use('/api/admin', requireAdmin(sessions), adminRouter);
 app.use('/api/parent', parentRouter);
 app.use('/api/parent/dashboard', parentDashboardRouter);
 app.use('/api/parent/verify-charge', parentVerifyChargeRouter);
+
+// Parent dashboard (alternate path, email-token authenticated)
+app.use('/api/parent-dashboard', parentDashboardRouter);
 
 // Multiplayer REST endpoints
 app.get('/api/rooms/:code', (req, res) => {
@@ -424,8 +458,6 @@ server.listen(PORT, () => {
   console.log(`   Detailed:     http://localhost:${PORT}/api/health?full=1`);
   console.log(`   Multiplayer:  ws://localhost:${PORT}/ws/multiplayer`);
   console.log(`   Mode: ${isProduction ? 'Production' : 'Development'}`);
-
-  startRetentionJob();
 });
 
 // ========== GRACEFUL SHUTDOWN ==========

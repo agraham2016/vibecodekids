@@ -21,8 +21,9 @@ import {
 
 const router = Router();
 const ADMIN_TOKEN_SECRET = process.env.ADMIN_TOKEN_SECRET || ADMIN_SECRET;
-if (!ADMIN_TOKEN_SECRET) {
-  console.error('FATAL: ADMIN_TOKEN_SECRET or ADMIN_SECRET must be set. Admin auth disabled.');
+if (!ADMIN_TOKEN_SECRET && process.env.NODE_ENV === 'production') {
+  console.error('FATAL: ADMIN_TOKEN_SECRET or ADMIN_SECRET must be set in production');
+  process.exit(1);
 }
 const ADMIN_TOKEN_EXPIRY_HOURS = 8;
 
@@ -38,7 +39,10 @@ function verifyAdminToken(token) {
     const [payloadB64, sig] = token.split('.');
     if (!payloadB64 || !sig) return false;
     const payload = JSON.parse(Buffer.from(payloadB64, 'base64url').toString());
-    const expected = crypto.createHmac('sha256', ADMIN_TOKEN_SECRET).update(JSON.stringify({ admin: payload.admin, exp: payload.exp })).digest('base64url');
+    const expected = crypto
+      .createHmac('sha256', ADMIN_TOKEN_SECRET)
+      .update(JSON.stringify({ admin: payload.admin, exp: payload.exp }))
+      .digest('base64url');
     if (sig !== expected) return false;
     if (payload.exp < Date.now()) return false;
     return true;
@@ -56,19 +60,18 @@ function requireAdminKeyOrToken(req, res, next) {
   return res.status(401).json({ error: 'Invalid admin key' });
 }
 
-/** GET /api/admin/auth/status — public, returns whether 2FA is enabled and email */
+/** GET /api/admin/auth/status — public, returns whether 2FA is enabled (no sensitive details) */
 router.get('/auth/status', async (_req, res) => {
   try {
     const enabled = await is2FAEnabled();
-    const email = getAdmin2FAEmail();
-    res.json({ twoFactorEnabled: enabled, email });
+    res.json({ twoFactorEnabled: enabled });
   } catch (err) {
     console.error('Admin 2FA status error:', err);
     res.status(500).json({ error: 'Could not check 2FA status' });
   }
 });
 
-/** POST /api/admin/auth/login — validates admin key, sends code if 2FA enabled, returns ok or needs2FA */
+/** POST /api/admin/auth/login — validates admin key, always requires 2FA */
 router.post('/auth/login', async (req, res) => {
   const adminKey = req.headers['x-admin-key'] || req.body?.adminKey;
   if (!ADMIN_SECRET || adminKey !== ADMIN_SECRET) {
@@ -76,15 +79,17 @@ router.post('/auth/login', async (req, res) => {
   }
   try {
     const enabled = await is2FAEnabled();
-    if (enabled) {
-      const { sent } = await send2FACode();
+    if (!enabled) {
       return res.json({
-        needs2FA: true,
-        email: getAdmin2FAEmail(),
-        emailSent: sent,
+        needs2FASetup: true,
+        message: '2FA is required for admin access. Please set up 2FA first.',
       });
     }
-    return res.json({ ok: true });
+    const { sent } = await send2FACode();
+    return res.json({
+      needs2FA: true,
+      emailSent: sent,
+    });
   } catch (err) {
     console.error('Admin login error:', err);
     res.status(500).json({ error: 'Login failed' });

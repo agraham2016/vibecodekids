@@ -37,8 +37,7 @@ test.describe('Kid Vibe Code Platform - Bot Tests', () => {
   test('1. App loads with welcome screen', async ({ page }) => {
     console.log('🚀 Testing: App loads correctly...');
     
-    // Check that the main app container exists
-    await expect(page.locator('.app-container, .app, #root')).toBeVisible();
+    await expect(page.locator('#root')).toBeVisible();
     
     // Look for the chat panel or input area
     const chatArea = page.locator('textarea, input[type="text"], .chat-input, .message-input');
@@ -214,9 +213,10 @@ test.describe('Kid Vibe Code Platform - Bot Tests', () => {
     expect(response.ok()).toBeTruthy();
     
     const body = await response.json();
-    expect(Array.isArray(body)).toBeTruthy();
+    expect(body).toHaveProperty('games');
+    expect(Array.isArray(body.games)).toBeTruthy();
     
-    console.log(`✅ Gallery API works! Found ${body.length} projects`);
+    console.log(`✅ Gallery API works! Found ${body.games.length} projects`);
   });
 
 });

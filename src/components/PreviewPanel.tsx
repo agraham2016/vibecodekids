@@ -1,15 +1,15 @@
-import { useRef, useEffect, useState } from 'react'
-import './PreviewPanel.css'
+import { useRef, useEffect, useState } from 'react';
+import './PreviewPanel.css';
 
 interface PreviewPanelProps {
-  code: string
+  code: string;
 }
 
 // Inject Three.js and other 3D libraries into the preview
 function injectLibraries(code: string): string {
   // Check if code already has doctype/html structure
   const hasFullStructure = code.toLowerCase().includes('<!doctype') || code.toLowerCase().includes('<html');
-  
+
   // Preview scrollbar: so the full game is visible when the iframe is shorter than the game
   const previewScrollStyle = `
     <style id="vibe-preview-scroll">
@@ -36,7 +36,7 @@ function injectLibraries(code: string): string {
       return code.replace(/<body/i, `${previewScrollStyle}<body`);
     }
   }
-  
+
   // If no structure, wrap the code
   return `<!DOCTYPE html>
 <html>
@@ -53,89 +53,55 @@ ${code}
 }
 
 export default function PreviewPanel({ code }: PreviewPanelProps) {
-  const iframeRef = useRef<HTMLIFrameElement>(null)
-  const fullscreenIframeRef = useRef<HTMLIFrameElement>(null)
-  const [isFullscreen, setIsFullscreen] = useState(false)
-  const [key, setKey] = useState(0) // Force iframe refresh
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const fullscreenIframeRef = useRef<HTMLIFrameElement>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [key, setKey] = useState(0);
 
-  // Inject libraries into the code
-  const enhancedCode = injectLibraries(code)
-
-  // Update main preview iframe
-  useEffect(() => {
-    if (iframeRef.current) {
-      const iframe = iframeRef.current
-      const doc = iframe.contentDocument || iframe.contentWindow?.document
-      
-      if (doc) {
-        doc.open()
-        doc.write(enhancedCode)
-        doc.close()
-      }
-    }
-  }, [enhancedCode, key])
-
-  // Update fullscreen iframe when opened
-  useEffect(() => {
-    if (isFullscreen && fullscreenIframeRef.current) {
-      const iframe = fullscreenIframeRef.current
-      const doc = iframe.contentDocument || iframe.contentWindow?.document
-      
-      if (doc) {
-        doc.open()
-        doc.write(enhancedCode)
-        doc.close()
-      }
-    }
-  }, [isFullscreen, enhancedCode])
+  // Inject libraries into the code (used as srcdoc for sandboxing)
+  const enhancedCode = injectLibraries(code);
 
   // Handle Escape key to exit fullscreen
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isFullscreen) {
-        setIsFullscreen(false)
+        setIsFullscreen(false);
       }
-    }
-    
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isFullscreen])
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isFullscreen]);
 
   const handleRefresh = () => {
-    setKey(prev => prev + 1)
-  }
+    setKey((prev) => prev + 1);
+  };
 
   const handlePlay = () => {
-    setIsFullscreen(true)
-  }
+    setIsFullscreen(true);
+  };
 
   const handleExitPlay = () => {
-    setIsFullscreen(false)
-  }
+    setIsFullscreen(false);
+  };
 
   return (
     <>
       <div className="panel preview-panel">
         <div className="panel-header preview-header">
-          <button 
-            className="play-header-btn"
-            onClick={handlePlay}
-          >
+          <button className="play-header-btn" onClick={handlePlay}>
             <span className="play-text">Play My Creation!</span>
           </button>
-          <button 
-            className="preview-control-btn"
-            onClick={handleRefresh}
-            title="Refresh Preview"
-          >
+          <button className="preview-control-btn" onClick={handleRefresh} title="Refresh Preview">
             🔄
           </button>
         </div>
-        
+
         <div className="preview-iframe-wrapper">
           <iframe
             key={key}
             ref={iframeRef}
+            srcDoc={enhancedCode}
             title="Preview"
             sandbox="allow-scripts allow-pointer-lock"
             className="preview-iframe"
@@ -151,16 +117,14 @@ export default function PreviewPanel({ code }: PreviewPanelProps) {
               <span className="play-icon">🎮</span>
               Now Playing Your Creation!
             </div>
-            <button 
-              className="exit-play-btn"
-              onClick={handleExitPlay}
-            >
+            <button className="exit-play-btn" onClick={handleExitPlay}>
               ✕ Back to Building
             </button>
           </div>
           <div className="play-mode-content">
             <iframe
               ref={fullscreenIframeRef}
+              srcDoc={enhancedCode}
               title="Fullscreen Preview"
               sandbox="allow-scripts allow-pointer-lock"
               className="play-mode-iframe"
@@ -172,5 +136,5 @@ export default function PreviewPanel({ code }: PreviewPanelProps) {
         </div>
       )}
     </>
-  )
+  );
 }
