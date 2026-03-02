@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, useMemo, memo } from 'react';
 import './PreviewPanel.css';
 
 interface PreviewPanelProps {
@@ -52,14 +52,13 @@ ${code}
 </html>`;
 }
 
-export default function PreviewPanel({ code }: PreviewPanelProps) {
+const PreviewPanel = memo(function PreviewPanel({ code }: PreviewPanelProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const fullscreenIframeRef = useRef<HTMLIFrameElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [key, setKey] = useState(0);
 
-  // Inject libraries into the code (used as srcdoc for sandboxing)
-  const enhancedCode = injectLibraries(code);
+  const enhancedCode = useMemo(() => injectLibraries(code), [code]);
 
   // Handle Escape key to exit fullscreen
   useEffect(() => {
@@ -137,4 +136,6 @@ export default function PreviewPanel({ code }: PreviewPanelProps) {
       )}
     </>
   );
-}
+});
+
+export default PreviewPanel;
