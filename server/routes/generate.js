@@ -32,6 +32,7 @@ import { generateOrIterateGame } from '../services/gameHandler.js';
 import { logGenerateEvent } from '../services/eventStore.js';
 import { readUser } from '../services/storage.js';
 import { recordViolation } from '../services/discipline.js';
+import { checkAbuse } from '../services/abuseDetection.js';
 
 export default function createGenerateRouter(sessions) {
   const router = Router();
@@ -62,6 +63,13 @@ export default function createGenerateRouter(sessions) {
       } = req.body;
 
       console.log(`🎮 Generate request: "${(message || '').slice(0, 80)}" | mode: ${mode} | model-hint: ${lastModelUsed || 'none'} | gameConfig: ${gameConfig ? gameConfig.gameType : 'none'} | hasCode: ${!!currentCode} | historyLen: ${conversationHistory.length}`);
+
+      // IP-level abuse detection for unauthenticated burst generation
+      const genIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || '';
+      const abuseCheck = checkAbuse(genIp, 'generate');
+      if (!abuseCheck.allowed) {
+        return res.status(429).json({ message: 'Too many requests. Please slow down and try again in a few minutes.', code: null, modelUsed: null, isCacheHit: false });
+      }
 
       // Get user from session
       const token = req.headers.authorization?.replace('Bearer ', '');

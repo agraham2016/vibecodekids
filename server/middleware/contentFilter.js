@@ -48,6 +48,23 @@ const REGEX_BLOCKLIST = [
   /\bwh+i+te?\s*(?:sup|pow)/i,
 ];
 
+// Prompt injection patterns — attempts to override system instructions
+const INJECTION_PATTERNS = [
+  /ignore\s+(all\s+)?(?:previous|above|prior)\s+(?:instructions?|rules?|prompts?)/i,
+  /disregard\s+(all\s+)?(?:previous|above|prior)\s+(?:instructions?|rules?|prompts?)/i,
+  /forget\s+(all\s+)?(?:previous|above|prior)\s+(?:instructions?|rules?)/i,
+  /you\s+are\s+now\s+(?:a\s+)?(?:unrestricted|unfiltered|jailbroken|DAN|evil)/i,
+  /(?:new|override|replace)\s+system\s+prompt/i,
+  /system\s*:\s*you\s+are/i,
+  /\[\s*system\s*\]/i,
+  /act\s+as\s+(?:if\s+)?(?:you\s+have\s+)?no\s+(?:restrictions?|filters?|rules?|guidelines?)/i,
+  /bypass\s+(?:content\s+)?(?:filter|safety|moderation|restriction)/i,
+  /pretend\s+(?:you\s+)?(?:don'?t\s+have|there\s+are\s+no)\s+(?:rules?|filters?|restrictions?)/i,
+  /\bDAN\s+mode\b/i,
+  /developer\s+mode\s+(?:enabled|on|activated)/i,
+  /do\s+anything\s+now/i,
+];
+
 export function filterContent(content, options = {}) {
   const blockedPatterns = getContentFilter();
   const rawLower = (content || '').toLowerCase();
@@ -75,6 +92,20 @@ export function filterContent(content, options = {}) {
       return {
         blocked: true,
         reason: "Let's keep our creations fun and friendly! Try asking about something else you'd like to build."
+      };
+    }
+  }
+
+  // Check prompt injection attempts
+  for (const re of INJECTION_PATTERNS) {
+    if (re.test(content || '')) {
+      if (options.source) {
+        recordBlocked(options.source);
+      }
+      return {
+        blocked: true,
+        reason: "That kind of instruction isn't something I can work with. Try describing a game you'd like to build!",
+        injectionAttempt: true,
       };
     }
   }

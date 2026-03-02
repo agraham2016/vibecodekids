@@ -13,6 +13,49 @@ const ALLOWED_CHAT_PHRASES = [
   'High five!', 'Try again!', 'So close!', 'LOL', 'Yay!',
 ];
 
+const MAX_STATE_SIZE = 8192;
+const MAX_INPUT_SIZE = 512;
+const MAX_STATE_KEYS = 50;
+
+function sanitizeValue(val, depth = 0) {
+  if (depth > 4) return null;
+  if (val === null || val === undefined) return val;
+  if (typeof val === 'boolean' || typeof val === 'number') {
+    if (typeof val === 'number' && !Number.isFinite(val)) return 0;
+    return val;
+  }
+  if (typeof val === 'string') {
+    return val.slice(0, 500).replace(/<script/gi, '').replace(/on\w+\s*=/gi, '');
+  }
+  if (Array.isArray(val)) {
+    return val.slice(0, 50).map(v => sanitizeValue(v, depth + 1));
+  }
+  if (typeof val === 'object') {
+    const out = {};
+    const keys = Object.keys(val).slice(0, MAX_STATE_KEYS);
+    for (const k of keys) {
+      const cleanKey = String(k).slice(0, 64);
+      out[cleanKey] = sanitizeValue(val[k], depth + 1);
+    }
+    return out;
+  }
+  return null;
+}
+
+function sanitizeGameState(state) {
+  if (!state || typeof state !== 'object') return null;
+  const json = JSON.stringify(state);
+  if (json.length > MAX_STATE_SIZE) return null;
+  return sanitizeValue(state);
+}
+
+function sanitizeGameInput(input) {
+  if (!input || typeof input !== 'object') return null;
+  const json = JSON.stringify(input);
+  if (json.length > MAX_INPUT_SIZE) return null;
+  return sanitizeValue(input);
+}
+
 // Store active rooms
 const rooms = new Map();
 
@@ -117,10 +160,10 @@ class GameRoom {
   }
 
   updateGameState(playerId, state) {
-    // Merge the incoming state with current game state
-    this.gameState = { ...this.gameState, ...state, lastUpdatedBy: playerId };
+    const sanitized = sanitizeGameState(state);
+    if (!sanitized) return;
+    this.gameState = { ...this.gameState, ...sanitized, lastUpdatedBy: playerId };
     
-    // Broadcast the state update to all other players
     this.broadcast({
       type: 'game_state',
       state: this.gameState,
@@ -129,12 +172,13 @@ class GameRoom {
   }
 
   sendGameInput(fromPlayerId, input) {
-    // Broadcast player input to all other players
+    const sanitized = sanitizeGameInput(input);
+    if (!sanitized) return;
     this.broadcast({
       type: 'player_input',
       fromPlayerId,
       fromPlayerName: this.players.get(fromPlayerId)?.name,
-      input
+      input: sanitized
     }, fromPlayerId);
   }
 }

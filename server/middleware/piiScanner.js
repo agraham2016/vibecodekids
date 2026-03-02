@@ -30,6 +30,9 @@ const NAME_INTRO_RE = /(?:(?:my\s+name\s+is|i'?m|i\s+am|call\s+me|they\s+call\s+
 // "I live in Mesa Arizona", "I'm from Phoenix, AZ"
 const LOCATION_RE = /(?:i\s+live\s+in|i'?m\s+from|i\s+go\s+to\s+school\s+(?:in|at))\s+([A-Z][a-z]+(?:[\s,]+[A-Z][a-z]+){0,3})/gi;
 
+// Social media handles: "my instagram is @coolkid", "my snap is coolkid2015"
+const SOCIAL_HANDLE_RE = /(?:my\s+(?:insta(?:gram)?|snap(?:chat)?|tik\s*tok|discord|twitter|x|roblox|youtube|twitch)\s+(?:is|handle|username|name)\s*(?:is\s*)?)(@?\w{3,30})/gi;
+
 const REPLACEMENT = '[REDACTED]';
 
 /**
@@ -74,6 +77,12 @@ export function scanPII(text) {
   cleaned = cleaned.replace(LOCATION_RE, (match, loc) => {
     piiFound.push('location');
     return match.replace(loc, REPLACEMENT);
+  });
+
+  // Social media handles
+  cleaned = cleaned.replace(SOCIAL_HANDLE_RE, (match, handle) => {
+    piiFound.push('social_handle');
+    return match.replace(handle, REPLACEMENT);
   });
 
   return { cleaned, piiFound };

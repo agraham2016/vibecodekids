@@ -14,6 +14,8 @@ import { filterContent } from '../middleware/contentFilter.js';
 import { filterUsername } from '../middleware/usernameFilter.js';
 import { checkAndResetCounters, calculateUsageRemaining } from '../middleware/rateLimit.js';
 import { getAgeBracket, requiresParentalConsent, createConsentRequest, sendConsentEmail, sendPasswordResetEmail, exportUserData, deleteUserData } from '../services/consent.js';
+import { checkAbuse } from '../services/abuseDetection.js';
+import { generateJuniorNameOptions } from '../services/juniorNameGenerator.js';
 import { createResetToken, getResetByToken, consumeToken } from '../services/passwordReset.js';
 
 const loginAttempts = new Map();
@@ -61,6 +63,12 @@ export default function createAuthRouter(sessions) {
   // Register
   router.post('/register', async (req, res) => {
     try {
+      const regIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || '';
+      const abuseCheck = checkAbuse(regIp, 'registration');
+      if (!abuseCheck.allowed) {
+        return res.status(429).json({ error: 'Too many accounts created. Please try again later.' });
+      }
+
       const { username, password, displayName, age, ageBracket: clientBracket, parentEmail, recoveryEmail, privacyAccepted } = req.body;
 
       if (!username || !password || !displayName) {
@@ -451,6 +459,11 @@ export default function createAuthRouter(sessions) {
       console.error('Get my projects error:', error);
       res.status(500).json({ error: 'Could not load projects' });
     }
+  });
+
+  // Generate safe display name suggestions for under-13 users
+  router.get('/junior-names', (_req, res) => {
+    res.json({ names: generateJuniorNameOptions(5) });
   });
 
   // Self-service data export (available to 13+ users)

@@ -106,6 +106,7 @@ app.get('/sitemap.xml', async (_req, res) => {
     xml += `  <url><loc>${BASE_URL}/esa</loc><priority>0.7</priority></url>\n`;
     xml += `  <url><loc>${BASE_URL}/privacy</loc><priority>0.3</priority></url>\n`;
     xml += `  <url><loc>${BASE_URL}/terms</loc><priority>0.3</priority></url>\n`;
+    xml += `  <url><loc>${BASE_URL}/faq</loc><priority>0.5</priority></url>\n`;
     for (const p of publicProjects) {
       xml += `  <url><loc>${BASE_URL}/play/${p.id}</loc><lastmod>${p.updatedAt || p.createdAt}</lastmod></url>\n`;
     }
@@ -162,6 +163,7 @@ app.get('/privacy', (_req, res) => res.sendFile(path.join(PUBLIC_DIR, 'privacy.h
 app.get('/terms', (_req, res) => res.sendFile(path.join(PUBLIC_DIR, 'terms.html')));
 app.get('/esa', (_req, res) => res.sendFile(path.join(PUBLIC_DIR, 'esa.html')));
 app.get('/contact', (_req, res) => res.sendFile(path.join(PUBLIC_DIR, 'contact.html')));
+app.get('/faq', (_req, res) => res.sendFile(path.join(PUBLIC_DIR, 'faq.html')));
 app.get('/parent-dashboard', (_req, res) => res.sendFile(path.join(PUBLIC_DIR, 'parent-dashboard.html')));
 app.get('/parent-verify-charge', (_req, res) => res.sendFile(path.join(PUBLIC_DIR, 'parent-verify-charge.html')));
 app.get('/forgot-password/reset', (_req, res) => res.sendFile(path.join(PUBLIC_DIR, 'forgot-password.html')));
