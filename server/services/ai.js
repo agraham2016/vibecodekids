@@ -26,16 +26,30 @@ import {
   GROK_BASE_URL,
 } from '../config/index.js';
 
-const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
+const anthropic = ANTHROPIC_API_KEY ? new Anthropic({ apiKey: ANTHROPIC_API_KEY }) : null;
 
 // Grok client — xAI API is OpenAI-compatible, just different baseURL
 const grokClient = XAI_API_KEY ? new OpenAI({ apiKey: XAI_API_KEY, baseURL: GROK_BASE_URL }) : null;
+
+/**
+ * Check if Claude is available (API key configured).
+ */
+export function isClaudeAvailable() {
+  return !!anthropic;
+}
 
 /**
  * Check if Grok is available (API key configured).
  */
 export function isGrokAvailable() {
   return !!grokClient;
+}
+
+function requireClaude() {
+  if (!anthropic) {
+    throw new Error('ANTHROPIC_API_KEY is not configured. Set it in your .env file to enable Claude AI features.');
+  }
+  return anthropic;
 }
 
 // ========== TOKEN USAGE TRACKING ==========
@@ -252,12 +266,13 @@ function buildSystemBlocks(staticPrompt, dynamicContext = '') {
  * @param {string|null} userId - For usage tracking
  */
 export async function callClaude(staticPrompt, dynamicContext, messages, maxTokens, userId = null) {
+  const client = requireClaude();
   const systemBlocks = buildSystemBlocks(staticPrompt, dynamicContext);
 
   let response;
   for (let attempt = 1; attempt <= AI_RETRY_COUNT; attempt++) {
     try {
-      response = await anthropic.messages.create({
+      response = await client.messages.create({
         model: AI_MODEL,
         max_tokens: maxTokens,
         system: systemBlocks,
@@ -289,9 +304,10 @@ export async function callClaude(staticPrompt, dynamicContext, messages, maxToke
  * @param {string|null} userId - For usage tracking
  */
 export async function callClaudeStreaming(staticPrompt, dynamicContext, messages, maxTokens, _userId = null) {
+  const client = requireClaude();
   const systemBlocks = buildSystemBlocks(staticPrompt, dynamicContext);
 
-  const stream = await anthropic.messages.stream({
+  const stream = await client.messages.stream({
     model: AI_MODEL,
     max_tokens: maxTokens,
     system: systemBlocks,
@@ -422,7 +438,8 @@ export function extractPartialCode(text) {
  */
 export async function attemptContinuation(partialCode, userId = null) {
   try {
-    const response = await anthropic.messages.create({
+    const client = requireClaude();
+    const response = await client.messages.create({
       model: AI_MODEL,
       max_tokens: 8192,
       system: `You were generating an HTML game for a children's platform and your response was cut off. Continue EXACTLY where you left off. Do NOT repeat any code that was already written. Do NOT add any explanation text - ONLY output the remaining code to complete the HTML document. The code must end with </html>. IMPORTANT: Make sure ALL features from the original game are still present in the remaining code.

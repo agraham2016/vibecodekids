@@ -41,7 +41,7 @@
     "db:migrate-passwords": "node scripts/migrate-passwords.js"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.24.0",
+    "@anthropic-ai/sdk": "^0.78.0",
     "@monaco-editor/react": "^4.6.0",
     "@sentry/node": "^10.40.0",
     "bcrypt": "^6.0.0",

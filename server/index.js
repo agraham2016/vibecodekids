@@ -24,6 +24,7 @@ import {
   USE_POSTGRES,
   IS_PRODUCTION,
   ANTHROPIC_API_KEY,
+  AI_MODEL,
   XAI_API_KEY,
   STRIPE_SECRET_KEY,
   STRIPE_WEBHOOK_SECRET,
@@ -75,6 +76,9 @@ if (IS_PRODUCTION && !USE_POSTGRES) {
 if (IS_PRODUCTION && !ANTHROPIC_API_KEY) {
   log.fatal('ANTHROPIC_API_KEY is required in production — AI features will not function');
   process.exit(1);
+}
+if (!IS_PRODUCTION && !ANTHROPIC_API_KEY) {
+  log.warn('ANTHROPIC_API_KEY is not set — Claude AI features will fail. Add it to .env to enable AI.');
 }
 
 // Sentry is initialized early via server/instrument.js (--import flag).
@@ -240,6 +244,7 @@ app.get('/api/health', async (_req, res) => {
     uptime,
     storage: USE_POSTGRES ? 'postgres' : 'file',
     ai: !!ANTHROPIC_API_KEY,
+    aiModel: ANTHROPIC_API_KEY ? AI_MODEL : null,
     grok: !!XAI_API_KEY,
     timestamp: new Date().toISOString(),
   };

@@ -22,7 +22,13 @@ import { filterContent } from '../middleware/contentFilter.js';
 import { piiScannerMiddleware, scanPII } from '../middleware/piiScanner.js';
 import { filterOutputText, filterOutputCode } from '../middleware/outputFilter.js';
 import { checkRateLimits, checkTierLimits, incrementUsage, calculateUsageRemaining } from '../middleware/rateLimit.js';
-import { getTemplateCacheKey, getCachedTemplate, cacheTemplate, isGrokAvailable } from '../services/ai.js';
+import {
+  getTemplateCacheKey,
+  getCachedTemplate,
+  cacheTemplate,
+  isGrokAvailable,
+  isClaudeAvailable,
+} from '../services/ai.js';
 import { generateOrIterateGame } from '../services/gameHandler.js';
 import { logGenerateEvent } from '../services/eventStore.js';
 import { readUser } from '../services/storage.js';
@@ -61,6 +67,16 @@ export default function createGenerateRouter(sessions) {
       console.log(
         `🎮 Generate request: "${(message || '').slice(0, 80)}" | mode: ${mode} | model-hint: ${lastModelUsed || 'none'} | gameConfig: ${gameConfig ? gameConfig.gameType : 'none'} | hasCode: ${!!currentCode} | historyLen: ${conversationHistory.length}`,
       );
+
+      if (!isClaudeAvailable() && !isGrokAvailable()) {
+        return res.status(503).json({
+          message:
+            'AI features are not available — no AI API keys are configured. Please set ANTHROPIC_API_KEY in .env.',
+          code: null,
+          modelUsed: null,
+          isCacheHit: false,
+        });
+      }
 
       // IP-level abuse detection for unauthenticated burst generation
       const genIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || '';
@@ -310,7 +326,13 @@ export default function createGenerateRouter(sessions) {
       let statusCode = 500;
 
       const errMsg = (error.message || '').toLowerCase();
-      if (errMsg.includes('rate') || errMsg.includes('429')) {
+      if (errMsg.includes('anthropic_api_key') || errMsg.includes('not configured')) {
+        friendlyMessage = 'The AI service is not configured yet. Please ask an admin to set the ANTHROPIC_API_KEY.';
+        statusCode = 503;
+      } else if (errMsg.includes('authentication') || errMsg.includes('invalid x-api-key') || errMsg.includes('401')) {
+        friendlyMessage = 'The AI service key seems to be invalid. Please check the ANTHROPIC_API_KEY configuration.';
+        statusCode = 503;
+      } else if (errMsg.includes('rate') || errMsg.includes('429')) {
         friendlyMessage = "I'm a little busy right now! 🐢 Wait a moment and try again.";
         statusCode = 429;
       } else if (errMsg.includes('timeout') || errMsg.includes('timed out')) {
