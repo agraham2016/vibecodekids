@@ -1,16 +1,17 @@
 import { useState, useEffect, useRef } from 'react';
 import PlanSelector from './PlanSelector';
+import type { User, MembershipUsage, TierInfo } from '../types';
 import './AuthModal.css';
 
 interface LoginData {
-  membership?: any;
+  membership?: MembershipUsage;
   showUpgradePrompt?: boolean;
-  tiers?: any;
+  tiers?: Record<string, TierInfo>;
 }
 
 interface AuthModalProps {
   onClose: () => void;
-  onLogin: (user: any, token: string, loginData?: LoginData) => void;
+  onLogin: (user: User, token: string, loginData?: LoginData) => void;
   initialMode?: 'login' | 'signup';
 }
 
@@ -72,9 +73,6 @@ export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: A
             throw new Error('You must accept the privacy policy to create an account');
           }
 
-          // COPPA data minimization: convert exact age to bracket client-side
-          const ageBracket = ageNum < 13 ? 'under13' : ageNum < 18 ? '13to17' : '18plus';
-
           const response = await fetch('/api/auth/register', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -82,7 +80,7 @@ export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: A
               username,
               password,
               displayName,
-              ageBracket,
+              age: ageNum,
               parentEmail: ageNum < 13 ? parentEmail : undefined,
               recoveryEmail: ageNum >= 13 && recoveryEmail ? recoveryEmail : undefined,
               privacyAccepted,
@@ -198,8 +196,8 @@ export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: A
           tiers: data.tiers,
         });
       }
-    } catch (err: any) {
-      setError(err.message || 'Something went wrong');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Something went wrong');
     } finally {
       setIsLoading(false);
     }

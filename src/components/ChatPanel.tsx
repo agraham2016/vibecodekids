@@ -245,7 +245,7 @@ export default function ChatPanel({
       }
     };
 
-    rec.onerror = (event: any) => {
+    rec.onerror = (event: Event & { error?: string }) => {
       setIsListening(false);
       const error = event?.error || 'unknown';
       if (error === 'not-allowed' || error === 'permission-denied') {

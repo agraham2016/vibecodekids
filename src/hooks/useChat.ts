@@ -8,7 +8,7 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { api, ApiError } from '../lib/api';
-import type { Message, MembershipUsage, GenerateResponse, AIModel, AIMode } from '../types';
+import type { Message, MembershipUsage, GenerateResponse, AIModel, AIMode, GameConfig } from '../types';
 
 /** Extended message with model info for UI rendering. */
 export interface ChatMessage extends Message {
@@ -80,7 +80,7 @@ export function useChat({ onCodeGenerated, onUsageUpdate, onUpgradeNeeded }: Use
       content: string,
       image: string | undefined,
       currentCode: string,
-      gameConfig: any = null,
+      gameConfig: GameConfig | null = null,
       modeOverride?: AIMode,
     ) => {
       const userMessage: ChatMessage = {
@@ -157,12 +157,13 @@ export function useChat({ onCodeGenerated, onUsageUpdate, onUpgradeNeeded }: Use
           'Oops! Something went wrong on my end. 😅 Can you try asking me again? Sometimes I need a second try!';
 
         if (error instanceof ApiError) {
-          if (error.data?.message) {
-            friendlyMessage = error.data.message;
+          const errorData = error.data as Record<string, unknown> | undefined;
+          if (errorData?.message && typeof errorData.message === 'string') {
+            friendlyMessage = errorData.message;
           }
 
           if (error.status === 429 || error.status === 403) {
-            if (error.data?.upgradeRequired) {
+            if (errorData?.upgradeRequired) {
               setTimeout(() => onUpgradeNeeded(), 1000);
             }
           }

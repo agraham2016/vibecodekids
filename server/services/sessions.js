@@ -8,6 +8,7 @@
 import { promises as fs } from 'fs';
 import { randomBytes } from 'crypto';
 import { SESSIONS_FILE, SESSION_MAX_AGE_MS, USE_POSTGRES } from '../config/index.js';
+import log from './logger.js';
 
 export function generateToken() {
   return randomBytes(32).toString('hex');
@@ -37,13 +38,13 @@ class FileSessionStore {
         this._map.set(token, session);
       }
       if (expired > 0) {
-        console.log(`🧹 Cleaned ${expired} expired session(s)`);
+        log.info({ expired }, 'Cleaned expired file sessions');
         this._dirty = true;
       }
-      console.log(`📋 Loaded ${this._map.size} active session(s)`);
+      log.info({ active: this._map.size }, 'Loaded file sessions');
     } catch (err) {
       if (err.code !== 'ENOENT') {
-        console.error('⚠️ Could not load sessions:', err.message);
+        log.error({ err: err.message }, 'Could not load sessions');
       }
     }
     this._loaded = true;
@@ -56,7 +57,7 @@ class FileSessionStore {
       await fs.writeFile(SESSIONS_FILE, JSON.stringify(entries));
       this._dirty = false;
     } catch (err) {
-      console.error('⚠️ Could not persist sessions:', err.message);
+      log.error({ err: err.message }, 'Could not persist sessions');
     }
   }
 
@@ -68,13 +69,13 @@ class FileSessionStore {
       this._dirty = true;
       return undefined;
     }
-    // Session binding: flag if IP or user-agent changed significantly
-    if (reqContext && session.boundIp) {
-      if (reqContext.ip && reqContext.ip !== session.boundIp) {
-        session._ipChanged = true;
-      }
-      if (reqContext.userAgent && session.boundUserAgent && reqContext.userAgent !== session.boundUserAgent) {
-        session._uaChanged = true;
+    // Session binding: reject if User-Agent changed (blocks stolen tokens)
+    if (reqContext?.userAgent && session.boundUserAgent) {
+      if (reqContext.userAgent !== session.boundUserAgent) {
+        log.warn({ userId: session.userId, event: 'session_ua_mismatch' }, 'Session UA mismatch — invalidating');
+        this._map.delete(token);
+        this._dirty = true;
+        return undefined;
       }
     }
     return session;
@@ -125,36 +126,53 @@ class PgSessionStore {
     // Clean expired sessions on startup
     const { rowCount } = await this._pool.query('DELETE FROM sessions WHERE expires_at < NOW()');
     if (rowCount > 0) {
-      console.log(`🧹 Cleaned ${rowCount} expired session(s)`);
+      log.info({ expired: rowCount }, 'Cleaned expired pg sessions');
     }
     const { rows } = await this._pool.query('SELECT COUNT(*) FROM sessions');
-    console.log(`📋 ${rows[0].count} active session(s) in database`);
+    log.info({ active: rows[0].count }, 'Loaded pg sessions');
   }
 
-  async get(token) {
+  async get(token, reqContext) {
     const { rows } = await this._pool.query('SELECT * FROM sessions WHERE token = $1 AND expires_at > NOW()', [token]);
     if (rows.length === 0) return undefined;
     const row = rows[0];
-    return {
+    const session = {
       userId: row.user_id,
       username: row.username,
       displayName: row.display_name,
       createdAt: Number(row.created_at),
+      boundUserAgent: row.bound_ua || null,
     };
+    if (reqContext?.userAgent && session.boundUserAgent) {
+      if (reqContext.userAgent !== session.boundUserAgent) {
+        log.warn({ userId: session.userId, event: 'session_ua_mismatch' }, 'Session UA mismatch — invalidating');
+        await this.delete(token);
+        return undefined;
+      }
+    }
+    return session;
   }
 
   async set(token, session) {
     await this._pool.query(
       `
-      INSERT INTO sessions (token, user_id, username, display_name, created_at, expires_at)
-      VALUES ($1, $2, $3, $4, $5, NOW() + INTERVAL '24 hours')
+      INSERT INTO sessions (token, user_id, username, display_name, created_at, bound_ua, expires_at)
+      VALUES ($1, $2, $3, $4, $5, $6, NOW() + INTERVAL '24 hours')
       ON CONFLICT (token) DO UPDATE SET
         user_id = EXCLUDED.user_id,
         username = EXCLUDED.username,
         display_name = EXCLUDED.display_name,
+        bound_ua = EXCLUDED.bound_ua,
         expires_at = NOW() + INTERVAL '24 hours'
     `,
-      [token, session.userId, session.username, session.displayName, session.createdAt || Date.now()],
+      [
+        token,
+        session.userId,
+        session.username,
+        session.displayName,
+        session.createdAt || Date.now(),
+        session.boundUserAgent || null,
+      ],
     );
   }
 

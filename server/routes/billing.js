@@ -124,7 +124,6 @@ export default function createBillingRouter(sessions) {
           displayName: displayName.trim(),
           passwordHash,
           tier,
-          age: String(age),
           parentEmail: needsConsent ? parentEmail.toLowerCase().trim() : '',
           recoveryEmail: !needsConsent && recoveryEmail ? recoveryEmail.toLowerCase().trim() : '',
           privacyAccepted: 'true',
@@ -150,14 +149,12 @@ export default function createBillingRouter(sessions) {
       const session = await stripe.checkout.sessions.retrieve(session_id);
       if (session.payment_status !== 'paid') return res.redirect('/?error=payment_incomplete');
 
-      const { username, displayName, passwordHash, tier, age, parentEmail, recoveryEmail, ageBracket } =
-        session.metadata;
+      const { username, displayName, passwordHash, tier, parentEmail, recoveryEmail, ageBracket } = session.metadata;
       const userId = `user_${username}`;
 
       if (await userExists(userId)) {
         return res.redirect('/?signup=success&message=Account already exists, please log in');
       }
-      const ageNum = parseInt(age, 10);
       const needsConsent = ageBracket === 'under13';
 
       const now = new Date();
@@ -309,6 +306,33 @@ export default function createBillingRouter(sessions) {
     } catch (error) {
       console.error('Upgrade success handler error:', error);
       res.redirect('/?error=upgrade_failed');
+    }
+  });
+
+  // Stripe Customer Portal (subscription management / cancellation)
+  router.post('/customer-portal', async (req, res) => {
+    try {
+      const token = req.headers.authorization?.replace('Bearer ', '');
+      if (!token) return res.status(401).json({ error: 'No token provided' });
+
+      const session = await sessions.get(token);
+      if (!session) return res.status(401).json({ error: 'Invalid or expired session' });
+      if (!stripe) return res.status(500).json({ error: 'Payment system not configured' });
+
+      const user = await readUser(session.userId);
+      if (!user.stripeCustomerId) {
+        return res.status(400).json({ error: 'No active subscription found' });
+      }
+
+      const portalSession = await stripe.billingPortal.sessions.create({
+        customer: user.stripeCustomerId,
+        return_url: `${BASE_URL}`,
+      });
+
+      res.json({ success: true, url: portalSession.url });
+    } catch (error) {
+      console.error('Customer portal error:', error);
+      res.status(500).json({ error: 'Could not open billing portal' });
     }
   });
 

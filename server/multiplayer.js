@@ -6,10 +6,14 @@ import { WebSocketServer } from 'ws';
 import { randomBytes } from 'crypto';
 import { filterContent } from './middleware/contentFilter.js';
 import { moderateText } from './services/contentModeration.js';
+import { readUser } from './services/storage.js';
+import { ageGate } from './middleware/ageGate.js';
+import log from './services/logger.js';
 
 const MAX_STATE_SIZE = 8192;
 const MAX_INPUT_SIZE = 512;
 const MAX_STATE_KEYS = 50;
+const SESSION_RECHECK_MS = 5 * 60 * 1000;
 
 function sanitizeValue(val, depth = 0) {
   if (depth > 4) return null;
@@ -208,13 +212,38 @@ export function initMultiplayer(server, sessions) {
       }
       playerId = session.userId;
       playerDisplayName = session.displayName;
+
+      const user = await readUser(playerId);
+      const check = ageGate(user, 'multiplayer');
+      if (!check.allowed) {
+        ws.close(4003, check.reason || 'Multiplayer not allowed');
+        return;
+      }
     } catch (err) {
-      console.error('WebSocket auth error:', err);
+      log.error({ err }, 'WebSocket auth error');
       ws.close(4001, 'Authentication failed');
       return;
     }
 
     let currentRoom = null;
+
+    const revalidateInterval = setInterval(async () => {
+      try {
+        const url = new URL(req.url, `http://${req.headers.host}`);
+        const t = url.searchParams.get('token');
+        if (!t) {
+          ws.close(4001, 'Session expired');
+          return;
+        }
+        const s = await sessions.get(t);
+        if (!s) {
+          log.warn({ playerId, event: 'ws_session_expired' }, 'WS session expired — disconnecting');
+          ws.close(4001, 'Session expired');
+        }
+      } catch {
+        ws.close(4001, 'Session validation failed');
+      }
+    }, SESSION_RECHECK_MS);
 
     ws.on('message', (data) => {
       try {
@@ -229,23 +258,24 @@ export function initMultiplayer(server, sessions) {
           playerDisplayName,
         );
       } catch (err) {
-        console.error('WebSocket message error:', err);
+        log.error({ err }, 'WebSocket message error');
         ws.send(JSON.stringify({ type: 'error', message: 'Invalid message format' }));
       }
     });
 
     ws.on('close', () => {
+      clearInterval(revalidateInterval);
       if (currentRoom) {
         const isEmpty = currentRoom.removePlayer(playerId);
         if (isEmpty) {
           rooms.delete(currentRoom.code);
-          console.log(`Room ${currentRoom.code} closed (empty)`);
+          log.info({ roomCode: currentRoom.code }, 'Room closed (empty)');
         }
       }
     });
 
     ws.on('error', (err) => {
-      console.error('WebSocket error:', err);
+      log.error({ err }, 'WebSocket error');
     });
 
     ws.send(
@@ -256,13 +286,13 @@ export function initMultiplayer(server, sessions) {
     );
   });
 
-  console.log('Multiplayer WebSocket server initialized');
+  log.info('Multiplayer WebSocket server initialized');
 
   return wss;
 }
 
 // Handle incoming messages
-function handleMessage(ws, playerId, message, setRoom, authenticatedName) {
+function handleMessage(ws, playerId, message, setRoom, _authenticatedName) {
   switch (message.type) {
     case 'create_room': {
       const { projectId, playerName } = message;
@@ -272,7 +302,7 @@ function handleMessage(ws, playerId, message, setRoom, authenticatedName) {
       rooms.set(room.code, room);
       setRoom(room);
 
-      console.log(`Room ${room.code} created for project ${projectId}`);
+      log.info({ roomCode: room.code, projectId }, 'Room created');
 
       ws.send(
         JSON.stringify({
@@ -305,8 +335,8 @@ function handleMessage(ws, playerId, message, setRoom, authenticatedName) {
 
       const room = rooms.get(roomCode);
       if (!room) {
-        const activeCodes = Array.from(rooms.keys()).join(', ') || '(none)';
-        console.log(`Join failed: room "${roomCode}" not found. Active rooms on this instance: ${activeCodes}`);
+        const activeCodes = Array.from(rooms.keys());
+        log.info({ roomCode, activeCodes }, 'Join failed — room not found');
         ws.send(
           JSON.stringify({
             type: 'error',
@@ -328,7 +358,7 @@ function handleMessage(ws, playerId, message, setRoom, authenticatedName) {
       }
 
       setRoom(room);
-      console.log(`Player ${playerName} joined room ${roomCode}`);
+      log.info({ playerName, roomCode }, 'Player joined room');
 
       ws.send(
         JSON.stringify({
@@ -349,7 +379,7 @@ function handleMessage(ws, playerId, message, setRoom, authenticatedName) {
         const isEmpty = room.removePlayer(playerId);
         if (isEmpty) {
           rooms.delete(room.code);
-          console.log(`Room ${room.code} closed (empty)`);
+          log.info({ roomCode: room.code }, 'Room closed (empty)');
         }
         setRoom(null);
       }

@@ -5,9 +5,10 @@
  */
 
 import { Router } from 'express';
-import crypto from 'crypto';
 import bcrypt from 'bcrypt';
+import crypto from 'crypto';
 import { BCRYPT_ROUNDS, MEMBERSHIP_TIERS } from '../config/index.js';
+import log from '../services/logger.js';
 import { readUser, writeUser, userExists, listProjects } from '../services/storage.js';
 import { generateToken } from '../services/sessions.js';
 import { filterContent } from '../middleware/contentFilter.js';
@@ -172,7 +173,7 @@ export default function createAuthRouter(sessions) {
         await sendConsentEmail(parentEmail, username, token, 'consent');
         responseMessage =
           "Account created! We've sent an email to your parent/guardian for approval. They need to approve before you can log in.";
-        console.log(`Under-13 registration: ${username} → consent email sent`);
+        log.info({ username, event: 'register_under13' }, 'Under-13 registration — consent email sent');
       } else {
         responseMessage = 'Account created! You can log in now.';
       }
@@ -183,7 +184,7 @@ export default function createAuthRouter(sessions) {
         requiresParentalConsent: needsConsent,
       });
     } catch (error) {
-      console.error('Register error:', error?.stack || error);
+      log.error({ err: error }, 'Register error');
       res.status(500).json({ error: 'Could not create account' });
     }
   });
@@ -213,22 +214,16 @@ export default function createAuthRouter(sessions) {
         throw err;
       }
 
-      // Check password -- supports both bcrypt and legacy SHA-256 hashes
+      // Reject legacy SHA-256 hashes — force password reset
       const isLegacySHA256 = /^[a-f0-9]{64}$/i.test(user.passwordHash);
-      let passwordValid = false;
-
       if (isLegacySHA256) {
-        const sha256Hash = crypto.createHash('sha256').update(password).digest('hex');
-        if (sha256Hash === user.passwordHash) {
-          passwordValid = true;
-          user.passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
-          await writeUser(user.id, user);
-          console.log(`🔄 Auto-upgraded password hash for user: ${user.username}`);
-        }
-      } else {
-        passwordValid = await bcrypt.compare(password, user.passwordHash);
+        return res.status(401).json({
+          error: 'Your password needs to be updated for security. Please use "Forgot Password" to set a new one.',
+          requiresPasswordReset: true,
+        });
       }
 
+      const passwordValid = await bcrypt.compare(password, user.passwordHash);
       if (!passwordValid) {
         return res.status(401).json({ error: 'Invalid username or password' });
       }
@@ -274,11 +269,13 @@ export default function createAuthRouter(sessions) {
       }
 
       const token = generateToken();
+      const userAgent = req.headers['user-agent'] || '';
       await sessions.set(token, {
         userId: user.id,
         username: user.username,
         displayName: user.displayName,
         createdAt: Date.now(),
+        boundUserAgent: userAgent,
       });
 
       user.lastLoginAt = new Date().toISOString();
@@ -309,7 +306,7 @@ export default function createAuthRouter(sessions) {
         tiers: MEMBERSHIP_TIERS,
       });
     } catch (error) {
-      console.error('Login error:', error?.stack || error);
+      log.error({ err: error }, 'Login error');
       res.status(500).json({ error: 'Could not log in' });
     }
   });
@@ -335,7 +332,7 @@ export default function createAuthRouter(sessions) {
 
       res.json({ user: safeUser, membership: usage });
     } catch (error) {
-      console.error('Auth check error:', error?.stack || error);
+      log.error({ err: error }, 'Auth check error');
       res.status(500).json({ error: 'Could not verify session' });
     }
   });
@@ -389,7 +386,7 @@ export default function createAuthRouter(sessions) {
 
       return res.json(genericForgotSuccess);
     } catch (error) {
-      console.error('Forgot password error:', error?.stack || error);
+      log.error({ err: error }, 'Forgot password error');
       return res.json(genericForgotSuccess);
     }
   });
@@ -422,7 +419,7 @@ export default function createAuthRouter(sessions) {
       if (error.code === 'ENOENT') {
         return res.status(400).json({ error: 'This reset link is invalid or expired. Please request a new one.' });
       }
-      console.error('Reset password error:', error?.stack || error);
+      log.error({ err: error }, 'Reset password error');
       return res.status(500).json({ error: 'Could not reset password. Please try again or contact support.' });
     }
   });
@@ -452,7 +449,7 @@ export default function createAuthRouter(sessions) {
 
       res.json(userProjects);
     } catch (error) {
-      console.error('Get my projects error:', error?.stack || error);
+      log.error({ err: error }, 'Get my projects error');
       res.status(500).json({ error: 'Could not load projects' });
     }
   });
@@ -507,10 +504,10 @@ export default function createAuthRouter(sessions) {
                    <p><a href="${loginUrl}" style="background: #4CAF50; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Log In</a></p>`,
           });
         } else {
-          console.log(`[DEV] Magic link for ${username}: ${loginUrl}`);
+          log.info({ username, loginUrl }, 'DEV magic link generated');
         }
       } catch (err) {
-        console.error('Failed to send magic link:', err.message);
+        log.error({ err: err.message }, 'Failed to send magic link');
       }
 
       res.json({ ok: true, message: 'If the account exists, a login link has been sent.' });
@@ -538,6 +535,7 @@ export default function createAuthRouter(sessions) {
         username: user.username,
         displayName: user.displayName,
         createdAt: Date.now(),
+        boundUserAgent: req.headers['user-agent'] || '',
       });
 
       user.lastLoginAt = new Date().toISOString();

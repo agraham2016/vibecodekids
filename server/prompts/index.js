@@ -127,6 +127,33 @@ export function getContentFilter() {
     'bet real money',
     'casino',
     'slot machine',
+    'loot box',
+    'crypto gambling',
+    'sports betting',
+    // Dangerous challenges
+    'choking game',
+    'blackout challenge',
+    'tide pod challenge',
+    'salt and ice challenge',
+    'cinnamon challenge',
+    // Alcohol & tobacco (child context)
+    'drinking game',
+    'beer pong',
+    'get wasted',
+    'get drunk',
+    'vaping',
+    'smoking weed',
+    // Eating disorders
+    'anorexia',
+    'bulimia',
+    'pro-ana',
+    'thinspo',
+    'starve myself',
+    'purging',
+    // Cyberbullying
+    'kys',
+    'kill yourself',
+    'nobody likes you',
     // Prompt injection defense
     'ignore all previous instructions',
     'ignore previous instructions',

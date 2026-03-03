@@ -1,16 +1,16 @@
 /**
  * useProjects Hook
- * 
+ *
  * Manages project list, CRUD, save, and version operations.
  * Extracts all project logic from App.tsx.
  * Includes auto-save: debounced 30s after last edit, plus save-on-blur.
  */
 
-import { useState, useCallback, useRef, useEffect } from 'react'
-import { api, ApiError } from '../lib/api'
-import type { Project, UserProject } from '../types'
+import { useState, useCallback, useRef, useEffect } from 'react';
+import { api, ApiError } from '../lib/api';
+import type { Project, UserProject } from '../types';
 
-const AUTO_SAVE_DELAY_MS = 30_000 // 30 seconds after last edit
+const AUTO_SAVE_DELAY_MS = 30_000; // 30 seconds after last edit
 
 const DEFAULT_HTML = `<!DOCTYPE html>
 <html>
@@ -58,208 +58,226 @@ const DEFAULT_HTML = `<!DOCTYPE html>
     <p>Tell me what you want to create and I'll help you make it!</p>
   </div>
 </body>
-</html>`
+</html>`;
 
-export { DEFAULT_HTML }
+export { DEFAULT_HTML };
 
 export function useProjects(isLoggedIn = false) {
-  const [code, setCode] = useState(DEFAULT_HTML)
+  const [code, setCode] = useState(DEFAULT_HTML);
   const [currentProject, setCurrentProject] = useState<Project>({
     id: 'new',
     name: 'My Awesome Project',
     code: DEFAULT_HTML,
     createdAt: new Date(),
-    updatedAt: new Date()
-  })
-  const [userProjects, setUserProjects] = useState<UserProject[]>([])
-  const [isLoadingProjects, setIsLoadingProjects] = useState(false)
-  const [isSaving, setIsSaving] = useState(false)
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
-  const [lastAutoSavedAt, setLastAutoSavedAt] = useState<Date | null>(null)
-  const lastSavedCode = useRef<string>(DEFAULT_HTML)
-  const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const isAutoSaving = useRef(false)
+    updatedAt: new Date(),
+  });
+  const [userProjects, setUserProjects] = useState<UserProject[]>([]);
+  const [isLoadingProjects, setIsLoadingProjects] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [lastAutoSavedAt, setLastAutoSavedAt] = useState<Date | null>(null);
+  const lastSavedCode = useRef<string>(DEFAULT_HTML);
+  const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isAutoSaving = useRef(false);
 
   const fetchUserProjects = useCallback(async () => {
-    setIsLoadingProjects(true)
+    setIsLoadingProjects(true);
     try {
-      const projects = await api.get<UserProject[]>('/api/auth/my-projects')
-      setUserProjects(projects)
+      const projects = await api.get<UserProject[]>('/api/auth/my-projects');
+      setUserProjects(projects);
     } catch {
       // Silently fail
     } finally {
-      setIsLoadingProjects(false)
+      setIsLoadingProjects(false);
     }
-  }, [])
+  }, []);
 
   const loadProject = useCallback(async (projectId: string) => {
     try {
-      const project = await api.get(`/api/projects/${projectId}`)
-      setCode(project.code)
+      const project = await api.get<{ id: string; title: string; code: string; createdAt: string }>(
+        `/api/projects/${projectId}`,
+      );
+      setCode(project.code);
       setCurrentProject({
         id: project.id,
         name: project.title,
         code: project.code,
         createdAt: new Date(project.createdAt),
-        updatedAt: new Date()
-      })
-      lastSavedCode.current = project.code
-      setHasUnsavedChanges(false)
-      return project
+        updatedAt: new Date(),
+      });
+      lastSavedCode.current = project.code;
+      setHasUnsavedChanges(false);
+      return project;
     } catch (error) {
-      console.error('Failed to load project:', error)
-      return null
+      console.error('Failed to load project:', error);
+      return null;
     }
-  }, [])
+  }, []);
 
   const newProject = useCallback(() => {
-    setCode(DEFAULT_HTML)
+    setCode(DEFAULT_HTML);
     setCurrentProject({
       id: 'new',
       name: 'My Awesome Project',
       code: DEFAULT_HTML,
       createdAt: new Date(),
-      updatedAt: new Date()
-    })
-    lastSavedCode.current = DEFAULT_HTML
-    setHasUnsavedChanges(false)
-  }, [])
+      updatedAt: new Date(),
+    });
+    lastSavedCode.current = DEFAULT_HTML;
+    setHasUnsavedChanges(false);
+  }, []);
 
-  const deleteProject = useCallback(async (projectId: string) => {
-    if (!window.confirm('Delete this project? It will be removed from the Arcade too.')) return false
+  const deleteProject = useCallback(
+    async (projectId: string) => {
+      if (!window.confirm('Delete this project? It will be removed from the Arcade too.')) return false;
 
-    try {
-      await api.delete(`/api/projects/${projectId}`)
-      fetchUserProjects()
-      if (currentProject.id === projectId) {
-        newProject()
-      }
-      return true
-    } catch (err) {
-      const msg = err instanceof ApiError ? err.message : 'Could not delete project. Please try again.'
-      alert(msg)
-      return false
-    }
-  }, [currentProject.id, fetchUserProjects, newProject])
-
-  const saveProject = useCallback(async (options?: { autoSave?: boolean }) => {
-    const isAuto = options?.autoSave ?? false
-    if (isSaving || isAutoSaving.current) return false
-
-    if (isAuto) {
-      isAutoSaving.current = true
-    } else {
-      setIsSaving(true)
-    }
-
-    try {
-      const data = await api.post('/api/projects/save', {
-        projectId: currentProject.id,
-        title: currentProject.name,
-        code,
-        category: 'other',
-        autoSave: isAuto
-      })
-
-      if (data.success) {
-        if (currentProject.id === 'new' && data.project?.id) {
-          setCurrentProject(prev => ({ ...prev, id: data.project.id }))
+      try {
+        await api.delete(`/api/projects/${projectId}`);
+        fetchUserProjects();
+        if (currentProject.id === projectId) {
+          newProject();
         }
-        lastSavedCode.current = code
-        setHasUnsavedChanges(false)
-        if (isAuto) {
-          setLastAutoSavedAt(new Date())
-        }
-        fetchUserProjects()
-        return true
-      } else {
-        if (!isAuto) alert(data.error || 'Could not save project')
-        return false
+        return true;
+      } catch (err) {
+        const msg = err instanceof ApiError ? err.message : 'Could not delete project. Please try again.';
+        alert(msg);
+        return false;
       }
-    } catch (err) {
-      if (!isAuto) {
-        const msg = err instanceof ApiError ? err.message : 'Could not save project. Please try again.'
-        alert(msg)
-      }
-      return false
-    } finally {
+    },
+    [currentProject.id, fetchUserProjects, newProject],
+  );
+
+  const saveProject = useCallback(
+    async (options?: { autoSave?: boolean }) => {
+      const isAuto = options?.autoSave ?? false;
+      if (isSaving || isAutoSaving.current) return false;
+
       if (isAuto) {
-        isAutoSaving.current = false
+        isAutoSaving.current = true;
       } else {
-        setIsSaving(false)
+        setIsSaving(true);
       }
-    }
-  }, [code, currentProject.id, currentProject.name, isSaving, fetchUserProjects])
+
+      try {
+        const data = await api.post<{ success: boolean; project?: { id: string }; error?: string }>(
+          '/api/projects/save',
+          {
+            projectId: currentProject.id,
+            title: currentProject.name,
+            code,
+            category: 'other',
+            autoSave: isAuto,
+          },
+        );
+
+        if (data.success) {
+          if (currentProject.id === 'new' && data.project?.id) {
+            const newId = data.project.id;
+            setCurrentProject((prev) => ({ ...prev, id: newId }));
+          }
+          lastSavedCode.current = code;
+          setHasUnsavedChanges(false);
+          if (isAuto) {
+            setLastAutoSavedAt(new Date());
+          }
+          fetchUserProjects();
+          return true;
+        } else {
+          if (!isAuto) alert(data.error || 'Could not save project');
+          return false;
+        }
+      } catch (err) {
+        if (!isAuto) {
+          const msg = err instanceof ApiError ? err.message : 'Could not save project. Please try again.';
+          alert(msg);
+        }
+        return false;
+      } finally {
+        if (isAuto) {
+          isAutoSaving.current = false;
+        } else {
+          setIsSaving(false);
+        }
+      }
+    },
+    [code, currentProject.id, currentProject.name, isSaving, fetchUserProjects],
+  );
 
   // Helper to reset the auto-save debounce timer
   const scheduleAutoSave = useCallback(() => {
-    if (!isLoggedIn) return
-    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current)
+    if (!isLoggedIn) return;
+    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
     autoSaveTimer.current = setTimeout(() => {
-      saveProject({ autoSave: true })
-    }, AUTO_SAVE_DELAY_MS)
-  }, [isLoggedIn, saveProject])
+      saveProject({ autoSave: true });
+    }, AUTO_SAVE_DELAY_MS);
+  }, [isLoggedIn, saveProject]);
 
-  const updateCode = useCallback((newCode: string) => {
-    setCode(newCode)
-    setCurrentProject(prev => ({ ...prev, code: newCode, updatedAt: new Date() }))
-    if (newCode !== lastSavedCode.current) {
-      setHasUnsavedChanges(true)
-      scheduleAutoSave()
-    }
-  }, [scheduleAutoSave])
+  const updateCode = useCallback(
+    (newCode: string) => {
+      setCode(newCode);
+      setCurrentProject((prev) => ({ ...prev, code: newCode, updatedAt: new Date() }));
+      if (newCode !== lastSavedCode.current) {
+        setHasUnsavedChanges(true);
+        scheduleAutoSave();
+      }
+    },
+    [scheduleAutoSave],
+  );
 
   const restoreVersion = useCallback((restoredCode: string) => {
-    setCode(restoredCode)
-    setCurrentProject(prev => ({ ...prev, code: restoredCode, updatedAt: new Date() }))
-    lastSavedCode.current = restoredCode
-    setHasUnsavedChanges(false)
-    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current)
-  }, [])
+    setCode(restoredCode);
+    setCurrentProject((prev) => ({ ...prev, code: restoredCode, updatedAt: new Date() }));
+    lastSavedCode.current = restoredCode;
+    setHasUnsavedChanges(false);
+    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
+  }, []);
 
   /** Called when AI generates new code. */
-  const setGeneratedCode = useCallback((newCode: string) => {
-    setCode(newCode)
-    setCurrentProject(prev => ({ ...prev, code: newCode, updatedAt: new Date() }))
-    if (newCode !== lastSavedCode.current) {
-      setHasUnsavedChanges(true)
-      scheduleAutoSave()
-    }
-  }, [scheduleAutoSave])
+  const setGeneratedCode = useCallback(
+    (newCode: string) => {
+      setCode(newCode);
+      setCurrentProject((prev) => ({ ...prev, code: newCode, updatedAt: new Date() }));
+      if (newCode !== lastSavedCode.current) {
+        setHasUnsavedChanges(true);
+        scheduleAutoSave();
+      }
+    },
+    [scheduleAutoSave],
+  );
 
   // Auto-save when the user switches away from the tab
   useEffect(() => {
-    if (!isLoggedIn) return
+    if (!isLoggedIn) return;
 
     const handleVisibilityChange = () => {
       if (document.hidden && lastSavedCode.current !== code) {
-        if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current)
-        saveProject({ autoSave: true })
+        if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
+        saveProject({ autoSave: true });
       }
-    }
+    };
 
-    document.addEventListener('visibilitychange', handleVisibilityChange)
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
-  }, [isLoggedIn, code, saveProject])
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [isLoggedIn, code, saveProject]);
 
   // Warn before closing the tab with unsaved changes
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (hasUnsavedChanges) {
-        e.preventDefault()
+        e.preventDefault();
       }
-    }
+    };
 
-    window.addEventListener('beforeunload', handleBeforeUnload)
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
-  }, [hasUnsavedChanges])
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasUnsavedChanges]);
 
   // Clear timer on unmount
   useEffect(() => {
     return () => {
-      if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current)
-    }
-  }, [])
+      if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
+    };
+  }, []);
 
   return {
     code,
@@ -277,5 +295,5 @@ export function useProjects(isLoggedIn = false) {
     updateCode,
     restoreVersion,
     setGeneratedCode,
-  }
+  };
 }

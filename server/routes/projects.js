@@ -6,13 +6,7 @@
 
 import { Router } from 'express';
 import { randomBytes } from 'crypto';
-import {
-  readProject,
-  writeProject,
-  deleteProject as removeProject,
-  listProjects,
-  readUser,
-} from '../services/storage.js';
+import { readProject, writeProject, deleteProject as removeProject, readUser } from '../services/storage.js';
 import { filterContent } from '../middleware/contentFilter.js';
 import { prePublishScan } from '../middleware/prePublishScan.js';
 import { filterUsername } from '../middleware/usernameFilter.js';

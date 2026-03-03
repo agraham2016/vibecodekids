@@ -34,6 +34,7 @@ import {
 // Services
 import { ensureDataDirs } from './services/storage.js';
 import { SessionStore } from './services/sessions.js';
+import log from './services/logger.js';
 
 // Middleware
 import { requireAdmin } from './middleware/auth.js';
@@ -68,30 +69,23 @@ const startTime = Date.now();
 
 // ========== PRODUCTION SAFETY GUARDS ==========
 if (IS_PRODUCTION && !USE_POSTGRES) {
-  console.error('FATAL: DATABASE_URL is required in production. File-based storage must not hold child data.');
-  console.error('Set DATABASE_URL to a PostgreSQL connection string and restart.');
+  log.fatal('DATABASE_URL is required in production — file-based storage must not hold child data');
   process.exit(1);
 }
 if (IS_PRODUCTION && !ANTHROPIC_API_KEY) {
-  console.error('FATAL: ANTHROPIC_API_KEY is required in production. AI features will not function.');
+  log.fatal('ANTHROPIC_API_KEY is required in production — AI features will not function');
   process.exit(1);
 }
 
-// ========== ERROR MONITORING ==========
-if (SENTRY_DSN) {
+// Sentry is initialized early via server/instrument.js (--import flag).
+// If running without --import, init here as fallback.
+if (SENTRY_DSN && !Sentry.getClient()) {
   Sentry.init({
     dsn: SENTRY_DSN,
     environment: IS_PRODUCTION ? 'production' : 'development',
     tracesSampleRate: IS_PRODUCTION ? 0.1 : 1.0,
-    beforeSend(event) {
-      if (event.request?.headers) {
-        delete event.request.headers['authorization'];
-        delete event.request.headers['cookie'];
-      }
-      return event;
-    },
   });
-  console.log('📡 Sentry error monitoring enabled');
+  log.info('Sentry error monitoring enabled (fallback init)');
 }
 
 // Ensure data directories exist, then load sessions
@@ -101,13 +95,9 @@ await sessions.load();
 // COPPA data retention — clean inactive child accounts on startup + daily
 startRetentionSchedule();
 
-console.log('📍 BASE_URL configured as:', JSON.stringify(BASE_URL));
-console.log(
-  '📂 Data directory:',
-  DATA_DIR,
-  DATA_DIR.includes(os.tmpdir()) ? '(tmp — set DATA_DIR for persistence)' : '',
-);
-console.log(`💾 Storage backend: ${USE_POSTGRES ? 'PostgreSQL' : 'JSON files'}`);
+log.info({ baseUrl: BASE_URL }, 'BASE_URL configured');
+log.info({ dataDir: DATA_DIR, ephemeral: DATA_DIR.includes(os.tmpdir()) }, 'Data directory');
+log.info({ backend: USE_POSTGRES ? 'postgres' : 'file' }, 'Storage backend');
 
 // ========== MIDDLEWARE ==========
 
@@ -187,7 +177,7 @@ app.get('/sitemap.xml', async (_req, res) => {
     res.set('Content-Type', 'application/xml');
     res.send(xml);
   } catch (err) {
-    console.error('Sitemap error:', err);
+    log.error({ err }, 'Sitemap error');
     res.status(500).send('Could not generate sitemap');
   }
 });
@@ -352,10 +342,10 @@ app.post('/api/contact', async (req, res) => {
     await fs.mkdir(contactDir, { recursive: true });
     const filename = `${Date.now()}-${email.replace(/[^a-zA-Z0-9]/g, '_')}.json`;
     await fs.writeFile(path.join(contactDir, filename), JSON.stringify(submission, null, 2));
-    console.log(`📩 Contact form submission from ${name} <${email}> — ${subject}`);
+    log.info({ name, subject }, 'Contact form submission');
     res.json({ ok: true });
   } catch (err) {
-    console.error('Contact form error:', err);
+    log.error({ err }, 'Contact form error');
     res.status(500).json({ error: 'Failed to process submission' });
   }
 });
@@ -436,10 +426,10 @@ if (SENTRY_DSN) {
 
 app.use((err, _req, res, _next) => {
   const status = err.status || err.statusCode || 500;
-  console.error(`[${new Date().toISOString()}] Unhandled error (${status}):`, err.stack || err.message || err);
+  log.error({ err, status }, 'Unhandled Express error');
 
   if (!SENTRY_DSN && IS_PRODUCTION) {
-    console.error('⚠ Sentry is not configured — set SENTRY_DSN to capture errors in production');
+    log.warn('Sentry is not configured — set SENTRY_DSN to capture errors in production');
   }
 
   res.status(status).json({
@@ -453,38 +443,34 @@ const server = createServer(app);
 initMultiplayer(server, sessions);
 
 server.listen(PORT, () => {
-  console.log(`🚀 Vibe Code Studio server running on port ${PORT}`);
-  console.log(`   Health check: http://localhost:${PORT}/api/health`);
-  console.log(`   Detailed:     http://localhost:${PORT}/api/health?full=1`);
-  console.log(`   Multiplayer:  ws://localhost:${PORT}/ws/multiplayer`);
-  console.log(`   Mode: ${isProduction ? 'Production' : 'Development'}`);
+  log.info(
+    { port: PORT, mode: isProduction ? 'production' : 'development' },
+    `Vibe Code Studio server running on port ${PORT}`,
+  );
 });
 
 // ========== GRACEFUL SHUTDOWN ==========
 
 async function shutdown(signal) {
-  console.log(`\n🛑 Received ${signal}. Shutting down gracefully...`);
+  log.info({ signal }, 'Shutting down gracefully');
 
-  // Stop accepting new connections
   server.close(() => {
-    console.log('   HTTP server closed.');
+    log.info('HTTP server closed');
   });
 
-  // Close database pool if using Postgres
   if (USE_POSTGRES) {
     try {
       const { getPool } = await import('./services/db.js');
       const pool = getPool();
       await pool.end();
-      console.log('   Database pool closed.');
+      log.info('Database pool closed');
     } catch {
       // Pool might not be initialized
     }
   }
 
-  // Force exit after 10 seconds if something hangs
   setTimeout(() => {
-    console.error('   Forced exit after timeout.');
+    log.error('Forced exit after timeout');
     process.exit(1);
   }, 10_000).unref();
 
@@ -495,12 +481,12 @@ process.on('SIGTERM', () => shutdown('SIGTERM'));
 process.on('SIGINT', () => shutdown('SIGINT'));
 
 process.on('unhandledRejection', (reason) => {
-  console.error('[unhandledRejection]', reason);
+  log.error({ err: reason }, 'Unhandled rejection');
   Sentry.captureException(reason);
 });
 
 process.on('uncaughtException', (err) => {
-  console.error('[uncaughtException]', err);
+  log.fatal({ err }, 'Uncaught exception');
   Sentry.captureException(err);
   shutdown('uncaughtException');
 });

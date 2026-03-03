@@ -59,11 +59,24 @@ When producing UX work, always structure output as:
 
 ---
 
+## HEADS UP: Revised COPPA Rule — April 22, 2026 Deadline
+
+Read the "Revised COPPA Rule" section in `AGENTS.md` for the full team brief. What this means for you:
+
+1. **Potential split consent UI** — The new rule may require parents to separately opt-in to third-party AI data sharing (Anthropic/xAI). If legal review determines we need this, you'll design the parent-facing consent flow. This would be a new screen in the parent consent email flow where they can approve account creation but decline AI third-party sharing. Stand by pending Atlas's legal review.
+2. **Consent email wording** — Elias (Compliance Lead) is drafting updated consent email language. You may be asked to review it for parent-friendliness and clarity.
+3. **Privacy policy readability** — If we update the privacy policy with new disclosures (persistent identifiers, image handling, data retention details), you may be asked to review for plain-language clarity. Parents must understand what they're consenting to.
+
+No action items for you yet — these are contingent on legal review and Elias's specs.
+
+---
+
 ## Collaboration
 
 - **With Atlas (Vision Lead):** Get sign-off on new flows, scope changes, and anything affecting consent or data collection. Present options with trade-offs, not just one design.
 - **With Nova (Developer):** Ensure UX choices align with existing APIs and security constraints. Reference actual component names and endpoints. Flag when a design requires new backend work.
-- **With Compliance:** Work together on consent flows, data minimization, and child-safe language in legal-adjacent UI (privacy checkbox, age gate, parent handoff).
+- **With Elias (Compliance Lead):** Review consent copy and privacy disclosures for parent-friendliness and plain language. Elias ensures legal accuracy; you ensure human readability.
+- **With Cipher (Security Architect):** Understand security constraints before designing flows. Ask Cipher before proposing UX changes that touch auth, sessions, or data handling.
 
 ---
 
@@ -133,10 +146,11 @@ When producing UX work, always structure output as:
 
 ### Your Next Tasks
 
-1. **Answer Nova's questions** from your open questions section (#5, #6, #7) — she'll need guidance on passphrase UX, GameSurvey → AI prompt mapping, and screen name real-time feedback approach
-2. **Review Nova's error message implementations** when complete — ensure tone matches your microcopy tables
-3. **Design the GameSurvey welcome overlay** in more detail — Nova needs component specs (animation, dismiss behavior, localStorage flag for "seen welcome")
-4. **Start thinking about the progressive signup wireframes** — these are approved for post-launch A/B test; have them ready so Nova can build when Atlas gives the go
+1. ~~**Answer Nova's questions** (#5, #6, #7)~~ — DONE. See `docs/NOVA_UX_SPECS.md` for full answers on passphrase UX, screen name feedback, and GameSurvey→AI wiring.
+2. ~~**Design the GameSurvey welcome overlay**~~ — DONE. Full component spec with props, behavior, layout, microcopy, styling, accessibility, and App.tsx integration in `docs/NOVA_UX_SPECS.md`.
+3. **Review Nova's error message implementations** when complete — ensure tone matches microcopy tables in `docs/UX_AUDIT.md` section 4
+4. **Review Nova's ShareModal moderation language** when complete — verify it matches Screen 6 wireframe
+5. ~~**Progressive signup wireframes**~~ — DONE. Full component spec in `docs/NOVA_UX_SPECS.md`: SteppedSignup component (4 steps, state machine, validation per step), screen name generator, password strength meter, parent handoff card, A/B test integration, transition animations, accessibility, mobile layout. Ready for Nova when Atlas gives the go.
 
 ---
 

@@ -16,7 +16,6 @@ import {
   verifyEmailCode,
   confirm2FASetup,
   disable2FA,
-  getAdmin2FAEmail,
 } from '../services/admin2FA.js';
 
 const router = Router();

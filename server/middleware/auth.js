@@ -96,7 +96,7 @@ export function requireAdmin(sessions) {
     }
 
     // Path 2: Logged-in user with isAdmin flag
-    const session = await sessions.get(bearerToken);
+    const session = await sessions.get(bearerToken, getReqContext(req));
     if (session) {
       try {
         const user = await readUser(session.userId);

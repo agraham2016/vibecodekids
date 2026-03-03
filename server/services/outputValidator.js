@@ -40,7 +40,7 @@ const DANGEROUS_PATTERNS = [
   { pattern: /RTCPeerConnection/gi, reason: 'WebRTC' },
 ];
 
-const ALLOWLISTED_PATTERNS = [/Phaser\.Game/i, /THREE\./i, /requestAnimationFrame/i];
+const _ALLOWLISTED_PATTERNS = [/Phaser\.Game/i, /THREE\./i, /requestAnimationFrame/i];
 
 /**
  * Validate AI-generated code for dangerous patterns.

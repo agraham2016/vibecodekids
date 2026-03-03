@@ -197,7 +197,8 @@ test.describe('Kid Vibe Code Platform - Bot Tests', () => {
   test('7. Test API health endpoint', async ({ request }) => {
     console.log('🏥 Testing: API health...');
     
-    const response = await request.get('http://localhost:3001/api/health');
+    const apiBase = process.env.CI ? '' : 'http://localhost:3001';
+    const response = await request.get(`${apiBase}/api/health`);
     expect(response.ok()).toBeTruthy();
     
     const body = await response.json();
@@ -209,7 +210,8 @@ test.describe('Kid Vibe Code Platform - Bot Tests', () => {
   test('8. Test gallery API endpoint', async ({ request }) => {
     console.log('📡 Testing: Gallery API...');
     
-    const response = await request.get('http://localhost:3001/api/gallery');
+    const apiBase = process.env.CI ? '' : 'http://localhost:3001';
+    const response = await request.get(`${apiBase}/api/gallery`);
     expect(response.ok()).toBeTruthy();
     
     const body = await response.json();

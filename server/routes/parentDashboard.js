@@ -8,8 +8,8 @@
 
 import { Router } from 'express';
 import crypto from 'crypto';
-import { readUser, writeUser, listProjects, readProject, writeProject } from '../services/storage.js';
-import { exportUserData, deleteUserData, sendConsentEmail, getUserByParentToken } from '../services/consent.js';
+import { readUser, writeUser, listProjects } from '../services/storage.js';
+import { exportUserData, deleteUserData, getUserByParentToken } from '../services/consent.js';
 import { logAdminAction } from '../services/adminAuditLog.js';
 import { SITE_NAME, SUPPORT_EMAIL, BASE_URL } from '../config/index.js';
 

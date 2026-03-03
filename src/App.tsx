@@ -1,24 +1,25 @@
-import { useState, useCallback, useEffect } from 'react'
-import { useAuth } from './context/AuthContext'
-import { useProjects } from './hooks/useProjects'
-import { useChat } from './hooks/useChat'
-import Header from './components/Header'
-import ProjectsPanel from './components/ProjectsPanel'
-import ChatPanel from './components/ChatPanel'
-import CodeEditor from './components/CodeEditor'
-import PreviewPanel from './components/PreviewPanel'
-import ShareModal from './components/ShareModal'
-import AuthModal from './components/AuthModal'
-import UpgradeModal from './components/UpgradeModal'
-import VersionHistoryModal from './components/VersionHistoryModal'
-import LandingPage from './components/LandingPage'
-import LandingPageB from './components/LandingPageB'
-import { getVariant } from './lib/abVariant'
-import './App.css'
+import { useState, useCallback, useEffect } from 'react';
+import { useAuth } from './context/AuthContext';
+import { useProjects } from './hooks/useProjects';
+import { useChat } from './hooks/useChat';
+import Header from './components/Header';
+import ProjectsPanel from './components/ProjectsPanel';
+import ChatPanel from './components/ChatPanel';
+import CodeEditor from './components/CodeEditor';
+import PreviewPanel from './components/PreviewPanel';
+import ShareModal from './components/ShareModal';
+import AuthModal from './components/AuthModal';
+import UpgradeModal from './components/UpgradeModal';
+import VersionHistoryModal from './components/VersionHistoryModal';
+import LandingPage from './components/LandingPage';
+import LandingPageB from './components/LandingPageB';
+import { getVariant } from './lib/abVariant';
+import type { User, MembershipUsage, TierInfo, AIMode } from './types';
+import './App.css';
 
 function App() {
   // Auth from context (no more prop drilling)
-  const { user, token, membership, tiers, isCheckingAuth, login, logout, setMembership } = useAuth()
+  const { user, token, membership, tiers, isCheckingAuth, login, logout, setMembership } = useAuth();
 
   // Project management (pass isLoggedIn to enable auto-save)
   const {
@@ -37,128 +38,151 @@ function App() {
     updateCode,
     restoreVersion,
     setGeneratedCode,
-  } = useProjects(!!user)
+  } = useProjects(!!user);
 
   // UI state
-  const [showShareModal, setShowShareModal] = useState(false)
-  const [showAuthModal, setShowAuthModal] = useState(false)
-  const [showCode, setShowCode] = useState(false)
-  const [showUpgradeModal, setShowUpgradeModal] = useState(false)
-  const [isWelcomeUpgrade, setIsWelcomeUpgrade] = useState(false)
-  const [authMode, setAuthMode] = useState<'login' | 'signup'>('login')
-  const [showVersionHistory, setShowVersionHistory] = useState(false)
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showCode, setShowCode] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [isWelcomeUpgrade, setIsWelcomeUpgrade] = useState(false);
+  const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
+  const [showVersionHistory, setShowVersionHistory] = useState(false);
 
   // Mobile/tablet navigation
-  const [mobileTab, setMobileTab] = useState<'chat' | 'game' | 'projects'>('chat')
-  const [drawerOpen, setDrawerOpen] = useState(false)
-  const [shareThumbnail, setShareThumbnail] = useState<string | null>(null)
+  const [mobileTab, setMobileTab] = useState<'chat' | 'game' | 'projects'>('chat');
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [shareThumbnail, setShareThumbnail] = useState<string | null>(null);
 
   // Chat with AI generation callbacks (dual-model)
-  const { 
-    messages, isLoading, sendMessage, clearMessages, sendFeedback,
-    activeModel, switchModel, grokAvailable, lastModelUsed 
+  const {
+    messages,
+    isLoading,
+    sendMessage,
+    clearMessages,
+    sendFeedback,
+    activeModel,
+    switchModel,
+    grokAvailable,
+    lastModelUsed,
   } = useChat({
     onCodeGenerated: setGeneratedCode,
     onUsageUpdate: setMembership,
     onUpgradeNeeded: () => setShowUpgradeModal(true),
-  })
+  });
 
   // Fetch projects when user logs in
   useEffect(() => {
     if (token) {
-      fetchUserProjects()
+      fetchUserProjects();
     }
-  }, [token, fetchUserProjects])
+  }, [token, fetchUserProjects]);
 
   // Login handler
-  const handleLogin = useCallback((loggedInUser: any, newToken: string, loginData?: any) => {
-    login({
-      success: true,
-      token: newToken,
-      user: loggedInUser,
-      membership: loginData?.membership,
-      showUpgradePrompt: loginData?.showUpgradePrompt,
-      tiers: loginData?.tiers,
-    })
-    setShowAuthModal(false)
+  const handleLogin = useCallback(
+    (
+      loggedInUser: User,
+      newToken: string,
+      loginData?: { membership?: MembershipUsage; showUpgradePrompt?: boolean; tiers?: Record<string, TierInfo> },
+    ) => {
+      login({
+        success: true,
+        token: newToken,
+        user: loggedInUser,
+        membership: loginData?.membership ?? ({} as MembershipUsage),
+        showUpgradePrompt: loginData?.showUpgradePrompt ?? false,
+        tiers: loginData?.tiers ?? {},
+      });
+      setShowAuthModal(false);
 
-    // Restore demo draft if present (from "Try It Now" landing page)
-    const draftCode = localStorage.getItem('vck_draft_code')
-    const draftTs = localStorage.getItem('vck_draft_ts')
-    if (draftCode && draftTs && Date.now() - Number(draftTs) < 3600000) {
-      setGeneratedCode(draftCode)
-      localStorage.removeItem('vck_draft_code')
-      localStorage.removeItem('vck_draft_prompt')
-      localStorage.removeItem('vck_draft_ts')
-    }
+      // Restore demo draft if present (from "Try It Now" landing page)
+      const draftCode = localStorage.getItem('vck_draft_code');
+      const draftTs = localStorage.getItem('vck_draft_ts');
+      if (draftCode && draftTs && Date.now() - Number(draftTs) < 3600000) {
+        setGeneratedCode(draftCode);
+        localStorage.removeItem('vck_draft_code');
+        localStorage.removeItem('vck_draft_prompt');
+        localStorage.removeItem('vck_draft_ts');
+      }
 
-    if (loginData?.showUpgradePrompt) {
-      setIsWelcomeUpgrade(true)
-      setTimeout(() => setShowUpgradeModal(true), 500)
-    }
-  }, [login, setGeneratedCode])
+      if (loginData?.showUpgradePrompt) {
+        setIsWelcomeUpgrade(true);
+        setTimeout(() => setShowUpgradeModal(true), 500);
+      }
+    },
+    [login, setGeneratedCode],
+  );
 
   const handleLogout = useCallback(() => {
-    logout()
-    clearMessages()
-  }, [logout, clearMessages])
+    logout();
+    clearMessages();
+  }, [logout, clearMessages]);
 
-  const handleSendMessage = useCallback(async (content: string, image?: string, modeOverride?: any) => {
-    await sendMessage(content, image, code, null, modeOverride)
-  }, [sendMessage, code])
+  const handleSendMessage = useCallback(
+    async (content: string, image?: string, modeOverride?: AIMode) => {
+      await sendMessage(content, image, code, null, modeOverride);
+    },
+    [sendMessage, code],
+  );
 
   // Handle using alternate code from critic/side-by-side view
-  const handleUseAlternateCode = useCallback((altCode: string) => {
-    setGeneratedCode(altCode)
-  }, [setGeneratedCode])
+  const handleUseAlternateCode = useCallback(
+    (altCode: string) => {
+      setGeneratedCode(altCode);
+    },
+    [setGeneratedCode],
+  );
 
-  const handleLoadProject = useCallback(async (projectId: string) => {
-    const project = await loadProject(projectId)
-    if (project) clearMessages()
-  }, [loadProject, clearMessages])
+  const handleLoadProject = useCallback(
+    async (projectId: string) => {
+      const project = await loadProject(projectId);
+      if (project) clearMessages();
+    },
+    [loadProject, clearMessages],
+  );
 
   const handleNewProject = useCallback(() => {
-    newProject()
-    clearMessages()
-  }, [newProject, clearMessages])
+    newProject();
+    clearMessages();
+  }, [newProject, clearMessages]);
 
   const handleStartOver = useCallback(() => {
-    newProject()
-    clearMessages()
-  }, [newProject, clearMessages])
+    newProject();
+    clearMessages();
+  }, [newProject, clearMessages]);
 
   const handleUpgradeClick = useCallback(() => {
-    setIsWelcomeUpgrade(false)
-    setShowUpgradeModal(true)
-  }, [])
+    setIsWelcomeUpgrade(false);
+    setShowUpgradeModal(true);
+  }, []);
 
   const capturePreviewThumbnail = useCallback((): string | null => {
     try {
-      const iframe = document.querySelector('.preview-iframe') as HTMLIFrameElement | null
-      if (!iframe?.contentDocument) return null
+      const iframe = document.querySelector('.preview-iframe') as HTMLIFrameElement | null;
+      if (!iframe?.contentDocument) return null;
 
-      const canvas = iframe.contentDocument.querySelector('canvas') as HTMLCanvasElement | null
-      if (!canvas || canvas.width === 0) return null
+      const canvas = iframe.contentDocument.querySelector('canvas') as HTMLCanvasElement | null;
+      if (!canvas || canvas.width === 0) return null;
 
-      const thumbW = 320
-      const thumbH = Math.round((canvas.height / canvas.width) * thumbW)
-      const thumb = document.createElement('canvas')
-      thumb.width = thumbW
-      thumb.height = thumbH
-      const ctx = thumb.getContext('2d')
-      if (!ctx) return null
-      ctx.drawImage(canvas, 0, 0, thumbW, thumbH)
-      return thumb.toDataURL('image/jpeg', 0.65)
+      const thumbW = 320;
+      const thumbH = Math.round((canvas.height / canvas.width) * thumbW);
+      const thumb = document.createElement('canvas');
+      thumb.width = thumbW;
+      thumb.height = thumbH;
+      const ctx = thumb.getContext('2d');
+      if (!ctx) return null;
+      ctx.drawImage(canvas, 0, 0, thumbW, thumbH);
+      return thumb.toDataURL('image/jpeg', 0.65);
     } catch {
-      return null
+      return null;
     }
-  }, [])
+  }, []);
 
   const handleOpenShare = useCallback(() => {
-    const thumb = capturePreviewThumbnail()
-    setShareThumbnail(thumb)
-    setShowShareModal(true)
-  }, [capturePreviewThumbnail])
+    const thumb = capturePreviewThumbnail();
+    setShareThumbnail(thumb);
+    setShowShareModal(true);
+  }, [capturePreviewThumbnail]);
 
   // Loading screen
   if (isCheckingAuth) {
@@ -169,28 +193,30 @@ function App() {
           <p>Loading...</p>
         </div>
       </div>
-    )
+    );
   }
 
   // Landing page for unauthenticated users
   if (!user) {
-    const variant = getVariant()
-    const LandingComponent = variant === 'b' ? LandingPageB : LandingPage
+    const variant = getVariant();
+    const LandingComponent = variant === 'b' ? LandingPageB : LandingPage;
     return (
       <div className="app">
         {showAuthModal && (
-          <AuthModal
-            onClose={() => setShowAuthModal(false)}
-            onLogin={handleLogin}
-            initialMode={authMode}
-          />
+          <AuthModal onClose={() => setShowAuthModal(false)} onLogin={handleLogin} initialMode={authMode} />
         )}
         <LandingComponent
-          onLoginClick={() => { setAuthMode('login'); setShowAuthModal(true) }}
-          onSignupClick={() => { setAuthMode('signup'); setShowAuthModal(true) }}
+          onLoginClick={() => {
+            setAuthMode('login');
+            setShowAuthModal(true);
+          }}
+          onSignupClick={() => {
+            setAuthMode('signup');
+            setShowAuthModal(true);
+          }}
         />
       </div>
-    )
+    );
   }
 
   // Main 3-panel IDE layout
@@ -206,17 +232,15 @@ function App() {
         />
       )}
 
-      {showAuthModal && (
-        <AuthModal
-          onClose={() => setShowAuthModal(false)}
-          onLogin={handleLogin}
-        />
-      )}
+      {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} onLogin={handleLogin} />}
 
       {showUpgradeModal && (
         <UpgradeModal
           isOpen={showUpgradeModal}
-          onClose={() => { setShowUpgradeModal(false); setIsWelcomeUpgrade(false) }}
+          onClose={() => {
+            setShowUpgradeModal(false);
+            setIsWelcomeUpgrade(false);
+          }}
           currentTier={user.membershipTier || 'free'}
           tiers={tiers}
           isWelcomePrompt={isWelcomeUpgrade}
@@ -238,7 +262,7 @@ function App() {
         membership={membership}
         onLogout={handleLogout}
         onUpgradeClick={handleUpgradeClick}
-        onDrawerToggle={() => setDrawerOpen(prev => !prev)}
+        onDrawerToggle={() => setDrawerOpen((prev) => !prev)}
       />
 
       {/* Drawer overlay for tablet/mobile */}
@@ -251,8 +275,14 @@ function App() {
             isLoadingProjects={isLoadingProjects}
             currentProjectId={currentProject.id}
             projectName={currentProject.name}
-            onLoadProject={(id) => { handleLoadProject(id); setDrawerOpen(false); }}
-            onNewProject={() => { handleNewProject(); setDrawerOpen(false); }}
+            onLoadProject={(id) => {
+              handleLoadProject(id);
+              setDrawerOpen(false);
+            }}
+            onNewProject={() => {
+              handleNewProject();
+              setDrawerOpen(false);
+            }}
             onSave={saveProject}
             onShare={handleOpenShare}
             onOpenVersionHistory={() => setShowVersionHistory(true)}
@@ -281,25 +311,15 @@ function App() {
 
         <div className={`preview-code-container mobile-panel ${mobileTab === 'game' ? 'mobile-active' : ''}`}>
           <div className="view-toggle-bar">
-            <button
-              className={`view-toggle-btn ${!showCode ? 'active' : ''}`}
-              onClick={() => setShowCode(false)}
-            >
+            <button className={`view-toggle-btn ${!showCode ? 'active' : ''}`} onClick={() => setShowCode(false)}>
               <span>👁️</span> Preview
             </button>
-            <button
-              className={`view-toggle-btn ${showCode ? 'active' : ''}`}
-              onClick={() => setShowCode(true)}
-            >
+            <button className={`view-toggle-btn ${showCode ? 'active' : ''}`} onClick={() => setShowCode(true)}>
               <span>👨‍💻</span> Code
             </button>
           </div>
           <div className="view-content">
-            {showCode ? (
-              <CodeEditor code={code} onChange={updateCode} />
-            ) : (
-              <PreviewPanel code={code} />
-            )}
+            {showCode ? <CodeEditor code={code} onChange={updateCode} /> : <PreviewPanel code={code} />}
           </div>
         </div>
       </main>
@@ -314,13 +334,19 @@ function App() {
           <span className="mobile-tab-icon">🎮</span>
           <span className="mobile-tab-label">Game</span>
         </button>
-        <button className={`mobile-tab ${mobileTab === 'projects' ? 'active' : ''}`} onClick={() => { setMobileTab('projects'); setDrawerOpen(true); }}>
+        <button
+          className={`mobile-tab ${mobileTab === 'projects' ? 'active' : ''}`}
+          onClick={() => {
+            setMobileTab('projects');
+            setDrawerOpen(true);
+          }}
+        >
           <span className="mobile-tab-icon">📁</span>
           <span className="mobile-tab-label">Projects</span>
         </button>
       </nav>
     </div>
-  )
+  );
 }
 
-export default App
+export default App;

@@ -21,13 +21,12 @@ through the Vibe Code Kidz platform, including:
 
 ## 2. Designated Security Coordinator
 
-| Role | Responsibility |
-|------|---------------|
-| **Security Lead** | Oversees WISP implementation, annual review, incident response |
-| **Development Lead** | Implements technical controls, code review, dependency management |
-| **Privacy Officer** | Handles parent requests, consent flows, data deletion |
-
-*(Names to be filled by organization)*
+| Role | Name | Responsibility |
+|------|------|---------------|
+| **Security Lead** | Cipher Hale | Oversees WISP implementation, annual review, incident response |
+| **Development Lead** | Nova | Implements technical controls, code review, dependency management |
+| **Privacy Officer** | Elias Vance | Handles parent requests, consent flows, data deletion, COPPA compliance |
+| **Executive Sponsor** | Atlas Reid | Final authority on security program scope, vendor approvals, launch decisions |
 
 ## 3. Data Inventory
 

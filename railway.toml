@@ -2,4 +2,9 @@
 builder = "nixpacks"
 
 [deploy]
-startCommand = "node server/index.js"
+startCommand = "node --import=./server/instrument.js server/index.js"
+healthcheckPath = "/api/health"
+healthcheckTimeout = 5
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 5
+numReplicas = 1
