@@ -59,7 +59,7 @@ export const ADMIN_SECRET = process.env.ADMIN_SECRET || null;
 // ========== AI ==========
 
 export const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
-export const AI_MODEL = process.env.AI_MODEL || 'claude-sonnet-4-6-20250217';
+export const AI_MODEL = process.env.AI_MODEL || 'claude-sonnet-4-6';
 export const AI_BASE_TOKENS = 16384;
 export const AI_MAX_TOKENS = 32768;
 export const AI_RETRY_COUNT = 2;
