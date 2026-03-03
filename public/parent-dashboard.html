@@ -34,6 +34,18 @@
     .success { background: #c6f6d5; color: #276749; padding: 12px; border-radius: 8px; margin-bottom: 16px; }
     .loading { text-align: center; padding: 40px; color: #718096; }
     .empty { text-align: center; padding: 40px; color: #a0aec0; }
+    .toggles { display: flex; gap: 16px; margin: 16px 0; flex-wrap: wrap; }
+    .toggle-item { display: flex; align-items: center; gap: 8px; background: #f7fafc; padding: 10px 14px; border-radius: 8px; }
+    .toggle-item label { font-size: 14px; font-weight: 600; color: #4a5568; cursor: pointer; }
+    .toggle-switch { position: relative; width: 44px; height: 24px; }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .toggle-switch .slider { position: absolute; inset: 0; background: #cbd5e0; border-radius: 24px; cursor: pointer; transition: 0.2s; }
+    .toggle-switch .slider::before { content: ''; position: absolute; left: 2px; bottom: 2px; width: 20px; height: 20px; background: white; border-radius: 50%; transition: 0.2s; }
+    .toggle-switch input:checked + .slider { background: #48bb78; }
+    .toggle-switch input:checked + .slider::before { transform: translateX(20px); }
+    .trust-badge { text-align: center; padding: 12px; font-size: 12px; color: #a0aec0; margin-top: 24px; }
+    .header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .header-bar a { color: #4299e1; text-decoration: none; font-size: 14px; }
   </style>
 </head>
 <body>
@@ -45,8 +57,11 @@
     const app = document.getElementById('app');
     const params = new URLSearchParams(window.location.search);
     const sessionToken = params.get('session');
+    const dashboardToken = params.get('token');
 
-    if (!sessionToken) {
+    if (dashboardToken && !sessionToken) {
+      window.location.href = '/api/parent-dashboard/auth-token?token=' + encodeURIComponent(dashboardToken);
+    } else if (!sessionToken) {
       showLoginPage();
     } else {
       loadDashboard();
@@ -105,7 +120,11 @@
           `;
           return;
         }
-        let html = `<h1>Parent Dashboard</h1><p class="subtitle">Manage your children's accounts</p>`;
+        let html = `
+          <div class="header-bar">
+            <div><h1>Parent Command Center</h1><p class="subtitle">Manage your children's accounts and privacy settings</p></div>
+            <a href="/">&#8592; Back to VibeCodeKidz</a>
+          </div>`;
         for (const child of children) {
           html += `
             <div class="card" id="child-${child.userId}">
@@ -116,6 +135,22 @@
                 <div class="info-item"><div class="info-label">Last Login</div><div class="info-value">${child.lastLoginAt ? new Date(child.lastLoginAt).toLocaleDateString() : 'Never'}</div></div>
                 <div class="info-item"><div class="info-label">Consent</div><div class="info-value">${child.consentStatus || 'N/A'}</div></div>
               </div>
+              <div class="toggles">
+                <div class="toggle-item">
+                  <label class="toggle-switch">
+                    <input type="checkbox" ${child.publishingEnabled ? 'checked' : ''} onchange="toggleSetting('${child.userId}', 'publishingEnabled')" />
+                    <span class="slider"></span>
+                  </label>
+                  <label>Public game sharing</label>
+                </div>
+                <div class="toggle-item">
+                  <label class="toggle-switch">
+                    <input type="checkbox" ${child.multiplayerEnabled ? 'checked' : ''} onchange="toggleSetting('${child.userId}', 'multiplayerEnabled')" />
+                    <span class="slider"></span>
+                  </label>
+                  <label>Multiplayer access</label>
+                </div>
+              </div>
               <div class="actions">
                 <button class="btn btn-secondary" onclick="viewActivity('${child.userId}')">View Activity</button>
                 <button class="btn btn-primary" onclick="exportData('${child.userId}')">Export Data</button>
@@ -124,6 +159,7 @@
               <div id="activity-${child.userId}" style="margin-top: 16px;"></div>
             </div>`;
         }
+        html += `<div class="trust-badge">COPPA Compliant &middot; Your child's data is protected &middot; <a href="/privacy" style="color:#4299e1;">Privacy Policy</a></div>`;
         app.innerHTML = html;
       } catch (e) {
         if (e.message !== 'expired') {
@@ -179,6 +215,23 @@
           card.innerHTML = '<div class="success">All data deleted successfully.</div>';
         } else { alert('Failed to delete data.'); }
       } catch { alert('Failed to delete data.'); }
+    }
+
+    async function toggleSetting(userId, setting) {
+      try {
+        const res = await fetch('/api/parent-dashboard/child/' + userId + '/toggle?session=' + sessionToken, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sessionToken}` },
+          body: JSON.stringify({ setting }),
+        });
+        if (!res.ok) {
+          alert('Failed to update setting.');
+          loadDashboard();
+        }
+      } catch {
+        alert('Failed to update setting.');
+        loadDashboard();
+      }
     }
 
     function escHtml(s) {

@@ -129,46 +129,92 @@ These rules are absolute. Do not relax them for convenience or speed.
 
 ## Current Assignments (March 2026)
 
-### COMPLETED (Atlas, March 2 2026)
+### COMPLETED (Nova, March 2 2026)
 
-- [x] ESLint: 0 errors. Warnings reduced from 68 to 28 (remaining are `@typescript-eslint/no-explicit-any`)
+- [x] ESLint: 0 errors (14 fixed — 2 real bugs: `req` undef in admin.js, `const` reassign in auditLog)
 - [x] Launch Readiness Gates 1-5: **49/49 PASS** (full code-level audit)
-- [x] Launch Readiness Gates 6-8: 11/22 code-verified (runtime items remain)
-- [x] Stripe VPC frontend already exists at `public/parent-verify-charge.html`
-- [x] Bug fix: `projects.js` username filter (`nameCheck.allowed` → `nameCheck.blocked`)
-- [x] Bug fix: error logging now includes stack traces in `auth.js` and `projects.js`
-- [x] Added `ANTHROPIC_API_KEY` production startup guard
+- [x] Launch Readiness Gate 8: 3/7 PASS (Sentry, error handlers, audit logging)
+- [x] Stripe VPC frontend verified fully wired
+- [x] Sentry error monitoring added (`@sentry/node`, `SENTRY_DSN` env var)
+- [x] Global Express error handler added (was missing — production leaked stack traces)
+- [x] `unhandledRejection` / `uncaughtException` handlers with Sentry capture
+- [x] Admin data-access audit logging (middleware auto-logs when admins view user/project data)
+- [x] Parent dashboard auth bug fixed (`?token=` from consent flow now works)
+- [x] Parent dashboard: added publishing/multiplayer toggles (was promised in consent email)
+- [x] "Lower verification" wording replaced with "no credit card needed"
+- [x] Password hint fixed (said 4 chars, minimum is 8)
+- [x] Iframe sandbox: 2 missing `allow-pointer-lock` attrs fixed
+- [x] Data export: now includes full project code (was only exporting `codeLength`)
+- [x] Playwright tests: 2 test bugs fixed (strict mode, gallery API shape)
+- [x] `.env.example`: added missing `XAI_API_KEY` and `SENTRY_DSN`
+- [x] TypeScript type-check: `tsc --noEmit` passes clean
 
-### NOW — Do These First
+### NOW — Sprint "Polish & Verify" (March 3-7)
 
-1. **Resolve remaining 28 `any` type warnings** in `src/`
-   - Run `npm run lint` to see them
-   - Mostly in `src/lib/api.ts`, `src/components/AuthModal.tsx`, `src/App.tsx`, `src/hooks/useChat.ts`
-   - Add proper TypeScript interfaces/types to replace `any`
+**Do these in order, this week:**
 
-2. **Runtime-test Launch Readiness Gates 6-8**
-   - Start the app (`npm run dev:full`)
-   - Walk through `LAUNCH_READINESS.md` gates 6.1-6.8, 7.1-7.7, 8.1-8.6
-   - Mark items PASS/FAIL in the checklist
+1. **Kid-friendly error messages** (~1-2 hrs)
+   - Replace all child-facing error strings with Lumi's proposed copy
+   - Reference: `docs/UX_AUDIT.md` section 4 "Microcopy" — the exact replacement text is in the tables
+   - Files to change: `src/components/AuthModal.tsx`, `src/components/ShareModal.tsx`, `src/lib/api.ts`
+   - Also update server-side error messages in `server/routes/auth.js` and `server/routes/projects.js` that reach children
+   - Keep parent-facing and admin-facing error messages technical/accurate
 
-3. **Add error monitoring** (Sentry or equivalent)
-   - Install `@sentry/node` for backend
-   - Configure DSN via env var `SENTRY_DSN`
-   - Wire into Express error handler in `server/index.js`
+2. **Add moderation language to ShareModal** (~30 min)
+   - When user selects "Add to Arcade" / public option, show: "Other kids can find and play your game. A grown-up checks it first to keep things safe."
+   - Reference: `docs/UX_AUDIT.md` Screen 6 wireframe and microcopy table
+   - File: `src/components/ShareModal.tsx`
 
-### NEXT — After NOW Items
+3. **Rename "Shooter" → "Space Blaster"** (~15 min)
+   - Standardize on kid-friendly genre label everywhere
+   - Files: `server/prompts/genres.js` (genre list), `src/components/GameSurvey.tsx` (if it uses "Shooter"), `src/components/ChatPanel.tsx` (verify already done)
 
-4. Parent onboarding flow polish (trust-building in < 60 seconds)
-5. Admin data-access audit logging (log when admins view child data)
-6. Legal review of `/privacy` and `/terms` pages
+4. **Runtime-test Launch Readiness Gates 6-8** (~2-3 hrs)
+   - Start the app with `npm run dev:full`
+   - Walk through every item in `LAUNCH_READINESS.md` gates 6.1-6.8, 7.1-7.7, 8.1-8.6
+   - Requires Stripe test mode keys + Resend API key configured in `.env`
+   - Mark each item PASS/FAIL in the checklist
+   - Fix any FAIL items immediately if they're quick (<30 min); file issues for larger ones
+
+5. **Clean up ESLint `any` type warnings** (~2 hrs)
+   - Run `npm run lint` to see current warnings
+   - Add proper TypeScript interfaces/types in `src/lib/api.ts`, `src/components/AuthModal.tsx`, `src/App.tsx`, `src/hooks/useChat.ts`
+   - Goal: zero `@typescript-eslint/no-explicit-any` warnings
+
+**Next week:**
+
+6. **Wire in GameSurvey as first-time flow** (~2-4 hrs)
+   - `src/components/GameSurvey.tsx` is fully built but not imported in `App.tsx`
+   - Add a welcome overlay for new users (first login, no projects): "Help me pick!" → GameSurvey, "I know what I want!" → free chat
+   - Reference: `docs/UX_AUDIT.md` Flow B and Screen 5 wireframe
+   - GameSurvey calls `onComplete(config)` with a `GameConfig` — map this to a prompt for the AI generate endpoint
+
+7. **Parent dashboard brand alignment** (~2-4 hrs)
+   - CSS-only changes to `public/parent-dashboard.html`
+   - Add Nunito/Orbitron fonts, our color tokens (`#6366f1`, `#f472b6`, `#34d399`)
+   - Add glass surface treatment (`backdrop-filter: blur(20px)`)
+   - Add trust banner: "COPPA compliant · Data encrypted · No ads · You're in control"
+   - Do NOT rebuild in React — keep as static HTML
+
+8. **Accessibility fixes from Lumi's audit** (~3-4 hrs)
+   - Add `aria-label` to emoji-only game starter buttons in ChatPanel
+   - Increase contrast on `.input-hint` to `rgba(255,255,255,0.85)`
+   - Add `aria-current="page"` to active mobile tab
+   - Add `aria-describedby` linking form errors to input fields
+   - Ensure all touch targets ≥ 44px (check `.category-btn` in ShareModal)
+
+9. **Legal review of `/privacy` and `/terms`** — waiting on Atlas decision for scope
 
 ### LATER — Backlog
 
-7. Multiplayer (Vibe Rooms) polish
-8. Gallery/Arcade social features
-9. A/B landing page optimization
-10. ESA/ClassWallet full integration
-11. App Store submission
+- Progressive multi-step signup (post-launch A/B test — Lumi has full wireframes ready)
+- Multiplayer (Vibe Rooms) polish
+- Gallery/Arcade social features
+- Achievement system (badges)
+- Weekly parent progress email
+- A/B landing page optimization
+- ESA/ClassWallet full integration
+- App Store submission
 
 ---
 

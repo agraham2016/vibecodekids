@@ -11,6 +11,7 @@ Each agent should read this file first to understand team structure, then read t
 |------|-----------|-----------|-----------|
 | Founder & Vision Lead | Atlas Reid | `.cursor/rules/atlas-vision-lead.md` | Product strategy, prioritization, launch decisions, tradeoff resolution |
 | Full-Stack Developer | Nova | `.cursor/rules/nova-fullstack-dev.md` | All implementation: frontend, backend, infra, tests, bug fixes |
+| Kid-First UX Designer | Lumi Rivers | `.cursor/rules/lumi-ux-designer.md` | UX flows, microcopy, accessibility, child safety UX, parent portal design |
 
 ---
 
@@ -22,9 +23,11 @@ Each agent should read this file first to understand team structure, then read t
 | Feature implementation, code architecture | Nova | Atlas (if new feature or scope change) |
 | Security / compliance changes | Nova (implements) | Atlas (approves) |
 | Auth, identity, or data flow changes | Nova (implements) | Atlas (approves) |
+| UX flows, microcopy, accessibility | Lumi | Atlas (if new screen or scope change) |
+| Child safety UX, parent portal design | Lumi (designs) | Atlas (approves), Nova (implements) |
 | Bug fixes, refactors, test additions | Nova | — |
 | Dependency additions | Nova | — (follow standards in Nova's rule file) |
-| Launch go/no-go | Atlas | Both review `LAUNCH_READINESS.md` |
+| Launch go/no-go | Atlas | All review `LAUNCH_READINESS.md` |
 
 ---
 
@@ -72,22 +75,45 @@ Any change that touches auth, COPPA flows, content filtering, PII handling, or i
 - [x] Password minimum raised to 8 characters
 - [x] Launch Readiness Checklist (`LAUNCH_READINESS.md`)
 
-### Now (Nova owns)
-- [x] Fix pre-existing ESLint errors — **resolved: 0 errors, 68 warnings (all pre-existing unused vars / `any` types)**
-- [x] Walk `LAUNCH_READINESS.md` gates 1-5 — **49/49 PASS** (Atlas audited March 2, 2026)
-- [x] Fix `projects.js` username filter bug (`nameCheck.allowed` → `nameCheck.blocked`)
-- [x] Add `ANTHROPIC_API_KEY` production startup guard
-- [ ] Clean up 68 ESLint warnings (unused vars, `any` types) — low priority
-- [ ] Walk `LAUNCH_READINESS.md` gates 6-8 (requires running app + services)
+### Completed (by Nova, March 2 2026)
+- [x] Fix 14 ESLint errors (2 real bugs: admin `req` undef, audit log `const` reassign)
+- [x] Walk `LAUNCH_READINESS.md` gates 1-5 — **49/49 PASS**
+- [x] Sentry error monitoring added (`@sentry/node` + global error handler)
+- [x] Admin data-access audit logging (auto-logs admin views of user/project data)
+- [x] Parent onboarding polish: fixed dashboard auth bug, added toggles, improved wording
+- [x] Iframe sandbox: fixed 2 missing `allow-pointer-lock` attrs
+- [x] Data export: now includes full project code (COPPA compliance)
+- [x] Password hint corrected (4 → 8 chars), Playwright test bugs fixed
+- [x] `.env.example` updated (added `XAI_API_KEY`, `SENTRY_DSN`)
 
-### Next
-- [ ] Add error monitoring (Sentry or equivalent)
-- [ ] Parent onboarding flow polish
-- [ ] Admin data-access audit logging
+### Completed (by Atlas, March 2 2026 — evening)
+- [x] Fixed 502 outage: 3 startup crashes in upstream commit (duplicate import, wrong export names, missing function)
+- [x] Merged upstream "full remediation" with local hardening (9 conflict files resolved)
+- [x] Content filter: added obfuscation bypass (dot/space-separated evasion) + prompt injection defense (15 patterns)
+- [x] All 75 safety tests passing post-merge
+- [x] Reviewed Lumi's UX audit — priorities assigned below
 
-### Later
+### Now — Sprint "Polish & Verify" (March 3-7)
+
+**This week (Nova owns):**
+1. [ ] **Kid-friendly error messages** — replace all child-facing error strings with Lumi's proposed copy (see `docs/UX_AUDIT.md` section 4). Files: `src/components/AuthModal.tsx`, `src/components/ShareModal.tsx`, `src/lib/api.ts`. ~1-2 hrs.
+2. [ ] **"A grown-up checks it first"** — add moderation language to ShareModal publish option. See Lumi's wireframe in `docs/UX_AUDIT.md` Screen 6. ~30 min.
+3. [ ] **Rename "Shooter" → "Space Blaster"** everywhere — `server/prompts/genres.js`, `GameSurvey.tsx`, any genre picker. ~15 min.
+4. [ ] **Runtime-test Launch Readiness Gates 6-8** — walk `LAUNCH_READINESS.md` gates 6-8 with live app + Stripe test mode + Resend. ~2-3 hrs.
+5. [ ] **Clean up ESLint `any` type warnings** in `src/` — add proper TypeScript interfaces. ~2 hrs.
+
+**Next week (Nova owns):**
+6. [ ] **Wire in GameSurvey as first-time flow** — `GameSurvey.tsx` is built but not connected. Add welcome overlay for new users: "Help me pick!" (GameSurvey) vs "I know what I want!" (free chat). See Lumi's wireframe Screen 5. ~2-4 hrs.
+7. [ ] **Parent dashboard brand alignment** — CSS-only: add Nunito/Orbitron fonts, color tokens, glass surfaces, trust banner. No React rebuild. File: `public/parent-dashboard.html`. ~2-4 hrs.
+8. [ ] **Accessibility fixes** — Lumi's 7 WCAG gaps: aria-labels on emoji buttons, contrast on hints, aria-current on mobile tabs, aria-describedby on form errors, touch target sizing. ~3-4 hrs.
+9. [ ] **Legal review of `/privacy` and `/terms` pages** — Atlas decision needed on scope.
+
+### Later — Backlog
+- [ ] Progressive multi-step signup (post-launch A/B test)
 - [ ] Multiplayer (Vibe Rooms) polish
 - [ ] Gallery/Arcade social features
+- [ ] Achievement system (badges for first game, first publish, etc.)
+- [ ] Weekly parent email ("your child made 3 games this week")
 - [ ] A/B landing page optimization
 - [ ] ESA/ClassWallet full integration
 - [ ] App Store submission

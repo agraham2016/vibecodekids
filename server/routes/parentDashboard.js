@@ -9,7 +9,7 @@
 import { Router } from 'express';
 import crypto from 'crypto';
 import { readUser, writeUser, listProjects, readProject, writeProject } from '../services/storage.js';
-import { exportUserData, deleteUserData, sendConsentEmail } from '../services/consent.js';
+import { exportUserData, deleteUserData, sendConsentEmail, getUserByParentToken } from '../services/consent.js';
 import { logAdminAction } from '../services/adminAuditLog.js';
 import { SITE_NAME, SUPPORT_EMAIL, BASE_URL } from '../config/index.js';
 
@@ -91,8 +91,40 @@ router.get('/auth', (req, res) => {
       .send('<html><body><h2>Link expired or invalid.</h2><p>Please request a new dashboard link.</p></body></html>');
   }
 
-  // Set a cookie-like header with the session token for subsequent API calls
-  res.redirect(`/parent-dashboard.html?session=${token}`);
+  res.redirect(`/parent-dashboard?session=${token}`);
+});
+
+/**
+ * GET /api/parent-dashboard/auth-token?token=...
+ * Accept a parentDashboardToken (from consent/Stripe verification) and convert
+ * it into a parent session for the dashboard.
+ */
+router.get('/auth-token', async (req, res) => {
+  const { token } = req.query;
+  if (!token) {
+    return res.status(400).send('<html><body><h2>Missing token.</h2></body></html>');
+  }
+
+  try {
+    const user = await getUserByParentToken(token);
+    if (!user || !user.parentEmail) {
+      return res
+        .status(401)
+        .send(
+          '<html><body><h2>Invalid or expired token.</h2><p>Please request a new dashboard link.</p></body></html>',
+        );
+    }
+
+    const sessionToken = generateParentToken();
+    parentSessions.set(sessionToken, {
+      email: user.parentEmail.toLowerCase(),
+      expiresAt: Date.now() + PARENT_SESSION_TTL,
+    });
+
+    res.redirect(`/parent-dashboard?session=${sessionToken}`);
+  } catch {
+    res.status(500).send('<html><body><h2>Something went wrong.</h2><p>Please try again.</p></body></html>');
+  }
 });
 
 /**
@@ -131,12 +163,49 @@ router.get('/children', requireParentAuth, async (req, res) => {
       lastLoginAt: child.lastLoginAt,
       tier: child.tier || 'free',
       consentStatus: child.consentStatus,
+      publishingEnabled: !!child.publishingEnabled,
+      multiplayerEnabled: !!child.multiplayerEnabled,
     }));
 
     res.json({ children: childData });
   } catch (err) {
     console.error('Parent dashboard - list children error:', err);
     res.status(500).json({ error: 'Failed to load children data' });
+  }
+});
+
+/**
+ * POST /api/parent-dashboard/child/:userId/toggle
+ * Toggle publishing or multiplayer for a child account.
+ */
+router.post('/child/:userId/toggle', requireParentAuth, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { setting } = req.body;
+
+    if (!['publishingEnabled', 'multiplayerEnabled'].includes(setting)) {
+      return res.status(400).json({ error: 'Invalid setting. Use publishingEnabled or multiplayerEnabled.' });
+    }
+
+    const user = await readUser(userId);
+    if (!user.parentEmail || user.parentEmail.toLowerCase() !== req.parentEmail.toLowerCase()) {
+      return res.status(403).json({ error: "You can only manage your own children's settings" });
+    }
+
+    user[setting] = !user[setting];
+    await writeUser(userId, user);
+
+    logAdminAction({
+      action: 'parent_toggle',
+      targetId: userId,
+      details: { setting, newValue: user[setting], parentEmail: req.parentEmail },
+    }).catch(() => {});
+
+    res.json({ ok: true, [setting]: user[setting] });
+  } catch (err) {
+    if (err.code === 'ENOENT') return res.status(404).json({ error: 'Child not found' });
+    console.error('Parent dashboard - toggle error:', err);
+    res.status(500).json({ error: 'Failed to update setting' });
   }
 });
 
