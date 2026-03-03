@@ -9,6 +9,7 @@ import * as Sentry from '@sentry/node';
 import express from 'express';
 import cors from 'cors';
 import compression from 'compression';
+import crypto from 'crypto';
 import path from 'path';
 import os from 'os';
 import { promises as fs } from 'fs';
@@ -99,6 +100,13 @@ log.info({ dataDir: DATA_DIR, ephemeral: DATA_DIR.includes(os.tmpdir()) }, 'Data
 log.info({ backend: USE_POSTGRES ? 'postgres' : 'file' }, 'Storage backend');
 
 // ========== MIDDLEWARE ==========
+
+// Request ID — must be first so all downstream middleware/logs can reference it
+app.use((_req, _res, next) => {
+  _req.id = crypto.randomUUID();
+  _res.setHeader('X-Request-Id', _req.id);
+  next();
+});
 
 app.use(wafMiddleware());
 app.use(securityHeaders());

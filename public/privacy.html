@@ -211,8 +211,9 @@
       <p>We do <strong>not sell</strong> personal information. We share limited data with trusted service providers solely to operate our platform:</p>
       <ul>
         <li><strong>AI game generation (Anthropic &amp; xAI)</strong> — Game creation prompts are transmitted to Anthropic (Claude) and/or xAI (Grok) to generate game code. Before transmission, prompts are automatically scanned and stripped of any personally identifiable information (PII), including names, emails, phone numbers, and addresses. Neither Anthropic nor xAI train their models on our users' data.</li>
-        <li><strong>Payment processing &amp; parental verification (Stripe)</strong> — If you purchase a paid membership, Stripe processes the payment. For Junior accounts, we also offer a Stripe-powered credit card micro-charge ($0.50, immediately refunded) as a method of verifiable parental consent. We send only a user identifier and membership tier to Stripe — no passwords, ages, or child information. We do not store credit card numbers on our servers.</li>
+        <li><strong>Payment processing &amp; parental verification (Stripe)</strong> — If you purchase a paid membership, Stripe processes the payment. For Junior accounts, we also offer a Stripe-powered credit card micro-charge ($0.50, immediately refunded) as a method of verifiable parental consent. We send only a username, display name, membership tier, and age bracket to Stripe's checkout — no passwords, parent email, recovery email, or other personally identifiable information. All sensitive signup data is stored and processed on our servers only. We do not store credit card numbers on our servers.</li>
         <li><strong>Transactional email (Resend)</strong> — We use Resend to send essential emails such as parental consent requests and password reset links. Only the recipient email address and message content are shared with Resend.</li>
+        <li><strong>Error monitoring (Sentry)</strong> — We use Sentry to capture server-side errors and improve stability. Error reports include stack traces and request metadata; we automatically remove authorization headers, cookies, and other sensitive data before transmission.</li>
         <li><strong>Legal requirements</strong> — We may disclose information if required by law or to protect the safety of our users.</li>
       </ul>
       <div class="highlight">
@@ -225,11 +226,12 @@
       <p>We retain account data as long as the account is active. We run automated data cleanup:</p>
       <ul>
         <li>Expired login sessions are purged automatically</li>
+        <li>Inactive Junior accounts (under 13) are automatically purged after 12 months of inactivity</li>
         <li>Anonymous demo event logs are purged after 90 days</li>
         <li>Resolved moderation reports are purged after 90 days</li>
-        <li>Accounts flagged for deletion are permanently removed within 30 days</li>
+        <li>Accounts requested for deletion are anonymized promptly upon request (typically within 48 hours)</li>
       </ul>
-      <p>For Junior accounts (under 13), parents can request data deletion via the <strong>Parent Command Center</strong> (linked in the consent approval email) or by contacting us.</p>
+      <p>For Junior accounts (under 13), parents can request data deletion via the <strong>Parent Command Center</strong> (linked in the consent approval email) or by contacting us. After deletion, we retain a minimal anonymized record (username placeholder) to prevent abuse and re-registration; no personal data remains.</p>
       <p>For Teen accounts (13+), users can download their data and delete their account directly from their account settings. Account deletion requires password confirmation.</p>
       <div class="highlight">
         <strong>To request data access or deletion:</strong> Use the Parent Command Center dashboard, or email us at <a href="mailto:admin@vibecodekidz.org" style="color:#00d2ff">admin@vibecodekidz.org</a> with the child's username. We will respond within 48 hours.

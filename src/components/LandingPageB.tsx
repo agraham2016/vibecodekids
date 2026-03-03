@@ -17,7 +17,7 @@ interface Generation {
 
 const GAME_STARTERS = [
   { label: 'Platformer', prompt: 'A platformer game with a cat that collects fish' },
-  { label: 'Space Shooter', prompt: 'A space shooter where I blast alien ships' },
+  { label: 'Space Blaster', prompt: 'A space blaster where I blast alien ships' },
   { label: 'Snake', prompt: 'A classic snake game where I eat apples and grow' },
   { label: 'Racing', prompt: 'A top-down racing game dodging traffic' },
   { label: 'Flappy Bird', prompt: 'A flappy bird style game with a dragon' },

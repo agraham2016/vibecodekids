@@ -41,9 +41,9 @@ const DEMO_SCENARIOS = [
     scoreText: 'GEMS: 3  LIVES: 3',
   },
   {
-    prompt: 'I want a space shooter where I blast aliens!',
-    aiReply: 'Launching your space shooter! Fly your ship, blast alien waves, and rack up your high score!',
-    label: 'Space Shooter',
+    prompt: 'I want a space blaster where I blast aliens!',
+    aiReply: 'Launching your space blaster! Fly your ship, blast alien waves, and rack up your high score!',
+    label: 'Space Blaster',
     bg: 'linear-gradient(180deg, #0a0a20 0%, #1a0a40 100%)',
     elements: [
       { emoji: '🚀', className: 'demo-player demo-hover', style: { bottom: '15%', left: '45%', fontSize: '2.4rem' } },
@@ -103,7 +103,7 @@ const GAME_TEMPLATES = [
   },
   {
     title: 'Space Blaster',
-    genre: 'Shooter',
+    genre: 'Space Blaster',
     description: 'Blast aliens and dodge enemy fire',
     gradient: 'linear-gradient(180deg, #0a0a20 0%, #1a0a50 100%)',
     sprite: '/assets/sprites/shooter/ship.png',

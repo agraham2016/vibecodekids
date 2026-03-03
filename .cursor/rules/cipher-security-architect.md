@@ -106,9 +106,11 @@ Read the "Revised COPPA Rule" section in `AGENTS.md` for the full team brief. Ke
 |--------|--------|---------------|
 | Prompt injection (#1 OWASP LLM) | Active, evolving | Content filter + output filter + discipline system + 15 injection patterns + canonicalization. |
 | COPPA enforcement (FTC April 22 deadline) | 50 days out | Age bracket, parental consent flow, data minimization. COPPA audit v1.1 completed (79/103 compliant). 8 action items identified. |
-| AI content safety (KORA benchmark) | Evaluated | Dual-layer filter (input+output), pre-publish scan. KORA gap analysis completed — 22 new filter terms added. Grok declining scores flagged for monitoring. |
+| AI content safety (KORA benchmark) | Mitigated | Dual-layer filter (input+output+manipulation), pre-publish scan. Grok restricted to 13+ only. 22 content terms + 20 manipulation patterns added. |
+| Emotional manipulation / parasocial | Mitigated | 20-pattern output filter detects isolation tactics, guilt-tripping, gaslighting, parasocial escalation, identity deception. |
 | XSS via published games | Mitigated | Sandboxed iframes, pre-publish scan, CSP. |
 | Session theft | Mitigated | HTTPS + HSTS + session UA binding + 5-min WS re-validation. SHA-256 migration path killed. |
+| Data over-retention | Mitigated | 30-day hard purge for deleted accounts + 90-day automated purge for demo analytics and moderation reports. |
 
 ---
 
@@ -137,14 +139,18 @@ Read the "Revised COPPA Rule" section in `AGENTS.md` for the full team brief. Ke
 - [x] Added 30-day hard purge for deleted accounts — fulfills privacy policy "permanently removed within 30 days" commitment
 - [x] Added `bound_ua` column to sessions schema for Postgres environments
 
-## NOW — Next Sprint (March 4-7)
+## COMPLETED (Cipher, March 4 2026 — Sprint 2)
+
+- [x] Emotional manipulation output filter — 20 regex patterns for isolation, guilt-tripping, gaslighting, parasocial, identity deception
+- [x] Under-13 Grok restriction — KORA data shows Grok at 18-29% child safety vs Claude 70-76%; under-13 now Claude-only
+- [x] Automated 90-day purge — demo analytics (JSONL) and moderation reports (Postgres + JSONL) auto-cleaned
+- [x] Request ID traceability — `crypto.randomUUID()` per request, threaded through logs, returned in `X-Request-Id` header
+- [x] Grok safety evaluation doc (`docs/GROK_SAFETY_EVALUATION.md`) — KORA data analysis, risk assessment, monitoring plan
+
+## NOW — Next Sprint (March 5-7)
 
 1. Execute DPAs with Anthropic, xAI, Stripe, Resend (COPPA action items 7.2-7.5)
 2. Schedule legal review of privacy policy (COPPA action item 9.9)
-3. Add output filter patterns for emotional manipulation language (KORA gap #14)
-4. Review Grok child safety monthly — consider restricting to 13+ if KORA trend continues
-5. Add automated purge jobs for demo analytics (90-day) and moderation reports (90-day)
-6. Request ID generation for end-to-end traceability in structured logs
 
 ## LATER — Backlog
 

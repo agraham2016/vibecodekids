@@ -135,9 +135,10 @@ router.post('/generate', async (req, res) => {
       cacheTemplate(cacheKey, result.code, result.response);
     }
 
-    // Filter output for PII and content before sending to child
-    const filteredMessage = filterOutputText(result.response);
-    const { code: filteredCode, warnings: _outWarnings, blocked } = filterOutputCode(result.code);
+    // Filter output for PII, manipulation, and content before sending to child
+    const { text: filteredMessage, flagged: textFlagged } = filterOutputText(result.response);
+    const { code: filteredCode, warnings: _outWarnings, blocked: codeBlocked } = filterOutputCode(result.code);
+    const blocked = codeBlocked || textFlagged;
 
     if (blocked) {
       console.error(`BLOCKED demo output, ip=${ip?.slice(0, 8)}, prompt="${cleanMessage?.slice(0, 80)}"`);

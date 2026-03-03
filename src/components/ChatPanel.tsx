@@ -79,10 +79,10 @@ const GAME_STARTERS = [
     prompt: 'Make me a platformer game where I jump across platforms and collect coins!',
   },
   {
-    genre: 'Shooter',
+    genre: 'Space Blaster',
     emoji: '🚀',
     label: 'Space Blaster',
-    prompt: 'Make me a space shooter game where I blast aliens and dodge enemy fire!',
+    prompt: 'Make me a space blaster game where I blast aliens and dodge enemy fire!',
   },
   {
     genre: 'Racing',
@@ -490,7 +490,7 @@ export default function ChatPanel({
             </div>
             <h3>Let's build something awesome!</h3>
             <p>
-              Tell me what kind of game you want to make! For example: "Make me a 3D space shooter" or "Build a racing
+              Tell me what kind of game you want to make! For example: "Make me a 3D space blaster" or "Build a racing
               game with dinosaurs" — anything you can imagine!
             </p>
 
@@ -520,8 +520,11 @@ export default function ChatPanel({
                     className="game-starter-btn"
                     onClick={() => onSendMessage(g.prompt)}
                     disabled={isLoading}
+                    aria-label={`Build a ${g.label} game`}
                   >
-                    <span className="game-starter-emoji">{g.emoji}</span>
+                    <span className="game-starter-emoji" aria-hidden="true">
+                      {g.emoji}
+                    </span>
                     <span className="game-starter-label">{g.label}</span>
                   </button>
                 ))}

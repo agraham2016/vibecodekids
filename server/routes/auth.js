@@ -86,12 +86,12 @@ export default function createAuthRouter(sessions) {
 
       // COPPA: Require age
       if (typeof age !== 'number' || age < 5 || age > 120) {
-        return res.status(400).json({ error: 'Please enter a valid age' });
+        return res.status(400).json({ error: "Hmm, that age doesn't look right. Try again?" });
       }
 
       // COPPA: Require privacy policy acceptance
       if (!privacyAccepted) {
-        return res.status(400).json({ error: 'You must accept the privacy policy to create an account' });
+        return res.status(400).json({ error: 'One more thing — check the box to agree to the rules!' });
       }
 
       const ageBracket = getAgeBracket(age);
@@ -100,7 +100,7 @@ export default function createAuthRouter(sessions) {
       // COPPA: Under-13 users MUST provide a parent email
       if (needsConsent && !parentEmail) {
         return res.status(400).json({
-          error: 'A parent or guardian email is required for users under 13',
+          error: "We need a parent's email to keep you safe. Ask a grown-up to type theirs!",
           requiresParentEmail: true,
         });
       }
@@ -185,7 +185,7 @@ export default function createAuthRouter(sessions) {
       });
     } catch (error) {
       log.error({ err: error }, 'Register error');
-      res.status(500).json({ error: 'Could not create account' });
+      res.status(500).json({ error: 'Oops! Something went wrong. Try again?' });
     }
   });
 

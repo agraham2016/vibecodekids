@@ -24,6 +24,7 @@ export function requestLogger() {
       const duration = Date.now() - start;
       const status = res.statusCode;
       const entry = {
+        reqId: req.id,
         method: req.method,
         path,
         status,

@@ -1,24 +1,29 @@
 /**
  * Data Retention Service (COPPA Compliance)
  *
- * Two sweep passes run once on startup and then daily:
+ * Four sweep passes run once on startup and then daily:
  *
  * 1. Inactive under-13 cleanup — anonymize child accounts inactive
  *    longer than DATA_RETENTION_DAYS (default 365).
  *
  * 2. 30-day hard purge — physically remove user records that were
- *    soft-deleted (status === 'deleted') more than 30 days ago,
- *    fulfilling the privacy policy's "permanently removed within 30 days"
- *    commitment.
+ *    soft-deleted (status === 'deleted') more than 30 days ago.
+ *
+ * 3. Demo analytics purge — remove demo events older than 90 days.
+ *
+ * 4. Moderation reports purge — remove resolved reports older than 90 days.
  */
 
-import { DATA_RETENTION_DAYS } from '../config/index.js';
+import { promises as fs } from 'fs';
+import path from 'path';
+import { DATA_RETENTION_DAYS, DATA_DIR, USE_POSTGRES } from '../config/index.js';
 import { listUsers, deleteUser } from './storage.js';
 import { deleteUserData } from './consent.js';
 import log from './logger.js';
 
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 const PURGE_AFTER_DAYS = 30;
+const EPHEMERAL_RETENTION_DAYS = 90;
 
 async function sweepInactiveChildren(users) {
   const now = Date.now();
@@ -76,14 +81,103 @@ async function purgeDeletedAccounts(users) {
   return purged;
 }
 
+async function purgeDemoEvents() {
+  const eventsFile = path.join(DATA_DIR, 'demo_events.jsonl');
+  try {
+    const content = await fs.readFile(eventsFile, 'utf-8');
+    const lines = content.trim().split('\n').filter(Boolean);
+    const cutoff = Date.now() - EPHEMERAL_RETENTION_DAYS * ONE_DAY_MS;
+    const kept = [];
+
+    for (const line of lines) {
+      try {
+        const event = JSON.parse(line);
+        if (new Date(event.timestamp).getTime() >= cutoff) {
+          kept.push(line);
+        }
+      } catch {
+        // Skip malformed lines
+      }
+    }
+
+    const removed = lines.length - kept.length;
+    if (removed > 0) {
+      await fs.writeFile(eventsFile, kept.join('\n') + (kept.length ? '\n' : ''));
+      log.info({ removed, remaining: kept.length }, 'Retention: purged old demo events');
+    }
+    return removed;
+  } catch (err) {
+    if (err.code === 'ENOENT') return 0;
+    log.error({ err: err.message }, 'Retention: demo events purge error');
+    return 0;
+  }
+}
+
+async function purgeResolvedReports() {
+  const cutoff = new Date(Date.now() - EPHEMERAL_RETENTION_DAYS * ONE_DAY_MS).toISOString();
+  let removed = 0;
+
+  if (USE_POSTGRES) {
+    try {
+      const { getPool } = await import('./db.js');
+      const pool = getPool();
+      const { rowCount } = await pool.query(
+        "DELETE FROM moderation_reports WHERE status IN ('actioned', 'dismissed') AND reviewed_at < $1",
+        [cutoff],
+      );
+      removed = rowCount;
+      if (removed > 0) {
+        log.info({ removed }, 'Retention: purged old moderation reports (pg)');
+      }
+      return removed;
+    } catch (err) {
+      log.error({ err: err.message }, 'Retention: moderation reports pg purge error');
+    }
+  }
+
+  // File-based fallback
+  const reportsFile = path.join(DATA_DIR, 'reports.jsonl');
+  try {
+    const content = await fs.readFile(reportsFile, 'utf-8');
+    const lines = content.trim().split('\n').filter(Boolean);
+    const kept = [];
+
+    for (const line of lines) {
+      try {
+        const report = JSON.parse(line);
+        const isResolved = report.status === 'actioned' || report.status === 'dismissed';
+        const isOld = report.reviewedAt && report.reviewedAt < cutoff;
+        if (!(isResolved && isOld)) {
+          kept.push(line);
+        }
+      } catch {
+        kept.push(line);
+      }
+    }
+
+    removed = lines.length - kept.length;
+    if (removed > 0) {
+      await fs.writeFile(reportsFile, kept.join('\n') + (kept.length ? '\n' : ''));
+      log.info({ removed, remaining: kept.length }, 'Retention: purged old moderation reports (file)');
+    }
+    return removed;
+  } catch (err) {
+    if (err.code === 'ENOENT') return 0;
+    log.error({ err: err.message }, 'Retention: moderation reports file purge error');
+    return 0;
+  }
+}
+
 export async function runRetentionCleanup() {
   try {
     const users = await listUsers();
     const cleaned = await sweepInactiveChildren(users);
     const purged = await purgeDeletedAccounts(users);
+    const demoEventsRemoved = await purgeDemoEvents();
+    const reportsRemoved = await purgeResolvedReports();
 
-    if (cleaned > 0 || purged > 0) {
-      log.info({ cleaned, purged }, 'Retention sweep complete');
+    if (cleaned > 0 || purged > 0 || demoEventsRemoved > 0 || reportsRemoved > 0) {
+      log.info({ cleaned, purged, demoEventsRemoved, reportsRemoved }, 'Retention sweep complete');
     }
   } catch (err) {
     log.error({ err: err.message }, 'Retention sweep error');

@@ -403,6 +403,110 @@
   }
 }
 
+/* ── Welcome Overlay ── */
+
+.welcome-overlay {
+  z-index: 1100;
+}
+
+.welcome-card {
+  background: linear-gradient(145deg, #1e1b4b, #312e81);
+  border: 2px solid rgba(139, 92, 246, 0.4);
+  border-radius: 24px;
+  padding: 48px 40px;
+  text-align: center;
+  max-width: 440px;
+  width: 90%;
+  animation: welcomePop 0.35s ease-out;
+}
+
+.welcome-card h2 {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 1.6rem;
+  margin: 0 0 8px;
+  color: #e0e7ff;
+}
+
+.welcome-card p {
+  font-size: 1.1rem;
+  color: rgba(224, 231, 255, 0.8);
+  margin: 0 0 32px;
+}
+
+.welcome-actions {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.welcome-btn {
+  padding: 16px 28px;
+  border-radius: 16px;
+  border: none;
+  font-family: 'Nunito', sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  min-height: 56px;
+}
+
+.welcome-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
+}
+
+.welcome-btn.guided {
+  background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+  color: white;
+}
+
+.welcome-btn.free {
+  background: rgba(255, 255, 255, 0.1);
+  color: #e0e7ff;
+  border: 1px solid rgba(139, 92, 246, 0.4);
+}
+
+@keyframes welcomePop {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* ── GameSurvey Modal ── */
+
+.game-survey-modal {
+  background: linear-gradient(145deg, #1e1b4b, #312e81);
+  border: 2px solid rgba(139, 92, 246, 0.3);
+  border-radius: 20px;
+  padding: 24px;
+  width: 90%;
+  max-width: 600px;
+  max-height: 85vh;
+  overflow-y: auto;
+  position: relative;
+  animation: welcomePop 0.3s ease-out;
+}
+
+.game-survey-modal .close-btn {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 1.4rem;
+  cursor: pointer;
+  z-index: 2;
+  padding: 4px 8px;
+  border-radius: 8px;
+  transition: color 0.15s;
+}
+
+.game-survey-modal .close-btn:hover {
+  color: white;
+}
+
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }

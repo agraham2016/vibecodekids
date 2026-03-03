@@ -21,6 +21,17 @@ import { filterContent } from '../middleware/contentFilter.js';
 
 const stripe = STRIPE_SECRET_KEY ? new Stripe(STRIPE_SECRET_KEY) : null;
 
+// COPPA compliance: store PII server-side only; never send password/emails to Stripe metadata
+const checkoutPendingData = new Map();
+const PENDING_TTL_MS = 60 * 60 * 1000; // 1 hour
+
+function pruneExpiredPending() {
+  const now = Date.now();
+  for (const [k, v] of checkoutPendingData.entries()) {
+    if (v && now - (v.storedAt || 0) > PENDING_TTL_MS) checkoutPendingData.delete(k);
+  }
+}
+
 export default function createBillingRouter(sessions) {
   const router = Router();
 
@@ -122,14 +133,20 @@ export default function createBillingRouter(sessions) {
         metadata: {
           username: username.toLowerCase(),
           displayName: displayName.trim(),
-          passwordHash,
           tier,
-          parentEmail: needsConsent ? parentEmail.toLowerCase().trim() : '',
-          recoveryEmail: !needsConsent && recoveryEmail ? recoveryEmail.toLowerCase().trim() : '',
           privacyAccepted: 'true',
           ageBracket,
         },
       });
+
+      // Store PII server-side only (COPPA: never send password/emails to Stripe)
+      checkoutPendingData.set(session.id, {
+        passwordHash,
+        parentEmail: needsConsent ? parentEmail.toLowerCase().trim() : '',
+        recoveryEmail: !needsConsent && recoveryEmail ? recoveryEmail.toLowerCase().trim() : '',
+        storedAt: Date.now(),
+      });
+      pruneExpiredPending();
 
       res.json({ success: true, checkoutUrl: session.url, sessionId: session.id });
     } catch (error) {
@@ -149,13 +166,22 @@ export default function createBillingRouter(sessions) {
       const session = await stripe.checkout.sessions.retrieve(session_id);
       if (session.payment_status !== 'paid') return res.redirect('/?error=payment_incomplete');
 
-      const { username, displayName, passwordHash, tier, parentEmail, recoveryEmail, ageBracket } = session.metadata;
+      const { username, displayName, tier, ageBracket } = session.metadata;
       const userId = `user_${username}`;
+
+      const pending = checkoutPendingData.get(session_id);
+      if (!pending) {
+        console.error('❌ Checkout pending data missing (expired or restarted) — session:', session_id);
+        return res.redirect('/?error=account_creation_failed');
+      }
+      checkoutPendingData.delete(session_id);
+
+      const { passwordHash, parentEmail, recoveryEmail } = pending;
+      const needsConsent = ageBracket === 'under13';
 
       if (await userExists(userId)) {
         return res.redirect('/?signup=success&message=Account already exists, please log in');
       }
-      const needsConsent = ageBracket === 'under13';
 
       const now = new Date();
       const expireDate = new Date();

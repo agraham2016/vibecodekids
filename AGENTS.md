@@ -151,18 +151,21 @@ Any change that touches auth, COPPA flows, content filtering, PII handling, or i
 - [x] Vite: build config with React vendor chunk splitting
 - [x] Launch Readiness Gates 6-8: **70/71 PASS** (code-verified; 6.2 user test pending)
 
-### Now — Sprint "Polish & Verify" (March 3-7)
+### Completed (by Nova, March 4 2026 — UX Polish & Accessibility)
+- [x] Kid-friendly error messages: all child-facing errors rewritten with Lumi's copy (AuthModal, ShareModal, auth.js)
+- [x] Onboarding microcopy: age hint, parent email hint, username hint, password hint, submit button, COPPA success
+- [x] Studio tab labels: "Preview" → "Play Your Game", "Code" → "Peek at the Code"
+- [x] ShareModal: "Share Your Game!" header, moderation language on Arcade, kid-friendly success
+- [x] "Shooter" → "Space Blaster" (confirmed already done in user-facing labels)
+- [x] GameSurvey wired as first-time flow with welcome overlay ("Help Me Pick!" / "I Know What I Want!")
+- [x] Parent dashboard brand alignment: Nunito/Orbitron fonts, purple gradient, glass panels, updated copy & trust badge
+- [x] Accessibility (WCAG): aria-labels on emoji buttons, contrast bump (0.85), aria-current on mobile tabs, 44px touch targets, aria-describedby on form errors, role="alert" on error divs
+- [x] Fixed pre-existing unused var warning in demo.js
+
+### Now — Sprint "Polish & Verify" (March 4-7)
 
 **Remaining (Nova owns):**
-1. [ ] **Kid-friendly error messages** — replace child-facing error strings with Lumi's proposed copy (see `docs/UX_AUDIT.md` section 4). ~1-2 hrs.
-2. [ ] **"A grown-up checks it first"** — add moderation language to ShareModal publish option. ~30 min.
-3. [ ] **Rename "Shooter" → "Space Blaster"** everywhere. ~15 min.
-
-**Next week (Nova owns):**
-6. [ ] **Wire in GameSurvey as first-time flow** — `GameSurvey.tsx` is built but not connected. Add welcome overlay for new users: "Help me pick!" (GameSurvey) vs "I know what I want!" (free chat). See Lumi's wireframe Screen 5. ~2-4 hrs.
-7. [ ] **Parent dashboard brand alignment** — CSS-only: add Nunito/Orbitron fonts, color tokens, glass surfaces, trust banner. No React rebuild. File: `public/parent-dashboard.html`. ~2-4 hrs.
-8. [ ] **Accessibility fixes** — Lumi's 7 WCAG gaps: aria-labels on emoji buttons, contrast on hints, aria-current on mobile tabs, aria-describedby on form errors, touch target sizing. ~3-4 hrs.
-9. [ ] **Legal review of `/privacy` and `/terms` pages** — Atlas decision needed on scope.
+1. [ ] **Legal review of `/privacy` and `/terms` pages** — Atlas decision needed on scope.
 
 **DONE (Cipher — security hardening, completed March 3):**
 10. [x] **Kill SHA-256 password migration** — legacy users forced to reset, bcrypt-only.
@@ -175,12 +178,16 @@ Any change that touches auth, COPPA flows, content filtering, PII handling, or i
 17. [x] **30-day hard purge** — added deleted-account purge to `dataRetention.js` per privacy policy commitment.
 18. [x] **Sessions schema migration** — added `bound_ua` column for Postgres session binding.
 
-**Next (Cipher — March 4-7):**
-19. [ ] **DPA execution** — coordinate with Elias on Anthropic, xAI, Stripe, Resend DPAs.
-20. [ ] **Emotional manipulation output filter** — KORA gap #14, add patterns to `outputFilter.js`.
-21. [ ] **Grok safety review** — evaluate whether to restrict Grok to 13+ users based on declining KORA scores.
-22. [ ] **Automated purge jobs** — add 90-day cleanup for demo analytics and moderation reports.
-23. [ ] **Request ID traceability** — generate unique request IDs and propagate through structured logs.
+**DONE (Cipher — completed March 4):**
+19. [x] **Emotional manipulation output filter** — 20 regex patterns in `outputFilter.js` (isolation, guilt-tripping, gaslighting, parasocial, identity deception).
+20. [x] **Under-13 Grok restriction** — KORA data: Grok 18-29% vs Claude 70-76%. Under-13 users now Claude-only. See `docs/GROK_SAFETY_EVALUATION.md`.
+21. [x] **Automated 90-day purge** — demo analytics (JSONL) and moderation reports (Postgres+JSONL) cleaned daily.
+22. [x] **Request ID traceability** — `crypto.randomUUID()` per request, in all log entries and `X-Request-Id` response header.
+23. [x] **Grok safety evaluation** — full KORA analysis, risk assessment, monitoring plan, escalation criteria.
+
+**Next (Cipher — March 5-7):**
+24. [ ] **DPA execution** — coordinate with Elias on Anthropic, xAI, Stripe, Resend DPAs.
+25. [ ] **Nonce-based CSP** — eliminate `unsafe-inline` via server-rendered nonce injection.
 
 **This week (Elias owns — compliance & privacy):**
 16. [ ] **Complete COPPA Self-Assessment** — walk all 103 items in `docs/COPPA_SELF_ASSESSMENT.md`, mark YES/PARTIAL/NO with evidence. ~3 hrs.

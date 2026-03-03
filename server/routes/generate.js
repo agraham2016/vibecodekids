@@ -21,6 +21,7 @@ import { detectGameGenre } from '../prompts/index.js';
 import { filterContent } from '../middleware/contentFilter.js';
 import { piiScannerMiddleware, scanPII } from '../middleware/piiScanner.js';
 import { filterOutputText, filterOutputCode } from '../middleware/outputFilter.js';
+import log from '../services/logger.js';
 import { checkRateLimits, checkTierLimits, incrementUsage, calculateUsageRemaining } from '../middleware/rateLimit.js';
 import {
   getTemplateCacheKey,
@@ -56,13 +57,14 @@ export default function createGenerateRouter(sessions) {
         conversationHistory = [],
         gameConfig = null,
         // ---- DUAL-MODEL FIELDS ----
-        mode = 'default',
+        mode: requestedMode = 'default',
         lastModelUsed = null,
         debugAttempt = 0,
         // ---- MONITORING FIELDS ----
         sessionId = null,
         startingModel = null,
       } = req.body;
+      let mode = requestedMode;
 
       console.log(
         `🎮 Generate request: "${(message || '').slice(0, 80)}" | mode: ${mode} | model-hint: ${lastModelUsed || 'none'} | gameConfig: ${gameConfig ? gameConfig.gameType : 'none'} | hasCode: ${!!currentCode} | historyLen: ${conversationHistory.length}`,
@@ -99,9 +101,11 @@ export default function createGenerateRouter(sessions) {
       }
 
       // Block suspended/deleted users and enforce consent for under-13
+      let userAgeBracket = null;
       if (userId) {
         try {
           const user = await readUser(userId);
+          userAgeBracket = user.ageBracket || null;
           if (user.status === 'suspended' || user.status === 'deleted' || user.status === 'denied') {
             return res.status(403).json({
               message: 'Your account is not active. Please contact support.',
@@ -118,6 +122,17 @@ export default function createGenerateRouter(sessions) {
           }
         } catch {
           /* user not found — allow anonymous */
+        }
+      }
+
+      // KORA safety: under-13 users are restricted to Claude only
+      // Grok scores 18-29% on KORA child safety (Feb 2026) vs Claude 70-76%
+      if (userAgeBracket === 'under13') {
+        const grokModes = ['grok', 'creative', 'critic'];
+        const wouldRouteToGrok = grokModes.includes(mode) || (mode === 'ask-other-buddy' && lastModelUsed === 'claude');
+        if (wouldRouteToGrok) {
+          log.info({ userId, originalMode: mode }, 'Under-13 Grok restriction: routing to Claude');
+          mode = 'claude';
         }
       }
 
@@ -246,14 +261,15 @@ export default function createGenerateRouter(sessions) {
         }
       }
 
-      // Filter AI output for PII leakage and inappropriate content
-      const cleanedMessage = filterOutputText(result.response);
-      const { code: cleanedCode, warnings: outputWarnings, blocked } = filterOutputCode(result.code);
-      if (outputWarnings.length > 0) {
-        console.warn(`Output filter warnings [user=${userId}]: ${outputWarnings.join(', ')}`);
+      // Filter AI output for PII leakage, manipulation, and inappropriate content
+      const { text: cleanedMessage, warnings: textWarnings, flagged: textFlagged } = filterOutputText(result.response);
+      const { code: cleanedCode, warnings: outputWarnings, blocked: codeBlocked } = filterOutputCode(result.code);
+      const allWarnings = [...textWarnings, ...outputWarnings];
+      if (allWarnings.length > 0) {
+        log.warn({ userId, warnings: allWarnings }, 'Output filter warnings');
       }
-      if (blocked) {
-        console.error(`BLOCKED output for user=${userId}, prompt="${message?.slice(0, 80)}"`);
+      if (codeBlocked || textFlagged) {
+        log.error({ userId, prompt: message?.slice(0, 80) }, 'BLOCKED AI output');
         return res.json({
           message:
             "Hmm, that didn't come out right! Let me try a different approach. Can you describe your game again?",

@@ -163,37 +163,23 @@ These rules are absolute. Do not relax them for convenience or speed.
 - [x] Vite build: added code splitting (React vendor chunk)
 - [x] Launch Readiness Gates 6-8: **70/71 PASS** (code-verified; 6.2 user test pending)
 
-### NOW — Sprint "Polish & Verify" (March 3-7)
+### COMPLETED — March 4, 2026 (UX Polish & Accessibility)
+
+- [x] Kid-friendly error messages: replaced all child-facing errors in AuthModal, ShareModal, server/auth.js with Lumi's copy
+- [x] Onboarding microcopy: updated age hint, parent email hint, username hint, password hint, submit button, COPPA success
+- [x] Studio tab labels: "Preview" → "Play Your Game", "Code" → "Peek at the Code"
+- [x] ShareModal: header → "Share Your Game!", moderation language on Arcade option, kid-friendly publish success
+- [x] "Shooter" → "Space Blaster" (already done in user-facing labels; internal key kept)
+- [x] GameSurvey wired as first-time flow: welcome overlay with "Help Me Pick!" / "I Know What I Want!" paths
+- [x] Parent dashboard brand alignment: Nunito/Orbitron fonts, purple gradient, glass panels, updated copy & trust badge
+- [x] Accessibility (WCAG): aria-labels on emoji buttons, contrast bump (0.85), aria-current on mobile tabs, 44px touch targets, aria-describedby on form errors, role="alert" on error divs
+- [x] Fixed pre-existing unused var warning in demo.js
+
+### NOW — Sprint "Polish & Verify" (March 4-7)
 
 **Remaining this week:**
 
-1. **Kid-friendly error messages** (~1-2 hrs)
-   - Replace all child-facing error strings with Lumi's proposed copy
-   - Reference: `docs/UX_AUDIT.md` section 4 "Microcopy"
-   - Files: `src/components/AuthModal.tsx`, `src/components/ShareModal.tsx`, `src/lib/api.ts`, `server/routes/auth.js`, `server/routes/projects.js`
-   - Keep parent-facing and admin-facing error messages technical/accurate
-
-2. **Add moderation language to ShareModal** (~30 min)
-   - When user selects "Add to Arcade", show: "Other kids can find and play your game. A grown-up checks it first to keep things safe."
-   - File: `src/components/ShareModal.tsx`
-
-3. **Rename "Shooter" → "Space Blaster"** (~15 min)
-   - Standardize on kid-friendly genre label everywhere
-   - Files: `server/prompts/genres.js`, `src/components/GameSurvey.tsx`, `src/components/ChatPanel.tsx`
-
-4. **Wire in GameSurvey as first-time flow** (~2-4 hrs)
-   - `src/components/GameSurvey.tsx` is fully built but not imported in `App.tsx`
-   - Add welcome overlay for new users: "Help me pick!" → GameSurvey, "I know what I want!" → free chat
-
-5. **Parent dashboard brand alignment** (~2-4 hrs)
-   - CSS-only changes to `public/parent-dashboard.html`
-   - Add Nunito/Orbitron fonts, color tokens, glass surface treatment, trust banner
-
-6. **Accessibility fixes from Lumi's audit** (~3-4 hrs)
-   - `aria-label` on emoji buttons, contrast on `.input-hint`, `aria-current` on mobile tabs
-   - `aria-describedby` for form errors, 44px touch targets
-
-7. **Legal review of `/privacy` and `/terms`** — waiting on Atlas decision for scope
+1. **Legal review of `/privacy` and `/terms`** — waiting on Atlas decision for scope
 
 ### INCOMING — Revised COPPA Rule Compliance (April 22, 2026 deadline)
 

@@ -4,48 +4,92 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Parent Dashboard - Vibe Code Kidz</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f7fa; color: #333; }
-    .container { max-width: 800px; margin: 0 auto; padding: 20px; }
-    h1 { color: #2d3748; margin-bottom: 8px; }
-    .subtitle { color: #718096; margin-bottom: 24px; }
-    .card { background: white; border-radius: 12px; padding: 20px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-    .card h3 { margin-bottom: 12px; color: #2d3748; }
+    body {
+      font-family: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #0f0a2a 0%, #1a1145 50%, #0f0a2a 100%);
+      color: #e0e7ff;
+      min-height: 100vh;
+    }
+    .container { max-width: 800px; margin: 0 auto; padding: 24px 20px; }
+    h1 {
+      font-family: 'Orbitron', sans-serif;
+      color: #e0e7ff;
+      margin-bottom: 4px;
+      font-size: 1.5rem;
+    }
+    .subtitle { color: rgba(224, 231, 255, 0.7); margin-bottom: 24px; font-size: 0.95rem; }
+    .card {
+      background: rgba(255, 255, 255, 0.06);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(139, 92, 246, 0.25);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 16px;
+    }
+    .card h3 { margin-bottom: 12px; color: #e0e7ff; font-family: 'Orbitron', sans-serif; font-size: 1rem; }
     .child-info { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 16px; }
-    .info-item { background: #f7fafc; padding: 10px; border-radius: 8px; }
-    .info-label { font-size: 12px; color: #a0aec0; text-transform: uppercase; letter-spacing: 0.5px; }
-    .info-value { font-size: 18px; font-weight: 600; color: #2d3748; }
-    .btn { padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.2s; }
-    .btn-primary { background: #4299e1; color: white; }
-    .btn-primary:hover { background: #3182ce; }
-    .btn-danger { background: #fc8181; color: white; }
-    .btn-danger:hover { background: #f56565; }
-    .btn-secondary { background: #e2e8f0; color: #4a5568; }
-    .btn-secondary:hover { background: #cbd5e0; }
+    .info-item { background: rgba(139, 92, 246, 0.1); padding: 12px; border-radius: 10px; border: 1px solid rgba(139, 92, 246, 0.15); }
+    .info-label { font-size: 11px; color: rgba(224, 231, 255, 0.5); text-transform: uppercase; letter-spacing: 0.8px; font-weight: 700; }
+    .info-value { font-size: 18px; font-weight: 700; color: #e0e7ff; }
+    .btn { padding: 10px 20px; border: none; border-radius: 10px; cursor: pointer; font-size: 14px; font-weight: 700; font-family: 'Nunito', sans-serif; transition: all 0.2s; }
+    .btn-primary { background: linear-gradient(135deg, #8b5cf6, #6d28d9); color: white; }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4); }
+    .btn-danger { background: rgba(239, 68, 68, 0.2); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.3); }
+    .btn-danger:hover { background: rgba(239, 68, 68, 0.35); }
+    .btn-secondary { background: rgba(255, 255, 255, 0.08); color: #c4b5fd; border: 1px solid rgba(139, 92, 246, 0.2); }
+    .btn-secondary:hover { background: rgba(139, 92, 246, 0.15); }
     .actions { display: flex; gap: 8px; flex-wrap: wrap; }
     .project-list { list-style: none; }
-    .project-list li { padding: 8px 0; border-bottom: 1px solid #edf2f7; display: flex; justify-content: space-between; }
+    .project-list li { padding: 8px 0; border-bottom: 1px solid rgba(139, 92, 246, 0.12); display: flex; justify-content: space-between; color: #c4b5fd; }
     .project-list li:last-child { border-bottom: none; }
-    .login-section { text-align: center; padding: 60px 20px; }
-    .login-section input { padding: 12px 16px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 16px; width: 100%; max-width: 340px; margin-bottom: 12px; }
-    .login-section input:focus { outline: none; border-color: #4299e1; }
-    .error { background: #fed7d7; color: #c53030; padding: 12px; border-radius: 8px; margin-bottom: 16px; }
-    .success { background: #c6f6d5; color: #276749; padding: 12px; border-radius: 8px; margin-bottom: 16px; }
-    .loading { text-align: center; padding: 40px; color: #718096; }
-    .empty { text-align: center; padding: 40px; color: #a0aec0; }
+    .login-section { text-align: center; padding: 80px 20px; }
+    .login-section h1 { font-size: 1.8rem; margin-bottom: 8px; }
+    .login-section input {
+      padding: 14px 18px;
+      border: 2px solid rgba(139, 92, 246, 0.3);
+      border-radius: 12px;
+      font-size: 16px;
+      width: 100%;
+      max-width: 340px;
+      margin-bottom: 14px;
+      background: rgba(255, 255, 255, 0.06);
+      color: #e0e7ff;
+      font-family: 'Nunito', sans-serif;
+    }
+    .login-section input::placeholder { color: rgba(224, 231, 255, 0.4); }
+    .login-section input:focus { outline: none; border-color: #8b5cf6; box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2); }
+    .error { background: rgba(239, 68, 68, 0.15); color: #fca5a5; padding: 12px 16px; border-radius: 10px; margin-bottom: 16px; border: 1px solid rgba(239, 68, 68, 0.25); }
+    .success { background: rgba(34, 197, 94, 0.15); color: #86efac; padding: 12px 16px; border-radius: 10px; margin-bottom: 16px; border: 1px solid rgba(34, 197, 94, 0.25); }
+    .loading { text-align: center; padding: 40px; color: rgba(224, 231, 255, 0.5); }
+    .empty { text-align: center; padding: 40px; color: rgba(224, 231, 255, 0.4); }
     .toggles { display: flex; gap: 16px; margin: 16px 0; flex-wrap: wrap; }
-    .toggle-item { display: flex; align-items: center; gap: 8px; background: #f7fafc; padding: 10px 14px; border-radius: 8px; }
-    .toggle-item label { font-size: 14px; font-weight: 600; color: #4a5568; cursor: pointer; }
+    .toggle-item { display: flex; align-items: center; gap: 8px; background: rgba(139, 92, 246, 0.08); padding: 10px 14px; border-radius: 10px; border: 1px solid rgba(139, 92, 246, 0.12); }
+    .toggle-item label { font-size: 14px; font-weight: 600; color: #c4b5fd; cursor: pointer; }
     .toggle-switch { position: relative; width: 44px; height: 24px; }
     .toggle-switch input { opacity: 0; width: 0; height: 0; }
-    .toggle-switch .slider { position: absolute; inset: 0; background: #cbd5e0; border-radius: 24px; cursor: pointer; transition: 0.2s; }
+    .toggle-switch .slider { position: absolute; inset: 0; background: rgba(255, 255, 255, 0.15); border-radius: 24px; cursor: pointer; transition: 0.2s; }
     .toggle-switch .slider::before { content: ''; position: absolute; left: 2px; bottom: 2px; width: 20px; height: 20px; background: white; border-radius: 50%; transition: 0.2s; }
-    .toggle-switch input:checked + .slider { background: #48bb78; }
+    .toggle-switch input:checked + .slider { background: #22c55e; }
     .toggle-switch input:checked + .slider::before { transform: translateX(20px); }
-    .trust-badge { text-align: center; padding: 12px; font-size: 12px; color: #a0aec0; margin-top: 24px; }
+    .trust-badge {
+      text-align: center;
+      padding: 16px;
+      font-size: 13px;
+      color: rgba(224, 231, 255, 0.45);
+      margin-top: 32px;
+      letter-spacing: 0.3px;
+    }
+    .trust-badge a { color: #8b5cf6; text-decoration: none; }
+    .trust-badge a:hover { text-decoration: underline; }
     .header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-    .header-bar a { color: #4299e1; text-decoration: none; font-size: 14px; }
+    .header-bar a { color: #8b5cf6; text-decoration: none; font-size: 14px; font-weight: 600; }
+    .header-bar a:hover { color: #a78bfa; }
+    .logo-mark { font-family: 'Orbitron', sans-serif; font-size: 0.75rem; color: rgba(224, 231, 255, 0.4); letter-spacing: 1px; margin-bottom: 2px; }
   </style>
 </head>
 <body>
@@ -70,6 +114,7 @@
     function showLoginPage() {
       app.innerHTML = `
         <div class="login-section">
+          <p class="logo-mark">VIBE CODE KIDS</p>
           <h1>Parent Dashboard</h1>
           <p class="subtitle">Enter your email to receive a secure access link</p>
           <div id="loginMsg"></div>
@@ -122,8 +167,8 @@
         }
         let html = `
           <div class="header-bar">
-            <div><h1>Parent Command Center</h1><p class="subtitle">Manage your children's accounts and privacy settings</p></div>
-            <a href="/">&#8592; Back to VibeCodeKidz</a>
+            <div><p class="logo-mark">VIBE CODE KIDS</p><h1>Parent Dashboard</h1><p class="subtitle">See what your child is creating. You're in control.</p></div>
+            <a href="/">&#8592; Back to Vibe Code Kids</a>
           </div>`;
         for (const child of children) {
           html += `
@@ -141,25 +186,25 @@
                     <input type="checkbox" ${child.publishingEnabled ? 'checked' : ''} onchange="toggleSetting('${child.userId}', 'publishingEnabled')" />
                     <span class="slider"></span>
                   </label>
-                  <label>Public game sharing</label>
+                  <label title="When OFF, your child can save games but not add them to the public Arcade">Public game sharing</label>
                 </div>
                 <div class="toggle-item">
                   <label class="toggle-switch">
                     <input type="checkbox" ${child.multiplayerEnabled ? 'checked' : ''} onchange="toggleSetting('${child.userId}', 'multiplayerEnabled')" />
                     <span class="slider"></span>
                   </label>
-                  <label>Multiplayer access</label>
+                  <label title="When OFF, your child cannot join multiplayer game rooms">Multiplayer access</label>
                 </div>
               </div>
               <div class="actions">
                 <button class="btn btn-secondary" onclick="viewActivity('${child.userId}')">View Activity</button>
                 <button class="btn btn-primary" onclick="exportData('${child.userId}')">Export Data</button>
-                <button class="btn btn-danger" onclick="deleteChild('${child.userId}', '${escHtml(child.displayName)}')">Delete All Data</button>
+                <button class="btn btn-danger" onclick="deleteChild('${child.userId}', '${escHtml(child.displayName)}')">Delete Account &amp; All Data</button>
               </div>
               <div id="activity-${child.userId}" style="margin-top: 16px;"></div>
             </div>`;
         }
-        html += `<div class="trust-badge">COPPA Compliant &middot; Your child's data is protected &middot; <a href="/privacy" style="color:#4299e1;">Privacy Policy</a></div>`;
+        html += `<div class="trust-badge">COPPA compliant &middot; Data encrypted &middot; No ads &middot; You're in control &middot; <a href="/privacy">Privacy Policy</a></div>`;
         app.innerHTML = html;
       } catch (e) {
         if (e.message !== 'expired') {
@@ -204,7 +249,7 @@
     }
 
     async function deleteChild(userId, name) {
-      if (!confirm(`Are you sure you want to permanently delete ALL data for ${name}? This cannot be undone.`)) return;
+      if (!confirm(`This will permanently delete ${name}'s account and all their projects. This can't be undone. Are you sure?`)) return;
       try {
         const res = await fetch('/api/parent-dashboard/child/' + userId + '?session=' + sessionToken, {
           method: 'DELETE',

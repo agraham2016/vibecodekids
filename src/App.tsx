@@ -13,8 +13,9 @@ import UpgradeModal from './components/UpgradeModal';
 import VersionHistoryModal from './components/VersionHistoryModal';
 import LandingPage from './components/LandingPage';
 import LandingPageB from './components/LandingPageB';
+import GameSurvey from './components/GameSurvey';
 import { getVariant } from './lib/abVariant';
-import type { User, MembershipUsage, TierInfo, AIMode } from './types';
+import type { User, MembershipUsage, TierInfo, AIMode, GameConfig } from './types';
 import './App.css';
 
 function App() {
@@ -48,6 +49,8 @@ function App() {
   const [isWelcomeUpgrade, setIsWelcomeUpgrade] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
   const [showVersionHistory, setShowVersionHistory] = useState(false);
+  const [showWelcomeOverlay, setShowWelcomeOverlay] = useState(false);
+  const [showGameSurvey, setShowGameSurvey] = useState(false);
 
   // Mobile/tablet navigation
   const [mobileTab, setMobileTab] = useState<'chat' | 'game' | 'projects'>('chat');
@@ -71,12 +74,16 @@ function App() {
     onUpgradeNeeded: () => setShowUpgradeModal(true),
   });
 
-  // Fetch projects when user logs in
+  // Fetch projects when user logs in; show welcome overlay for new users
   useEffect(() => {
     if (token) {
-      fetchUserProjects();
+      fetchUserProjects().then(() => {
+        if (userProjects.length === 0 && messages.length === 0 && !localStorage.getItem('vck_welcomed')) {
+          setShowWelcomeOverlay(true);
+        }
+      });
     }
-  }, [token, fetchUserProjects]);
+  }, [token, fetchUserProjects]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Login handler
   const handleLogin = useCallback(
@@ -150,6 +157,28 @@ function App() {
     newProject();
     clearMessages();
   }, [newProject, clearMessages]);
+
+  const handleGameSurveyComplete = useCallback(
+    (config: GameConfig) => {
+      const dimensionLabel = config.dimension === '3d' ? '3D' : '2D';
+      const prompt = `Make me a ${dimensionLabel} ${config.theme} ${config.gameType} game where I control a ${config.character} and dodge ${config.obstacles}! Use a ${config.visualStyle} visual style.`;
+      setShowGameSurvey(false);
+      localStorage.setItem('vck_welcomed', '1');
+      handleSendMessage(prompt);
+    },
+    [handleSendMessage],
+  );
+
+  const handleWelcomeFreeChat = useCallback(() => {
+    setShowWelcomeOverlay(false);
+    setShowGameSurvey(false);
+    localStorage.setItem('vck_welcomed', '1');
+  }, []);
+
+  const handleWelcomeGuided = useCallback(() => {
+    setShowWelcomeOverlay(false);
+    setShowGameSurvey(true);
+  }, []);
 
   const handleUpgradeClick = useCallback(() => {
     setIsWelcomeUpgrade(false);
@@ -257,6 +286,36 @@ function App() {
         />
       )}
 
+      {/* Welcome overlay for first-time users */}
+      {showWelcomeOverlay && (
+        <div className="modal-overlay welcome-overlay" role="dialog" aria-modal="true" aria-label="Welcome">
+          <div className="welcome-card">
+            <h2>🎮 Welcome, {user.displayName}!</h2>
+            <p>Ready to make your first game?</p>
+            <div className="welcome-actions">
+              <button className="welcome-btn guided" onClick={handleWelcomeGuided}>
+                🧙 Help Me Pick!
+              </button>
+              <button className="welcome-btn free" onClick={handleWelcomeFreeChat}>
+                💬 I Know What I Want!
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Guided game builder survey */}
+      {showGameSurvey && (
+        <div className="modal-overlay" role="dialog" aria-modal="true" aria-label="Game builder wizard">
+          <div className="game-survey-modal">
+            <button className="close-btn" onClick={handleWelcomeFreeChat} aria-label="Close wizard">
+              ✕
+            </button>
+            <GameSurvey onComplete={handleGameSurveyComplete} />
+          </div>
+        </div>
+      )}
+
       <Header
         user={user}
         membership={membership}
@@ -312,10 +371,10 @@ function App() {
         <div className={`preview-code-container mobile-panel ${mobileTab === 'game' ? 'mobile-active' : ''}`}>
           <div className="view-toggle-bar">
             <button className={`view-toggle-btn ${!showCode ? 'active' : ''}`} onClick={() => setShowCode(false)}>
-              <span>👁️</span> Preview
+              <span>🎮</span> Play Your Game
             </button>
             <button className={`view-toggle-btn ${showCode ? 'active' : ''}`} onClick={() => setShowCode(true)}>
-              <span>👨‍💻</span> Code
+              <span>🔧</span> Peek at the Code
             </button>
           </div>
           <div className="view-content">
@@ -325,13 +384,25 @@ function App() {
       </main>
 
       {/* Bottom tab bar for mobile */}
-      <nav className="mobile-tab-bar">
-        <button className={`mobile-tab ${mobileTab === 'chat' ? 'active' : ''}`} onClick={() => setMobileTab('chat')}>
-          <span className="mobile-tab-icon">💬</span>
+      <nav className="mobile-tab-bar" aria-label="Main navigation">
+        <button
+          className={`mobile-tab ${mobileTab === 'chat' ? 'active' : ''}`}
+          onClick={() => setMobileTab('chat')}
+          aria-current={mobileTab === 'chat' ? 'page' : undefined}
+        >
+          <span className="mobile-tab-icon" aria-hidden="true">
+            💬
+          </span>
           <span className="mobile-tab-label">Chat</span>
         </button>
-        <button className={`mobile-tab ${mobileTab === 'game' ? 'active' : ''}`} onClick={() => setMobileTab('game')}>
-          <span className="mobile-tab-icon">🎮</span>
+        <button
+          className={`mobile-tab ${mobileTab === 'game' ? 'active' : ''}`}
+          onClick={() => setMobileTab('game')}
+          aria-current={mobileTab === 'game' ? 'page' : undefined}
+        >
+          <span className="mobile-tab-icon" aria-hidden="true">
+            🎮
+          </span>
           <span className="mobile-tab-label">Game</span>
         </button>
         <button
@@ -340,8 +411,11 @@ function App() {
             setMobileTab('projects');
             setDrawerOpen(true);
           }}
+          aria-current={mobileTab === 'projects' ? 'page' : undefined}
         >
-          <span className="mobile-tab-icon">📁</span>
+          <span className="mobile-tab-icon" aria-hidden="true">
+            📁
+          </span>
           <span className="mobile-tab-label">Projects</span>
         </button>
       </nav>

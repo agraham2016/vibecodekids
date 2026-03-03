@@ -61,16 +61,15 @@ export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: A
           // Validate age
           const ageNum = parseInt(age);
           if (!age || isNaN(ageNum) || ageNum < 5 || ageNum > 120) {
-            throw new Error('Please enter a valid age');
+            throw new Error("Hmm, that age doesn't look right. Try again?");
           }
 
-          // Validate parent email for under-13
           if (ageNum < 13 && !parentEmail) {
-            throw new Error('A parent or guardian email is required for users under 13');
+            throw new Error("We need a parent's email to keep you safe. Ask a grown-up to type theirs!");
           }
 
           if (!privacyAccepted) {
-            throw new Error('You must accept the privacy policy to create an account');
+            throw new Error('One more thing — check the box to agree to the rules!');
           }
 
           const response = await fetch('/api/auth/register', {
@@ -89,12 +88,12 @@ export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: A
 
           const contentType = response.headers.get('content-type');
           if (!contentType?.includes('application/json')) {
-            throw new Error('Server error — please try again later');
+            throw new Error('Our robots are taking a break. Try again in a minute!');
           }
           const data = await response.json();
 
           if (!response.ok) {
-            throw new Error(data.error || 'Could not create account');
+            throw new Error(data.error || 'Oops! Something went wrong. Try again?');
           }
 
           setSuccess(data.message);
@@ -116,13 +115,13 @@ export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: A
           // Paid plan: Create Stripe checkout with COPPA fields
           const ageNum = parseInt(age);
           if (!age || isNaN(ageNum) || ageNum < 5 || ageNum > 120) {
-            throw new Error('Please enter a valid age');
+            throw new Error("Hmm, that age doesn't look right. Try again?");
           }
           if (ageNum < 13 && !parentEmail) {
-            throw new Error('A parent or guardian email is required for users under 13');
+            throw new Error("We need a parent's email to keep you safe. Ask a grown-up to type theirs!");
           }
           if (!privacyAccepted) {
-            throw new Error('You must accept the privacy policy to create an account');
+            throw new Error('One more thing — check the box to agree to the rules!');
           }
 
           const response = await fetch('/api/stripe/checkout', {
@@ -142,12 +141,12 @@ export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: A
 
           const contentType = response.headers.get('content-type');
           if (!contentType?.includes('application/json')) {
-            throw new Error('Server error — please try again later');
+            throw new Error('Our robots are taking a break. Try again in a minute!');
           }
           const data = await response.json();
 
           if (!response.ok) {
-            throw new Error(data.error || 'Could not start checkout');
+            throw new Error(data.error || 'Oops! Something went wrong. Try again?');
           }
 
           // Redirect to Stripe Checkout
@@ -162,11 +161,11 @@ export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: A
         });
         const contentType = response.headers.get('content-type');
         if (!contentType?.includes('application/json')) {
-          throw new Error('Server error — please try again later');
+          throw new Error('Our robots are taking a break. Try again in a minute!');
         }
         const data = await response.json();
         if (!response.ok) {
-          throw new Error(data.error || 'Could not send reset link');
+          throw new Error(data.error || 'Oops! Something went wrong. Try again?');
         }
         setSuccess("If an account exists and has a recovery email on file, we've sent reset instructions.");
         setForgotStep(null);
@@ -181,12 +180,12 @@ export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: A
 
         const contentType = response.headers.get('content-type');
         if (!contentType?.includes('application/json')) {
-          throw new Error('Server error — please try again later');
+          throw new Error('Our robots are taking a break. Try again in a minute!');
         }
         const data = await response.json();
 
         if (!response.ok) {
-          throw new Error(data.error || 'Could not log in');
+          throw new Error(data.error || 'Oops! Something went wrong. Try again?');
         }
 
         localStorage.setItem('authToken', data.token);
@@ -197,7 +196,7 @@ export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: A
         });
       }
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Something went wrong');
+      setError(err instanceof Error ? err.message : 'Oops! Something went wrong. Try again?');
     } finally {
       setIsLoading(false);
     }
@@ -287,7 +286,11 @@ export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: A
                 />
                 <span className="input-hint">We'll send reset instructions to the email on file.</span>
               </div>
-              {error && <div className="auth-error">{error}</div>}
+              {error && (
+                <div className="auth-error" id="auth-error-forgot" role="alert">
+                  {error}
+                </div>
+              )}
               {success && <div className="auth-success">{success}</div>}
               <button type="submit" className="auth-submit-btn" disabled={isLoading}>
                 {isLoading ? '⏳ Sending...' : '📧 Send Reset Link'}
@@ -335,13 +338,13 @@ export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: A
                     max={120}
                     required
                   />
-                  <span className="input-hint">We ask to keep everyone safe online</span>
+                  <span className="input-hint">We ask to keep everyone safe — we don't save your exact age</span>
                 </div>
               )}
 
               {mode === 'signup' && isUnder13 && (
                 <div className="form-group coppa-parent-field">
-                  <label>Parent/Guardian Email</label>
+                  <label>Your parent or guardian's email</label>
                   <input
                     type="email"
                     value={parentEmail}
@@ -350,8 +353,7 @@ export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: A
                     required
                   />
                   <span className="input-hint">
-                    We need a parent's permission for users under 13. We'll send them an approval email — that's the
-                    only time we use it.
+                    We'll send one email to ask their permission. That's the only time we use it.
                   </span>
                 </div>
               )}
@@ -382,7 +384,7 @@ export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: A
                   required
                 />
                 {mode === 'signup' && (
-                  <span className="input-hint">3-20 characters, letters, numbers & underscores</span>
+                  <span className="input-hint">Don't use your real name — pick something fun!</span>
                 )}
               </div>
 
@@ -395,7 +397,9 @@ export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: A
                   placeholder={mode === 'signup' ? 'Create a password' : 'Enter your password'}
                   required
                 />
-                {mode === 'signup' && <span className="input-hint">At least 8 characters</span>}
+                {mode === 'signup' && (
+                  <span className="input-hint">At least 8 characters — or try a fun passphrase!</span>
+                )}
               </div>
 
               {mode === 'signup' && (
@@ -421,16 +425,25 @@ export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: A
                 </div>
               )}
 
-              {error && <div className="auth-error">{error}</div>}
+              {error && (
+                <div className="auth-error" id="auth-error-main" role="alert">
+                  {error}
+                </div>
+              )}
               {success && <div className="auth-success">{success}</div>}
 
-              <button type="submit" className="auth-submit-btn" disabled={isLoading}>
+              <button
+                type="submit"
+                className="auth-submit-btn"
+                disabled={isLoading}
+                aria-describedby={error ? 'auth-error-main' : undefined}
+              >
                 {isLoading
                   ? '⏳ Please wait...'
                   : mode === 'login'
                     ? '🚀 Log In'
                     : selectedPlan === 'free'
-                      ? '✨ Create Free Account'
+                      ? "✨ Let's Go!"
                       : '💳 Continue to Payment'}
               </button>
               {mode === 'login' && (
@@ -445,9 +458,7 @@ export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: A
         {mode === 'signup' && selectedPlan === 'free' && isUnder13 && (
           <div className="auth-note auth-note-coppa">
             <span className="note-icon">👨‍👩‍👧</span>
-            <span>
-              Your parent/guardian will receive an email to approve your account. Once they approve, you can log in!
-            </span>
+            <span>Almost there! Ask your parent to check their email and tap 'Approve.' Then you can log in!</span>
           </div>
         )}
 

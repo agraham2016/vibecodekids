@@ -1,22 +1,22 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
-import { GameConfig, GameType } from '../types'
-import './GameSurvey.css'
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { GameConfig, GameType } from '../types';
+import './GameSurvey.css';
 
 interface GameSurveyProps {
-  onComplete: (config: GameConfig) => void
+  onComplete: (config: GameConfig) => void;
 }
 
 // ========== SURVEY DATA ==========
 
 const GAME_TYPES = [
   { value: 'racing', icon: '🏎️', label: 'Racing' },
-  { value: 'shooter', icon: '🔫', label: 'Shooter' },
+  { value: 'shooter', icon: '🚀', label: 'Space Blaster' },
   { value: 'platformer', icon: '🦘', label: 'Platformer' },
   { value: 'frogger', icon: '🐸', label: 'Frogger' },
   { value: 'puzzle', icon: '🧩', label: 'Puzzle' },
   { value: 'clicker', icon: '👆', label: 'Clicker' },
   { value: 'rpg', icon: '⚔️', label: 'RPG' },
-]
+];
 
 const THEMES: Record<string, { icon: string; label: string; value: string }[]> = {
   racing: [
@@ -68,7 +68,7 @@ const THEMES: Record<string, { icon: string; label: string; value: string }[]> =
     { icon: '🌊', label: 'Underwater', value: 'underwater' },
     { icon: '🏜️', label: 'Desert', value: 'desert' },
   ],
-}
+};
 
 const CHARACTERS: Record<string, { icon: string; label: string; value: string }[]> = {
   racing: [
@@ -120,7 +120,7 @@ const CHARACTERS: Record<string, { icon: string; label: string; value: string }[
     { icon: '🦸', label: 'Hero', value: 'hero' },
     { icon: '🐉', label: 'Dragon Rider', value: 'dragon rider' },
   ],
-}
+};
 
 const OBSTACLES: Record<string, { icon: string; label: string; value: string }[]> = {
   racing: [
@@ -172,7 +172,7 @@ const OBSTACLES: Record<string, { icon: string; label: string; value: string }[]
     { icon: '🐉', label: 'Dragons', value: 'dragons' },
     { icon: '👻', label: 'Ghosts', value: 'ghosts' },
   ],
-}
+};
 
 const VISUAL_STYLES = [
   { icon: '💜', label: 'Neon Glow', value: 'neon' },
@@ -180,93 +180,98 @@ const VISUAL_STYLES = [
   { icon: '🌈', label: 'Cute & Colorful', value: 'cute' },
   { icon: '🌙', label: 'Dark & Spooky', value: 'spooky' },
   { icon: '✨', label: 'Clean & Simple', value: 'clean' },
-]
+];
 
 // ========== SURVEY STEPS ==========
 
-type SurveyStep = 'gameType' | 'dimension' | 'theme' | 'character' | 'obstacles' | 'visualStyle' | 'done'
+type SurveyStep = 'gameType' | 'dimension' | 'theme' | 'character' | 'obstacles' | 'visualStyle' | 'done';
 
-const STEP_ORDER: SurveyStep[] = ['gameType', 'dimension', 'theme', 'character', 'obstacles', 'visualStyle', 'done']
+const STEP_ORDER: SurveyStep[] = ['gameType', 'dimension', 'theme', 'character', 'obstacles', 'visualStyle', 'done'];
 
 const DIMENSION_OPTIONS = [
   { icon: '🖼️', label: '2D (Classic Style)', value: '2d' },
   { icon: '🌐', label: '3D (Inside the Game)', value: '3d' },
-]
+];
 
 const BOT_MESSAGES: Record<string, string> = {
-  gameType: "Hey there! What kind of game do you want to make today? Pick one or tell me your idea!",
+  gameType: 'Hey there! What kind of game do you want to make today? Pick one or tell me your idea!',
   dimension: "Cool! Do you want your game in 2D (flat, classic style) or 3D (like you're inside the game)?",
-  theme: "Awesome choice! Where does your game take place?",
-  character: "Cool! Who or what do you control in the game?",
-  obstacles: "Nice! What do you have to dodge or fight?",
-  visualStyle: "Last one! What style should your game look like?",
-  done: "Got it! Let me build your game now!",
-}
+  theme: 'Awesome choice! Where does your game take place?',
+  character: 'Cool! Who or what do you control in the game?',
+  obstacles: 'Nice! What do you have to dodge or fight?',
+  visualStyle: 'Last one! What style should your game look like?',
+  done: 'Got it! Let me build your game now!',
+};
 
 // ========== COMPONENT ==========
 
 export default function GameSurvey({ onComplete }: GameSurveyProps) {
-  const [step, setStep] = useState<SurveyStep>('gameType')
-  const [answers, setAnswers] = useState<Partial<GameConfig>>({})
-  const [freeText, setFreeText] = useState('')
+  const [step, setStep] = useState<SurveyStep>('gameType');
+  const [answers, setAnswers] = useState<Partial<GameConfig>>({});
+  const [freeText, setFreeText] = useState('');
   const [chatHistory, setChatHistory] = useState<{ role: 'bot' | 'user'; text: string }[]>([
-    { role: 'bot', text: BOT_MESSAGES.gameType }
-  ])
-  const [isAnimating, setIsAnimating] = useState(false)
-  const [speakingIndex, setSpeakingIndex] = useState<number | null>(null)
-  const chatEndRef = useRef<HTMLDivElement>(null)
+    { role: 'bot', text: BOT_MESSAGES.gameType },
+  ]);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [speakingIndex, setSpeakingIndex] = useState<number | null>(null);
+  const chatEndRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [chatHistory])
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [chatHistory]);
 
   // Text-to-speech for bot messages
-  const speakMessage = useCallback((index: number, text: string) => {
-    window.speechSynthesis.cancel()
+  const speakMessage = useCallback(
+    (index: number, text: string) => {
+      window.speechSynthesis.cancel();
 
-    if (speakingIndex === index) {
-      setSpeakingIndex(null)
-      return
-    }
+      if (speakingIndex === index) {
+        setSpeakingIndex(null);
+        return;
+      }
 
-    const utterance = new SpeechSynthesisUtterance(text)
-    utterance.rate = 0.9
-    utterance.pitch = 1.0
-    utterance.lang = 'en-US'
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 0.9;
+      utterance.pitch = 1.0;
+      utterance.lang = 'en-US';
 
-    utterance.onend = () => setSpeakingIndex(null)
-    utterance.onerror = () => setSpeakingIndex(null)
+      utterance.onend = () => setSpeakingIndex(null);
+      utterance.onerror = () => setSpeakingIndex(null);
 
-    setSpeakingIndex(index)
-    window.speechSynthesis.speak(utterance)
-  }, [speakingIndex])
+      setSpeakingIndex(index);
+      window.speechSynthesis.speak(utterance);
+    },
+    [speakingIndex],
+  );
 
   // Cancel speech on unmount
   useEffect(() => {
-    return () => { window.speechSynthesis.cancel() }
-  }, [])
+    return () => {
+      window.speechSynthesis.cancel();
+    };
+  }, []);
 
   const advanceStep = (userAnswer: string, configKey: keyof GameConfig, configValue: string) => {
     // Add user answer to chat
-    const newHistory = [...chatHistory, { role: 'user' as const, text: userAnswer }]
-    
+    const newHistory = [...chatHistory, { role: 'user' as const, text: userAnswer }];
+
     // Update answers
-    const newAnswers = { ...answers, [configKey]: configValue }
-    setAnswers(newAnswers)
-    setFreeText('')
-    setIsAnimating(true)
+    const newAnswers = { ...answers, [configKey]: configValue };
+    setAnswers(newAnswers);
+    setFreeText('');
+    setIsAnimating(true);
 
     // Find next step
-    const currentIndex = STEP_ORDER.indexOf(step)
-    const nextStep = STEP_ORDER[currentIndex + 1]
+    const currentIndex = STEP_ORDER.indexOf(step);
+    const nextStep = STEP_ORDER[currentIndex + 1];
 
     // Add bot response after a brief delay
     setTimeout(() => {
-      newHistory.push({ role: 'bot', text: BOT_MESSAGES[nextStep] })
-      setChatHistory(newHistory)
-      setStep(nextStep)
-      setIsAnimating(false)
+      newHistory.push({ role: 'bot', text: BOT_MESSAGES[nextStep] });
+      setChatHistory(newHistory);
+      setStep(nextStep);
+      setIsAnimating(false);
 
       // If we reached 'done', complete the survey
       if (nextStep === 'done') {
@@ -278,18 +283,18 @@ export default function GameSurvey({ onComplete }: GameSurveyProps) {
           obstacles: newAnswers.obstacles || 'enemies',
           visualStyle: newAnswers.visualStyle || 'neon',
           customNotes: '',
-        }
+        };
         // Small delay so the kid sees the "building" message
-        setTimeout(() => onComplete(finalConfig), 1000)
+        setTimeout(() => onComplete(finalConfig), 1000);
       }
-    }, 600)
+    }, 600);
 
     // Update chat immediately with user message
-    setChatHistory(newHistory)
-  }
+    setChatHistory(newHistory);
+  };
 
   const handleOptionClick = (option: { icon: string; label: string; value: string }) => {
-    if (isAnimating) return
+    if (isAnimating) return;
 
     const configKeys: Record<string, keyof GameConfig> = {
       gameType: 'gameType',
@@ -298,13 +303,13 @@ export default function GameSurvey({ onComplete }: GameSurveyProps) {
       character: 'character',
       obstacles: 'obstacles',
       visualStyle: 'visualStyle',
-    }
+    };
 
-    advanceStep(`${option.icon} ${option.label}`, configKeys[step], option.value)
-  }
+    advanceStep(`${option.icon} ${option.label}`, configKeys[step], option.value);
+  };
 
   const handleFreeTextSubmit = () => {
-    if (!freeText.trim() || isAnimating) return
+    if (!freeText.trim() || isAnimating) return;
 
     const configKeys: Record<string, keyof GameConfig> = {
       gameType: 'gameType',
@@ -313,57 +318,57 @@ export default function GameSurvey({ onComplete }: GameSurveyProps) {
       character: 'character',
       obstacles: 'obstacles',
       visualStyle: 'visualStyle',
-    }
+    };
 
-    advanceStep(freeText.trim(), configKeys[step], freeText.trim())
-  }
+    advanceStep(freeText.trim(), configKeys[step], freeText.trim());
+  };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault()
-      handleFreeTextSubmit()
+      e.preventDefault();
+      handleFreeTextSubmit();
     }
-  }
+  };
 
   // Get options for current step
   const getCurrentOptions = () => {
-    const gameType = answers.gameType || 'racing'
+    const gameType = answers.gameType || 'racing';
     switch (step) {
-      case 'gameType': return GAME_TYPES
-      case 'dimension': return DIMENSION_OPTIONS
-      case 'theme': return THEMES[gameType] || THEMES.racing
-      case 'character': return CHARACTERS[gameType] || CHARACTERS.racing
-      case 'obstacles': return OBSTACLES[gameType] || OBSTACLES.racing
-      case 'visualStyle': return VISUAL_STYLES
-      default: return []
+      case 'gameType':
+        return GAME_TYPES;
+      case 'dimension':
+        return DIMENSION_OPTIONS;
+      case 'theme':
+        return THEMES[gameType] || THEMES.racing;
+      case 'character':
+        return CHARACTERS[gameType] || CHARACTERS.racing;
+      case 'obstacles':
+        return OBSTACLES[gameType] || OBSTACLES.racing;
+      case 'visualStyle':
+        return VISUAL_STYLES;
+      default:
+        return [];
     }
-  }
+  };
 
-  const stepNumber = STEP_ORDER.indexOf(step) + 1
-  const totalSteps = STEP_ORDER.length - 1 // Exclude 'done'
+  const stepNumber = STEP_ORDER.indexOf(step) + 1;
+  const totalSteps = STEP_ORDER.length - 1; // Exclude 'done'
 
   return (
     <div className="game-survey">
       {/* Progress Bar */}
       <div className="survey-progress">
         <div className="progress-bar">
-          <div 
-            className="progress-fill" 
-            style={{ width: `${(stepNumber / totalSteps) * 100}%` }}
-          />
+          <div className="progress-fill" style={{ width: `${(stepNumber / totalSteps) * 100}%` }} />
         </div>
-        <span className="progress-text">
-          {step === 'done' ? 'Building!' : `Step ${stepNumber} of ${totalSteps}`}
-        </span>
+        <span className="progress-text">{step === 'done' ? 'Building!' : `Step ${stepNumber} of ${totalSteps}`}</span>
       </div>
 
       {/* Chat-style conversation */}
       <div className="survey-chat">
         {chatHistory.map((msg, i) => (
           <div key={i} className={`survey-msg ${msg.role}`}>
-            <div className="survey-msg-avatar">
-              {msg.role === 'bot' ? '🤖' : '👤'}
-            </div>
+            <div className="survey-msg-avatar">{msg.role === 'bot' ? '🤖' : '👤'}</div>
             <div className="survey-msg-bubble">
               {msg.text}
               {msg.role === 'bot' && (
@@ -423,9 +428,11 @@ export default function GameSurvey({ onComplete }: GameSurveyProps) {
       {step === 'done' && (
         <div className="survey-building">
           <div className="building-spinner" />
-          <p>Building your {answers.theme} {answers.gameType} game...</p>
+          <p>
+            Building your {answers.theme} {answers.gameType} game...
+          </p>
         </div>
       )}
     </div>
-  )
+  );
 }

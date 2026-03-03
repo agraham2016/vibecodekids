@@ -34,7 +34,7 @@ export default function ShareModal({ code, onClose, authToken, userDisplayName, 
 
   const handleShare = async () => {
     if (!title.trim()) {
-      setError('Give your creation a name!');
+      setError('Your game needs a name! What should we call it?');
       return;
     }
 
@@ -67,10 +67,10 @@ export default function ShareModal({ code, onClose, authToken, userDisplayName, 
         const fullUrl = `${window.location.origin}/play/${data.id}`;
         setShareResult({ id: data.id, url: fullUrl });
       } else {
-        setError(data.error || 'Something went wrong!');
+        setError(data.error || 'Oops! Something went wrong. Try again?');
       }
     } catch (_err) {
-      setError('Could not connect to server. Try again!');
+      setError("Hmm, can't reach our servers. Check your internet and try again!");
     } finally {
       setIsSharing(false);
     }
@@ -97,7 +97,7 @@ export default function ShareModal({ code, onClose, authToken, userDisplayName, 
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose} role="dialog" aria-modal="true" aria-label="Share your creation">
+    <div className="modal-overlay" onClick={onClose} role="dialog" aria-modal="true" aria-label="Share your game">
       <div className="share-modal" onClick={(e) => e.stopPropagation()}>
         <button className="close-btn" onClick={onClose} aria-label="Close dialog">
           ✕
@@ -106,13 +106,13 @@ export default function ShareModal({ code, onClose, authToken, userDisplayName, 
         {!shareResult ? (
           <>
             <div className="share-header">
-              <h2>🎉 Share Your Creation!</h2>
+              <h2>🎉 Share Your Game!</h2>
               <p>Show everyone what you made!</p>
             </div>
 
             <div className="share-form">
               <div className="form-group">
-                <label>Name your creation:</label>
+                <label>Name your game:</label>
                 <input
                   type="text"
                   value={title}
@@ -159,7 +159,9 @@ export default function ShareModal({ code, onClose, authToken, userDisplayName, 
                   <input type="checkbox" checked={isPublic} onChange={(e) => setIsPublic(e.target.checked)} />
                   <span className="checkbox-text">⭐ Add to the Arcade so others can play too!</span>
                 </label>
-                <p className="checkbox-hint">When you add to the Arcade, other kids can find and play your creation!</p>
+                <p className="checkbox-hint">
+                  Other kids can find and play your game. A grown-up checks it first to keep things safe.
+                </p>
               </div>
 
               <div className="form-group checkbox-group multiplayer-option">
@@ -183,7 +185,7 @@ export default function ShareModal({ code, onClose, authToken, userDisplayName, 
           <div className="share-success">
             <div className="success-animation">🎉</div>
             <h2>🎊 Woohoo! You did it!</h2>
-            <p>Your creation is ready to share!</p>
+            <p>Here's your game's link! Share it with friends.</p>
 
             <div className="share-link-box">
               <input type="text" value={shareResult.url} readOnly className="share-link-input" />
@@ -201,7 +203,7 @@ export default function ShareModal({ code, onClose, authToken, userDisplayName, 
               </button>
             </div>
 
-            {isPublic && <p className="gallery-note">⭐ Your creation is now in Vibe Code Arcade!</p>}
+            {isPublic && <p className="gallery-note">Your game is being checked — it'll show up in the Arcade soon!</p>}
           </div>
         )}
       </div>
