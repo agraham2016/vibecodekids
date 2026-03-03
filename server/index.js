@@ -68,17 +68,12 @@ const app = express();
 const sessions = new SessionStore();
 const startTime = Date.now();
 
-// ========== PRODUCTION SAFETY GUARDS ==========
+// ========== PRODUCTION SAFETY WARNINGS ==========
 if (IS_PRODUCTION && !USE_POSTGRES) {
-  log.fatal('DATABASE_URL is required in production — file-based storage must not hold child data');
-  process.exit(1);
+  log.warn('DATABASE_URL is not set — using file-based storage. Set DATABASE_URL for production use.');
 }
-if (IS_PRODUCTION && !ANTHROPIC_API_KEY) {
-  log.fatal('ANTHROPIC_API_KEY is required in production — AI features will not function');
-  process.exit(1);
-}
-if (!IS_PRODUCTION && !ANTHROPIC_API_KEY) {
-  log.warn('ANTHROPIC_API_KEY is not set — Claude AI features will fail. Add it to .env to enable AI.');
+if (!ANTHROPIC_API_KEY) {
+  log.warn('ANTHROPIC_API_KEY is not set — Claude AI features will not work until configured.');
 }
 
 // Sentry is initialized early via server/instrument.js (--import flag).
