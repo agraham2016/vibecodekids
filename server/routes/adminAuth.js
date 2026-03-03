@@ -19,10 +19,14 @@ import {
 } from '../services/admin2FA.js';
 
 const router = Router();
-const ADMIN_TOKEN_SECRET = process.env.ADMIN_TOKEN_SECRET || ADMIN_SECRET;
-if (!ADMIN_TOKEN_SECRET && process.env.NODE_ENV === 'production') {
-  console.error('FATAL: ADMIN_TOKEN_SECRET or ADMIN_SECRET must be set in production');
-  process.exit(1);
+let ADMIN_TOKEN_SECRET = process.env.ADMIN_TOKEN_SECRET || ADMIN_SECRET;
+if (!ADMIN_TOKEN_SECRET) {
+  ADMIN_TOKEN_SECRET = crypto.randomBytes(32).toString('hex');
+  if (process.env.NODE_ENV === 'production') {
+    console.warn(
+      'WARNING: ADMIN_SECRET is not set — admin tokens will not persist across restarts. Set ADMIN_SECRET in your environment.',
+    );
+  }
 }
 const ADMIN_TOKEN_EXPIRY_HOURS = 8;
 
