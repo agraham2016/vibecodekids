@@ -14,6 +14,7 @@ Each agent should read this file first to understand team structure, then read t
 | Security Architect | Cipher Hale | `.cursor/rules/cipher-security-architect.md` | System architecture, threat modeling, security hardening, COPPA enforcement |
 | Compliance & Privacy Lead | Elias Vance | `.cursor/rules/elias-compliance-lead.md` | COPPA compliance, privacy policy, data retention, vendor DPAs, regulatory audit readiness |
 | Kid-First UX Designer | Lumi Rivers | `.cursor/rules/lumi-ux-designer.md` | UX flows, microcopy, accessibility, child safety UX, parent portal design |
+| Parent-Focused Growth Marketer | Harper Lane | `.cursor/rules/harper-growth-marketer.md` | Parent acquisition, campaigns, funnels, tracking plans, conversions — within child data boundary |
 
 ---
 
@@ -37,6 +38,8 @@ Each agent should read this file first to understand team structure, then read t
 | Dependency additions | Nova | — (follow standards in Nova's rule file) |
 | Third-party integrations (data/privacy) | Cipher (vets security), Elias (vets compliance) | Atlas (approves) |
 | Regulatory audit readiness, FTC preparation | Elias | Atlas (reviews) |
+| Marketing campaigns, ad copy, landing page messaging | Harper | Atlas (if new scope), Elias (tracking plan) |
+| Tracking/pixel placement on any page | Harper (specs), Nova (implements) | Elias (approves child data boundary) |
 | Launch go/no-go | Atlas | All review `LAUNCH_READINESS.md` |
 
 ---
@@ -94,6 +97,7 @@ Any change that touches auth, COPPA flows, content filtering, PII handling, or i
 - **Cipher:** Your COPPA technical documentation sprint feeds directly into Elias's compliance review. Prioritize it.
 - **Nova:** Expect incoming work: consent versioning schema migration, privacy policy persistent-identifier language, consent email update to include opt-out-of-third-party language. Wait for specs from Elias.
 - **Lumi:** If we need a split consent UI (separate opt-in for AI third-party sharing), you'll design the parent-facing flow. Stand by pending legal review.
+- **Harper:** Before any marketing pixels or tracking go live, confirm the child data boundary with Elias. No tracking in child studio; landing/gallery/ESA tracking requires Elias approval.
 - **Atlas:** Owns the legal review decision on "integral to the service" exception. Will engage external counsel.
 
 ---
@@ -196,6 +200,12 @@ Any change that touches auth, COPPA flows, content filtering, PII handling, or i
 19. [ ] **Vendor DPA status tracker** — create `docs/VENDOR_DPA_STATUS.md`, track DPA status for Anthropic, xAI, Stripe, Resend, Railway. ~1 hr.
 20. [ ] **Review Cipher's COPPA audit documentation** — verify technical claims, check completeness for FTC readiness. ~1 hr.
 21. [ ] **Consent versioning requirements spec** — document the gap, write requirements, hand off to Nova. ~1 hr.
+
+**This week (Harper Lane owns — marketing readiness):**
+26. [ ] **Create `docs/MARKETING_TRACKING_PLAN.md`** — events, surfaces, child data boundary. Hand to Elias for approval. ~2 hrs.
+27. [ ] **Draft `docs/CAMPAIGN_BRIEF_LAUNCH.md`** — parent persona, value prop, 3–5 headline angles, funnel map. Atlas + Elias sign-off. ~2 hrs.
+28. [ ] **Define baseline metrics** — signup %, consent %, time-to-first-game. Map to tracking events. ~1 hr.
+29. [ ] **Get Elias approval** on landing, gallery, and Landing B "Try It Now" tracking boundaries. Document decision. ~30 min.
 
 ### Later — Backlog
 - [ ] Progressive multi-step signup (post-launch A/B test)

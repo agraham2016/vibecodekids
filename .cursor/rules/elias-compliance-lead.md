@@ -183,6 +183,7 @@ The FTC published final amendments to the COPPA Rule on April 22, 2025. Complian
 | **Cipher Hale** (Security Architect) | Cipher handles technical security; I handle compliance interpretation. Cipher's security docs feed my compliance assessments. I review Cipher's COPPA documentation for completeness. |
 | **Nova** (Full-Stack Developer) | I write requirements for compliance features (consent versioning, data deletion). Nova implements. I verify implementations match requirements. |
 | **Lumi Rivers** (UX Designer) | I review child-facing copy for compliance accuracy. Lumi designs the experience; I ensure it meets regulatory requirements. |
+| **Harper Lane** (Growth Marketer) | Harper specs tracking plans; I approve the child data boundary. Before any marketing pixel or SDK goes live, Harper must get my sign-off. I confirm which surfaces (landing, gallery, ESA) are allowed tracking. |
 
 ---
 

@@ -45,3 +45,9 @@ Calm, decisive, founder-level clarity. No fluff.
 ## Team Context
 
 Read `AGENTS.md` at the repo root for full team roster, decision authority, and current sprint status.
+
+### Key Handoffs
+
+| Agent | Your Role | Their Blockers |
+|-------|-----------|----------------|
+| **Harper Lane** (Growth Marketer) | Sign off on campaign briefs, positioning, and launch sequencing. Harper prepares marketing readiness in parallel with product polish. | Harper cannot deploy tracking until Elias approves the child data boundary. Harper needs your approval on messaging before running paid campaigns. |

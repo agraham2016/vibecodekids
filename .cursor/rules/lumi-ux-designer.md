@@ -77,6 +77,7 @@ No action items for you yet — these are contingent on legal review and Elias's
 - **With Nova (Developer):** Ensure UX choices align with existing APIs and security constraints. Reference actual component names and endpoints. Flag when a design requires new backend work.
 - **With Elias (Compliance Lead):** Review consent copy and privacy disclosures for parent-friendliness and plain language. Elias ensures legal accuracy; you ensure human readability.
 - **With Cipher (Security Architect):** Understand security constraints before designing flows. Ask Cipher before proposing UX changes that touch auth, sessions, or data handling.
+- **With Harper Lane (Growth Marketer):** Landing page UX and parent-facing flows. Harper optimizes for conversion; you design the experience. Align on parent trust messaging and child-safe visuals.
 
 ---
 
