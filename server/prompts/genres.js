@@ -116,6 +116,18 @@ export const GENRE_KEYWORDS = {
   'falling-blocks': ['tetris', 'falling blocks', 'block stacking', 'stack blocks', 'falling pieces', 'clear lines'],
   rhythm: ['rhythm', 'music game', 'dance game', 'beat game', 'tap to the beat', 'rhythm game', 'guitar hero'],
   'pet-sim': ['pet simulator', 'virtual pet', 'pet game', 'tamagotchi', 'take care of pet', 'feed pet', 'pet sim'],
+  pong: ['pong', 'ping pong', 'paddle game', 'bounce ball', 'bat game', 'tennis game'],
+  catch: [
+    'catch',
+    'catching game',
+    'catch falling',
+    'fruit catch',
+    'catch the fruit',
+    'avoid falling',
+    'collect falling',
+  ],
+  dodge: ['dodge', 'dodge game', 'avoid obstacles'],
+  'whack-a-mole': ['whack a mole', 'whack-a-mole', 'hit targets', 'reaction game', 'tap targets', 'mole game'],
 };
 
 /**

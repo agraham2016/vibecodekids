@@ -11,6 +11,7 @@ import cors from 'cors';
 import compression from 'compression';
 import crypto from 'crypto';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import os from 'os';
 import { promises as fs } from 'fs';
 import { createServer } from 'http';
@@ -237,6 +238,54 @@ app.get('/faq', (_req, res) => res.sendFile(path.join(PUBLIC_DIR, 'faq.html')));
 app.get('/parent-dashboard', (_req, res) => res.sendFile(path.join(PUBLIC_DIR, 'parent-dashboard.html')));
 app.get('/parent-verify-charge', (_req, res) => res.sendFile(path.join(PUBLIC_DIR, 'parent-verify-charge.html')));
 app.get('/forgot-password/reset', (_req, res) => res.sendFile(path.join(PUBLIC_DIR, 'forgot-password.html')));
+
+// Dev-only: template preview for testing (serves raw template HTML)
+if (!IS_PRODUCTION) {
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+  const TEMPLATES_DIR = path.join(__dirname, 'templates');
+  const ALLOWED_TEMPLATES = [
+    'pong',
+    'catch',
+    'whack-a-mole',
+    'platformer',
+    'shooter',
+    'racing',
+    'frogger',
+    'puzzle',
+    'clicker',
+    'rpg',
+    'endless-runner',
+    'tower-defense',
+    'fighting',
+    'snake',
+    'sports',
+    'brick-breaker',
+    'flappy',
+    'bubble-shooter',
+    'falling-blocks',
+    'rhythm',
+    'pet-sim',
+  ];
+  app.get('/dev/template/:name', async (req, res) => {
+    const name = (req.params.name || '').toLowerCase().replace(/[^a-z0-9-]/g, '');
+    if (!name || !ALLOWED_TEMPLATES.includes(name)) {
+      return res.status(400).send('Invalid template name. Allowed: ' + ALLOWED_TEMPLATES.join(', '));
+    }
+    try {
+      const html = await fs.readFile(path.join(TEMPLATES_DIR, `${name}.html`), 'utf-8');
+      res.setHeader('Content-Type', 'text/html');
+      res.send(html);
+    } catch (err) {
+      res.status(404).send('Template not found: ' + name);
+    }
+  });
+  app.get('/dev/templates', (_req, res) => {
+    const links = ALLOWED_TEMPLATES.map((t) => `<a href="/dev/template/${t}">${t}</a>`).join(' | ');
+    res.send(
+      `<html><head><title>Template Test</title></head><body><h1>Template Test Links</h1><p>${links}</p></body></html>`,
+    );
+  });
+}
 
 // ========== API ROUTES ==========
 

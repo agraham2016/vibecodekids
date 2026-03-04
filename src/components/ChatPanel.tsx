@@ -180,6 +180,24 @@ const GAME_STARTERS = [
     label: 'Pet Buddy',
     prompt: 'Make me a virtual pet game where I feed, play with, and take care of a cute pet!',
   },
+  {
+    genre: 'Arcade',
+    emoji: '🏓',
+    label: 'Paddle Bounce',
+    prompt: 'Make me a pong game where I use a paddle to bounce the ball and play against the computer!',
+  },
+  {
+    genre: 'Arcade',
+    emoji: '🍎',
+    label: 'Catch & Dodge',
+    prompt: 'Make me a catching game where I move a basket to catch good things and dodge the bad ones!',
+  },
+  {
+    genre: 'Arcade',
+    emoji: '👊',
+    label: 'Whack-a-Mole',
+    prompt: 'Make me a whack-a-mole game where I tap the targets before they disappear!',
+  },
 ];
 
 export default function ChatPanel({

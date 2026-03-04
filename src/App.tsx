@@ -289,14 +289,22 @@ function App() {
       {/* Welcome overlay for first-time users */}
       {showWelcomeOverlay && (
         <div className="modal-overlay welcome-overlay" role="dialog" aria-modal="true" aria-label="Welcome">
-          <div className="welcome-card">
+          <div className="welcome-card" onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              className="welcome-close-btn"
+              onClick={handleWelcomeFreeChat}
+              aria-label="Close welcome"
+            >
+              ✕
+            </button>
             <h2>🎮 Welcome, {user.displayName}!</h2>
             <p>Ready to make your first game?</p>
             <div className="welcome-actions">
-              <button className="welcome-btn guided" onClick={handleWelcomeGuided}>
+              <button className="welcome-btn guided" onClick={handleWelcomeGuided} type="button">
                 🧙 Help Me Pick!
               </button>
-              <button className="welcome-btn free" onClick={handleWelcomeFreeChat}>
+              <button className="welcome-btn free" onClick={handleWelcomeFreeChat} type="button">
                 💬 I Know What I Want!
               </button>
             </div>

@@ -238,6 +238,30 @@ const GAME_TEMPLATES = [
     sprite: '/assets/sprites/pet-sim/pet.png',
     emoji: '🐾',
   },
+  {
+    title: 'Paddle Bounce',
+    genre: 'Arcade',
+    description: 'Bounce the ball past your paddle—how long can you last?',
+    gradient: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
+    sprite: '/assets/sprites/brick-breaker/paddle.png',
+    emoji: '🏓',
+  },
+  {
+    title: 'Catch & Dodge',
+    genre: 'Arcade',
+    description: 'Catch the good stuff, dodge the rest',
+    gradient: 'linear-gradient(135deg, #fd79a8 0%, #e84393 50%, #6c5ce7 100%)',
+    sprite: '/assets/sprites/common/star.png',
+    emoji: '🍎',
+  },
+  {
+    title: 'Whack-a-Mole',
+    genre: 'Arcade',
+    description: 'Tap the targets before they disappear',
+    gradient: 'linear-gradient(135deg, #e84393 0%, #fd79a8 50%, #fdcb6e 100%)',
+    sprite: '/assets/sprites/common/star.png',
+    emoji: '👊',
+  },
 ];
 
 const SHOWCASE_NAMES = [
@@ -688,7 +712,7 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
 
         {/* ── 6. Template Grid (existing) ── */}
         <section className="template-showcase">
-          <h2 className="section-heading">18 Game Types to Vibecode</h2>
+          <h2 className="section-heading">21 Game Types to Vibecode</h2>
           <p className="section-subheading">Pick a template or describe something totally new</p>
           <div className="template-grid">
             {GAME_TEMPLATES.map((tmpl) => (

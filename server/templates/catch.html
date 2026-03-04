@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #fd79a8 0%, #e84393 50%, #6c5ce7 100%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      touch-action: none;
+    }
+    #game-container {
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.86.0/dist/phaser.min.js" crossorigin="anonymous"></script>
+</head>
+<body>
+  <div id="game-container"></div>
+  <script>
+    const W = 800, H = 500;
+    const BASKET_W = 80, BASKET_H = 50;
+    const ITEM_R = 16;
+    const FALL_SPEED = 120;
+    const SPAWN_INTERVAL = 900;
+    const PLAYER_SPEED = 380;
+    const GOOD_COLORS = [0xfdcb6e, 0x55efc4, 0x74b9ff, 0xa29bfe];
+    const BAD_COLOR = 0x2d3436;
+
+    let player, fallingItems, score, lives, gameState;
+    let scoreText, livesText, msgText, cursors;
+
+    const config = {
+      type: Phaser.AUTO,
+      width: W,
+      height: H,
+      parent: 'game-container',
+      backgroundColor: '#2d1b69',
+      physics: { default: 'arcade', arcade: { gravity: { y: 0 }, debug: false } },
+      scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
+      scene: { preload, create, update }
+    };
+
+    function preload() {
+      this.load.audio('coinSfx', '/assets/sounds/coin.wav');
+      this.load.audio('hitSfx', '/assets/sounds/hit.wav');
+    }
+
+    function create() {
+      const g = this.make.graphics({ add: false });
+
+      g.fillStyle(0x55efc4);
+      g.fillRoundedRect(0, 0, BASKET_W, BASKET_H, 8);
+      g.fillStyle(0x00b894);
+      g.fillRoundedRect(4, 4, BASKET_W - 8, BASKET_H - 8, 6);
+      g.fillStyle(0x55efc4);
+      g.fillTriangle(BASKET_W / 2 - 20, BASKET_H, BASKET_W / 2, BASKET_H + 12, BASKET_W / 2 + 20, BASKET_H);
+      g.generateTexture('basket', BASKET_W, BASKET_H + 15);
+      g.clear();
+
+      g.fillStyle(0xffffff);
+      g.fillCircle(ITEM_R, ITEM_R, ITEM_R - 2);
+      g.generateTexture('good', ITEM_R * 2, ITEM_R * 2);
+      g.clear();
+
+      g.fillStyle(0x2d3436);
+      g.fillCircle(ITEM_R, ITEM_R, ITEM_R - 2);
+      g.fillStyle(0x636e72);
+      g.fillCircle(ITEM_R - 4, ITEM_R - 4, 4);
+      g.generateTexture('bad', ITEM_R * 2, ITEM_R * 2);
+      g.destroy();
+
+      const bg = this.add.graphics();
+      bg.fillStyle(0x2d1b69);
+      bg.fillRect(0, 0, W, H);
+      for (let i = 0; i < 60; i++) {
+        bg.fillStyle(0xffffff, Phaser.Math.FloatBetween(0.03, 0.12));
+        bg.fillCircle(Phaser.Math.Between(0, W), Phaser.Math.Between(0, H), Phaser.Math.Between(1, 3));
+      }
+
+      score = 0;
+      lives = 3;
+      gameState = 'playing';
+
+      player = this.physics.add.image(W / 2, H - 45, 'basket');
+      player.setDepth(10);
+      player.setImmovable(true);
+      player.body.setSize(BASKET_W - 20, BASKET_H - 10);
+      player.body.setOffset(10, 5);
+
+      fallingItems = this.physics.add.group();
+
+      this.physics.add.overlap(player, fallingItems, catchItem, null, this);
+
+      scoreText = this.add.text(12, 12, 'Score: 0', {
+        fontSize: '20px', fontFamily: 'Segoe UI', fill: '#fdcb6e', stroke: '#000', strokeThickness: 2
+      }).setDepth(10);
+
+      livesText = this.add.text(W - 12, 12, 'Lives: 3', {
+        fontSize: '20px', fontFamily: 'Segoe UI', fill: '#e17055', stroke: '#000', strokeThickness: 2
+      }).setOrigin(1, 0).setDepth(10);
+
+      msgText = this.add.text(W / 2, H / 2, '', {
+        fontSize: '28px', fontFamily: 'Segoe UI', fill: '#fff', stroke: '#000', strokeThickness: 4, align: 'center'
+      }).setOrigin(0.5).setDepth(20).setVisible(false);
+
+      cursors = this.input.keyboard.createCursorKeys();
+
+      this.input.on('pointermove', (pointer) => {
+        if (gameState === 'playing') {
+          player.x = Phaser.Math.Clamp(pointer.x, BASKET_W / 2, W - BASKET_W / 2);
+        }
+      });
+
+      this.input.on('pointerdown', () => {
+        if (gameState === 'gameover') {
+          gameState = 'playing';
+          this.scene.restart();
+        }
+      });
+
+      this.input.keyboard.on('keydown-SPACE', () => {
+        if (gameState === 'gameover') {
+          gameState = 'playing';
+          this.scene.restart();
+        }
+      });
+
+      this.spawnTimer = this.time.addEvent({
+        delay: SPAWN_INTERVAL, callback: spawnItem, callbackScope: this, loop: true
+      });
+      spawnItem.call(this);
+    }
+
+    function spawnItem() {
+      if (gameState !== 'playing') return;
+
+      const isGood = Math.random() < 0.75;
+      const key = isGood ? 'good' : 'bad';
+      const x = Phaser.Math.Between(ITEM_R * 2, W - ITEM_R * 2);
+      const item = fallingItems.create(x, -ITEM_R * 2, key);
+      item.setCircle(ITEM_R - 2);
+      item.body.allowGravity = false;
+      item.setVelocityY(FALL_SPEED);
+      item.isGood = isGood;
+      if (isGood) {
+        item.setTint(GOOD_COLORS[Phaser.Math.Between(0, GOOD_COLORS.length - 1)]);
+      }
+    }
+
+    function catchItem(playerObj, item) {
+      if (!item.active) return;
+
+      if (item.isGood) {
+        score += 10;
+        scoreText.setText('Score: ' + score);
+        if (this.cache.audio.exists('coinSfx')) this.sound.play('coinSfx', { volume: 0.5 });
+        this.tweens.add({ targets: scoreText, scale: 1.2, duration: 80, yoyo: true });
+      } else {
+        lives--;
+        livesText.setText('Lives: ' + lives);
+        if (this.cache.audio.exists('hitSfx')) this.sound.play('hitSfx', { volume: 0.6 });
+        this.cameras.main.shake(120, 0.008);
+        if (lives <= 0) {
+          gameState = 'gameover';
+          this.spawnTimer.remove();
+          msgText.setText('GAME OVER\nScore: ' + score + '\nClick or SPACE to restart').setVisible(true);
+        }
+      }
+
+      item.destroy();
+    }
+
+    function update() {
+      if (gameState !== 'playing') return;
+
+      if (cursors.left.isDown) {
+        player.x = Math.max(player.x - PLAYER_SPEED * (1 / 60), BASKET_W / 2);
+      } else if (cursors.right.isDown) {
+        player.x = Math.min(player.x + PLAYER_SPEED * (1 / 60), W - BASKET_W / 2);
+      }
+
+      fallingItems.getChildren().forEach(item => {
+        if (!item.active) return;
+        if (item.y > H + 30) {
+          if (item.isGood) {
+            lives--;
+            livesText.setText('Lives: ' + lives);
+            if (lives <= 0) {
+              gameState = 'gameover';
+              this.spawnTimer.remove();
+              msgText.setText('GAME OVER\nScore: ' + score + '\nClick or SPACE to restart').setVisible(true);
+            }
+          }
+          item.destroy();
+        }
+      });
+    }
+
+    new Phaser.Game(config);
+  </script>
+</body>
+</html>

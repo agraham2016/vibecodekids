@@ -1,6 +1,6 @@
 /**
  * Snippet Library Index
- * 
+ *
  * Maps snippet names to their content and the genres/keywords they're relevant for.
  * The reference resolver uses this to pick which snippets to inject.
  */
@@ -25,7 +25,20 @@ export const SNIPPET_LIBRARY = [
   {
     name: 'physics-2d',
     content: PHYSICS_2D_SNIPPET,
-    genres: ['platformer', 'shooter', 'frogger', 'rpg', 'fighting', 'endless-runner', 'snake', 'sports', 'brick-breaker', 'flappy'],
+    genres: [
+      'platformer',
+      'shooter',
+      'frogger',
+      'rpg',
+      'fighting',
+      'endless-runner',
+      'snake',
+      'sports',
+      'brick-breaker',
+      'flappy',
+      'pong',
+      'catch',
+    ],
     keywords: ['gravity', 'jump', 'bounce', 'collision', 'physics', 'platform'],
     charCount: PHYSICS_2D_SNIPPET.length,
   },
@@ -39,14 +52,39 @@ export const SNIPPET_LIBRARY = [
   {
     name: 'particle-system',
     content: PARTICLE_SYSTEM_SNIPPET,
-    genres: ['shooter', 'platformer', 'racing', 'fighting', 'street-racing', 'tower-defense', 'endless-runner', 'brick-breaker', 'flappy', 'bubble-shooter'],
+    genres: [
+      'shooter',
+      'platformer',
+      'racing',
+      'fighting',
+      'street-racing',
+      'tower-defense',
+      'endless-runner',
+      'brick-breaker',
+      'flappy',
+      'bubble-shooter',
+      'pong',
+      'catch',
+      'whack-a-mole',
+    ],
     keywords: ['explosion', 'particles', 'confetti', 'trail', 'effects', 'juice', 'screen shake', 'sparkle'],
     charCount: PARTICLE_SYSTEM_SNIPPET.length,
   },
   {
     name: 'sound-engine',
     content: SOUND_ENGINE_SNIPPET,
-    genres: ['racing', 'shooter', 'platformer', 'fighting', 'street-racing', 'rhythm', 'endless-runner'],
+    genres: [
+      'racing',
+      'shooter',
+      'platformer',
+      'fighting',
+      'street-racing',
+      'rhythm',
+      'endless-runner',
+      'pong',
+      'catch',
+      'whack-a-mole',
+    ],
     keywords: ['sound', 'audio', 'music', 'beep', 'engine sound', 'sound effects', 'sfx'],
     charCount: SOUND_ENGINE_SNIPPET.length,
   },
@@ -60,7 +98,19 @@ export const SNIPPET_LIBRARY = [
   {
     name: 'ui-components',
     content: UI_COMPONENTS_SNIPPET,
-    genres: ['rpg', 'racing', 'shooter', 'street-racing', 'tower-defense', 'fighting', 'sports', 'brick-breaker'],
+    genres: [
+      'rpg',
+      'racing',
+      'shooter',
+      'street-racing',
+      'tower-defense',
+      'fighting',
+      'sports',
+      'brick-breaker',
+      'pong',
+      'catch',
+      'whack-a-mole',
+    ],
     keywords: ['hud', 'health bar', 'score', 'menu', 'shop', 'garage', 'title screen', 'game over', 'minimap', 'combo'],
     charCount: UI_COMPONENTS_SNIPPET.length,
   },
@@ -74,7 +124,29 @@ export const SNIPPET_LIBRARY = [
   {
     name: 'sprite-loader',
     content: SPRITE_LOADER_SNIPPET,
-    genres: ['platformer', 'shooter', 'racing', 'rpg', 'puzzle', 'clicker', 'frogger', 'endless-runner', 'fighting', 'tower-defense', 'snake', 'sports', 'brick-breaker', 'flappy', 'bubble-shooter', 'falling-blocks', 'rhythm', 'pet-sim'],
+    genres: [
+      'platformer',
+      'shooter',
+      'racing',
+      'rpg',
+      'puzzle',
+      'clicker',
+      'frogger',
+      'endless-runner',
+      'fighting',
+      'tower-defense',
+      'snake',
+      'sports',
+      'brick-breaker',
+      'flappy',
+      'bubble-shooter',
+      'falling-blocks',
+      'rhythm',
+      'pet-sim',
+      'pong',
+      'catch',
+      'whack-a-mole',
+    ],
     keywords: ['sprite', 'image', 'texture', 'sound', 'audio', 'asset', 'load', 'preload'],
     charCount: SPRITE_LOADER_SNIPPET.length,
   },
@@ -96,7 +168,10 @@ export function getRelevantSnippets(genre, prompt) {
 
     // Keyword match
     for (const kw of snippet.keywords) {
-      if (lower.includes(kw)) { score += 1; break; }
+      if (lower.includes(kw)) {
+        score += 1;
+        break;
+      }
     }
 
     if (score > 0) matched.push({ ...snippet, score });

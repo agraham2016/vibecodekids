@@ -407,9 +407,12 @@
 
 .welcome-overlay {
   z-index: 1100;
+  pointer-events: auto;
 }
 
 .welcome-card {
+  position: relative;
+  pointer-events: auto;
   background: linear-gradient(145deg, #1e1b4b, #312e81);
   border: 2px solid rgba(139, 92, 246, 0.4);
   border-radius: 24px;
@@ -466,6 +469,30 @@
   background: rgba(255, 255, 255, 0.1);
   color: #e0e7ff;
   border: 1px solid rgba(139, 92, 246, 0.4);
+}
+
+.welcome-close-btn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.welcome-close-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
 }
 
 @keyframes welcomePop {

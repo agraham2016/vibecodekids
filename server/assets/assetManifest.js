@@ -8,7 +8,13 @@ export const ASSET_MANIFEST = {
   platformer: {
     sprites: [
       { key: 'player', path: '/assets/sprites/platformer/player.png', w: 32, h: 32 },
-      { key: 'tiles', path: '/assets/sprites/platformer/tiles.png', w: 16, h: 16, note: 'tileset: 4 tiles (grass, dirt, stone, brick) in a row' },
+      {
+        key: 'tiles',
+        path: '/assets/sprites/platformer/tiles.png',
+        w: 16,
+        h: 16,
+        note: 'tileset: 4 tiles (grass, dirt, stone, brick) in a row',
+      },
       { key: 'coin', path: '/assets/sprites/platformer/coin.png', w: 16, h: 16 },
       { key: 'enemy', path: '/assets/sprites/platformer/enemy.png', w: 32, h: 32 },
       { key: 'platform', path: '/assets/sprites/platformer/platform.png', w: 64, h: 16 },
@@ -20,7 +26,13 @@ export const ASSET_MANIFEST = {
       { key: 'ship', path: '/assets/sprites/shooter/ship.png', w: 32, h: 48 },
       { key: 'enemy', path: '/assets/sprites/shooter/enemy.png', w: 28, h: 28 },
       { key: 'bullet', path: '/assets/sprites/shooter/bullet.png', w: 8, h: 16 },
-      { key: 'explosion', path: '/assets/sprites/shooter/explosion.png', w: 64, h: 64, note: 'spritesheet: 4 frames in a row (256x64), frameWidth: 64' },
+      {
+        key: 'explosion',
+        path: '/assets/sprites/shooter/explosion.png',
+        w: 64,
+        h: 64,
+        note: 'spritesheet: 4 frames in a row (256x64), frameWidth: 64',
+      },
     ],
     sounds: ['explosion', 'hit', 'powerup', 'win', 'lose'],
   },
@@ -28,7 +40,13 @@ export const ASSET_MANIFEST = {
     sprites: [
       { key: 'car-player', path: '/assets/sprites/racing/car-player.png', w: 24, h: 40 },
       { key: 'car-obstacle', path: '/assets/sprites/racing/car-obstacle.png', w: 24, h: 40 },
-      { key: 'road', path: '/assets/sprites/racing/road.png', w: 16, h: 16, note: 'tileable road tile with dashed center line' },
+      {
+        key: 'road',
+        path: '/assets/sprites/racing/road.png',
+        w: 16,
+        h: 16,
+        note: 'tileable road tile with dashed center line',
+      },
     ],
     sounds: ['hit', 'explosion', 'win', 'lose'],
   },
@@ -43,7 +61,13 @@ export const ASSET_MANIFEST = {
   },
   puzzle: {
     sprites: [
-      { key: 'gems', path: '/assets/sprites/puzzle/gems.png', w: 32, h: 32, note: 'spritesheet: 6 colored gems in a row (192x32), frameWidth: 32' },
+      {
+        key: 'gems',
+        path: '/assets/sprites/puzzle/gems.png',
+        w: 32,
+        h: 32,
+        note: 'spritesheet: 6 colored gems in a row (192x32), frameWidth: 32',
+      },
     ],
     sounds: ['coin', 'click', 'win', 'lose'],
   },
@@ -124,20 +148,38 @@ export const ASSET_MANIFEST = {
   },
   'bubble-shooter': {
     sprites: [
-      { key: 'bubbles', path: '/assets/sprites/bubble-shooter/bubbles.png', w: 32, h: 32, note: 'spritesheet: 6 colored bubbles (192x32), frameWidth: 32' },
+      {
+        key: 'bubbles',
+        path: '/assets/sprites/bubble-shooter/bubbles.png',
+        w: 32,
+        h: 32,
+        note: 'spritesheet: 6 colored bubbles (192x32), frameWidth: 32',
+      },
       { key: 'arrow', path: '/assets/sprites/bubble-shooter/arrow.png', w: 16, h: 48 },
     ],
     sounds: ['hit', 'coin', 'explosion', 'win', 'lose'],
   },
   'falling-blocks': {
     sprites: [
-      { key: 'blocks', path: '/assets/sprites/falling-blocks/blocks.png', w: 28, h: 28, note: 'spritesheet: 7 colored blocks (196x32), frameWidth: 28' },
+      {
+        key: 'blocks',
+        path: '/assets/sprites/falling-blocks/blocks.png',
+        w: 28,
+        h: 28,
+        note: 'spritesheet: 7 colored blocks (196x32), frameWidth: 28',
+      },
     ],
     sounds: ['click', 'coin', 'win', 'lose'],
   },
   rhythm: {
     sprites: [
-      { key: 'arrows', path: '/assets/sprites/rhythm/arrows.png', w: 32, h: 32, note: 'spritesheet: 4 colored arrows (128x32), frameWidth: 32' },
+      {
+        key: 'arrows',
+        path: '/assets/sprites/rhythm/arrows.png',
+        w: 32,
+        h: 32,
+        note: 'spritesheet: 4 colored arrows (128x32), frameWidth: 32',
+      },
       { key: 'target', path: '/assets/sprites/rhythm/target.png', w: 32, h: 32 },
     ],
     sounds: ['hit', 'coin', 'click', 'win', 'lose'],
@@ -150,6 +192,28 @@ export const ASSET_MANIFEST = {
       { key: 'toy', path: '/assets/sprites/pet-sim/toy.png', w: 24, h: 24 },
     ],
     sounds: ['click', 'coin', 'powerup', 'win', 'lose'],
+  },
+  pong: {
+    sprites: [
+      { key: 'paddle', path: '/assets/sprites/brick-breaker/paddle.png', w: 64, h: 12 },
+      { key: 'ball', path: '/assets/sprites/brick-breaker/ball.png', w: 12, h: 12 },
+    ],
+    sounds: ['hit', 'coin', 'win', 'lose'],
+  },
+  catch: {
+    sprites: [
+      { key: 'basket', path: '/assets/sprites/common/star.png', w: 16, h: 16, note: 'or generate procedurally' },
+      { key: 'good', path: '/assets/sprites/common/star.png', w: 16, h: 16 },
+      { key: 'bad', path: '/assets/sprites/common/star.png', w: 16, h: 16, note: 'use tint for bad item' },
+    ],
+    sounds: ['coin', 'hit', 'win', 'lose'],
+  },
+  'whack-a-mole': {
+    sprites: [
+      { key: 'mole', path: '/assets/sprites/common/star.png', w: 16, h: 16, note: 'or generate procedurally' },
+      { key: 'hole', path: '/assets/sprites/common/star.png', w: 16, h: 16, note: 'or generate procedurally' },
+    ],
+    sounds: ['hit', 'coin', 'win', 'lose'],
   },
   common: {
     sprites: [
@@ -203,7 +267,7 @@ export function formatAssetsForPrompt(genre) {
   }
 
   lines.push('');
-  lines.push('Play sounds: this.sound.play(\'coin\');');
+  lines.push("Play sounds: this.sound.play('coin');");
   lines.push('If a sprite does not match the theme, generate a texture procedurally instead.');
 
   return lines.join('\n');

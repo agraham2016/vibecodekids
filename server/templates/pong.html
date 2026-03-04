@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      touch-action: none;
+    }
+    #game-container {
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.86.0/dist/phaser.min.js" crossorigin="anonymous"></script>
+</head>
+<body>
+  <div id="game-container"></div>
+  <script>
+    const W = 800, H = 500;
+    const PADDLE_W = 100, PADDLE_H = 14;
+    const BALL_R = 8;
+    const BALL_SPEED = 320;
+    const PADDLE_SPEED = 400;
+    const CPU_SPEED = 200;
+    const WIN_SCORE = 11;
+
+    let playerPaddle, cpuPaddle, ball, playerScore, cpuScore, gameState;
+    let msgText, scoreboardText, cursors;
+
+    const config = {
+      type: Phaser.AUTO,
+      width: W,
+      height: H,
+      parent: 'game-container',
+      backgroundColor: '#1a1a2e',
+      physics: { default: 'arcade', arcade: { gravity: { y: 0 }, debug: false } },
+      scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
+      scene: { preload, create, update }
+    };
+
+    function preload() {
+      this.load.audio('hitSfx', '/assets/sounds/hit.wav');
+      this.load.audio('coinSfx', '/assets/sounds/coin.wav');
+    }
+
+    function create() {
+      const g = this.make.graphics({ add: false });
+
+      g.fillStyle(0xffffff);
+      g.fillRoundedRect(0, 0, PADDLE_W, PADDLE_H, 6);
+      g.generateTexture('paddle', PADDLE_W, PADDLE_H);
+      g.clear();
+
+      g.fillStyle(0xffffff);
+      g.fillCircle(BALL_R, BALL_R, BALL_R);
+      g.fillStyle(0xe0e0e0, 0.5);
+      g.fillCircle(BALL_R - 2, BALL_R - 2, 3);
+      g.generateTexture('ball', BALL_R * 2, BALL_R * 2);
+      g.destroy();
+
+      const bg = this.add.graphics();
+      bg.fillStyle(0x1a1a2e);
+      bg.fillRect(0, 0, W, H);
+      bg.fillStyle(0xffffff, 0.08);
+      bg.fillRect(W / 2 - 2, 0, 4, H);
+      for (let i = 0; i < 20; i++) {
+        bg.fillRect(W / 2 - 1, i * 25, 2, 12);
+      }
+
+      playerScore = 0;
+      cpuScore = 0;
+      gameState = 'playing';
+
+      playerPaddle = this.physics.add.sprite(W / 2, H - 36, 'paddle');
+      playerPaddle.setImmovable(true);
+      playerPaddle.setCollideWorldBounds(true);
+      playerPaddle.body.allowGravity = false;
+
+      cpuPaddle = this.physics.add.sprite(W / 2, 36, 'paddle');
+      cpuPaddle.setImmovable(true);
+      cpuPaddle.setCollideWorldBounds(true);
+      cpuPaddle.body.allowGravity = false;
+
+      const leftWall = this.add.rectangle(-5, H / 2, 10, H * 2, 0, 0);
+      const rightWall = this.add.rectangle(W + 5, H / 2, 10, H * 2, 0, 0);
+      this.physics.add.existing(leftWall, true);
+      this.physics.add.existing(rightWall, true);
+
+      ball = this.physics.add.sprite(W / 2, H / 2, 'ball');
+      ball.setCircle(BALL_R);
+      ball.setBounce(1);
+      ball.body.allowGravity = false;
+
+      this.physics.add.collider(ball, leftWall);
+      this.physics.add.collider(ball, rightWall);
+      this.physics.add.collider(ball, playerPaddle, hitPlayerPaddle, null, this);
+      this.physics.add.collider(ball, cpuPaddle, hitCpuPaddle, null, this);
+
+      serveBall(this, 1);
+
+      scoreboardText = this.add.text(W / 2, 28, '0  -  0', {
+        fontSize: '32px', fontFamily: 'Segoe UI', fill: '#fff', stroke: '#000', strokeThickness: 4
+      }).setOrigin(0.5).setDepth(10);
+
+      this.add.text(W / 2 - 80, 28, 'You', {
+        fontSize: '14px', fontFamily: 'Segoe UI', fill: '#55efc4'
+      }).setOrigin(0.5).setDepth(10);
+
+      this.add.text(W / 2 + 80, 28, 'CPU', {
+        fontSize: '14px', fontFamily: 'Segoe UI', fill: '#e94560'
+      }).setOrigin(0.5).setDepth(10);
+
+      msgText = this.add.text(W / 2, H / 2, '', {
+        fontSize: '26px', fontFamily: 'Segoe UI', fill: '#fff', stroke: '#000', strokeThickness: 4, align: 'center'
+      }).setOrigin(0.5).setDepth(20).setVisible(false);
+
+      cursors = this.input.keyboard.createCursorKeys();
+
+      this.input.on('pointermove', (pointer) => {
+        if (gameState === 'playing') {
+          playerPaddle.x = Phaser.Math.Clamp(pointer.x, PADDLE_W / 2, W - PADDLE_W / 2);
+          playerPaddle.body.updateFromGameObject();
+        }
+      });
+
+      this.input.on('pointerdown', () => {
+        if (gameState === 'gameover') {
+          gameState = 'playing';
+          this.scene.restart();
+        }
+      });
+
+      this.input.keyboard.on('keydown-SPACE', () => {
+        if (gameState === 'gameover') {
+          gameState = 'playing';
+          this.scene.restart();
+        }
+      });
+    }
+
+    function hitPlayerPaddle(b, p) {
+      if (this.cache.audio.exists('hitSfx')) this.sound.play('hitSfx', { volume: 0.4 });
+
+      const diff = (b.x - p.x) / (PADDLE_W / 2);
+      const angle = diff * 1.1;
+      const speed = Phaser.Math.Distance.Between(0, 0, b.body.velocity.x, b.body.velocity.y) || BALL_SPEED;
+      const clampedSpeed = Phaser.Math.Clamp(speed, BALL_SPEED * 0.95, BALL_SPEED * 1.15);
+      b.setVelocity(Math.sin(angle) * clampedSpeed, -Math.abs(Math.cos(angle) * clampedSpeed));
+
+      this.tweens.add({ targets: p, scaleX: 1.05, scaleY: 0.95, duration: 60, yoyo: true });
+    }
+
+    function hitCpuPaddle(b, p) {
+      if (this.cache.audio.exists('hitSfx')) this.sound.play('hitSfx', { volume: 0.4 });
+
+      const diff = (b.x - p.x) / (PADDLE_W / 2);
+      const angle = diff * 1.1;
+      const speed = Phaser.Math.Distance.Between(0, 0, b.body.velocity.x, b.body.velocity.y) || BALL_SPEED;
+      const clampedSpeed = Phaser.Math.Clamp(speed, BALL_SPEED * 0.95, BALL_SPEED * 1.15);
+      b.setVelocity(Math.sin(angle) * clampedSpeed, Math.abs(Math.cos(angle) * clampedSpeed));
+
+      this.tweens.add({ targets: p, scaleX: 1.05, scaleY: 0.95, duration: 60, yoyo: true });
+    }
+
+    function serveBall(scene, towardPlayer) {
+      ball.setPosition(W / 2, H / 2);
+      ball.setVelocity(0, 0);
+      scene.time.delayedCall(600, () => {
+        if (ball && ball.active && gameState === 'playing') {
+          const angle = Phaser.Math.FloatBetween(-0.4, 0.4);
+          const sign = towardPlayer ? 1 : -1;
+          ball.setVelocity(Math.sin(angle) * BALL_SPEED, sign * BALL_SPEED);
+        }
+      });
+    }
+
+    function onScore(scene, scorer) {
+      if (scorer === 'player') {
+        playerScore++;
+        if (scene.cache.audio.exists('coinSfx')) scene.sound.play('coinSfx', { volume: 0.5 });
+      } else {
+        cpuScore++;
+        if (scene.cache.audio.exists('hitSfx')) scene.sound.play('hitSfx', { volume: 0.3 });
+      }
+
+      scoreboardText.setText(playerScore + '  -  ' + cpuScore);
+
+      if (playerScore >= WIN_SCORE || cpuScore >= WIN_SCORE) {
+        gameState = 'gameover';
+        ball.destroy();
+        const winner = playerScore >= WIN_SCORE ? 'YOU WIN!' : 'CPU wins!';
+        msgText.setText(winner + '\n' + playerScore + ' - ' + cpuScore + '\nClick or SPACE to play again').setVisible(true);
+      } else {
+        serveBall(scene, scorer === 'cpu');
+      }
+    }
+
+    function update() {
+      if (gameState !== 'playing') return;
+
+      if (cursors.left.isDown) {
+        playerPaddle.x = Math.max(playerPaddle.x - PADDLE_SPEED * (1 / 60), PADDLE_W / 2);
+      } else if (cursors.right.isDown) {
+        playerPaddle.x = Math.min(playerPaddle.x + PADDLE_SPEED * (1 / 60), W - PADDLE_W / 2);
+      }
+      playerPaddle.body.updateFromGameObject();
+
+      if (ball.body.velocity.y < 0 && ball.y < H * 0.7) {
+        const dx = ball.x - cpuPaddle.x;
+        const reaction = Phaser.Math.FloatBetween(0.035, 0.06);
+        let move = Phaser.Math.Clamp(dx * reaction, -CPU_SPEED * (1 / 60), CPU_SPEED * (1 / 60));
+        if (Math.random() < 0.06) move = -move;
+        cpuPaddle.x = Phaser.Math.Clamp(cpuPaddle.x + move + (Phaser.Math.Between(-2, 2)), PADDLE_W / 2, W - PADDLE_W / 2);
+        cpuPaddle.body.updateFromGameObject();
+      }
+
+      if (ball.active && ball.y > H + 20) {
+        ball.setVelocity(0, 0);
+        onScore(this, 'cpu');
+      }
+      if (ball.active && ball.y < -20) {
+        ball.setVelocity(0, 0);
+        onScore(this, 'player');
+      }
+
+      const speed = ball.active ? Phaser.Math.Distance.Between(0, 0, ball.body.velocity.x, ball.body.velocity.y) : 0;
+      if (speed > 0 && speed < BALL_SPEED * 0.9) {
+        const ratio = BALL_SPEED / speed;
+        ball.setVelocity(ball.body.velocity.x * ratio, ball.body.velocity.y * ratio);
+      }
+    }
+
+    new Phaser.Game(config);
+  </script>
+</body>
+</html>

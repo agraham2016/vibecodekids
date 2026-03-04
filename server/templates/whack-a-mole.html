@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #e84393 0%, #fd79a8 50%, #fdcb6e 100%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      touch-action: none;
+    }
+    #game-container {
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.86.0/dist/phaser.min.js" crossorigin="anonymous"></script>
+</head>
+<body>
+  <div id="game-container"></div>
+  <script>
+    const W = 800, H = 500;
+    const COLS = 4, ROWS = 3;
+    const HOLE_R = 44;
+    const MOLE_R = 36;
+    const PAD = 40;
+    const VISIBLE_MIN = 600, VISIBLE_MAX = 1400;
+    const SPAWN_INTERVAL = 500;
+    const ROUND_TIME = 30000;
+
+    let holes, moles, score, timeLeft, gameState;
+    let scoreText, timeText, msgText;
+    let roundTimer, spawnTimer;
+
+    const config = {
+      type: Phaser.AUTO,
+      width: W,
+      height: H,
+      parent: 'game-container',
+      backgroundColor: '#6c5ce7',
+      scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
+      scene: { preload, create, update }
+    };
+
+    function preload() {
+      this.load.audio('hitSfx', '/assets/sounds/hit.wav');
+      this.load.audio('coinSfx', '/assets/sounds/coin.wav');
+    }
+
+    function create() {
+      const g = this.make.graphics({ add: false });
+
+      g.fillStyle(0x2d3436);
+      g.fillEllipse(HOLE_R, HOLE_R, HOLE_R * 1.8, HOLE_R);
+      g.fillStyle(0x1a1a1a);
+      g.fillEllipse(HOLE_R, HOLE_R, HOLE_R * 1.5, HOLE_R * 0.85);
+      g.generateTexture('hole', HOLE_R * 2, HOLE_R * 2);
+      g.clear();
+
+      g.fillStyle(0x8b7355);
+      g.fillCircle(MOLE_R, MOLE_R, MOLE_R - 2);
+      g.fillStyle(0x5d4e37);
+      g.fillCircle(MOLE_R - 8, MOLE_R - 6, 6);
+      g.fillCircle(MOLE_R + 6, MOLE_R - 4, 5);
+      g.fillStyle(0xffffff);
+      g.fillCircle(MOLE_R - 6, MOLE_R - 4, 4);
+      g.fillCircle(MOLE_R + 8, MOLE_R - 6, 3);
+      g.fillStyle(0x2d3436);
+      g.fillCircle(MOLE_R - 6, MOLE_R - 4, 2);
+      g.fillCircle(MOLE_R + 8, MOLE_R - 6, 1.5);
+      g.generateTexture('mole', MOLE_R * 2, MOLE_R * 2);
+      g.destroy();
+
+      const gridW = COLS * (HOLE_R * 2 + PAD) - PAD;
+      const gridH = ROWS * (HOLE_R * 2 + PAD) - PAD;
+      const startX = (W - gridW) / 2 + HOLE_R + PAD / 2;
+      const startY = (H - gridH) / 2 + HOLE_R + PAD / 2;
+
+      const bg = this.add.graphics();
+      bg.fillStyle(0x5b4d9e);
+      bg.fillRect(0, 0, W, H);
+      bg.fillStyle(0xffffff, 0.1);
+      for (let i = 0; i < 80; i++) {
+        bg.fillCircle(Phaser.Math.Between(0, W), Phaser.Math.Between(0, H), Phaser.Math.Between(2, 5));
+      }
+
+      holes = [];
+      moles = [];
+
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+          const x = startX + c * (HOLE_R * 2 + PAD);
+          const y = startY + r * (HOLE_R * 2 + PAD);
+          const hole = this.add.image(x, y, 'hole');
+          holes.push({ x, y, mole: null });
+        }
+      }
+
+      score = 0;
+      timeLeft = ROUND_TIME;
+      gameState = 'playing';
+
+      scoreText = this.add.text(12, 12, 'Score: 0', {
+        fontSize: '22px', fontFamily: 'Segoe UI', fill: '#fdcb6e', stroke: '#000', strokeThickness: 3
+      }).setDepth(10);
+
+      timeText = this.add.text(W - 12, 12, '30', {
+        fontSize: '22px', fontFamily: 'Segoe UI', fill: '#55efc4', stroke: '#000', strokeThickness: 3
+      }).setOrigin(1, 0).setDepth(10);
+
+      msgText = this.add.text(W / 2, H / 2, '', {
+        fontSize: '32px', fontFamily: 'Segoe UI', fill: '#fff', stroke: '#000', strokeThickness: 5, align: 'center'
+      }).setOrigin(0.5).setDepth(20).setVisible(false);
+
+      spawnTimer = this.time.addEvent({
+        delay: SPAWN_INTERVAL, callback: spawnMole, callbackScope: this, loop: true
+      });
+
+      roundTimer = this.time.addEvent({
+        delay: ROUND_TIME, callback: endRound, callbackScope: this
+      });
+    }
+
+    function spawnMole() {
+      if (gameState !== 'playing') return;
+
+      const emptyHoles = holes.filter(h => !h.mole || !h.mole.active);
+      if (emptyHoles.length === 0) return;
+
+      const hole = Phaser.Utils.Array.GetRandom(emptyHoles);
+      const mole = this.add.image(hole.x, hole.y, 'mole');
+      mole.setDepth(5);
+      mole.setInteractive({ useHandCursor: true });
+      mole.tint = Phaser.Math.Between(0, 1) ? 0x8b7355 : 0xa0826d;
+      mole.on('pointerdown', () => whack(this, mole, hole));
+
+      hole.mole = mole;
+      moles.push(mole);
+
+      const visibleTime = Phaser.Math.Between(VISIBLE_MIN, VISIBLE_MAX);
+      this.time.delayedCall(visibleTime, () => {
+        if (mole.active) hideMole(this, mole, hole);
+      });
+    }
+
+    function whack(scene, mole, hole) {
+      if (!mole.active) return;
+
+      score += 10;
+      scoreText.setText('Score: ' + score);
+      if (scene.cache.audio.exists('hitSfx')) scene.sound.play('hitSfx', { volume: 0.6 });
+      scene.tweens.add({ targets: scoreText, scale: 1.2, duration: 80, yoyo: true });
+
+      scene.tweens.add({
+        targets: mole,
+        scaleX: 1.3, scaleY: 0.5, duration: 120,
+        onComplete: () => {
+          mole.destroy();
+          hole.mole = null;
+        }
+      });
+    }
+
+    function hideMole(scene, mole, hole) {
+      if (!mole.active) return;
+
+      mole.destroy();
+      hole.mole = null;
+    }
+
+    function endRound() {
+      gameState = 'gameover';
+      spawnTimer.remove();
+      msgText.setText('Time\'s up!\nScore: ' + score + '\nClick or SPACE to play again').setVisible(true);
+      this.input.once('pointerdown', () => this.scene.restart());
+      this.input.keyboard.once('keydown-SPACE', () => this.scene.restart());
+    }
+
+    function update(time, delta) {
+      if (gameState !== 'playing') return;
+
+      timeLeft -= delta;
+      const secs = Math.max(0, Math.ceil(timeLeft / 1000));
+      timeText.setText('' + secs);
+    }
+
+    new Phaser.Game(config);
+  </script>
+</body>
+</html>

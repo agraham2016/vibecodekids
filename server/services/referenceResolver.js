@@ -1,13 +1,13 @@
 /**
  * Reference Resolver
- * 
+ *
  * The brain of the reference code system. Decides what reference material
  * to inject into the AI prompt based on the kid's request:
- * 
+ *
  * 1. Built-in templates (server/templates/) — full working games
  * 2. Curated snippets (server/snippets/) — reusable components
  * 3. GitHub fetched code — from URLs the kid pastes or known repos
- * 
+ *
  * Respects a total character budget to avoid blowing up the context window.
  */
 
@@ -72,28 +72,36 @@ async function matchKnownRepo(prompt) {
  * Genre-to-template mapping.
  */
 const GENRE_TEMPLATE_MAP = {
-  'racing': 'racing.html',
+  racing: 'racing.html',
   'street-racing': 'racing.html',
-  'driving': 'racing.html',
-  'shooter': 'shooter.html',
-  'platformer': 'platformer.html',
-  'frogger': 'frogger.html',
-  'puzzle': 'puzzle.html',
-  'clicker': 'clicker.html',
-  'rpg': 'rpg.html',
+  driving: 'racing.html',
+  shooter: 'shooter.html',
+  platformer: 'platformer.html',
+  frogger: 'frogger.html',
+  puzzle: 'puzzle.html',
+  clicker: 'clicker.html',
+  rpg: 'rpg.html',
   'endless-runner': 'endless-runner.html',
-  'fighting': 'fighting.html',
+  fighting: 'fighting.html',
   'tower-defense': 'tower-defense.html',
-  'card': 'puzzle.html',
-  'snake': 'snake.html',
-  'sports': 'sports.html',
+  card: 'puzzle.html',
+  snake: 'snake.html',
+  sports: 'sports.html',
   'brick-breaker': 'brick-breaker.html',
-  'flappy': 'flappy.html',
+  flappy: 'flappy.html',
   'bubble-shooter': 'bubble-shooter.html',
   'falling-blocks': 'falling-blocks.html',
-  'rhythm': 'rhythm.html',
+  rhythm: 'rhythm.html',
   'pet-sim': 'pet-sim.html',
-  'simulation': 'pet-sim.html',
+  simulation: 'pet-sim.html',
+  pong: 'pong.html',
+  'ping-pong': 'pong.html',
+  paddle: 'pong.html',
+  catch: 'catch.html',
+  'catch-game': 'catch.html',
+  dodge: 'catch.html',
+  'whack-a-mole': 'whack-a-mole.html',
+  reaction: 'whack-a-mole.html',
 };
 
 /**
@@ -117,10 +125,10 @@ async function loadTemplate(genre) {
 
 /**
  * Resolve all reference material for a given request.
- * 
+ *
  * Returns a formatted string to inject into the AI's dynamic context,
  * plus metadata about what was included.
- * 
+ *
  * @param {object} params
  * @param {string} params.prompt - The kid's message
  * @param {string|null} params.genre - Detected game genre
@@ -134,9 +142,11 @@ export async function resolveReferences({ prompt, genre, gameConfig, isNewGame }
   let charBudget = REFERENCE_MAX_CHARS;
 
   // Use genre from gameConfig if available
-  const effectiveGenre = genre || (gameConfig?.gameType) || null;
+  const effectiveGenre = genre || gameConfig?.gameType || null;
 
-  console.log(`🔎 Resolving references: genre="${effectiveGenre}", isNew=${isNewGame}, prompt="${(prompt || '').slice(0, 60)}..."`);
+  console.log(
+    `🔎 Resolving references: genre="${effectiveGenre}", isNew=${isNewGame}, prompt="${(prompt || '').slice(0, 60)}..."`,
+  );
 
   // ===== 1. CHECK FOR GITHUB URL IN PROMPT =====
   const githubRef = detectGitHubUrl(prompt);
@@ -154,7 +164,8 @@ export async function resolveReferences({ prompt, genre, gameConfig, isNewGame }
   }
 
   // ===== 2. CHECK KNOWN REPOS (by game name in prompt) =====
-  if (!githubRef) { // Don't double-fetch if they already pasted a URL
+  if (!githubRef) {
+    // Don't double-fetch if they already pasted a URL
     const known = await matchKnownRepo(prompt);
     if (known) {
       console.log(`📚 Known repo match: "${known.matchedKeyword}" → ${known.owner}/${known.repo}`);
@@ -209,7 +220,7 @@ export async function resolveReferences({ prompt, genre, gameConfig, isNewGame }
   }
 
   const referenceCode = [
-    'REFERENCE CODE LIBRARY (use these as a starting point — adapt to match the kid\'s request):',
+    "REFERENCE CODE LIBRARY (use these as a starting point — adapt to match the kid's request):",
     '',
     ...parts,
   ].join('\n');
@@ -233,7 +244,9 @@ function formatGitHubReference(owner, repo, result, description) {
     `// ══════════════════════════════════════════════════════════`,
     '',
     result.code,
-  ].filter(Boolean).join('\n');
+  ]
+    .filter(Boolean)
+    .join('\n');
 }
 
 function formatTemplateReference(template, genre) {
@@ -249,8 +262,5 @@ function formatTemplateReference(template, genre) {
 }
 
 function formatSnippetReference(snippet) {
-  return [
-    `// ── SNIPPET: ${snippet.name} ──`,
-    snippet.content,
-  ].join('\n');
+  return [`// ── SNIPPET: ${snippet.name} ──`, snippet.content].join('\n');
 }
