@@ -36,16 +36,21 @@ through the Vibe Code Kidz platform, including:
 | Parent email | PII | Server DB/JSON | Until deletion | At rest (TBD) |
 | Age bracket | Sensitive (child) | Server DB/JSON | Until deletion | At rest (TBD) |
 | Password hash | Credential | Server DB/JSON | Until deletion | bcrypt (10 rounds) |
-| Game projects (code) | User content | Server DB/JSON | DATA_RETENTION_DAYS | At rest (TBD) |
-| Session tokens | Auth | In-memory/DB | 24 hours | In transit (TLS) |
+| Game projects (code) | User content | Server DB/JSON | Until account deletion; inactive under-13 purged per DATA_RETENTION_DAYS (365) | At rest (TBD) |
+| Session tokens | Auth | In-memory/DB | 24 hours (sliding) | In transit (TLS) |
 | Payment data | Financial | Stripe (external) | Per Stripe policy | Stripe PCI DSS |
+| Consent records | Compliance | Postgres `parental_consents` | Indefinite (audit evidence) | At rest (TBD) |
+| Demo events | Analytics | `demo_events.jsonl` | 90 days | None (no PII; visitorId UUID) |
+| Moderation reports | Operational | Postgres + JSONL | 90 days after resolved | At rest (TBD) |
+
+*Elias verification 2026-03-05: Inventory matches schema and dataRetention.js. Recovery email (13+) added to schema; omitted from table as parent-only flow.*
 
 ## 4. Technical Safeguards
 
 ### 4.1 Authentication & Access Control
 - Minimum 8-character passwords with passphrase suggestions
 - bcrypt password hashing (cost factor 10)
-- Session token binding (IP + User-Agent)
+- Session token binding (User-Agent stored, validated on each request; Postgres `bound_ua` column)
 - Sliding session token rotation (every 4 hours)
 - Admin 2FA (mandatory, email-based)
 - Magic link login for parent-initiated child access
@@ -100,10 +105,11 @@ through the Vibe Code Kidz platform, including:
 6. **Review** — Post-incident report, update WISP if needed
 
 ### 5.3 Third-Party Management
-- Stripe: PCI DSS Level 1 certified payment processor
-- Anthropic/xAI: AI providers, no child PII shared in prompts (under-13 logging disabled)
-- Resend: Email delivery, receives parent email only
-- Vercel/CDN: Static asset hosting only
+- Stripe: PCI DSS Level 1 certified payment processor. Checkout metadata: username, displayName, tier, ageBracket only; no password/emails (stored server-side).
+- Anthropic/xAI: AI providers, PII stripped before transmission; under-13 restricted to Claude only (Grok safety evaluation).
+- Resend: Email delivery, receives parent/recovery email and message content only.
+- Sentry: Server-side error monitoring; auth/cookie headers scrubbed before transmission.
+- Railway: Hosting; standard cloud provider terms.
 
 ## 6. COPPA-Specific Controls
 
@@ -127,7 +133,8 @@ through the Vibe Code Kidz platform, including:
 ### 6.4 Data Retention
 - Active accounts: retained while active
 - Inactive child accounts: auto-cleaned after DATA_RETENTION_DAYS (default: 365)
-- Deleted accounts: anonymized (display name, password hash, emails cleared)
+- Deleted accounts: anonymized immediately; hard purge (row removal) within 30 days per privacy policy
+- Demo events: 90 days; moderation reports: 90 days after resolved
 
 ## 7. Annual Review
 
@@ -163,6 +170,14 @@ This WISP must be reviewed and updated at least annually, or whenever:
 - Detailed findings with severity ratings
 - Remediation guidance
 - Retest after fixes
+
+---
+
+## Compliance Verification
+
+| Verifier | Date | Notes |
+|----------|------|-------|
+| Elias Vance (Privacy Officer) | 2026-03-05 | Section 3 (Data Inventory) and Section 4 (Technical Safeguards) verified against `server/db/schema.sql`, `server/services/dataRetention.js`, and `server/services/sessions.js`. Corrections applied: session binding (User-Agent, not IP), game project retention wording, consent/demo/moderation rows added. Third-party list updated (Sentry, Railway; Stripe metadata fix). |
 
 ---
 

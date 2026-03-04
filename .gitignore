@@ -41,6 +41,7 @@ data/esa_orders.json
 data/esa_waitlist.json
 data/reports.jsonl
 data/demo_events.jsonl
+data/marketing_events.jsonl
 data/admin_audit.jsonl
 data/contact/*.json
 data/password_reset_tokens.json

@@ -9,6 +9,7 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 import { DATA_DIR } from '../config/index.js';
+import { hashIp } from '../utils/ipHash.js';
 
 const AUDIT_FILE = path.join(DATA_DIR, 'admin_audit.jsonl');
 
@@ -32,7 +33,7 @@ async function ensureFile() {
  * @param {string} opts.action - approve | deny | suspend | unsuspend | reset-password | delete-user | delete-project | set-tier | opt-out-improvement | cache-clear | data-access | consent_granted | retention-sweep
  * @param {string} [opts.targetId] - user id, project id, etc.
  * @param {object} [opts.details] - extra context (e.g. { username, reason, tier })
- * @param {string} [opts.ip] - requester IP
+ * @param {string} [opts.ip] - requester IP (hashed before storage; raw never persisted)
  */
 export async function logAdminAction({ action, targetId, details = {}, ip }) {
   await ensureFile();
@@ -42,7 +43,7 @@ export async function logAdminAction({ action, targetId, details = {}, ip }) {
     action,
     targetId: targetId || null,
     details,
-    ip: ip || null,
+    ipHash: ip ? hashIp(ip) : null,
   };
   await fs.appendFile(AUDIT_FILE, JSON.stringify(record) + '\n');
 }

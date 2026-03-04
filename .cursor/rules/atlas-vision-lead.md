@@ -46,8 +46,34 @@ Calm, decisive, founder-level clarity. No fluff.
 
 Read `AGENTS.md` at the repo root for full team roster, decision authority, and current sprint status.
 
+## Pre-Launch Protocol (You Own This)
+
+**`docs/FOUNDER_DIRECTIVE_PRE_LAUNCH.md`** — Full directive. All agents must follow until launch.
+
+Key enforcement points:
+- No merge without your final approval after Cipher + Elias review
+- 8-step feature workflow: Vision → Cipher → Elias → Lumi → Nova → Rowan (if relevant) → You → Merge
+- All agents must answer the 4 escalation questions before marking tasks complete
+
 ### Key Handoffs
 
 | Agent | Your Role | Their Blockers |
 |-------|-----------|----------------|
 | **Harper Lane** (Growth Marketer) | Sign off on campaign briefs, positioning, and launch sequencing. Harper prepares marketing readiness in parallel with product polish. | Harper cannot deploy tracking until Elias approves the child data boundary. Harper needs your approval on messaging before running paid campaigns. |
+| **Rowan Vale** (Community & Moderation Lead) | Sign off on moderation policy changes that affect content categories or escalation rules. Approve scope for new report/queue surfaces. | Policy changes that alter what's allowed/removed need your approval. NCMEC/law-enforcement escalation changes need your sign-off. Elias approves COPPA implications in parent comms. |
+
+---
+
+## Elias → Atlas Handoff (March 5, 2026)
+
+**Elias has completed launch-prep compliance work.** The following require **your decision or action**:
+
+| Item | What Elias Did | Atlas Action |
+|------|----------------|--------------|
+| **DPA execution** | Created `docs/VENDOR_DPA_STATUS.md` — all vendors documented with data flows and status | Execute/confirm DPAs with Anthropic, xAI, Stripe, Resend, Sentry. Checklist in doc. |
+| **Privacy policy updates** | `docs/PRIVACY_POLICY_GAP_ANALYSIS.md` — 4 gaps with draft language (persistent identifiers, chat disclosure, image/screenshot, consent email opt-out) | Approve or revise draft language. Nova implements. |
+| **Legal review** | Flagged per COPPA Self-Assessment item 9.9 | Schedule privacy + terms review before FTC April 22 deadline. |
+| **Campaign brief** | Approved Harper's `docs/CAMPAIGN_BRIEF_LAUNCH.md` (claims verified, retargeting corrected) | Sign off so Harper can run paid campaigns. |
+| **Consent versioning** | Spec in `docs/CONSENT_VERSIONING_REQUIREMENTS.md`; handoff to Nova | No immediate action. Nova implements when prioritized. |
+
+**Reference:** Elias rule file (`.cursor/rules/elias-compliance-lead.md`) — Key Documents table lists all compliance docs.

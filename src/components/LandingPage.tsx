@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { trackPageView, trackCtaClick } from '../lib/marketingEvents';
 import './LandingPage.css';
 
 interface LandingPageProps {
@@ -415,6 +416,19 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
     return () => cleanupPreview();
   }, [cleanupPreview]);
 
+  // First-party marketing: page_view on mount (Elias approved)
+  useEffect(() => {
+    trackPageView();
+  }, []);
+
+  const handleCta = useCallback(
+    (buttonId: string, section?: string) => {
+      trackCtaClick(buttonId, section);
+      onSignupClick();
+    },
+    [onSignupClick],
+  );
+
   // Fetch featured games
   useEffect(() => {
     fetch('/api/gallery?limit=6')
@@ -470,7 +484,7 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
             <button className="nav-login" onClick={onLoginClick}>
               Log In
             </button>
-            <button className="nav-cta" onClick={onSignupClick}>
+            <button className="nav-cta" onClick={() => handleCta('nav-cta', 'nav')}>
               Get Started Free
             </button>
           </div>
@@ -502,7 +516,7 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
           </div>
 
           <div className="hero-buttons">
-            <button className="btn-signup" onClick={onSignupClick}>
+            <button className="btn-signup" onClick={() => handleCta('btn-signup', 'hero')}>
               Get Started Free
             </button>
             <button className="btn-login" onClick={onLoginClick}>
@@ -619,7 +633,7 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
             </div>
           </div>
 
-          <button className="section-cta" onClick={onSignupClick}>
+          <button className="section-cta" onClick={() => handleCta('section-cta', 'demo')}>
             Try It Yourself — Free
           </button>
         </section>
@@ -678,7 +692,11 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
           <p className="section-subheading">Pick a template or describe something totally new</p>
           <div className="template-grid">
             {GAME_TEMPLATES.map((tmpl) => (
-              <button key={tmpl.title} className="template-card" onClick={onSignupClick}>
+              <button
+                key={tmpl.title}
+                className="template-card"
+                onClick={() => handleCta(`template-${tmpl.genre}`, 'templates')}
+              >
                 <div className="template-card-bg" style={{ background: tmpl.gradient }}>
                   <img src={tmpl.sprite} alt={tmpl.title} className="template-card-sprite" />
                   <span className="template-card-emoji" aria-hidden="true">
@@ -720,11 +738,11 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
                 className="scratch-card"
                 role="button"
                 tabIndex={0}
-                onClick={onSignupClick}
+                onClick={() => handleCta(`scratch-${quote.slice(0, 20)}`, 'scratch')}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
-                    onSignupClick();
+                    handleCta('scratch-card', 'scratch');
                   }
                 }}
               >
@@ -737,7 +755,7 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
           </div>
           <div className="scratch-bottom">
             <p className="scratch-hint">Type anything you want — the only limit is your imagination</p>
-            <button className="section-cta" onClick={onSignupClick}>
+            <button className="section-cta" onClick={() => handleCta('section-cta', 'scratch')}>
               Start Vibecoding — Free
             </button>
           </div>
@@ -798,7 +816,7 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
                 <li>Unlimited plays</li>
                 <li>Share to Arcade</li>
               </ul>
-              <button className="price-card-btn" onClick={onSignupClick}>
+              <button className="price-card-btn" onClick={() => handleCta('price-free-btn', 'pricing')}>
                 Start Free Trial
               </button>
             </div>
@@ -814,7 +832,7 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
                 <li>Share to Arcade</li>
                 <li>Priority support</li>
               </ul>
-              <button className="price-card-btn" onClick={onSignupClick}>
+              <button className="price-card-btn" onClick={() => handleCta('price-creator-btn', 'pricing')}>
                 Get Started
               </button>
             </div>
@@ -829,7 +847,7 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
                 <li>Share to Arcade</li>
                 <li>Priority support</li>
               </ul>
-              <button className="price-card-btn" onClick={onSignupClick}>
+              <button className="price-card-btn" onClick={() => handleCta('price-pro-btn', 'pricing')}>
                 Get Started
               </button>
             </div>
@@ -870,7 +888,7 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
         <section className="final-cta-section">
           <h2>Ready to start vibecoding?</h2>
           <p>Your child's next favorite game is one sentence away.</p>
-          <button className="section-cta" onClick={onSignupClick}>
+          <button className="section-cta" onClick={() => handleCta('section-cta', 'final')}>
             Get Started Free
           </button>
         </section>

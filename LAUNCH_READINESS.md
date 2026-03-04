@@ -1,8 +1,8 @@
 # VibeCodeKidz — Launch Readiness Checklist
 
 **Owner:** Atlas Reid, Founder & Vision Lead  
-**Last Updated:** March 3, 2026  
-**Last Audit:** March 3, 2026 (code-level verification, Gates 1-8)  
+**Last Updated:** March 4, 2026  
+**Last Audit:** March 4, 2026 (Cipher: IP hashing, persistent identifier doc, screenshot PII risk)  
 **Rule:** Every gate must be PASS before a real child uses this platform.
 
 ---
@@ -106,7 +106,7 @@
 | # | Gate | Verified By | Status |
 |---|------|-------------|--------|
 | 6.1 | Landing page loads in < 3 seconds on 4G | Vite build with code splitting (React chunk separated); Lighthouse test needed at deploy | PASS (code-level) — DEPLOY CHECK |
-| 6.2 | Signup → first game creation < 2 minutes for a 9-year-old | User test (internal) | NOT YET TESTED (manual) |
+| 6.2 | Signup → first game creation < 2 minutes for a 9-year-old | `tests/gate-6-2.spec.js` + manual `docs/GATE_6_2_USER_TEST_SCRIPT.md` | Automated test added; run `npm run test:gate62` (requires build, server, ANTHROPIC_API_KEY) |
 | 6.3 | Game preview renders correctly in sandbox iframe | `PreviewPanel.tsx` uses `sandbox="allow-scripts allow-pointer-lock"` on both normal and fullscreen iframes | PASS (code-level) — manual test needed |
 | 6.4 | Save, load, delete project all functional | `projects.js` CRUD routes + `useProjects.ts` hook; Playwright tests cover load/save | PASS (code-level) |
 | 6.5 | Share modal generates working shareable link | `ShareModal.tsx` → `POST /api/projects` → `/play/:id` with meta injection | PASS (code-level) |
@@ -175,7 +175,7 @@
 |------|------|------|-----------|
 | Founder & Vision Lead | Atlas Reid | | |
 | Technical Architect | | | |
-| Security / Compliance Lead | | | |
+| Security / Compliance Lead | Cipher Hale | 2026-03-04 | Security gates 1-2, 4, 8 verified. IP hashing implemented. Persistent identifiers documented. Screenshot PII risk documented. |
 | QA Lead | | | |
 
 ---

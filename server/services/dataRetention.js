@@ -81,6 +81,38 @@ async function purgeDeletedAccounts(users) {
   return purged;
 }
 
+async function purgeMarketingEvents() {
+  const eventsFile = path.join(DATA_DIR, 'marketing_events.jsonl');
+  try {
+    const content = await fs.readFile(eventsFile, 'utf-8');
+    const lines = content.trim().split('\n').filter(Boolean);
+    const cutoff = Date.now() - EPHEMERAL_RETENTION_DAYS * ONE_DAY_MS;
+    const kept = [];
+
+    for (const line of lines) {
+      try {
+        const event = JSON.parse(line);
+        if (new Date(event.timestamp).getTime() >= cutoff) {
+          kept.push(line);
+        }
+      } catch {
+        /* skip malformed lines */
+      }
+    }
+
+    const removed = lines.length - kept.length;
+    if (removed > 0) {
+      await fs.writeFile(eventsFile, kept.join('\n') + (kept.length ? '\n' : ''));
+      log.info({ removed, remaining: kept.length }, 'Retention: purged old marketing events');
+    }
+    return removed;
+  } catch (err) {
+    if (err.code === 'ENOENT') return 0;
+    log.error({ err: err.message }, 'Retention: marketing events purge error');
+    return 0;
+  }
+}
+
 async function purgeDemoEvents() {
   const eventsFile = path.join(DATA_DIR, 'demo_events.jsonl');
   try {
@@ -174,10 +206,14 @@ export async function runRetentionCleanup() {
     const cleaned = await sweepInactiveChildren(users);
     const purged = await purgeDeletedAccounts(users);
     const demoEventsRemoved = await purgeDemoEvents();
+    const marketingEventsRemoved = await purgeMarketingEvents();
     const reportsRemoved = await purgeResolvedReports();
 
-    if (cleaned > 0 || purged > 0 || demoEventsRemoved > 0 || reportsRemoved > 0) {
-      log.info({ cleaned, purged, demoEventsRemoved, reportsRemoved }, 'Retention sweep complete');
+    if (cleaned > 0 || purged > 0 || demoEventsRemoved > 0 || marketingEventsRemoved > 0 || reportsRemoved > 0) {
+      log.info(
+        { cleaned, purged, demoEventsRemoved, marketingEventsRemoved, reportsRemoved },
+        'Retention sweep complete',
+      );
     }
   } catch (err) {
     log.error({ err: err.message }, 'Retention sweep error');

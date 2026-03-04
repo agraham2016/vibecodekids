@@ -351,6 +351,7 @@
   </div>
 
   <script>
+    (function(){var q=window.location.search?new URLSearchParams(window.location.search):null;fetch('/api/marketing/event',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'page_view',url:'/contact',referrer:document.referrer||undefined,device:/Mobi/i.test(navigator.userAgent)?'mobile':'desktop',sessionId:sessionStorage.getItem('vck_mkt_sid')||(function(){var s=crypto.randomUUID();sessionStorage.setItem('vck_mkt_sid',s);return s;})(),utm_source:q?.get('utm_source')||undefined,utm_medium:q?.get('utm_medium')||undefined,utm_campaign:q?.get('utm_campaign')||undefined})}).catch(function(){});})();
     document.getElementById('contactForm').addEventListener('submit', async function(e) {
       e.preventDefault();
       const btn = document.getElementById('submitBtn');
@@ -375,6 +376,7 @@
         if (!res.ok) throw new Error('Failed to send');
         document.getElementById('contactForm').style.display = 'none';
         document.getElementById('formSuccess').style.display = 'block';
+        fetch('/api/marketing/event',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'form_submit',url:'/contact',device:/Mobi/i.test(navigator.userAgent)?'mobile':'desktop',sessionId:sessionStorage.getItem('vck_mkt_sid')||''})}).catch(function(){});
       } catch (err) {
         errEl.textContent = 'Something went wrong. Please try emailing us directly at admin@vibecodekidz.org';
         errEl.style.display = 'block';

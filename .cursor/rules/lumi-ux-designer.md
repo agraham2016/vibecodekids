@@ -149,9 +149,11 @@ No action items for you yet — these are contingent on legal review and Elias's
 
 1. ~~**Answer Nova's questions** (#5, #6, #7)~~ — DONE. See `docs/NOVA_UX_SPECS.md` for full answers on passphrase UX, screen name feedback, and GameSurvey→AI wiring.
 2. ~~**Design the GameSurvey welcome overlay**~~ — DONE. Full component spec with props, behavior, layout, microcopy, styling, accessibility, and App.tsx integration in `docs/NOVA_UX_SPECS.md`.
-3. **Review Nova's error message implementations** when complete — ensure tone matches microcopy tables in `docs/UX_AUDIT.md` section 4
-4. **Review Nova's ShareModal moderation language** when complete — verify it matches Screen 6 wireframe
+3. ~~**Review Nova's implementations**~~ — DONE. See `docs/UX_PRELAUNCH_REVIEW.md`: AuthModal, ShareModal, Studio, Parent dashboard, and accessibility all verified against microcopy specs. 6/7 accessibility items implemented (read-aloud deferred).
+4. ~~**Review ShareModal moderation language**~~ — DONE. "A grown-up checks it first" in place; matches Screen 6 wireframe.
 5. ~~**Progressive signup wireframes**~~ — DONE. Full component spec in `docs/NOVA_UX_SPECS.md`: SteppedSignup component (4 steps, state machine, validation per step), screen name generator, password strength meter, parent handoff card, A/B test integration, transition animations, accessibility, mobile layout. Ready for Nova when Atlas gives the go.
+6. ~~**Formal UX pre-launch review**~~ — DONE. `docs/UX_PRELAUNCH_REVIEW.md`: Pre-Launch UX checklist 4/4 READY, Nova implementation review vs. microcopy (all match), accessibility 6/7. No launch-blocking gaps.
+7. ~~**Gate 6.2 user test script**~~ — DONE. `docs/GATE_6_2_USER_TEST_SCRIPT.md`: Manual test script for "Signup → first game < 2 min for 9-year-old" — Path A (age 13) and Path B (age 9 + consent), observation checklist, debrief questions, reporting template.
 
 ---
 

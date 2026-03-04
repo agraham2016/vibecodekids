@@ -7,6 +7,7 @@
  */
 
 import log from '../services/logger.js';
+import { hashIp } from '../utils/ipHash.js';
 
 const SKIP_PATHS = ['/api/health', '/favicon.ico'];
 
@@ -30,7 +31,7 @@ export function requestLogger() {
         status,
         durationMs: duration,
         userId: req.userId || undefined,
-        ip: req.ip || req.connection?.remoteAddress,
+        ipHash: hashIp(req.ip || req.connection?.remoteAddress),
       };
 
       if (status >= 500) {

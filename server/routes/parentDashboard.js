@@ -161,8 +161,10 @@ router.get('/children', requireParentAuth, async (req, res) => {
       ageBracket: child.ageBracket,
       createdAt: child.createdAt,
       lastLoginAt: child.lastLoginAt,
-      tier: child.tier || 'free',
-      consentStatus: child.consentStatus,
+      tier: child.membershipTier || child.tier || 'free',
+      consentStatus: child.parentalConsentStatus || child.consentStatus,
+      consentDate: child.parentalConsentAt || null,
+      consentVersion: child.consentPolicyVersion || null,
       publishingEnabled: !!child.publishingEnabled,
       multiplayerEnabled: !!child.multiplayerEnabled,
     }));

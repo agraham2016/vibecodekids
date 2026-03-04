@@ -7,7 +7,7 @@
 import { Router } from 'express';
 import bcrypt from 'bcrypt';
 import crypto from 'crypto';
-import { BCRYPT_ROUNDS, MEMBERSHIP_TIERS } from '../config/index.js';
+import { BCRYPT_ROUNDS, MEMBERSHIP_TIERS, CONSENT_POLICY_VERSION } from '../config/index.js';
 import log from '../services/logger.js';
 import { readUser, writeUser, userExists, listProjects } from '../services/storage.js';
 import { generateToken } from '../services/sessions.js';
@@ -266,6 +266,17 @@ export default function createAuthRouter(sessions) {
         return res
           .status(403)
           .json({ error: 'Parental consent is required for this account. Please contact support.' });
+      }
+      // COPPA: Block login if consent policy version is stale (re-consent required)
+      if (
+        user.ageBracket === 'under13' &&
+        user.parentalConsentStatus === 'granted' &&
+        user.consentPolicyVersion !== CONSENT_POLICY_VERSION
+      ) {
+        return res.status(403).json({
+          error:
+            'Our privacy policy has been updated. Ask your parent to check their email and approve again so you can log in!',
+        });
       }
 
       const token = generateToken();

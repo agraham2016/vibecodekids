@@ -101,7 +101,13 @@ When producing campaign or growth work, always structure output as:
 | Landing page (variant B) | `src/components/LandingPageB.tsx` |
 | A/B variant logic | `src/lib/abVariant.ts` |
 | Demo event logging | `server/services/demoEvents.js` |
-| Demo routes | `server/routes/demo.js` (if exists) |
+| Demo routes | `server/routes/demo.js`, `server/routes/demoAnalytics.js` |
+| **Marketing tracking plan** | `docs/MARKETING_TRACKING_PLAN.md` |
+| **Campaign brief template** | `docs/CAMPAIGN_BRIEF_TEMPLATE.md` |
+| **Launch campaign brief** | `docs/CAMPAIGN_BRIEF_LAUNCH.md` |
+| **Marketing metrics** | `docs/MARKETING_METRICS.md` |
+| **Nova tracking spec** | `docs/NOVA_TRACKING_SPEC.md` |
+| **Channel strategy** | `docs/MARKETING_CHANNEL_STRATEGY.md` |
 | ESA page | `public/esa.html` |
 | Parent dashboard | `public/parent-dashboard.html` |
 | Privacy policy | `public/privacy.html` |
@@ -224,10 +230,10 @@ When producing campaign or growth work, always structure output as:
 
 **Do these in order:**
 
-1. **Create `docs/MARKETING_TRACKING_PLAN.md`** — Events, surfaces, child data boundary. Hand to Elias for approval. (~2 hrs)
-2. **Draft `docs/CAMPAIGN_BRIEF_LAUNCH.md`** — Parent persona, value prop, 3–5 headline angles, funnel map. Get Atlas + Elias sign-off. (~2 hrs)
-3. **Define baseline metrics** — Add to tracking plan or create `docs/MARKETING_METRICS.md`. Map events to signup %, consent %, time-to-first-game. (~1 hr)
-4. **Coordinate with Elias** — Explicit approval on: (a) landing page tracking pre-AuthModal, (b) gallery page tracking, (c) Landing B "Try It Now" anonymous visitorId. Document his decision. (~30 min)
+1. ~~**Create `docs/MARKETING_TRACKING_PLAN.md`**~~ — DONE. Events, surfaces, child data boundary, Elias approval checklist. Hand to Elias. (~2 hrs)
+2. ~~**Draft campaign brief template + launch brief**~~ — DONE. `docs/CAMPAIGN_BRIEF_TEMPLATE.md` + `docs/CAMPAIGN_BRIEF_LAUNCH.md` ready for Atlas + Elias sign-off. (~2 hrs)
+3. ~~**Define baseline metrics**~~ — DONE. `docs/MARKETING_METRICS.md` created with funnel metrics, event mapping, weekly report template. (~1 hr)
+4. ~~**Coordinate with Elias**~~ — DONE. Elias approved 2026-03-05. First-party on /, /esa, /contact, /gallery. Third-party pixels + retargeting on /esa, /contact only. No pixels on / or /gallery.
 
 ### LATER — Backlog
 

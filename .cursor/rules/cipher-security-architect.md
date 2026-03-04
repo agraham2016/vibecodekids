@@ -147,6 +147,14 @@ Read the "Revised COPPA Rule" section in `AGENTS.md` for the full team brief. Ke
 - [x] Request ID traceability — `crypto.randomUUID()` per request, threaded through logs, returned in `X-Request-Id` header
 - [x] Grok safety evaluation doc (`docs/GROK_SAFETY_EVALUATION.md`) — KORA data analysis, risk assessment, monitoring plan
 
+## COMPLETED (Cipher, March 4 2026 — Launch Readiness)
+
+- [x] IP log retention — never persist raw IPs; hash at write time via `server/utils/ipHash.js`; request logger + admin audit log use `ipHash`; `LOG_IP_SALT` in .env.example
+- [x] Removed `session.boundIp` persistence (we use UA binding only)
+- [x] Persistent identifier doc (`docs/PERSISTENT_IDENTIFIERS.md`) for Elias — session tokens, IP hashing, consent tokens, reset tokens, dashboard token, magic link, User-Agent, visitor ID, cookies
+- [x] Screenshot PII risk — added T13 to threat model; Section 7a in SECURITY_ARCHITECTURE.md with mitigations (client guidance, privacy policy language)
+- [x] Launch Readiness sign-off — Security/Compliance Lead row filled
+
 ## NOW — Next Sprint (March 5-7)
 
 1. Execute DPAs with Anthropic, xAI, Stripe, Resend (COPPA action items 7.2-7.5)

@@ -59,8 +59,12 @@ These are absolute. No exceptions for convenience or speed.
 
 | Document | Path | Purpose |
 |----------|------|---------|
-| COPPA Self-Assessment | `docs/COPPA_SELF_ASSESSMENT.md` | 103-item quarterly compliance checklist |
-| Written Information Security Program | `docs/WISP.md` | FTC-required security program documentation |
+| **Marketing Tracking Plan** | `docs/MARKETING_TRACKING_PLAN.md` | Harper's tracking plan; approved 2026-03-05 |
+| **COPPA Self-Assessment** | `docs/COPPA_SELF_ASSESSMENT.md` | 103-item checklist; Elias review v1.2 (81/103 YES) |
+| **Privacy Policy Gap Analysis** | `docs/PRIVACY_POLICY_GAP_ANALYSIS.md` | Gaps and draft language for Atlas |
+| **Vendor DPA Status** | `docs/VENDOR_DPA_STATUS.md` | DPA tracker for Anthropic, xAI, Stripe, Resend, Sentry, Railway |
+| **Consent Versioning Spec** | `docs/CONSENT_VERSIONING_REQUIREMENTS.md` | Requirements for Nova; schema + re-consent flow |
+| WISP | `docs/WISP.md` | FTC-required security program; Elias verified 2026-03-05 |
 | Incident Response Playbook | `docs/INCIDENT_RESPONSE_PLAYBOOK.md` | Co-owned with Cipher; I own notification/regulatory sections |
 | Defensible Architecture Blueprint | `docs/DEFENSIBLE_ARCHITECTURE_BLUEPRINT.md` | Co-owned with Cipher; I own sections C (consent), H (policy), J (test plan) |
 | Privacy Policy | `public/privacy.html` | Public-facing privacy disclosures |
@@ -117,50 +121,22 @@ The FTC published final amendments to the COPPA Rule on April 22, 2025. Complian
 
 ---
 
-## COMPLETED (Elias, prior to onboarding)
+## COMPLETED (Elias, March 5, 2026)
 
-*(Elias is newly onboarded. No prior completed items.)*
+- [x] **COPPA Self-Assessment compliance pass** — Reviewed Cipher's v1.1; updated 4.4/4.5 (90-day purge), 5.8/7.1/7.9 (Stripe, Sentry); 81/103 YES
+- [x] **WISP verification** — Section 3 & 4 verified; corrections applied (session binding, data inventory, third-party list)
+- [x] **Privacy policy gap analysis** — `docs/PRIVACY_POLICY_GAP_ANALYSIS.md` created; 4 gaps documented with draft language
+- [x] **Vendor DPA status tracker** — `docs/VENDOR_DPA_STATUS.md` created; all vendors documented
+- [x] **Cipher's COPPA audit review** — Cross-checked; technical claims verified
+- [x] **Consent versioning requirements spec** — `docs/CONSENT_VERSIONING_REQUIREMENTS.md` created; handoff to Nova
+- [x] **Harper tracking plan** — Approved 2026-03-05
+- [x] **Harper campaign brief** — Approved claims + tracking; retargeting budget corrected
 
-## NOW — P1 Sprint (March 3-5)
+## NOW — Pre-Launch (Remaining)
 
-**Do these in order:**
-
-1. **Complete COPPA Self-Assessment** (~3 hrs)
-   - Walk all 103 items in `docs/COPPA_SELF_ASSESSMENT.md`
-   - Mark each YES/PARTIAL/NO based on current codebase (read the code, don't guess)
-   - Add notes explaining current state and any gaps
-   - Fill in the Summary & Sign-Off table with counts
-   - This becomes our audit-ready evidence document
-
-2. **Assign WISP roles and verify accuracy** (~1 hr)
-   - Fill in the named roles in `docs/WISP.md` Section 2
-   - Verify Section 3 (Data Inventory) matches actual data collected
-   - Verify Section 4 (Technical Safeguards) matches current implementation
-   - Flag any claims that don't match reality
-
-3. **Privacy policy gap analysis** (~2 hrs)
-   - Read `public/privacy.html` line by line
-   - Cross-reference against Defensible Architecture Blueprint Section H findings
-   - Document every gap: missing disclosures, inaccurate statements, missing tier explanation
-   - Draft corrected language for Atlas review
-   - Priority gaps from Blueprint: Junior/Teen tier separation not disclosed, Stripe VPC not disclosed, Discord 13+ not mentioned
-
-4. **Vendor DPA status tracker** (~1 hr)
-   - Create `docs/VENDOR_DPA_STATUS.md`
-   - Track DPA status for: Anthropic, xAI, Stripe, Resend, Railway
-   - Document what data each vendor receives and under what legal basis
-   - Flag any vendors without executed DPAs
-
-5. **Review Cipher's COPPA audit documentation** (when complete)
-   - Cipher is updating `docs/COPPA_SELF_ASSESSMENT.md` with technical details
-   - You review for completeness, accuracy of compliance claims, and audit readiness
-   - Cross-check that Cipher's technical statements match your policy review
-
-6. **Consent versioning requirements spec** (~1 hr)
-   - Document current gap: no `consent_policy_version` tracking
-   - Write requirements for consent versioning (from Blueprint Section C)
-   - Specify what triggers re-consent and how to handle it
-   - Hand off to Nova for implementation
+1. **Privacy policy updates** — Implement draft language from gap analysis (persistent identifiers, multiplayer chat, image/screenshot, consent email opt-out). Atlas approval needed.
+2. **DPA execution** — Coordinate with Cipher; Atlas to execute DPAs with Anthropic, xAI, Stripe, Resend
+3. **Legal review** — Schedule privacy policy + terms review before FTC April 22 deadline
 
 ## LATER — Backlog
 
@@ -183,7 +159,7 @@ The FTC published final amendments to the COPPA Rule on April 22, 2025. Complian
 | **Cipher Hale** (Security Architect) | Cipher handles technical security; I handle compliance interpretation. Cipher's security docs feed my compliance assessments. I review Cipher's COPPA documentation for completeness. |
 | **Nova** (Full-Stack Developer) | I write requirements for compliance features (consent versioning, data deletion). Nova implements. I verify implementations match requirements. |
 | **Lumi Rivers** (UX Designer) | I review child-facing copy for compliance accuracy. Lumi designs the experience; I ensure it meets regulatory requirements. |
-| **Harper Lane** (Growth Marketer) | Harper specs tracking plans; I approve the child data boundary. Before any marketing pixel or SDK goes live, Harper must get my sign-off. I confirm which surfaces (landing, gallery, ESA) are allowed tracking. |
+| **Harper Lane** (Growth Marketer) | Harper specs tracking plans; I approve the child data boundary. Before any marketing pixel or SDK goes live, Harper must get my sign-off. **My approval is documented in `docs/MARKETING_TRACKING_PLAN.md` (2026-03-05).** First-party analytics: approved on /, /esa, /contact, /gallery. Third-party pixels: approved on /esa, /contact only; prohibited on / and /gallery. |
 
 ---
 

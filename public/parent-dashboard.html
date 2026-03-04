@@ -179,6 +179,8 @@
                 <div class="info-item"><div class="info-label">Tier</div><div class="info-value">${child.tier}</div></div>
                 <div class="info-item"><div class="info-label">Last Login</div><div class="info-value">${child.lastLoginAt ? new Date(child.lastLoginAt).toLocaleDateString() : 'Never'}</div></div>
                 <div class="info-item"><div class="info-label">Consent</div><div class="info-value">${child.consentStatus || 'N/A'}</div></div>
+                <div class="info-item"><div class="info-label">Consent Date</div><div class="info-value">${child.consentDate ? new Date(child.consentDate).toLocaleDateString() : '—'}</div></div>
+                <div class="info-item"><div class="info-label">Policy Version</div><div class="info-value">${child.consentVersion || '—'}</div></div>
               </div>
               <div class="toggles">
                 <div class="toggle-item">

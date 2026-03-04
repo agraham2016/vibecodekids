@@ -11,7 +11,14 @@
  */
 
 import { randomBytes } from 'crypto';
-import { CONSENT_TOKEN_EXPIRY_MS, BASE_URL, SITE_NAME, SUPPORT_EMAIL, COPPA_AGE_THRESHOLD } from '../config/index.js';
+import {
+  CONSENT_TOKEN_EXPIRY_MS,
+  BASE_URL,
+  SITE_NAME,
+  SUPPORT_EMAIL,
+  COPPA_AGE_THRESHOLD,
+  CONSENT_POLICY_VERSION,
+} from '../config/index.js';
 import { readUser, writeUser } from './storage.js';
 
 // ========== CONSENT TOKEN STORE ==========
@@ -142,17 +149,25 @@ export async function resolveConsent(token, granted, verificationMethod = 'email
   if (USE_POSTGRES) {
     const { getPool } = await import('./db.js');
     const pool = getPool();
-    await pool.query('UPDATE parental_consents SET status = $1, responded_at = $2 WHERE token = $3', [
-      status,
-      now,
-      token,
-    ]);
+    if (granted) {
+      await pool.query(
+        'UPDATE parental_consents SET status = $1, responded_at = $2, consent_policy_version = $3 WHERE token = $4',
+        [status, now, CONSENT_POLICY_VERSION, token],
+      );
+    } else {
+      await pool.query('UPDATE parental_consents SET status = $1, responded_at = $2 WHERE token = $3', [
+        status,
+        now,
+        token,
+      ]);
+    }
   } else {
     const consent = consentTokens.get(token);
     if (consent) {
       consent.status = status;
       consent.respondedAt = now;
       consent.verificationMethod = verificationMethod;
+      if (granted) consent.consentPolicyVersion = CONSENT_POLICY_VERSION;
       await saveConsents();
     }
   }

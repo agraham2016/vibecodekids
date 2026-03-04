@@ -5,6 +5,20 @@ Each agent should read this file first to understand team structure, then read t
 
 ---
 
+## ⚠️ PRE-LAUNCH EXECUTION PROTOCOL (ACTIVE)
+
+**Read `docs/FOUNDER_DIRECTIVE_PRE_LAUNCH.md` in full.** All agents operate under this protocol until launch.
+
+| Rule | What It Means |
+|------|---------------|
+| **NO PUSH / NO DEPLOY** | No merge without: Cipher (architecture), Elias (compliance), Atlas (final approval) |
+| **NO SCOPE CREEP** | Only MVP scope. Defer everything else. |
+| **8-STEP WORKFLOW** | Vision → Architecture → Compliance → UX → Implementation plan → Moderation (if relevant) → Founder approval → THEN merge |
+| **ESCALATE** | Before completing any task: Does it add data collection? Change auth? Impact child publishing? Require policy updates? If YES → escalate. |
+| **REPORTING** | Feature | Status | Risks | Dependencies | Blockers | Approval needed from |
+
+---
+
 ## Team Structure
 
 | Role | Agent Name | Rule File | Authority |
@@ -15,6 +29,7 @@ Each agent should read this file first to understand team structure, then read t
 | Compliance & Privacy Lead | Elias Vance | `.cursor/rules/elias-compliance-lead.md` | COPPA compliance, privacy policy, data retention, vendor DPAs, regulatory audit readiness |
 | Kid-First UX Designer | Lumi Rivers | `.cursor/rules/lumi-ux-designer.md` | UX flows, microcopy, accessibility, child safety UX, parent portal design |
 | Parent-Focused Growth Marketer | Harper Lane | `.cursor/rules/harper-growth-marketer.md` | Parent acquisition, campaigns, funnels, tracking plans, conversions — within child data boundary |
+| Community & Moderation Lead | Rowan Vale | `.cursor/rules/rowan-community-moderation.md` | Arcade safety, moderation policy, reporting flows, community guidelines, parent comms |
 
 ---
 
@@ -40,6 +55,8 @@ Each agent should read this file first to understand team structure, then read t
 | Regulatory audit readiness, FTC preparation | Elias | Atlas (reviews) |
 | Marketing campaigns, ad copy, landing page messaging | Harper | Atlas (if new scope), Elias (tracking plan) |
 | Tracking/pixel placement on any page | Harper (specs), Nova (implements) | Elias (approves child data boundary) |
+| Moderation policy, community guidelines, escalation rules | Rowan | Atlas (approves), Elias (COPPA alignment) |
+| Report/review UI, moderation queue design | Rowan (specs), Nova (implements) | Atlas (if new surface) |
 | Launch go/no-go | Atlas | All review `LAUNCH_READINESS.md` |
 
 ---
@@ -193,19 +210,31 @@ Any change that touches auth, COPPA flows, content filtering, PII handling, or i
 24. [ ] **DPA execution** — coordinate with Elias on Anthropic, xAI, Stripe, Resend DPAs.
 25. [ ] **Nonce-based CSP** — eliminate `unsafe-inline` via server-rendered nonce injection.
 
-**This week (Elias owns — compliance & privacy):**
-16. [ ] **Complete COPPA Self-Assessment** — walk all 103 items in `docs/COPPA_SELF_ASSESSMENT.md`, mark YES/PARTIAL/NO with evidence. ~3 hrs.
-17. [ ] **Assign WISP roles and verify accuracy** — fill named roles in `docs/WISP.md`, verify data inventory and safeguards match reality. ~1 hr.
-18. [ ] **Privacy policy gap analysis** — read `public/privacy.html`, cross-ref against Blueprint Section H, document gaps and draft corrections. ~2 hrs.
-19. [ ] **Vendor DPA status tracker** — create `docs/VENDOR_DPA_STATUS.md`, track DPA status for Anthropic, xAI, Stripe, Resend, Railway. ~1 hr.
-20. [ ] **Review Cipher's COPPA audit documentation** — verify technical claims, check completeness for FTC readiness. ~1 hr.
-21. [ ] **Consent versioning requirements spec** — document the gap, write requirements, hand off to Nova. ~1 hr.
+**DONE (Elias — compliance & privacy, completed March 5, 2026):**
+16. [x] **COPPA Self-Assessment** — Elias review v1.2; 81/103 YES.
+17. [x] **WISP verification** — Data inventory and technical safeguards verified.
+18. [x] **Privacy policy gap analysis** — `docs/PRIVACY_POLICY_GAP_ANALYSIS.md`; 4 gaps with draft language.
+19. [x] **Vendor DPA status tracker** — `docs/VENDOR_DPA_STATUS.md` created.
+20. [x] **Cipher COPPA audit review** — Technical claims verified.
+21. [x] **Consent versioning spec** — `docs/CONSENT_VERSIONING_REQUIREMENTS.md`; handoff to Nova.
+22. [x] **Harper tracking plan + campaign brief** — Approved 2026-03-05.
+
+**Elias → Atlas handoff (action required):**
+- **DPA execution** — Execute/confirm DPAs with Anthropic, xAI, Stripe, Resend, Sentry. See `docs/VENDOR_DPA_STATUS.md`.
+- **Privacy policy updates** — Approve draft language in `docs/PRIVACY_POLICY_GAP_ANALYSIS.md`; Nova to implement (persistent identifiers, multiplayer chat, image/screenshot, consent email opt-out).
+- **Legal review** — Schedule privacy + terms review before FTC April 22 deadline.
+- **Campaign brief** — Harper's brief approved by Elias; awaiting Atlas sign-off before paid campaigns.
 
 **This week (Harper Lane owns — marketing readiness):**
-26. [ ] **Create `docs/MARKETING_TRACKING_PLAN.md`** — events, surfaces, child data boundary. Hand to Elias for approval. ~2 hrs.
-27. [ ] **Draft `docs/CAMPAIGN_BRIEF_LAUNCH.md`** — parent persona, value prop, 3–5 headline angles, funnel map. Atlas + Elias sign-off. ~2 hrs.
-28. [ ] **Define baseline metrics** — signup %, consent %, time-to-first-game. Map to tracking events. ~1 hr.
-29. [ ] **Get Elias approval** on landing, gallery, and Landing B "Try It Now" tracking boundaries. Document decision. ~30 min.
+26. [x] **Marketing Tracking Plan** — Elias approved 2026-03-05.
+27. [x] **Campaign Brief Launch** — Elias approved; **awaiting Atlas sign-off**.
+28. [x] **Baseline metrics** — `docs/MARKETING_METRICS.md`.
+29. [x] **Elias tracking approval** — Documented in `docs/MARKETING_TRACKING_PLAN.md`.
+
+**This week (Rowan Vale owns — community & moderation):**
+30. [ ] **Policy–implementation audit** — Walk reporting workflow, pre-publish scan, admin alerts against `docs/MODERATION_POLICY.md`. Document drift. ~1.5 hrs.
+31. [ ] **Spec P1 tooling gaps** — Gallery report button + reporter user ID. Align with Lumi on UX. Hand to Nova. ~1 hr.
+32. [ ] **Review Report UX with Lumi** — "See something wrong?" prominence on gallery cards per UX_AUDIT. ~30 min.
 
 ### Later — Backlog
 - [ ] Progressive multi-step signup (post-launch A/B test)

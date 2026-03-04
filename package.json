@@ -21,6 +21,7 @@
     "test": "npx playwright test",
     "test:safety": "node server/tests/safety.test.js",
     "test:ci": "npm run test:safety && npx playwright test kid-bot",
+    "test:gate62": "npx playwright test gate-6-2 --workers=1",
     "test:bot": "npx playwright test interactive-bot --headed",
     "test:all": "npx playwright test kid-bot --headed",
     "test:quick": "npx playwright test kid-bot --headed --grep=\"API health|gallery\"",
@@ -38,6 +39,8 @@
     "prepare": "husky || true",
     "db:migrate": "node scripts/migrate-to-postgres.js",
     "db:migrate:dry": "node scripts/migrate-to-postgres.js --dry-run",
+    "db:migrate-consent-versioning": "node scripts/migrate-consent-versioning.js",
+    "db:flag-stale-consents": "node scripts/flag-stale-consents.js",
     "db:migrate-passwords": "node scripts/migrate-passwords.js"
   },
   "dependencies": {

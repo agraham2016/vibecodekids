@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { getVisitorId } from '../lib/abVariant';
+import { trackPageView, trackCtaClick } from '../lib/marketingEvents';
 import './LandingPageB.css';
 import './LandingPage.css';
 
@@ -86,6 +87,7 @@ export default function LandingPageB({ onLoginClick, onSignupClick }: LandingPag
       referrer: document.referrer,
       device: /Mobi/i.test(navigator.userAgent) ? 'mobile' : 'desktop',
     });
+    trackPageView();
   }, [logEvent]);
 
   const handleGenerate = useCallback(
@@ -160,11 +162,20 @@ export default function LandingPageB({ onLoginClick, onSignupClick }: LandingPag
   );
 
   const handleSignupFromGate = useCallback(() => {
+    trackCtaClick('tryit-gate-signup', 'tryit');
     localStorage.setItem('vck_draft_code', currentCode);
     localStorage.setItem('vck_draft_prompt', generations[generations.length - 1]?.prompt || '');
     localStorage.setItem('vck_draft_ts', String(Date.now()));
     onSignupClick();
   }, [currentCode, generations, onSignupClick]);
+
+  const handleCta = useCallback(
+    (buttonId: string, section?: string) => {
+      trackCtaClick(buttonId, section);
+      onSignupClick();
+    },
+    [onSignupClick],
+  );
 
   useEffect(() => {
     let ticking = false;
@@ -208,7 +219,7 @@ export default function LandingPageB({ onLoginClick, onSignupClick }: LandingPag
             <button className="nav-login" onClick={onLoginClick}>
               Log In
             </button>
-            <button className="nav-cta" onClick={onSignupClick}>
+            <button className="nav-cta" onClick={() => handleCta('nav-cta', 'nav')}>
               Get Started Free
             </button>
           </div>
@@ -263,7 +274,7 @@ export default function LandingPageB({ onLoginClick, onSignupClick }: LandingPag
                 <button className="tryit-gate-signup" onClick={handleSignupFromGate}>
                   Create Free Account
                 </button>
-                <button className="tryit-gate-plans" onClick={onSignupClick}>
+                <button className="tryit-gate-plans" onClick={() => handleCta('tryit-gate-plans', 'tryit')}>
                   See Plans
                 </button>
               </div>
@@ -450,7 +461,7 @@ export default function LandingPageB({ onLoginClick, onSignupClick }: LandingPag
                 <li>Unlimited plays</li>
                 <li>Share to Arcade</li>
               </ul>
-              <button className="price-card-btn" onClick={onSignupClick}>
+              <button className="price-card-btn" onClick={() => handleCta('price-free-btn', 'pricing')}>
                 Start Free Trial
               </button>
             </div>
@@ -466,7 +477,7 @@ export default function LandingPageB({ onLoginClick, onSignupClick }: LandingPag
                 <li>Share to Arcade</li>
                 <li>Priority support</li>
               </ul>
-              <button className="price-card-btn" onClick={onSignupClick}>
+              <button className="price-card-btn" onClick={() => handleCta('price-creator-btn', 'pricing')}>
                 Get Started
               </button>
             </div>
@@ -481,7 +492,7 @@ export default function LandingPageB({ onLoginClick, onSignupClick }: LandingPag
                 <li>Share to Arcade</li>
                 <li>Priority support</li>
               </ul>
-              <button className="price-card-btn" onClick={onSignupClick}>
+              <button className="price-card-btn" onClick={() => handleCta('price-pro-btn', 'pricing')}>
                 Get Started
               </button>
             </div>
@@ -495,7 +506,7 @@ export default function LandingPageB({ onLoginClick, onSignupClick }: LandingPag
         <section className="final-cta-section">
           <h2>Ready to start vibecoding?</h2>
           <p>Your child's next favorite game is one sentence away.</p>
-          <button className="section-cta" onClick={onSignupClick}>
+          <button className="section-cta" onClick={() => handleCta('section-cta', 'final')}>
             Get Started Free
           </button>
         </section>

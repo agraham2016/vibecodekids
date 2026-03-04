@@ -2480,9 +2480,9 @@
         }
         const rows = entries.map(e => {
           const details = e.details && Object.keys(e.details).length ? ' ' + JSON.stringify(e.details) : '';
-          return `<tr><td style="font-size:0.85rem;">${escapeHtml(e.timestamp || '')}</td><td>${escapeHtml(e.action || '')}</td><td>${escapeHtml(e.targetId || '-')}</td><td style="font-size:0.85rem;max-width:200px;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(details)}</td><td style="font-size:0.8rem;">${escapeHtml(e.ip || '-')}</td></tr>`;
+          return `<tr><td style="font-size:0.85rem;">${escapeHtml(e.timestamp || '')}</td><td>${escapeHtml(e.action || '')}</td><td>${escapeHtml(e.targetId || '-')}</td><td style="font-size:0.85rem;max-width:200px;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(details)}</td><td style="font-size:0.8rem;font-family:monospace;">${escapeHtml(e.ipHash || e.ip || '-')}</td></tr>`;
         }).join('');
-        container.innerHTML = `<table class="data-table" style="font-size:0.9rem;"><thead><tr><th>Time</th><th>Action</th><th>Target</th><th>Details</th><th>IP</th></tr></thead><tbody>${rows}</tbody></table>`;
+        container.innerHTML = `<table class="data-table" style="font-size:0.9rem;"><thead><tr><th>Time</th><th>Action</th><th>Target</th><th>Details</th><th>IP hash</th></tr></thead><tbody>${rows}</tbody></table>`;
       } catch (error) {
         container.innerHTML = '<p style="color:var(--error);">Failed to load audit log.</p>';
       }

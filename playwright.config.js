@@ -14,7 +14,7 @@ export default defineConfig({
   workers: 1,
   reporter: [['html', { open: 'never' }], ['list']],
   use: {
-    baseURL: isCI ? 'http://localhost:3001' : 'http://localhost:3000',
+    baseURL: process.env.PLAYWRIGHT_BASE_URL || (isCI ? 'http://localhost:3001' : 'http://localhost:3000'),
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',

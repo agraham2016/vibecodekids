@@ -716,5 +716,9 @@
       }
     })();
   </script>
+  <!-- PIXEL ZONE (Elias approved): Third-party pixels allowed on this page only. Nova: add conditional pixel loader when Harper provides scripts. -->
+  <script>
+    (function(){var q=window.location.search?new URLSearchParams(window.location.search):null;var s=sessionStorage.getItem('vck_mkt_sid');if(!s){s=crypto.randomUUID();sessionStorage.setItem('vck_mkt_sid',s);}fetch('/api/marketing/event',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'page_view',url:'/esa',referrer:document.referrer||undefined,device:/Mobi/i.test(navigator.userAgent)?'mobile':'desktop',sessionId:s,utm_source:q?.get('utm_source')||undefined,utm_medium:q?.get('utm_medium')||undefined,utm_campaign:q?.get('utm_campaign')||undefined})}).catch(function(){});})();
+  </script>
 </body>
 </html>

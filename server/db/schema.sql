@@ -202,6 +202,11 @@ CREATE INDEX IF NOT EXISTS idx_mod_reports_project ON moderation_reports(project
 ALTER TABLE users ADD COLUMN IF NOT EXISTS filter_violations INT NOT NULL DEFAULT 0;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS last_violation_at TIMESTAMPTZ;
 
+-- ========== CONSENT VERSIONING (FTC Revised COPPA) ==========
+
+ALTER TABLE parental_consents ADD COLUMN IF NOT EXISTS consent_policy_version TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS consent_policy_version TEXT;
+
 -- ========== CLEANUP ==========
 -- Automatic cleanup of expired sessions and old rate limit entries.
 -- Run these periodically via a cron job or scheduled task.

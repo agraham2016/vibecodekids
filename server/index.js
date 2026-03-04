@@ -59,6 +59,7 @@ import createEsaRouter from './routes/esa.js';
 import createFeedbackRouter from './routes/feedback.js';
 import demoRouter from './routes/demo.js';
 import demoAnalyticsRouter from './routes/demoAnalytics.js';
+import marketingAnalyticsRouter from './routes/marketingAnalytics.js';
 import reportRouter from './routes/report.js';
 import { initMultiplayer, getRoomInfo, getActiveRooms, getAllowedChatPhrases } from './multiplayer.js';
 import { startRetentionSchedule } from './services/dataRetention.js';
@@ -376,6 +377,7 @@ app.use('/api/esa', esaRouter);
 // Demo routes (unauthenticated — "Try It Now")
 app.use('/api/demo', demoRouter);
 app.use('/api/demo', demoAnalyticsRouter);
+app.use('/api/marketing', marketingAnalyticsRouter);
 
 // Public report route (any visitor)
 app.use('/api/report', reportRouter);

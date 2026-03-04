@@ -1,6 +1,6 @@
 /**
  * Postgres Storage Service
- * 
+ *
  * Same interface as storage.js but backed by PostgreSQL.
  * Activated when DATABASE_URL is set in environment.
  */
@@ -101,6 +101,7 @@ function rowToUser(row) {
     parentVerifiedAt: row.parent_verified_at?.toISOString() || null,
     filterViolations: row.filter_violations || 0,
     lastViolationAt: row.last_violation_at?.toISOString() || null,
+    consentPolicyVersion: row.consent_policy_version || null,
     // Rate limit requests are stored in a separate table for Postgres
     recentRequests: [],
   };
@@ -154,6 +155,7 @@ function userToRow(user) {
     parent_verified_at: user.parentVerifiedAt || null,
     filter_violations: user.filterViolations || 0,
     last_violation_at: user.lastViolationAt || null,
+    consent_policy_version: user.consentPolicyVersion || null,
   };
 }
 
@@ -197,7 +199,8 @@ export async function writeUser(userId, userData) {
   const db = getPool();
   const r = userToRow(userData);
 
-  await db.query(`
+  await db.query(
+    `
     INSERT INTO users (
       id, username, display_name, password_hash, status, is_admin,
       membership_tier, membership_expires, stripe_customer_id, stripe_subscription_id,
@@ -209,7 +212,8 @@ export async function writeUser(userId, userData) {
       approved_at, denied_at, created_at, last_login_at,
       payment_method, classwallet_order_id, esa_billing_period, improvement_opt_out,
       publishing_enabled, multiplayer_enabled, parent_dashboard_token,
-      parent_verified_method, parent_verified_at, filter_violations, last_violation_at
+      parent_verified_method, parent_verified_at, filter_violations, last_violation_at,
+      consent_policy_version
     ) VALUES (
       $1, $2, $3, $4, $5, $6,
       $7, $8, $9, $10,
@@ -221,7 +225,7 @@ export async function writeUser(userId, userData) {
       $29, $30, $31, $32,
       $33, $34, $35, $36,
       $37, $38, $39,
-      $40, $41, $42, $43
+      $40, $41, $42, $43, $44
     )
     ON CONFLICT (id) DO UPDATE SET
       username = EXCLUDED.username,
@@ -264,20 +268,56 @@ export async function writeUser(userId, userData) {
       parent_verified_method = EXCLUDED.parent_verified_method,
       parent_verified_at = EXCLUDED.parent_verified_at,
       filter_violations = EXCLUDED.filter_violations,
-      last_violation_at = EXCLUDED.last_violation_at
-  `, [
-    r.id, r.username, r.display_name, r.password_hash, r.status, r.is_admin,
-    r.membership_tier, r.membership_expires, r.stripe_customer_id, r.stripe_subscription_id,
-    r.games_created_month, r.ai_covers_used_month, r.ai_sprites_used_month,
-    r.monthly_reset_date, r.prompts_today, r.plays_today, r.daily_reset_date,
-    r.rate_limited_until, r.has_seen_upgrade_prompt, r.project_count,
-    r.age_bracket, r.parent_email, r.recovery_email, r.parental_consent_status, r.parental_consent_at,
-    r.data_deletion_requested, r.data_deletion_at, r.privacy_accepted_at,
-    r.approved_at, r.denied_at, r.created_at, r.last_login_at,
-    r.payment_method, r.classwallet_order_id, r.esa_billing_period, r.improvement_opt_out,
-    r.publishing_enabled, r.multiplayer_enabled, r.parent_dashboard_token,
-    r.parent_verified_method, r.parent_verified_at, r.filter_violations, r.last_violation_at,
-  ]);
+      last_violation_at = EXCLUDED.last_violation_at,
+      consent_policy_version = EXCLUDED.consent_policy_version
+  `,
+    [
+      r.id,
+      r.username,
+      r.display_name,
+      r.password_hash,
+      r.status,
+      r.is_admin,
+      r.membership_tier,
+      r.membership_expires,
+      r.stripe_customer_id,
+      r.stripe_subscription_id,
+      r.games_created_month,
+      r.ai_covers_used_month,
+      r.ai_sprites_used_month,
+      r.monthly_reset_date,
+      r.prompts_today,
+      r.plays_today,
+      r.daily_reset_date,
+      r.rate_limited_until,
+      r.has_seen_upgrade_prompt,
+      r.project_count,
+      r.age_bracket,
+      r.parent_email,
+      r.recovery_email,
+      r.parental_consent_status,
+      r.parental_consent_at,
+      r.data_deletion_requested,
+      r.data_deletion_at,
+      r.privacy_accepted_at,
+      r.approved_at,
+      r.denied_at,
+      r.created_at,
+      r.last_login_at,
+      r.payment_method,
+      r.classwallet_order_id,
+      r.esa_billing_period,
+      r.improvement_opt_out,
+      r.publishing_enabled,
+      r.multiplayer_enabled,
+      r.parent_dashboard_token,
+      r.parent_verified_method,
+      r.parent_verified_at,
+      r.filter_violations,
+      r.last_violation_at,
+      r.consent_policy_version,
+    ],
+  );
 }
 
 export async function userExists(userId) {
@@ -304,10 +344,7 @@ export async function deleteUser(userId) {
 
 export async function findUserBySubscriptionId(subscriptionId) {
   const db = getPool();
-  const { rows } = await db.query(
-    'SELECT * FROM users WHERE stripe_subscription_id = $1 LIMIT 1',
-    [subscriptionId]
-  );
+  const { rows } = await db.query('SELECT * FROM users WHERE stripe_subscription_id = $1 LIMIT 1', [subscriptionId]);
   if (rows.length === 0) return null;
   return rowToUser(rows[0]);
 }
@@ -328,9 +365,9 @@ export async function readProject(projectId) {
   // Load versions
   const versionsResult = await db.query(
     'SELECT version_id, code, title, auto_save, saved_at FROM project_versions WHERE project_id = $1 ORDER BY saved_at ASC',
-    [projectId]
+    [projectId],
   );
-  project.versions = versionsResult.rows.map(v => ({
+  project.versions = versionsResult.rows.map((v) => ({
     versionId: v.version_id,
     code: v.code,
     title: v.title,
@@ -344,7 +381,8 @@ export async function readProject(projectId) {
 export async function writeProject(projectId, projectData) {
   const db = getPool();
 
-  await db.query(`
+  await db.query(
+    `
     INSERT INTO projects (
       id, user_id, title, code, creator_name, category,
       is_public, is_draft, multiplayer, views, likes,
@@ -361,21 +399,23 @@ export async function writeProject(projectId, projectData) {
       views = EXCLUDED.views,
       likes = EXCLUDED.likes,
       updated_at = EXCLUDED.updated_at
-  `, [
-    projectId,
-    projectData.userId || null,
-    projectData.title,
-    projectData.code,
-    projectData.creatorName || 'Anonymous',
-    projectData.category || 'other',
-    projectData.isPublic || false,
-    projectData.isDraft || false,
-    projectData.multiplayer || false,
-    projectData.views || 0,
-    projectData.likes || 0,
-    projectData.createdAt || new Date().toISOString(),
-    projectData.updatedAt || new Date().toISOString(),
-  ]);
+  `,
+    [
+      projectId,
+      projectData.userId || null,
+      projectData.title,
+      projectData.code,
+      projectData.creatorName || 'Anonymous',
+      projectData.category || 'other',
+      projectData.isPublic || false,
+      projectData.isDraft || false,
+      projectData.multiplayer || false,
+      projectData.views || 0,
+      projectData.likes || 0,
+      projectData.createdAt || new Date().toISOString(),
+      projectData.updatedAt || new Date().toISOString(),
+    ],
+  );
 
   // Sync versions: delete existing and re-insert
   // (Simple approach -- fine for <=20 versions per project)
@@ -385,7 +425,7 @@ export async function writeProject(projectId, projectData) {
     for (const v of projectData.versions) {
       await db.query(
         'INSERT INTO project_versions (project_id, version_id, code, title, auto_save, saved_at) VALUES ($1, $2, $3, $4, $5, $6)',
-        [projectId, v.versionId, v.code, v.title || null, v.autoSave || false, v.savedAt || new Date().toISOString()]
+        [projectId, v.versionId, v.code, v.title || null, v.autoSave || false, v.savedAt || new Date().toISOString()],
       );
     }
   }
@@ -414,7 +454,7 @@ export async function createEsaOrder({ orderRef, userId, tier, billingPeriod, am
   await db.query(
     `INSERT INTO esa_orders (order_ref, user_id, tier, billing_period, amount_cents)
      VALUES ($1, $2, $3, $4, $5)`,
-    [orderRef, userId, tier, billingPeriod, amountCents]
+    [orderRef, userId, tier, billingPeriod, amountCents],
   );
 }
 
@@ -429,9 +469,18 @@ export async function updateEsaOrderStatus(orderRef, status, extra = {}) {
   const sets = ['status = $2'];
   const vals = [orderRef, status];
   let idx = 3;
-  if (status === 'confirmed') { sets.push(`confirmed_at = $${idx++}`); vals.push(new Date().toISOString()); }
-  if (status === 'paid')      { sets.push(`paid_at = $${idx++}`);      vals.push(new Date().toISOString()); }
-  if (extra.classwalletTxn)   { sets.push(`classwallet_txn = $${idx++}`); vals.push(extra.classwalletTxn); }
+  if (status === 'confirmed') {
+    sets.push(`confirmed_at = $${idx++}`);
+    vals.push(new Date().toISOString());
+  }
+  if (status === 'paid') {
+    sets.push(`paid_at = $${idx++}`);
+    vals.push(new Date().toISOString());
+  }
+  if (extra.classwalletTxn) {
+    sets.push(`classwallet_txn = $${idx++}`);
+    vals.push(extra.classwalletTxn);
+  }
   await db.query(`UPDATE esa_orders SET ${sets.join(', ')} WHERE order_ref = $1`, vals);
 }
 
@@ -451,10 +500,7 @@ export async function listEsaOrders(statusFilter) {
 
 export async function addEsaWaitlist(email) {
   const db = getPool();
-  await db.query(
-    'INSERT INTO esa_waitlist (email) VALUES ($1) ON CONFLICT DO NOTHING',
-    [email]
-  );
+  await db.query('INSERT INTO esa_waitlist (email) VALUES ($1) ON CONFLICT DO NOTHING', [email]);
 }
 
 export async function listEsaWaitlist() {

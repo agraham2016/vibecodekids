@@ -201,6 +201,7 @@ This matrix is enforced server-side via `requireAuth`, `requireAdmin`, `requireC
 | T10 | Data breach (Postgres) | Low | Critical | TLS connections, credential rotation, backup encryption |
 | T11 | Gallery scraping | Medium | Low | Rate limiting on gallery API |
 | T12 | Parent impersonation | Low | High | Email-based consent verification |
+| T13 | Screenshot/image PII to AI | Medium | High | PII scanner covers text only; base64 screenshots sent to Claude/Grok may contain visible PII (name on screen, etc.). Documented risk; mitigation: system prompt instructs no PII in prompts; consider restricting image input for under-13 (future). |
 
 ---
 
@@ -272,7 +273,7 @@ This matrix is enforced server-side via `requireAuth`, `requireAdmin`, `requireC
 - [x] `requireConsent` middleware on publish and generate routes
 - [ ] Encrypt sensitive DB fields at rest
 - [ ] Data deletion endpoint (COPPA right to delete)
-- [ ] IP address anonymization after 30 days
+- [x] IP addresses never persisted raw — hashed at write time (`ipHash`), salt from env
 
 ### Infrastructure
 - [x] HTTPS + HSTS (includeSubDomains)
@@ -282,6 +283,29 @@ This matrix is enforced server-side via `requireAuth`, `requireAdmin`, `requireC
 - [x] CORS restricted in production
 - [ ] HSTS preload directive
 - [ ] Dockerfile: run as non-root
+
+---
+
+## 7a. Image/Screenshot PII Risk (AI Input)
+
+**Risk:** When users attach a screenshot (e.g., "fix this bug" with a picture of the game), we send base64 image data to Claude/Grok. The PII scanner only processes *text* — it does not inspect image pixels. A screenshot could contain:
+- Child's name visible on screen
+- Parent email in a notification
+- Other on-screen PII
+
+**Current mitigations:**
+- System prompt instructs: "NEVER create forms that ask for real names, emails, phone numbers."
+- No persistent storage of screenshots (transmitted to AI only).
+- AI providers (Anthropic, xAI) are contractually constrained re: training; not for PII mining.
+
+**Gap:** We cannot programmatically detect PII *inside* images. Manual review is impractical.
+
+**Recommended mitigations (prioritized):**
+1. **Document** — Add to privacy policy: "If you send a screenshot, avoid including personal information visible on screen."
+2. **Client guidance** — In the screenshot attach UI, show a brief notice: "Make sure no personal info is visible."
+3. **Future:** Consider disabling image input for under-13 users (requires product decision).
+
+**Owner:** Atlas (product decision on #3); Cipher (documentation); Lumi (UX for #2).
 
 ---
 

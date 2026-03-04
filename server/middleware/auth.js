@@ -32,9 +32,8 @@ export function extractUser(sessions) {
         req.session = session;
         req.authToken = token;
 
-        // Bind IP/UA on first request if not yet set
-        if (!session.boundIp) {
-          session.boundIp = req.ip || req.connection?.remoteAddress;
+        // Bind UA on first request if not yet set (no IP — we never persist raw IPs)
+        if (!session.boundUserAgent) {
           session.boundUserAgent = req.headers['user-agent'];
           sessions.set(token, session);
         }
