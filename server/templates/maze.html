@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', sans-serif; background: linear-gradient(135deg, #0a3d62 0%, #0c2461 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; touch-action: none; }
+    #game-container { border-radius: 12px; overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.86.0/dist/phaser.min.js" crossorigin="anonymous"></script>
+</head>
+<body>
+  <div id="game-container"></div>
+  <script>
+    const W = 800, H = 500;
+    const TILE = 20;
+    const COLS = Math.floor(W / TILE), ROWS = Math.floor(H / TILE);
+    const GHOST_SPEED = 80;
+    const PLAYER_SPEED = 120;
+
+    let player, dots, ghosts, score, dotsTotal, gameState;
+    let scoreText, msgText, cursors;
+    let joystickBase, joystickStick, joystickActive = false;
+    let joystickVx = 0, joystickVy = 0;
+
+    const config = {
+      type: Phaser.AUTO, width: W, height: H, parent: 'game-container', backgroundColor: '#0a3d62',
+      physics: { default: 'arcade', arcade: { debug: false } },
+      scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
+      scene: { preload, create, update }
+    };
+
+    const MAZE = [];
+    function genMaze() {
+      for (let r = 0; r < ROWS; r++) {
+        MAZE[r] = [];
+        for (let c = 0; c < COLS; c++) {
+          const edge = r === 0 || r === ROWS - 1 || c === 0 || c === COLS - 1;
+          const blob = (r % 2 === 0 && c % 2 === 0) || (r % 2 === 1 && c % 2 === 1);
+          MAZE[r][c] = edge || (blob && Math.random() < 0.3) ? 1 : 0;
+        }
+      }
+      MAZE[1][1] = 0;
+      MAZE[ROWS - 2][COLS - 2] = 0;
+    }
+
+    function preload() {
+      this.load.audio('coinSfx', '/assets/sounds/coin.wav');
+      this.load.audio('hitSfx', '/assets/sounds/hit.wav');
+    }
+
+    function create() {
+      genMaze();
+      const g = this.make.graphics({ add: false });
+      g.fillStyle(0xfdcb6e);
+      g.fillCircle(3, 3, 3);
+      g.generateTexture('dot', 6, 6);
+      g.destroy();
+
+      const walls = this.physics.add.staticGroup();
+      const bg = this.add.graphics();
+      bg.fillStyle(0x0a3d62);
+      bg.fillRect(0, 0, W, H);
+
+      dots = this.physics.add.group();
+      dotsTotal = 0;
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+          if (MAZE[r][c] === 1) {
+            const wall = this.add.rectangle(c * TILE + TILE / 2, r * TILE + TILE / 2, TILE, TILE, 0x1e3a5f);
+            this.physics.add.existing(wall, true);
+            walls.add(wall);
+          } else if (MAZE[r][c] === 0 && !(r === 1 && c === 1) && !(r === ROWS - 2 && c === COLS - 2)) {
+            const dot = dots.create(c * TILE + TILE / 2, r * TILE + TILE / 2, 'dot');
+            dot.setCircle(3);
+            dotsTotal++;
+          }
+        }
+      }
+
+      player = this.add.circle(1 * TILE + TILE / 2, 1 * TILE + TILE / 2, 10, 0x55efc4);
+      this.physics.add.existing(player);
+      player.body.setCircle(10);
+      player.body.setCollideWorldBounds(true);
+      this.physics.add.collider(player, walls);
+
+      ghosts = this.physics.add.group();
+      const ghostColors = [0xe94560, 0xfdcb6e, 0x74b9ff];
+      for (let i = 0; i < 3; i++) {
+        const gr = ROWS - 2 - i;
+        const gc = COLS - 2 - i;
+        const ghost = this.add.circle(gc * TILE + TILE / 2, gr * TILE + TILE / 2, 10, ghostColors[i]);
+        this.physics.add.existing(ghost);
+        ghost.body.setCircle(10);
+        ghost.setData({ vx: 0, vy: 0 });
+        ghosts.add(ghost);
+      }
+      this.physics.add.collider(ghosts, walls);
+      this.physics.add.overlap(player, ghosts, hitGhost, null, this);
+      this.physics.add.overlap(player, dots, collectDot, null, this);
+
+      score = 0;
+      gameState = 'playing';
+      scoreText = this.add.text(12, 12, 'Score: 0', { fontSize: '20px', fill: '#fdcb6e', stroke: '#000', strokeThickness: 2 }).setDepth(10);
+      const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+      msgText = this.add.text(W / 2, H / 2, isTouchDevice ? 'Joystick to move' : 'Arrow keys to move', { fontSize: '18px', fill: '#aaa', stroke: '#000', strokeThickness: 2, align: 'center' }).setOrigin(0.5).setDepth(20);
+      this.time.delayedCall(2500, () => msgText.setVisible(false));
+
+      const keys = this.input.keyboard && this.input.keyboard.createCursorKeys();
+      cursors = keys || { left: { isDown: false }, right: { isDown: false }, up: { isDown: false }, down: { isDown: false } };
+      this.input.on('pointerdown', (ptr) => {
+        if (gameState === 'gameover') this.scene.restart();
+      });
+      this.input.keyboard && this.input.keyboard.on('keydown-SPACE', () => { if (gameState === 'gameover') this.scene.restart(); });
+
+      if (isTouchDevice) {
+        const joyX = 75;
+        const joyY = H - 75;
+        const joyRadius = 50;
+        const stickRadius = 18;
+        joystickBase = this.add.circle(joyX, joyY, joyRadius, 0x333333, 0.6).setStrokeStyle(2, 0x555555).setDepth(15);
+        joystickStick = this.add.circle(joyX, joyY, stickRadius, 0x55efc4, 0.9).setDepth(16);
+        joystickBase.setInteractive({ useHandCursor: false });
+        const updateStick = (ptr) => {
+          const w = this.cameras.main.getWorldPoint(ptr.x, ptr.y);
+          let dx = w.x - joyX;
+          let dy = w.y - joyY;
+          const len = Math.sqrt(dx * dx + dy * dy) || 1;
+          if (len > joyRadius) {
+            dx = (dx / len) * joyRadius;
+            dy = (dy / len) * joyRadius;
+          }
+          joystickStick.setPosition(joyX + dx, joyY + dy);
+          joystickVx = (dx / joyRadius) * PLAYER_SPEED;
+          joystickVy = (dy / joyRadius) * PLAYER_SPEED;
+        };
+        const resetJoy = () => { joystickActive = false; joystickStick.setPosition(joyX, joyY); joystickVx = 0; joystickVy = 0; };
+        joystickBase.on('pointerdown', (ptr) => { joystickActive = true; updateStick(ptr); });
+        joystickBase.on('pointermove', (ptr) => { if (joystickActive) updateStick(ptr); });
+        joystickBase.on('pointerup', resetJoy);
+        this.input.on('pointermove', (ptr) => {
+          if (joystickActive && ptr.isDown) updateStick(ptr);
+        });
+        this.input.on('pointerup', resetJoy);
+      } else {
+        joystickBase = null;
+        joystickStick = null;
+      }
+    }
+
+    function collectDot(p, d) {
+      d.destroy();
+      score++;
+      scoreText.setText('Score: ' + score);
+      if (this.cache.audio.exists('coinSfx')) this.sound.play('coinSfx', { volume: 0.4 });
+      if (score >= dotsTotal) {
+        gameState = 'gameover';
+        msgText.setText('You win!\nCollected all dots!\nClick or SPACE to play again').setVisible(true);
+      }
+    }
+
+    function hitGhost() {
+      if (gameState !== 'playing') return;
+      gameState = 'gameover';
+      if (this.cache.audio.exists('hitSfx')) this.sound.play('hitSfx', { volume: 0.6 });
+      msgText.setText('Caught!\nScore: ' + score + '\nClick or SPACE to play again').setVisible(true);
+    }
+
+    function update() {
+      if (gameState !== 'playing') return;
+      const v = PLAYER_SPEED;
+      let vx = 0, vy = 0;
+      if (joystickVx !== 0 || joystickVy !== 0) {
+        vx = joystickVx;
+        vy = joystickVy;
+      } else if (cursors.left.isDown) vx = -v;
+      else if (cursors.right.isDown) vx = v;
+      else if (cursors.up.isDown) vy = -v;
+      else if (cursors.down.isDown) vy = v;
+      player.body.setVelocity(vx, vy);
+
+      ghosts.getChildren().forEach((ghost, i) => {
+        const dx = player.x - ghost.x;
+        const dy = player.y - ghost.y;
+        const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+        if (Math.random() < 0.02) {
+          const angle = Math.atan2(dy, dx) + (Phaser.Math.Between(-20, 20) * 0.1);
+          ghost.setData('vx', Math.cos(angle) * GHOST_SPEED * (0.7 + i * 0.1));
+          ghost.setData('vy', Math.sin(angle) * GHOST_SPEED * (0.7 + i * 0.1));
+        }
+        ghost.body.setVelocity(ghost.getData('vx') || 0, ghost.getData('vy') || 0);
+      });
+    }
+    new Phaser.Game(config);
+  </script>
+</body>
+</html>

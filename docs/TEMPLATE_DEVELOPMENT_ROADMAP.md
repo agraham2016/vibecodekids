@@ -222,12 +222,14 @@ PROPOSE → APPROVE → SPEC → BUILD → REVIEW → HANDOFF
 
 | Template | Stage | Blocker |
 |----------|--------|---------|
-| Pong | **Built** | Ready for Atlas review |
-| Catch/Dodge | **Built** | Ready for Atlas review |
-| Whack-a-Mole | **Built** | Ready for Atlas review |
-| Memory (Card Flip) | Backlog | — |
-| Maze/Collect | Backlog | — |
-| Top-Down Shooter | Backlog | — |
+| Pong | **Built** | Complete |
+| Catch/Dodge | **Built** | Complete |
+| Whack-a-Mole | **Built** | Complete |
+| Memory (Card Flip) | **Built** | Complete |
+| Maze/Collect | **Built** | Complete |
+| Top-Down Shooter | **Built** | Complete |
+| Simple Fishing | **Built** | Complete |
+| Simon Says | **Built** | Complete |
 
 ---
 

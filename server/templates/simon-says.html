@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', sans-serif; background: linear-gradient(135deg, #2d3436 0%, #636e72 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; touch-action: none; }
+    #game-container { border-radius: 12px; overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.86.0/dist/phaser.min.js" crossorigin="anonymous"></script>
+</head>
+<body>
+  <div id="game-container"></div>
+  <script>
+    const W = 800, H = 500;
+    const BTN_R = 70;
+    const COLORS = [0xe74c3c, 0x2ecc71, 0xf1c40f, 0x3498db];
+    const COLORS_BRIGHT = [0xff6b6b, 0x55efc4, 0xffeaa7, 0x74b9ff];
+
+    let buttons, sequence, playerSeq, level, gameState;
+    let levelText, msgText;
+    let isPlayingSeq = false;
+
+    const config = {
+      type: Phaser.AUTO, width: W, height: H, parent: 'game-container', backgroundColor: '#2d3436',
+      scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
+      scene: { preload, create, update }
+    };
+
+    function preload() {
+      this.load.audio('coinSfx', '/assets/sounds/coin.wav');
+      this.load.audio('clickSfx', '/assets/sounds/click.wav');
+      this.load.audio('hitSfx', '/assets/sounds/hit.wav');
+    }
+
+    function create() {
+      const cx = W / 2, cy = H / 2;
+      const positions = [
+        { x: cx - BTN_R - 20, y: cy - BTN_R - 20 },
+        { x: cx + BTN_R + 20, y: cy - BTN_R - 20 },
+        { x: cx - BTN_R - 20, y: cy + BTN_R + 20 },
+        { x: cx + BTN_R + 20, y: cy + BTN_R + 20 },
+      ];
+
+      buttons = [];
+      for (let i = 0; i < 4; i++) {
+        const btn = this.add.circle(positions[i].x, positions[i].y, BTN_R, COLORS[i]).setInteractive({ useHandCursor: true });
+        btn.setData('id', i);
+        btn.on('pointerdown', () => onButtonClick(this, i));
+        buttons.push(btn);
+      }
+
+      sequence = [];
+      playerSeq = [];
+      level = 1;
+      gameState = 'start';
+
+      levelText = this.add.text(W / 2, 35, 'Level 1', { fontSize: '28px', fill: '#fff', stroke: '#000', strokeThickness: 3 }).setOrigin(0.5).setDepth(10);
+      msgText = this.add.text(W / 2, H - 40, 'Watch the pattern, then repeat it!', { fontSize: '18px', fill: '#b2bec3', stroke: '#000', strokeThickness: 2 }).setOrigin(0.5).setDepth(10);
+
+      this.input.on('pointerdown', () => {
+        if (gameState === 'gameover') this.scene.restart();
+      });
+      this.input.keyboard.on('keydown-SPACE', () => {
+        if (gameState === 'gameover') this.scene.restart();
+      });
+
+      this.time.delayedCall(1000, () => startLevel(this));
+    }
+
+    function startLevel(scene) {
+      if (gameState === 'gameover') return;
+      gameState = 'playing';
+      isPlayingSeq = true;
+      playerSeq = [];
+      sequence.push(Phaser.Math.Between(0, 3));
+      levelText.setText('Level ' + level);
+
+      let delay = 0;
+      sequence.forEach((id, i) => {
+        scene.time.delayedCall(delay, () => flashButton(scene, id));
+        delay += 600;
+      });
+      scene.time.delayedCall(delay + 400, () => { isPlayingSeq = false; msgText.setText('Your turn!'); });
+    }
+
+    function flashButton(scene, id) {
+      const btn = buttons[id];
+      btn.setFillStyle(COLORS_BRIGHT[id]);
+      scene.tweens.add({
+        targets: btn,
+        scale: 1.1,
+        duration: 150,
+        yoyo: true,
+        onComplete: () => btn.setFillStyle(COLORS[id])
+      });
+      scene.time.delayedCall(150, () => btn.setFillStyle(COLORS[id]));
+      if (scene.cache.audio.exists('clickSfx')) scene.sound.play('clickSfx', { volume: 0.5 });
+    }
+
+    function onButtonClick(scene, id) {
+      if (gameState !== 'playing' || isPlayingSeq) return;
+
+      playerSeq.push(id);
+      flashButton(scene, id);
+
+      const idx = playerSeq.length - 1;
+      if (playerSeq[idx] !== sequence[idx]) {
+        gameState = 'gameover';
+        if (scene.cache.audio.exists('hitSfx')) scene.sound.play('hitSfx', { volume: 0.6 });
+        msgText.setText('Wrong! Level ' + level + '\nClick or SPACE to play again').setVisible(true);
+        return;
+      }
+
+      if (playerSeq.length === sequence.length) {
+        level++;
+        if (scene.cache.audio.exists('coinSfx')) scene.sound.play('coinSfx', { volume: 0.5 });
+        msgText.setText('Correct! Next level...');
+        scene.time.delayedCall(800, () => startLevel(scene));
+      }
+    }
+
+    function update() {}
+    new Phaser.Game(config);
+  </script>
+</body>
+</html>

@@ -102,6 +102,17 @@ const GENRE_TEMPLATE_MAP = {
   dodge: 'catch.html',
   'whack-a-mole': 'whack-a-mole.html',
   reaction: 'whack-a-mole.html',
+  memory: 'memory.html',
+  'memory-card': 'memory.html',
+  maze: 'maze.html',
+  'pac-man': 'maze.html',
+  'collect-dots': 'maze.html',
+  'top-down-shooter': 'top-down-shooter.html',
+  'twin-stick': 'top-down-shooter.html',
+  fishing: 'fishing.html',
+  'fish-game': 'fishing.html',
+  'simon-says': 'simon-says.html',
+  sequence: 'simon-says.html',
 };
 
 /**

@@ -180,6 +180,9 @@
   display: grid;
   grid-template-columns: repeat(6, 1fr);
   gap: 6px;
+  max-height: 280px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .game-starter-btn {

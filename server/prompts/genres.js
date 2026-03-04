@@ -128,6 +128,12 @@ export const GENRE_KEYWORDS = {
   ],
   dodge: ['dodge', 'dodge game', 'avoid obstacles'],
   'whack-a-mole': ['whack a mole', 'whack-a-mole', 'hit targets', 'reaction game', 'tap targets', 'mole game'],
+  memory: ['memory game', 'flip cards', 'match pairs', 'card flip', 'memory match'],
+  'memory-card': ['memory cards', 'concentration game'],
+  maze: ['maze', 'pac-man', 'pacman', 'collect dots', 'collect pellets', 'avoid ghosts'],
+  'top-down-shooter': ['top down shooter', 'twin stick', 'twin-stick', 'top-down shooter', 'overhead shooter'],
+  fishing: ['fishing', 'fishing game', 'catch fish', 'fish game', 'go fishing'],
+  'simon-says': ['simon says', 'simon-says', 'sequence game', 'repeat the pattern', 'memory pattern'],
 };
 
 /**

@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', sans-serif; background: linear-gradient(180deg, #74b9ff 0%, #0984e3 60%, #0a3d62 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; touch-action: none; }
+    #game-container { border-radius: 12px; overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.86.0/dist/phaser.min.js" crossorigin="anonymous"></script>
+</head>
+<body>
+  <div id="game-container"></div>
+  <script>
+    const W = 800, H = 500;
+    const ROD_LENGTH = 120;
+    const BITE_TIME_MIN = 800;
+    const BITE_TIME_MAX = 2500;
+    const REEL_SPEED = 180;
+    const FISH_PULL_SPEED = 120;
+    const FISH_FIGHT_CHANCE = 0.015;
+    const FISH_FIGHT_DURATION_MIN = 400;
+    const FISH_FIGHT_DURATION_MAX = 900;
+    const REEL_EMPTY_SPEED = 100;
+    const REEL_BITE_CHANCE = 0.012;
+
+    let bobber, fish, rodLine, score, gameState;
+    let scoreText, msgText, biteTimer, reelBtn, reelHeld;
+    let fishFightUntil = 0;
+
+    const config = {
+      type: Phaser.AUTO, width: W, height: H, parent: 'game-container', backgroundColor: '#74b9ff',
+      physics: { default: 'arcade', arcade: { gravity: { y: 0 }, debug: false } },
+      scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
+      scene: { preload, create, update }
+    };
+
+    function preload() {
+      this.load.audio('coinSfx', '/assets/sounds/coin.wav');
+      this.load.audio('clickSfx', '/assets/sounds/click.wav');
+    }
+
+    function create() {
+      const g = this.make.graphics({ add: false });
+      g.fillStyle(0xfdcb6e);
+      g.fillCircle(8, 8, 8);
+      g.generateTexture('bobber', 16, 16);
+      g.clear();
+      g.fillStyle(0xe17055);
+      g.fillEllipse(15, 8, 20, 10);
+      g.fillStyle(0xff6b6b);
+      g.fillCircle(25, 8, 4);
+      g.generateTexture('fish', 30, 16);
+      g.destroy();
+
+      const bg = this.add.graphics();
+      bg.fillGradientStyle(0x74b9ff, 0x74b9ff, 0x0984e3, 0x0a3d62);
+      bg.fillRect(0, 0, W, H);
+      bg.fillStyle(0x00b894);
+      bg.fillRect(0, H - 40, W, 40);
+
+      score = 0;
+      gameState = 'idle';
+
+      bobber = this.add.circle(W / 2, H - 80, 8, 0xfdcb6e);
+      rodLine = this.add.line(0, 0, W / 2, H - 40, W / 2, H - 80, 0x8b7355, 1).setLineWidth(3).setDepth(0);
+      fish = this.add.image(W / 2, H - 80, 'fish').setVisible(false);
+
+      scoreText = this.add.text(12, 12, 'Score: 0', { fontSize: '20px', fill: '#fdcb6e', stroke: '#000', strokeThickness: 2 }).setDepth(10);
+      msgText = this.add.text(W / 2, H / 2 - 30, 'Click to cast!', { fontSize: '24px', fill: '#fff', stroke: '#000', strokeThickness: 3, align: 'center' }).setOrigin(0.5).setDepth(10);
+
+      const btnBg = this.add.rectangle(0, 0, 140, 36, 0x2d3436);
+      const btnText = this.add.text(0, 0, 'REEL', { fontSize: '18px', fill: '#fdcb6e', fontStyle: 'bold' }).setOrigin(0.5);
+      reelBtn = this.add.container(W / 2, H - 20, [btnBg, btnText]);
+      reelBtn.setInteractive(new Phaser.Geom.Rectangle(-70, -18, 140, 36), Phaser.Geom.Rectangle.Contains);
+      reelBtn.input.cursor = 'pointer';
+      reelBtn.setVisible(false);
+      reelBtn.setDepth(10);
+
+      reelBtn.on('pointerdown', () => {
+        if (gameState === 'waiting') startReelEmpty(this);
+        else if (gameState === 'bitten' || gameState === 'reeling-empty') reelHeld = true;
+      });
+      reelBtn.on('pointerup', () => { reelHeld = false; });
+      reelBtn.on('pointerout', () => { reelHeld = false; });
+      this.input.on('pointerup', () => { reelHeld = false; });
+
+      this.input.on('pointerdown', (ptr) => handleClick(this, ptr));
+      this.input.keyboard.on('keydown-SPACE', () => handleClick(this, null));
+    }
+
+    function handleClick(scene, ptr) {
+      if (gameState === 'gameover') {
+        scene.scene.restart();
+        return;
+      }
+      if (gameState === 'idle') {
+        const tx = ptr ? Phaser.Math.Clamp(ptr.x, 40, W - 40) : W / 2;
+        const ty = ptr ? Phaser.Math.Clamp(ptr.y, 80, H - 50) : H - 140;
+        cast(scene, tx, ty);
+      }
+    }
+
+    function cast(scene, targetX, targetY) {
+      gameState = 'casting';
+      msgText.setText('Waiting for a bite...');
+      scene.tweens.add({
+        targets: bobber,
+        x: targetX,
+        y: targetY,
+        duration: 400,
+        onComplete: () => {
+          rodLine.setTo(W / 2, H - 40, bobber.x, bobber.y);
+          gameState = 'waiting';
+          reelBtn.setVisible(true);
+          msgText.setText('Click REEL to give up, or wait for a bite!');
+          const biteIn = Phaser.Math.Between(BITE_TIME_MIN, BITE_TIME_MAX);
+          biteTimer = scene.time.delayedCall(biteIn, () => onBite(scene));
+        }
+      });
+    }
+
+    function startReelEmpty(scene) {
+      if (gameState !== 'waiting') return;
+      if (biteTimer) biteTimer.remove();
+      biteTimer = null;
+      gameState = 'reeling-empty';
+      msgText.setText('Hold REEL to reel in — a fish might bite!');
+    }
+
+    function onBite(scene) {
+      if (gameState !== 'waiting' && gameState !== 'reeling-empty') return;
+      gameState = 'bitten';
+      fishFightUntil = 0;
+      msgText.setText('Hold REEL to bring in your catch!');
+      if (scene.cache.audio.exists('clickSfx')) scene.sound.play('clickSfx', { volume: 0.5 });
+      fish.setPosition(bobber.x, bobber.y);
+      fish.setVisible(true);
+    }
+
+    function catchFish(scene) {
+      fishFightUntil = 0;
+      score += 10;
+      scoreText.setText('Score: ' + score);
+      if (scene.cache.audio.exists('coinSfx')) scene.sound.play('coinSfx', { volume: 0.5 });
+      fish.setVisible(false);
+      bobber.setPosition(W / 2, H - 80);
+      rodLine.setTo(W / 2, H - 40, W / 2, H - 80);
+      reelBtn.setVisible(false);
+      msgText.setText('Click to cast!').setVisible(true);
+      gameState = 'idle';
+    }
+
+    function update(time, delta) {
+      if (gameState === 'casting') return;
+      rodLine.setTo(W / 2, H - 40, bobber.x, bobber.y);
+      if (fish.visible) {
+        fish.setPosition(bobber.x, bobber.y);
+        const toShoreX = W / 2 - bobber.x;
+        const toShoreY = (H - 50) - bobber.y;
+        fish.rotation = Math.atan2(toShoreY, toShoreX);
+      }
+
+      if (gameState === 'reeling-empty' && reelHeld) {
+        const shoreX = W / 2;
+        const shoreY = H - 50;
+        const dx = shoreX - bobber.x;
+        const dy = shoreY - bobber.y;
+        const len = Math.sqrt(dx * dx + dy * dy);
+        if (len <= 5) {
+          bobber.setPosition(W / 2, H - 80);
+          rodLine.setTo(W / 2, H - 40, W / 2, H - 80);
+          reelBtn.setVisible(false);
+          msgText.setText('Click to cast!').setVisible(true);
+          gameState = 'idle';
+        } else {
+          if (Math.random() < REEL_BITE_CHANCE) {
+            onBite(this);
+          } else {
+            const dist = REEL_EMPTY_SPEED * (delta / 1000);
+            bobber.x += (dx / len) * dist;
+            bobber.y += (dy / len) * dist;
+          }
+        }
+      } else if (gameState === 'bitten' && reelHeld) {
+        const shoreX = W / 2;
+        const shoreY = H - 50;
+        const dx = shoreX - bobber.x;
+        const dy = shoreY - bobber.y;
+        const len = Math.sqrt(dx * dx + dy * dy);
+
+        if (len <= 5) {
+          bobber.setPosition(shoreX, shoreY);
+          catchFish(this);
+          return;
+        }
+
+        if (fishFightUntil > 0 && time < fishFightUntil) {
+          msgText.setText('Fish is fighting! Keep holding REEL!');
+          const pullDist = FISH_PULL_SPEED * (delta / 1000);
+          bobber.x -= (dx / len) * pullDist;
+          bobber.y -= (dy / len) * pullDist;
+          bobber.x = Phaser.Math.Clamp(bobber.x, 40, W - 40);
+          bobber.y = Phaser.Math.Clamp(bobber.y, 80, shoreY + 80);
+        } else {
+          fishFightUntil = 0;
+          msgText.setText('Hold REEL to bring in your catch!');
+          if (Math.random() < FISH_FIGHT_CHANCE) {
+            fishFightUntil = time + Phaser.Math.Between(FISH_FIGHT_DURATION_MIN, FISH_FIGHT_DURATION_MAX);
+          } else {
+            const dist = REEL_SPEED * (delta / 1000);
+            bobber.x += (dx / len) * dist;
+            bobber.y += (dy / len) * dist;
+          }
+        }
+      }
+    }
+    new Phaser.Game(config);
+  </script>
+</body>
+</html>

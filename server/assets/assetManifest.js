@@ -215,6 +215,42 @@ export const ASSET_MANIFEST = {
     ],
     sounds: ['hit', 'coin', 'win', 'lose'],
   },
+  memory: {
+    sprites: [
+      { key: 'card', path: '/assets/sprites/puzzle/gems.png', w: 32, h: 32 },
+      { key: 'cardBack', path: '/assets/sprites/common/star.png', w: 16, h: 16, note: 'or generate procedurally' },
+    ],
+    sounds: ['coin', 'click', 'win', 'lose'],
+  },
+  maze: {
+    sprites: [
+      { key: 'dot', path: '/assets/sprites/common/star.png', w: 16, h: 16 },
+      { key: 'player', path: '/assets/sprites/platformer/player.png', w: 32, h: 32 },
+      { key: 'ghost', path: '/assets/sprites/shooter/enemy.png', w: 28, h: 28 },
+    ],
+    sounds: ['coin', 'hit', 'win', 'lose'],
+  },
+  'top-down-shooter': {
+    sprites: [
+      { key: 'player', path: '/assets/sprites/shooter/ship.png', w: 32, h: 48 },
+      { key: 'bullet', path: '/assets/sprites/shooter/bullet.png', w: 8, h: 16 },
+      { key: 'enemy', path: '/assets/sprites/shooter/enemy.png', w: 28, h: 28 },
+    ],
+    sounds: ['hit', 'explosion', 'win', 'lose'],
+  },
+  fishing: {
+    sprites: [
+      { key: 'bobber', path: '/assets/sprites/common/star.png', w: 16, h: 16, note: 'or generate procedurally' },
+      { key: 'fish', path: '/assets/sprites/common/star.png', w: 16, h: 16, note: 'or generate procedurally' },
+    ],
+    sounds: ['coin', 'click', 'win', 'lose'],
+  },
+  'simon-says': {
+    sprites: [
+      { key: 'button', path: '/assets/sprites/common/star.png', w: 16, h: 16, note: 'or generate procedurally' },
+    ],
+    sounds: ['click', 'coin', 'hit', 'win', 'lose'],
+  },
   common: {
     sprites: [
       { key: 'heart', path: '/assets/sprites/common/heart.png', w: 16, h: 16 },

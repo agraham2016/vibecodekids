@@ -262,6 +262,46 @@ const GAME_TEMPLATES = [
     sprite: '/assets/sprites/common/star.png',
     emoji: '👊',
   },
+  {
+    title: 'Memory Match',
+    genre: 'Puzzle',
+    description: 'Flip cards to find matching pairs',
+    gradient: 'linear-gradient(135deg, #4a1a6b 0%, #2a1040 100%)',
+    sprite: '/assets/sprites/puzzle/gems.png',
+    emoji: '🃏',
+  },
+  {
+    title: 'Maze Chase',
+    genre: 'Arcade',
+    description: 'Collect dots and avoid the chasers',
+    gradient: 'linear-gradient(135deg, #0a3d62 0%, #0c2461 100%)',
+    sprite: '/assets/sprites/common/star.png',
+    emoji: '👻',
+  },
+  {
+    title: 'Top-Down Shooter',
+    genre: 'Action',
+    description: 'Move and shoot in all directions',
+    gradient: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
+    sprite: '/assets/sprites/shooter/ship.png',
+    emoji: '🎯',
+  },
+  {
+    title: 'Simple Fishing',
+    genre: 'Casual',
+    description: 'Cast your line and reel in the catch',
+    gradient: 'linear-gradient(180deg, #74b9ff 0%, #0984e3 60%, #0a3d62 100%)',
+    sprite: '/assets/sprites/common/star.png',
+    emoji: '🎣',
+  },
+  {
+    title: 'Simon Says',
+    genre: 'Puzzle',
+    description: 'Watch and repeat the pattern',
+    gradient: 'linear-gradient(135deg, #2d3436 0%, #636e72 100%)',
+    sprite: '/assets/sprites/common/star.png',
+    emoji: '🔮',
+  },
 ];
 
 const SHOWCASE_NAMES = [
@@ -712,7 +752,7 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
 
         {/* ── 6. Template Grid (existing) ── */}
         <section className="template-showcase">
-          <h2 className="section-heading">21 Game Types to Vibecode</h2>
+          <h2 className="section-heading">26 Game Types to Vibecode</h2>
           <p className="section-subheading">Pick a template or describe something totally new</p>
           <div className="template-grid">
             {GAME_TEMPLATES.map((tmpl) => (

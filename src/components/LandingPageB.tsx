@@ -23,6 +23,14 @@ const GAME_STARTERS = [
   { label: 'Racing', prompt: 'A top-down racing game dodging traffic' },
   { label: 'Flappy Bird', prompt: 'A flappy bird style game with a dragon' },
   { label: 'Brick Breaker', prompt: 'A brick breaker game with power-ups' },
+  { label: 'Pong', prompt: 'A pong game where I bounce the ball and play against the computer' },
+  { label: 'Catch & Dodge', prompt: 'A catching game where I move a basket to catch good things and dodge bad ones' },
+  { label: 'Whack-a-Mole', prompt: 'A whack-a-mole game where I tap targets before they disappear' },
+  { label: 'Memory Match', prompt: 'A memory game where I flip cards to find matching pairs' },
+  { label: 'Maze Chase', prompt: 'A maze game like Pac-Man where I collect dots and avoid ghosts' },
+  { label: 'Top-Down Shooter', prompt: 'A top-down shooter where I move in all directions and shoot enemies' },
+  { label: 'Fishing', prompt: 'A fishing game where I cast my line and reel in fish' },
+  { label: 'Simon Says', prompt: 'A Simon Says game where I watch and repeat the colored pattern' },
 ];
 
 const MAX_FREE_PROMPTS = 5;

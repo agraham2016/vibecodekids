@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', sans-serif; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; touch-action: none; }
+    #game-container { border-radius: 12px; overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.86.0/dist/phaser.min.js" crossorigin="anonymous"></script>
+</head>
+<body>
+  <div id="game-container"></div>
+  <script>
+    const W = 800, H = 500;
+    const PLAYER_SPEED = 200;
+    const BULLET_SPEED = 400;
+    const FIRE_RATE = 150;
+
+    let player, bullets, enemies, score, lastFire, gameState;
+    let scoreText, msgText, cursors;
+    let playerAngle = 0;
+
+    const config = {
+      type: Phaser.AUTO, width: W, height: H, parent: 'game-container', backgroundColor: '#1a1a2e',
+      physics: { default: 'arcade', arcade: { debug: false } },
+      scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
+      scene: { preload, create, update }
+    };
+
+    function preload() {
+      this.load.audio('hitSfx', '/assets/sounds/hit.wav');
+      this.load.audio('explosionSfx', '/assets/sounds/explosion.wav');
+    }
+
+    function create() {
+      const g = this.make.graphics({ add: false });
+      g.fillStyle(0x55efc4);
+      g.fillTriangle(12, 0, -8, 8, -8, -8);
+      g.generateTexture('player', 24, 24);
+      g.clear();
+      g.fillStyle(0xffffff);
+      g.fillCircle(3, 3, 3);
+      g.generateTexture('bullet', 6, 6);
+      g.clear();
+      g.fillStyle(0xe94560);
+      g.fillCircle(10, 10, 10);
+      g.generateTexture('enemy', 20, 20);
+      g.destroy();
+
+      const bg = this.add.graphics().fillStyle(0x1a1a2e).fillRect(0, 0, W, H);
+      for (let i = 0; i < 80; i++) {
+        bg.fillStyle(0xffffff, Phaser.Math.FloatBetween(0.05, 0.2));
+        bg.fillCircle(Phaser.Math.Between(0, W), Phaser.Math.Between(0, H), 1);
+      }
+
+      player = this.physics.add.sprite(W / 2, H / 2, 'player');
+      player.setCollideWorldBounds(true);
+      player.setAngle(-90);
+
+      bullets = this.physics.add.group();
+      enemies = this.physics.add.group();
+
+      this.physics.add.overlap(bullets, enemies, hitEnemy, null, this);
+      this.physics.add.overlap(player, enemies, hitPlayer, null, this);
+
+      score = 0;
+      lastFire = 0;
+      gameState = 'playing';
+
+      scoreText = this.add.text(12, 12, 'Score: 0', { fontSize: '20px', fill: '#55efc4', stroke: '#000', strokeThickness: 2 }).setDepth(10);
+      msgText = this.add.text(W / 2, H / 2, '', { fontSize: '26px', fill: '#fff', stroke: '#000', strokeThickness: 4, align: 'center' }).setOrigin(0.5).setDepth(20).setVisible(false);
+      cursors = this.input.keyboard.createCursorKeys();
+
+      this.time.addEvent({ delay: 1500, callback: spawnEnemy, callbackScope: this, loop: true });
+      spawnEnemy.call(this);
+
+      this.input.on('pointerdown', () => { if (gameState === 'gameover') this.scene.restart(); });
+      this.input.keyboard.on('keydown-SPACE', () => { if (gameState === 'gameover') this.scene.restart(); });
+    }
+
+    function spawnEnemy() {
+      if (gameState !== 'playing') return;
+      const side = Phaser.Math.Between(0, 3);
+      let x, y;
+      if (side === 0) { x = Phaser.Math.Between(0, W); y = -15; }
+      else if (side === 1) { x = W + 15; y = Phaser.Math.Between(0, H); }
+      else if (side === 2) { x = Phaser.Math.Between(0, W); y = H + 15; }
+      else { x = -15; y = Phaser.Math.Between(0, H); }
+      const e = enemies.create(x, y, 'enemy');
+      e.setCircle(10);
+      const angle = Math.atan2(player.y - y, player.x - x) + Phaser.Math.FloatBetween(-0.3, 0.3);
+      e.setVelocity(Math.cos(angle) * 60, Math.sin(angle) * 60);
+    }
+
+    function hitEnemy(bullet, enemy) {
+      bullet.destroy();
+      enemy.destroy();
+      score += 10;
+      scoreText.setText('Score: ' + score);
+      if (this.cache.audio.exists('explosionSfx')) this.sound.play('explosionSfx', { volume: 0.4 });
+    }
+
+    function hitPlayer() {
+      if (gameState !== 'playing') return;
+      gameState = 'gameover';
+      if (this.cache.audio.exists('hitSfx')) this.sound.play('hitSfx', { volume: 0.6 });
+      msgText.setText('Game Over\nScore: ' + score + '\nClick or SPACE to restart').setVisible(true);
+    }
+
+    function update(time) {
+      if (gameState !== 'playing') return;
+
+      let vx = 0, vy = 0;
+      if (cursors.left.isDown) vx = -PLAYER_SPEED;
+      if (cursors.right.isDown) vx = PLAYER_SPEED;
+      if (cursors.up.isDown) vy = -PLAYER_SPEED;
+      if (cursors.down.isDown) vy = PLAYER_SPEED;
+      player.setVelocity(vx, vy);
+
+      if (vx !== 0 || vy !== 0) playerAngle = Math.atan2(vy, vx);
+      player.setAngle(playerAngle * (180 / Math.PI));
+
+      if (cursors.space.isDown && time > lastFire + FIRE_RATE) {
+        lastFire = time;
+        const b = bullets.create(player.x, player.y, 'bullet');
+        b.setCircle(3);
+        b.setVelocity(Math.cos(playerAngle) * BULLET_SPEED, Math.sin(playerAngle) * BULLET_SPEED);
+      }
+
+      bullets.getChildren().forEach(b => { if (b.active && (b.x < -20 || b.x > W + 20 || b.y < -20 || b.y > H + 20)) b.destroy(); });
+    }
+    new Phaser.Game(config);
+  </script>
+</body>
+</html>

@@ -247,6 +247,11 @@ if (!IS_PRODUCTION) {
     'pong',
     'catch',
     'whack-a-mole',
+    'memory',
+    'maze',
+    'top-down-shooter',
+    'fishing',
+    'simon-says',
     'platformer',
     'shooter',
     'racing',
@@ -280,9 +285,15 @@ if (!IS_PRODUCTION) {
     }
   });
   app.get('/dev/templates', (_req, res) => {
-    const links = ALLOWED_TEMPLATES.map((t) => `<a href="/dev/template/${t}">${t}</a>`).join(' | ');
+    const links = ALLOWED_TEMPLATES.map((t) => `<a href="/dev/template/${t}">${t}</a>`).join('');
     res.send(
-      `<html><head><title>Template Test</title></head><body><h1>Template Test Links</h1><p>${links}</p></body></html>`,
+      `<html><head><title>Template Test</title><style>
+        body{font-family:system-ui;padding:24px;background:#1a1a2e;color:#eee;}
+        h1{color:#a78bfa;margin-bottom:20px;}
+        .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;max-width:800px;}
+        .grid a{display:block;padding:10px 14px;background:rgba(139,92,246,0.2);border:1px solid rgba(139,92,246,0.4);border-radius:8px;color:#c4b5fd;text-decoration:none;transition:background .2s;}
+        .grid a:hover{background:rgba(139,92,246,0.35);}
+      </style></head><body><h1>Template Test Links</h1><div class="grid">${links}</div></body></html>`,
     );
   });
 }

@@ -71,6 +71,13 @@ const MODEL_INFO: Record<AIModel, { name: string; icon: string; color: string }>
   grok: { name: 'VibeGrok', icon: '🚀', color: 'grok' },
 };
 
+/** Safe lookup — handles null/undefined or invalid model names. */
+function getModelInfo(model: AIModel | null | undefined) {
+  if (!model) return null;
+  const info = MODEL_INFO[model as AIModel];
+  return info || null;
+}
+
 const GAME_STARTERS = [
   {
     genre: 'Platformer',
@@ -197,6 +204,36 @@ const GAME_STARTERS = [
     emoji: '👊',
     label: 'Whack-a-Mole',
     prompt: 'Make me a whack-a-mole game where I tap the targets before they disappear!',
+  },
+  {
+    genre: 'Puzzle',
+    emoji: '🃏',
+    label: 'Memory Match',
+    prompt: 'Make me a memory game where I flip cards to find matching pairs!',
+  },
+  {
+    genre: 'Arcade',
+    emoji: '👻',
+    label: 'Maze Chase',
+    prompt: 'Make me a maze game like Pac-Man where I collect dots and avoid the ghosts!',
+  },
+  {
+    genre: 'Action',
+    emoji: '🎯',
+    label: 'Top-Down Shooter',
+    prompt: 'Make me a top-down shooter game where I move in all directions and shoot enemies!',
+  },
+  {
+    genre: 'Casual',
+    emoji: '🎣',
+    label: 'Simple Fishing',
+    prompt: 'Make me a fishing game where I cast my line and reel in fish!',
+  },
+  {
+    genre: 'Puzzle',
+    emoji: '🔮',
+    label: 'Simon Says',
+    prompt: 'Make me a Simon Says game where I watch and repeat the colored pattern!',
   },
 ];
 
@@ -458,8 +495,8 @@ export default function ChatPanel({
   const otherModel: AIModel = lastModelUsed === 'grok' ? 'claude' : 'grok';
   const otherBuddy = MODEL_INFO[otherModel];
 
-  // Loading personality name
-  const loadingModelInfo = MODEL_INFO[activeModel];
+  // Loading personality name (defensive: activeModel should always be valid)
+  const loadingModelInfo = getModelInfo(activeModel) ?? MODEL_INFO.claude;
 
   return (
     <div className="panel chat-panel">
@@ -555,11 +592,11 @@ export default function ChatPanel({
               <div key={message.id}>
                 <div className={`chat-message ${message.role}`}>
                   <div className="message-avatar">
-                    {message.role === 'user' ? '👤' : message.modelUsed ? MODEL_INFO[message.modelUsed].icon : '🤖'}
+                    {message.role === 'user' ? '👤' : (getModelInfo(message.modelUsed)?.icon ?? '🤖')}
                   </div>
                   <div className="message-content">
                     {message.image && <img src={message.image} alt="Uploaded" className="message-image" />}
-                    <div className="message-text">{message.content}</div>
+                    <div className="message-text">{message.content ?? ''}</div>
                     <div className="message-footer">
                       <div className="message-time">
                         {new Date(message.timestamp).toLocaleTimeString([], {
@@ -569,11 +606,15 @@ export default function ChatPanel({
                       </div>
 
                       {/* Model Badge */}
-                      {message.role === 'assistant' && message.modelUsed && (
-                        <span className={`model-badge model-badge-${message.modelUsed}`}>
-                          {MODEL_INFO[message.modelUsed].icon} {MODEL_INFO[message.modelUsed].name}
-                        </span>
-                      )}
+                      {message.role === 'assistant' &&
+                        (() => {
+                          const info = getModelInfo(message.modelUsed);
+                          return info ? (
+                            <span className={`model-badge model-badge-${message.modelUsed}`}>
+                              {info.icon} {info.name}
+                            </span>
+                          ) : null;
+                        })()}
 
                       {/* Cache Hit Badge */}
                       {message.isCacheHit && (
@@ -592,7 +633,7 @@ export default function ChatPanel({
                       {message.role === 'assistant' && (
                         <button
                           className={`read-aloud-btn ${speakingMessageId === message.id ? 'speaking' : ''}`}
-                          onClick={() => speakMessage(message.id, message.content)}
+                          onClick={() => speakMessage(message.id, message.content ?? '')}
                           title={speakingMessageId === message.id ? 'Stop reading' : 'Read aloud'}
                         >
                           {speakingMessageId === message.id ? '⏹️' : '🔊'}
@@ -637,39 +678,43 @@ export default function ChatPanel({
                 </div>
 
                 {/* ===== ALTERNATE RESPONSE (Side-by-Side from Critic Mode) ===== */}
-                {message.alternateResponse && (
-                  <div className="alternate-response-section">
-                    <button
-                      className="alternate-toggle-btn"
-                      onClick={() => setExpandedAlternate(expandedAlternate === message.id ? null : message.id)}
-                    >
-                      <span>{MODEL_INFO[message.alternateResponse.modelUsed].icon}</span>
-                      <span>
-                        {expandedAlternate === message.id ? 'Hide' : 'See'}{' '}
-                        {MODEL_INFO[message.alternateResponse.modelUsed].name}'s version
-                      </span>
-                      <span className="alternate-arrow">{expandedAlternate === message.id ? '▲' : '▼'}</span>
-                    </button>
+                {message.alternateResponse &&
+                  (() => {
+                    const altInfo = getModelInfo(message.alternateResponse.modelUsed);
+                    if (!altInfo) return null;
+                    return (
+                      <div className="alternate-response-section">
+                        <button
+                          className="alternate-toggle-btn"
+                          onClick={() => setExpandedAlternate(expandedAlternate === message.id ? null : message.id)}
+                        >
+                          <span>{altInfo.icon}</span>
+                          <span>
+                            {expandedAlternate === message.id ? 'Hide' : 'See'} {altInfo.name}'s version
+                          </span>
+                          <span className="alternate-arrow">{expandedAlternate === message.id ? '▲' : '▼'}</span>
+                        </button>
 
-                    {expandedAlternate === message.id && (
-                      <div className={`alternate-response model-bg-${message.alternateResponse.modelUsed}`}>
-                        <div className="alternate-header">
-                          <span>{MODEL_INFO[message.alternateResponse.modelUsed].icon}</span>
-                          <span>{MODEL_INFO[message.alternateResponse.modelUsed].name}'s Take:</span>
-                        </div>
-                        <div className="alternate-text">{message.alternateResponse.response}</div>
-                        {message.alternateResponse.code && onUseAlternateCode && (
-                          <button
-                            className="use-alternate-btn"
-                            onClick={() => onUseAlternateCode(message.alternateResponse!.code!)}
-                          >
-                            Use This Version Instead
-                          </button>
+                        {expandedAlternate === message.id && (
+                          <div className={`alternate-response model-bg-${message.alternateResponse.modelUsed}`}>
+                            <div className="alternate-header">
+                              <span>{altInfo.icon}</span>
+                              <span>{altInfo.name}'s Take:</span>
+                            </div>
+                            <div className="alternate-text">{message.alternateResponse.response}</div>
+                            {message.alternateResponse.code && onUseAlternateCode && (
+                              <button
+                                className="use-alternate-btn"
+                                onClick={() => onUseAlternateCode(message.alternateResponse!.code!)}
+                              >
+                                Use This Version Instead
+                              </button>
+                            )}
+                          </div>
                         )}
                       </div>
-                    )}
-                  </div>
-                )}
+                    );
+                  })()}
               </div>
             ))}
 
