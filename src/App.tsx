@@ -39,7 +39,7 @@ function App() {
     updateCode,
     restoreVersion,
     setGeneratedCode,
-  } = useProjects(!!user);
+  } = useProjects(!!user, user?.id ?? null);
 
   // UI state
   const [showShareModal, setShowShareModal] = useState(false);

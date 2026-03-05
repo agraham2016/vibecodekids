@@ -62,7 +62,7 @@ const DEFAULT_HTML = `<!DOCTYPE html>
 
 export { DEFAULT_HTML };
 
-export function useProjects(isLoggedIn = false) {
+export function useProjects(isLoggedIn = false, userId: string | null = null) {
   const [code, setCode] = useState(DEFAULT_HTML);
   const [currentProject, setCurrentProject] = useState<Project>({
     id: 'new',
@@ -79,17 +79,42 @@ export function useProjects(isLoggedIn = false) {
   const lastSavedCode = useRef<string>(DEFAULT_HTML);
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isAutoSaving = useRef(false);
+  const lastUserIdRef = useRef<string | null>(null);
+
+  // Clear projects and editor when user logs out or switches accounts
+  useEffect(() => {
+    if (!isLoggedIn || !userId) {
+      setUserProjects([]);
+      setCode(DEFAULT_HTML);
+      setCurrentProject({
+        id: 'new',
+        name: 'My Awesome Project',
+        code: DEFAULT_HTML,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      lastSavedCode.current = DEFAULT_HTML;
+      lastUserIdRef.current = null;
+    } else if (userId !== lastUserIdRef.current) {
+      setUserProjects([]);
+      lastUserIdRef.current = userId;
+    }
+  }, [isLoggedIn, userId]);
 
   const fetchUserProjects = useCallback(async (): Promise<UserProject[]> => {
     const tokenAtCall = getAuthToken();
     setIsLoadingProjects(true);
+    setUserProjects([]); // Clear immediately to avoid showing previous user's projects
     try {
       const projects = await api.get<UserProject[]>('/api/auth/my-projects');
       // Ignore stale response if user logged in as someone else while fetch was in flight
-      if (getAuthToken() !== tokenAtCall) return [];
+      if (getAuthToken() !== tokenAtCall) {
+        return [];
+      }
       setUserProjects(projects);
       return projects;
     } catch {
+      setUserProjects([]);
       return [];
     } finally {
       setIsLoadingProjects(false);
