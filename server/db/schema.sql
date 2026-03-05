@@ -207,6 +207,25 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS last_violation_at TIMESTAMPTZ;
 ALTER TABLE parental_consents ADD COLUMN IF NOT EXISTS consent_policy_version TEXT;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS consent_policy_version TEXT;
 
+-- ========== SPRITES (RAG Asset Retrieval) ==========
+-- Tag-based search for 60K sprite catalog. Maps user prompts to relevant assets.
+
+CREATE TABLE IF NOT EXISTS sprites (
+    id              TEXT PRIMARY KEY,
+    path            TEXT NOT NULL,
+    w               INT NOT NULL,
+    h               INT NOT NULL,
+    tags            TEXT[] NOT NULL DEFAULT '{}',
+    roles           TEXT[] NOT NULL DEFAULT '{}',
+    genres          TEXT[] NOT NULL DEFAULT '{}',
+    note            TEXT,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_sprites_tags ON sprites USING GIN(tags);
+CREATE INDEX IF NOT EXISTS idx_sprites_roles ON sprites USING GIN(roles);
+CREATE INDEX IF NOT EXISTS idx_sprites_genres ON sprites USING GIN(genres);
+
 -- ========== CLEANUP ==========
 -- Automatic cleanup of expired sessions and old rate limit entries.
 -- Run these periodically via a cron job or scheduled task.

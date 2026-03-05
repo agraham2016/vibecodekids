@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', sans-serif; overflow: hidden; background: #1a1a2e; touch-action: none; }
+    #game-container { width: 100vw; height: 100vh; }
+    #hud { position: fixed; top: 16px; left: 16px; color: #fff; font-size: 18px; text-shadow: 0 1px 3px #000; z-index: 10; }
+    #win-msg { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(34, 197, 94, 0.9); color: #fff; padding: 24px 40px; border-radius: 16px; font-size: 24px; font-weight: bold; z-index: 20; }
+    #win-msg.visible { display: block; }
+    .ctrl-btn { position: fixed; width: 72px; height: 72px; background: rgba(255,255,255,0.3); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 28px; color: #fff; z-index: 10; border: 2px solid rgba(255,255,255,0.5); }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+</head>
+<body>
+  <div id="game-container"></div>
+  <div id="hud">Park in the yellow spot! &uarr;&darr; Drive &middot; &larr;&rarr; Steer</div>
+  <div id="win-msg">PARKED! Nice job!</div>
+  <div id="ctrl-up" class="ctrl-btn" style="bottom: 140px; right: 24px;">&uarr;</div>
+  <div id="ctrl-down" class="ctrl-btn" style="bottom: 60px; right: 24px;">&darr;</div>
+  <div id="ctrl-left" class="ctrl-btn" style="bottom: 100px; right: 100px;">&larr;</div>
+  <div id="ctrl-right" class="ctrl-btn" style="bottom: 100px; right: 148px;">&rarr;</div>
+  <script>
+    (function() {
+      const container = document.getElementById('game-container');
+      const winMsg = document.getElementById('win-msg');
+      let scene, camera, renderer, playerCar, parkingZone;
+      let speed = 0, steer = 0;
+      const accel = 0.15, friction = 0.92, steerSpeed = 0.04, maxSpeed = 0.6;
+      let parked = false;
+
+      function init() {
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x87ceeb);
+
+        camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 500);
+        camera.position.set(0, 25, 30);
+        camera.lookAt(0, 0, 0);
+
+        renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        container.appendChild(renderer.domElement);
+
+        const ambient = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambient);
+        const sun = new THREE.DirectionalLight(0xffffff, 0.8);
+        sun.position.set(20, 40, 20);
+        sun.castShadow = true;
+        sun.shadow.mapSize.width = 2048;
+        sun.shadow.mapSize.height = 2048;
+        scene.add(sun);
+
+        const groundGeo = new THREE.PlaneGeometry(80, 60);
+        const groundMat = new THREE.MeshStandardMaterial({ color: 0x3d5c3d });
+        const ground = new THREE.Mesh(groundGeo, groundMat);
+        ground.rotation.x = -Math.PI / 2;
+        ground.receiveShadow = true;
+        scene.add(ground);
+
+        const lineMat = new THREE.LineBasicMaterial({ color: 0x444444 });
+        for (let z = -25; z <= 25; z += 10) {
+          const pts = [new THREE.Vector3(-38, 0.02, z), new THREE.Vector3(38, 0.02, z)];
+          scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), lineMat));
+        }
+
+        parkingZone = new THREE.Group();
+        const zoneMat = new THREE.MeshBasicMaterial({ color: 0xffdd00, transparent: true, opacity: 0.4 });
+        const zoneGeo = new THREE.PlaneGeometry(6, 12);
+        const zone = new THREE.Mesh(zoneGeo, zoneMat);
+        zone.rotation.x = -Math.PI / 2;
+        zone.position.set(18, 0.01, 0);
+        parkingZone.add(zone);
+        scene.add(parkingZone);
+
+        const loader = new THREE.GLTFLoader();
+        loader.load('/assets/models/kenney-carkit/sedan.glb', function(gltf) {
+          playerCar = gltf.scene;
+          playerCar.traverse(function(c) { if (c.isMesh) c.castShadow = true; });
+          playerCar.scale.setScalar(2);
+          playerCar.position.set(-22, 0, 0);
+          playerCar.rotation.y = Math.PI / 2;
+          scene.add(playerCar);
+        });
+
+        loader.load('/assets/models/kenney-carkit/cone.glb', function(gltf) {
+          const cone = gltf.scene.clone();
+          cone.traverse(function(c) { if (c.isMesh) c.castShadow = true; });
+          cone.scale.setScalar(0.8);
+          [[12, 0, -8], [24, 0, -8], [12, 0, 8], [24, 0, 8]].forEach(function(p, i) {
+            const c = cone.clone();
+            c.position.set(p[0], p[1], p[2]);
+            scene.add(c);
+          });
+        });
+
+        loader.load('/assets/models/kenney-carkit/delivery.glb', function(gltf) {
+          const car = gltf.scene;
+          car.traverse(function(c) { if (c.isMesh) c.castShadow = true; });
+          car.scale.setScalar(1.5);
+          car.position.set(-8, 0, -12);
+          car.rotation.y = Math.PI / 2;
+          scene.add(c);
+        });
+
+        loader.load('/assets/models/kenney-carkit/suv.glb', function(gltf) {
+          const car = gltf.scene;
+          car.traverse(function(c) { if (c.isMesh) c.castShadow = true; });
+          car.scale.setScalar(1.5);
+          car.position.set(-8, 0, 12);
+          car.rotation.y = Math.PI / 2;
+          scene.add(c);
+        });
+
+        window.addEventListener('resize', onResize);
+        document.addEventListener('keydown', onKeyDown);
+        document.addEventListener('keyup', onKeyUp);
+        ['ctrl-up','ctrl-down','ctrl-left','ctrl-right'].forEach(function(id) {
+          const btn = document.getElementById(id);
+          const dir = id.split('-')[1];
+          btn.addEventListener('touchstart', function(e) { e.preventDefault(); setKey(dir, true); });
+          btn.addEventListener('touchend', function(e) { e.preventDefault(); setKey(dir, false); });
+          btn.addEventListener('mousedown', function() { setKey(dir, true); });
+          btn.addEventListener('mouseup', function() { setKey(dir, false); });
+          btn.addEventListener('mouseleave', function() { setKey(dir, false); });
+        });
+        if (container) container.tabIndex = 1;
+        document.body.addEventListener('pointerdown', function() { container.focus(); });
+        animate();
+      }
+
+      const keys = { up: false, down: false, left: false, right: false };
+      function setKey(dir, v) { keys[dir] = v; }
+      function onKeyDown(e) {
+        if (e.key === 'ArrowUp') { keys.up = true; e.preventDefault(); }
+        if (e.key === 'ArrowDown') { keys.down = true; e.preventDefault(); }
+        if (e.key === 'ArrowLeft') { keys.left = true; e.preventDefault(); }
+        if (e.key === 'ArrowRight') { keys.right = true; e.preventDefault(); }
+      }
+      function onKeyUp(e) {
+        if (e.key === 'ArrowUp') keys.up = false;
+        if (e.key === 'ArrowDown') keys.down = false;
+        if (e.key === 'ArrowLeft') keys.left = false;
+        if (e.key === 'ArrowRight') keys.right = false;
+      }
+
+      function onResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      }
+
+      function checkParked() {
+        if (!playerCar || parked) return;
+        const p = playerCar.position;
+        const r = Math.abs(playerCar.rotation.y);
+        const inZone = p.x > 12 && p.x < 24 && p.z > -6 && p.z < 6;
+        const facing = r < 0.4 || r > 2.7;
+        if (inZone && facing) {
+          parked = true;
+          winMsg.classList.add('visible');
+          document.getElementById('hud').textContent = '';
+        }
+      }
+
+      function animate() {
+        requestAnimationFrame(animate);
+        if (playerCar && !parked) {
+          if (keys.up) speed += accel;
+          if (keys.down) speed -= accel;
+          if (keys.left) steer += steerSpeed;
+          if (keys.right) steer -= steerSpeed;
+          speed *= friction;
+          steer *= 0.9;
+          speed = Math.max(-maxSpeed, Math.min(maxSpeed, speed));
+          steer = Math.max(-0.12, Math.min(0.12, steer));
+          playerCar.rotation.y -= steer * Math.abs(speed) * 2;
+          playerCar.position.x -= Math.sin(playerCar.rotation.y) * speed * 25;
+          playerCar.position.z -= Math.cos(playerCar.rotation.y) * speed * 25;
+          playerCar.position.x = Math.max(-36, Math.min(36, playerCar.position.x));
+          playerCar.position.z = Math.max(-26, Math.min(26, playerCar.position.z));
+          checkParked();
+        }
+        renderer.render(scene, camera);
+      }
+
+      if (typeof THREE !== 'undefined') init();
+      else document.getElementById('hud').textContent = 'Three.js failed to load.';
+    })();
+  </script>
+</body>
+</html>

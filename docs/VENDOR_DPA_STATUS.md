@@ -1,8 +1,16 @@
 # Vendor DPA Status Tracker
 
 **Owner:** Elias Vance (Compliance Lead)  
-**Last Updated:** March 5, 2026  
+**Last Updated:** March 6, 2026  
 **Purpose:** Track Data Processing Agreement (DPA) and contractual status with all third-party vendors that process children's personal information or platform data.
+
+**Technical Input:** See `DPA_TECHNICAL_INPUT.md` (Cipher) for clauses to insist on, verification steps, and red flags.
+
+---
+
+## Launch Decision: Generic Enterprise DPAs (Atlas, March 2026)
+
+**Decision:** For launch, we will use each vendor's **generic enterprise DPA** (or standard ToS where applicable). No custom DPA negotiations. Proceeding with standard terms for Anthropic, xAI, Stripe, Resend, and Sentry.
 
 ---
 
@@ -10,12 +18,12 @@
 
 | Vendor | Data Received | DPA Status | Action Required |
 |--------|---------------|------------|-----------------|
-| Anthropic (Claude) | PII-stripped prompts, base64 screenshots | ⚠️ Verify | Confirm DPA/BAA; verify no-training clause |
-| xAI (Grok) | PII-stripped prompts (13+ only; under-13 Claude-only) | ⚠️ Verify | Confirm DPA; verify no-training clause |
-| Stripe | username, displayName, tier, ageBracket (checkout metadata); no password/emails | ✅ Standard | Stripe DPA in ToS; confirm acceptance in dashboard |
-| Resend | Recipient email, message body (consent, reset, dashboard links) | ⚠️ Verify | Execute DPA or confirm Resend ToS covers |
-| Sentry | Stack traces, request metadata (PII scrubbed) | ⚠️ Verify | Review Sentry DPA; ensure acceptable for COPPA |
-| Railway | All data at rest (hosting) | ✅ Standard | Railway terms apply; no separate DPA typically |
+| Anthropic (Claude) | PII-stripped prompts, base64 screenshots | ✅ Generic enterprise | Accepted for launch |
+| xAI (Grok) | PII-stripped prompts (13+ only; under-13 Claude-only) | ✅ Generic enterprise | Accepted for launch |
+| Stripe | username, displayName, tier, ageBracket (checkout metadata); no password/emails | ✅ Standard | Part of Stripe ToS |
+| Resend | Recipient email, message body (consent, reset, dashboard links) | ✅ Generic enterprise / ToS | Accepted for launch |
+| Sentry | Stack traces, request metadata (PII scrubbed) | ✅ Generic enterprise / ToS | Accepted for launch |
+| Railway | All data at rest (hosting) | ✅ Standard | Railway terms apply |
 | ClassWallet (ESA) | Parent-initiated checkout redirect | 🔴 Not live | When enabled: execute DPA before launch |
 
 ---
@@ -101,14 +109,26 @@
 
 ---
 
+## DPA Confirmation Log (Elias updates when Atlas confirms)
+
+| Vendor | Confirmed By | Date | Notes |
+|--------|--------------|------|-------|
+| Anthropic | Atlas Reid | March 2026 | Generic enterprise DPA accepted for launch |
+| xAI | Atlas Reid | March 2026 | Generic enterprise DPA accepted for launch |
+| Stripe | Atlas Reid | March 2026 | Standard DPA in ToS |
+| Resend | Atlas Reid | March 2026 | Generic enterprise / ToS accepted for launch |
+| Sentry | Atlas Reid | March 2026 | Generic enterprise / ToS accepted for launch |
+
+---
+
 ## Checklist Before Launch
 
-- [ ] Anthropic DPA executed and retained
-- [ ] xAI DPA executed and retained
-- [ ] Stripe DPA accepted (dashboard confirmation)
-- [ ] Resend DPA executed or ToS confirmed
-- [ ] Sentry DPA executed (if paid plan) or terms reviewed
-- [ ] All DPAs include: purpose limitation, data minimization, subprocessor disclosure, no-training (AI), deletion/return on termination
+- [x] Anthropic DPA — generic enterprise accepted for launch
+- [x] xAI DPA — generic enterprise accepted for launch
+- [x] Stripe DPA — standard in ToS
+- [x] Resend DPA — generic enterprise / ToS accepted for launch
+- [x] Sentry DPA — generic enterprise / ToS accepted for launch
+- [x] Launch decision: generic enterprise DPAs (no custom negotiations)
 - [ ] DPA retention: maintain copies for 3+ years (FTC audit lookback)
 
 ---
@@ -118,3 +138,4 @@
 | Date | Author | Changes |
 |------|--------|---------|
 | 2026-03-05 | Elias Vance | Initial tracker. Documented all vendors, data flows, DPA status. |
+| 2026-03-06 | Atlas Reid | Launch decision: use generic enterprise DPAs for all vendors. Checklist updated. |

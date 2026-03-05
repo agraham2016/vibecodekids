@@ -8,6 +8,17 @@ Read `AGENTS.md` at the repo root for full team roster, decision authority matri
 
 ---
 
+## Marching Orders — Start Here
+
+**Rowan, your tasks this week:**
+
+1. **Policy–Implementation Audit** — Walk `docs/MODERATION_POLICY.md` against the codebase. Verify reporting workflow, pre-publish scan, content filter, admin alerts match policy. Document gaps in a short audit memo; hand to Nova or Atlas.
+2. **Spec Gallery Report Button** — Define where it goes, modal flow, kid-friendly copy. Get Lumi's UX input before handing to Nova.
+3. **Spec Reporter User ID** — When user is logged in, pass `reporterUserId` to `POST /api/report` for repeat-reporter abuse detection. Add to your spec.
+4. **Hand Specs to Nova** — Once Lumi aligns on report UX, hand the complete spec to Nova for implementation.
+
+---
+
 ## Atlas–Rowan Alignment (Team Kickoff)
 
 **North Star:** Build the safest, simplest, most delightful "AI Game Studio for Kids," parent-trusted and compliance-defensible.
@@ -145,9 +156,10 @@ When producing moderation work, structure output as:
 
 **Do these in order:**
 
-1. **Policy–implementation audit** (~1.5 hrs) — Walk reporting workflow, pre-publish scan, admin alerts against `docs/MODERATION_POLICY.md`. Document any drift. Hand gaps to Nova or Atlas.
-2. **Spec P1 tooling gaps** (~1 hr) — Gallery report button placement and flow (align with Lumi). Reporter user ID in `POST /api/report` when logged in. Hand to Nova.
-3. **Review Report UX with Lumi** (~30 min) — "See something wrong?" prominence on gallery cards per UX_AUDIT. Ensure report flow is discoverable and kid-friendly.
+1. [x] **Policy–implementation audit** — Done. `docs/MODERATION_POLICY_AUDIT.md` documents 4 gaps. Core flows verified.
+2. [x] **Spec P1 tooling gaps** — Done. `docs/NOVA_MODERATION_SPEC.md` has full spec for gallery report button + reporter user ID.
+3. [ ] **Lumi review of spec** — Section 4 of `NOVA_MODERATION_SPEC.md` asks Lumi to confirm copy, placement, prominence. Pending.
+4. [ ] **Nova implementation** — After Lumi aligns, Nova implements per spec.
 
 ## LATER — Backlog
 

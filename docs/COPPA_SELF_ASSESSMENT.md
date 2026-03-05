@@ -146,7 +146,7 @@ Record the reviewer name, date, and any notes. Retain all completed checklists f
 | # | Item | Status | Notes |
 |---|------|--------|-------|
 | 8.1 | HTTPS is enforced (HSTS header with max-age ≥ 1 year) | YES | `Strict-Transport-Security: max-age=31536000` in security.js |
-| 8.2 | Content-Security-Policy header is configured and restrictive | YES | CSP in security.js; `unsafe-inline` needed for gallery |
+| 8.2 | Content-Security-Policy header is configured and restrictive | YES | CSP in security.js; nonce-based script-src (no unsafe-inline for scripts) |
 | 8.3 | Admin panel requires password + 2FA (email OTP) | YES | `adminAuth.js` with TOTP |
 | 8.4 | Admin API routes are protected with `requireAdmin` middleware | YES | Static ADMIN_SECRET removed; uses isAdmin + 2FA |
 | 8.5 | No hardcoded secrets in the codebase (all via environment variables) | YES | ADMIN_SECRET header path removed |

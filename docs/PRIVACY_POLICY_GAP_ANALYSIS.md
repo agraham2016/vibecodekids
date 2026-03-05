@@ -10,9 +10,10 @@
 
 | Status | Count |
 |--------|-------|
-| ✅ Addressed (policy accurate) | 12 |
-| ⚠️ Minor gap (low risk) | 2 |
-| ❌ Gap requiring update | 2 |
+| ✅ Addressed (policy accurate) | 15 |
+| ⏸️ Deferred (legal review) | 1 |
+
+*Items 1–3 implemented in privacy.html March 6, 2026. Item 4 (consent email opt-out) deferred per Elias marching orders until attorney sign-off.*
 
 ---
 
@@ -41,29 +42,13 @@
 
 **Requirement:** Privacy policy must disclose which internal operations use persistent identifiers (e.g., session tokens) and how we ensure they are not used to contact individuals.
 
-**Current state:** Policy does not mention session tokens.
-
-**Proposed addition** (for "What We Collect" or new subsection):
-
-> **Session identifiers:** When you log in, we create a temporary session token so you can stay logged in. This token expires within 24 hours and is used only to recognize your account during your visit. We do not use session data to contact you or track you across other websites.
-
-**Action:** Nova to add; Elias to review.
+**Status:** ✅ **Implemented** (March 6, 2026). "Session identifiers:" subsection in "What We Collect" — 24h token, used only for account recognition, not for contact or cross-site tracking. Elias spot-check verified 2026-03-06.
 
 ---
 
 ### 2. Multiplayer Chat Disclosure
 
-**Current policy:** "Multiplayer communication is restricted to preset, kid-safe phrases only" and FAQ: "Free-text chat is not available."
-
-**Implementation:** Server accepts free-text chat; runs through `filterContent()` and `moderateText()` (content filter + ML moderation). Preset phrases exist for the phrase picker, but free-text is also allowed when it passes filters.
-
-**Options:**
-- **A)** Update policy: "Multiplayer chat is filtered for safety. Kids can use preset phrases or type messages that are checked for appropriateness before being sent."
-- **B)** Restrict server to whitelist-only (match current policy).
-
-**Recommendation:** Option A — policy should match implementation. The current policy overstates restriction.
-
-**Action:** Draft language for Atlas approval.
+**Status:** ✅ **Implemented** (March 6, 2026). Policy now states: "Multiplayer chat is filtered for safety. Kids can choose from preset phrases (e.g., 'Good game!') or type messages that are automatically checked for appropriateness before being sent. Inappropriate messages are blocked." Matches `multiplayer.js` — `filterContent()` + `moderateText()`. Elias spot-check verified 2026-03-06.
 
 ---
 
@@ -71,12 +56,7 @@
 
 ### 3. Image/Screenshot Data
 
-**FTC requirement:** Disclose when children's images or screenshots are sent to third parties.
-
-**Current state:** We send base64 game screenshots to Claude for iteration (gameHandler.js, ai.js `formatMessageContent`). Not disclosed in privacy policy.
-
-**Action:** Add to privacy policy (AI providers section):
-> "For some game iteration features, we may send a screenshot of the game to our AI provider to improve the result. Screenshots are stripped of any personal information before transmission."
+**Status:** ✅ **Implemented** (March 6, 2026). AI providers section now includes: "For some game iteration features, we may send a screenshot of the game to our AI provider to improve the result. Screenshots are stripped of any personal information before transmission." Matches `ai.js` `formatMessageContent` + `gameHandler.js` image param. Elias spot-check verified 2026-03-06.
 
 ---
 
@@ -84,9 +64,7 @@
 
 **Requirement:** Consent email must specify that parent can consent to collection without consenting to third-party sharing (except when integral to service).
 
-**Current state:** Consent email names vendors and purposes but does not include: "You may consent to our collecting your child's information without agreeing to our sharing it with third parties, except where that sharing is necessary to provide the service."
-
-**Action:** Draft updated consent email language. Hand to Nova for `server/services/consent.js`. Legal review recommended.
+**Status:** ⏸️ **Deferred**. Consent email names vendors and purposes but lacks item (3). Per Elias marching orders: draft if asked; do not implement without attorney sign-off. Will address during legal review.
 
 ---
 
@@ -109,3 +87,4 @@ Multiplayer chat is filtered for safety. Kids can choose from preset phrases (e.
 | Date | Author | Changes |
 |------|--------|---------|
 | 2026-03-05 | Elias Vance | Initial gap analysis. 12 items verified, 2 minor gaps, 2 action items. |
+| 2026-03-06 | Elias Vance | Spot-check: items 1–3 implemented in privacy.html. Marked implemented. Item 4 deferred per legal review. |

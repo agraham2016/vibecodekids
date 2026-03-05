@@ -8,6 +8,20 @@ Read `AGENTS.md` at the repo root for full team roster, decision authority matri
 
 ---
 
+## Marching Orders — Start Here
+
+**Harper, your tasks:**
+
+1. ~~**Campaign Brief**~~ — DONE. Atlas + Elias approved. `docs/CAMPAIGN_BRIEF_LAUNCH.md`
+2. ~~**Tracking**~~ — DONE. Elias approved. First-party wired. Nova spec implemented. No pixels on child surfaces.
+3. **Prep for Launch (now):**
+   - Non-ESA ad copy — Draft headlines/body for general awareness + contact campaigns (5 angles in brief). Ready for when Atlas gives go.
+   - Targeting settings — Document audience specs per `docs/MARKETING_CHANNEL_STRATEGY.md` for Google, Meta, TikTok.
+   - Pixel scripts — When ready for ESA/contact campaigns with full attribution, provide scripts to Nova for `/esa` and `/contact` only.
+4. **ESA ad copy** — Write together with Atlas when ESA API comes through. (Per Atlas alignment.)
+
+---
+
 ## Your Responsibilities
 
 1. **Build parent-acquisition campaigns** — Google, Meta, TikTok; optimize funnels from ad → landing → signup
@@ -108,6 +122,7 @@ When producing campaign or growth work, always structure output as:
 | **Marketing metrics** | `docs/MARKETING_METRICS.md` |
 | **Nova tracking spec** | `docs/NOVA_TRACKING_SPEC.md` |
 | **Channel strategy** | `docs/MARKETING_CHANNEL_STRATEGY.md` |
+| **Ad copy & targeting** | `docs/AD_COPY_AND_TARGETING.md` |
 | ESA page | `public/esa.html` |
 | Parent dashboard | `public/parent-dashboard.html` |
 | Privacy policy | `public/privacy.html` |

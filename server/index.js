@@ -38,6 +38,7 @@ import {
 import { ensureDataDirs } from './services/storage.js';
 import { SessionStore } from './services/sessions.js';
 import log from './services/logger.js';
+import { injectNonce } from './utils/injectNonce.js';
 
 // Middleware
 import { requireAdmin } from './middleware/auth.js';
@@ -107,6 +108,12 @@ log.info({ backend: USE_POSTGRES ? 'postgres' : 'file' }, 'Storage backend');
 app.use((_req, _res, next) => {
   _req.id = crypto.randomUUID();
   _res.setHeader('X-Request-Id', _req.id);
+  next();
+});
+
+// CSP nonce — per-request, used by security headers and HTML injection
+app.use((req, _res, next) => {
+  req.cspNonce = crypto.randomBytes(16).toString('base64');
   next();
 });
 
@@ -222,22 +229,41 @@ app.get('/play/:id', async (req, res) => {
       );
     }
 
+    html = injectNonce(html, req.cspNonce);
     res.send(html);
   } catch {
-    res.sendFile(path.join(PUBLIC_DIR, 'play.html'));
+    try {
+      let html = await fs.readFile(path.join(PUBLIC_DIR, 'play.html'), 'utf-8');
+      html = injectNonce(html, req.cspNonce);
+      res.send(html);
+    } catch {
+      res.sendFile(path.join(PUBLIC_DIR, 'play.html'));
+    }
   }
 });
 
-app.get('/gallery', (_req, res) => res.sendFile(path.join(PUBLIC_DIR, 'gallery.html')));
-app.get('/admin', (_req, res) => res.sendFile(path.join(PUBLIC_DIR, 'admin.html')));
-app.get('/privacy', (_req, res) => res.sendFile(path.join(PUBLIC_DIR, 'privacy.html')));
-app.get('/terms', (_req, res) => res.sendFile(path.join(PUBLIC_DIR, 'terms.html')));
-app.get('/esa', (_req, res) => res.sendFile(path.join(PUBLIC_DIR, 'esa.html')));
-app.get('/contact', (_req, res) => res.sendFile(path.join(PUBLIC_DIR, 'contact.html')));
-app.get('/faq', (_req, res) => res.sendFile(path.join(PUBLIC_DIR, 'faq.html')));
-app.get('/parent-dashboard', (_req, res) => res.sendFile(path.join(PUBLIC_DIR, 'parent-dashboard.html')));
-app.get('/parent-verify-charge', (_req, res) => res.sendFile(path.join(PUBLIC_DIR, 'parent-verify-charge.html')));
-app.get('/forgot-password/reset', (_req, res) => res.sendFile(path.join(PUBLIC_DIR, 'forgot-password.html')));
+async function serveHtmlWithNonce(req, res, filename) {
+  try {
+    let html = await fs.readFile(path.join(PUBLIC_DIR, filename), 'utf-8');
+    html = injectNonce(html, req.cspNonce);
+    res.setHeader('Content-Type', 'text/html');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.send(html);
+  } catch {
+    res.sendFile(path.join(PUBLIC_DIR, filename));
+  }
+}
+
+app.get('/gallery', (req, res) => serveHtmlWithNonce(req, res, 'gallery.html'));
+app.get('/admin', (req, res) => serveHtmlWithNonce(req, res, 'admin.html'));
+app.get('/privacy', (req, res) => serveHtmlWithNonce(req, res, 'privacy.html'));
+app.get('/terms', (req, res) => serveHtmlWithNonce(req, res, 'terms.html'));
+app.get('/esa', (req, res) => serveHtmlWithNonce(req, res, 'esa.html'));
+app.get('/contact', (req, res) => serveHtmlWithNonce(req, res, 'contact.html'));
+app.get('/faq', (req, res) => serveHtmlWithNonce(req, res, 'faq.html'));
+app.get('/parent-dashboard', (req, res) => serveHtmlWithNonce(req, res, 'parent-dashboard.html'));
+app.get('/parent-verify-charge', (req, res) => serveHtmlWithNonce(req, res, 'parent-verify-charge.html'));
+app.get('/forgot-password/reset', (req, res) => serveHtmlWithNonce(req, res, 'forgot-password.html'));
 
 // Dev-only: template preview for testing (serves raw template HTML)
 if (!IS_PRODUCTION) {
@@ -270,7 +296,10 @@ if (!IS_PRODUCTION) {
     'falling-blocks',
     'rhythm',
     'pet-sim',
+    'parking',
   ];
+  const devCsp =
+    "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; object-src 'none'; base-uri 'self';";
   app.get('/dev/template/:name', async (req, res) => {
     const name = (req.params.name || '').toLowerCase().replace(/[^a-z0-9-]/g, '');
     if (!name || !ALLOWED_TEMPLATES.includes(name)) {
@@ -279,22 +308,23 @@ if (!IS_PRODUCTION) {
     try {
       const html = await fs.readFile(path.join(TEMPLATES_DIR, `${name}.html`), 'utf-8');
       res.setHeader('Content-Type', 'text/html');
+      res.setHeader('Content-Security-Policy', devCsp);
       res.send(html);
-    } catch (err) {
+    } catch {
       res.status(404).send('Template not found: ' + name);
     }
   });
-  app.get('/dev/templates', (_req, res) => {
+  app.get('/dev/templates', (req, res) => {
     const links = ALLOWED_TEMPLATES.map((t) => `<a href="/dev/template/${t}">${t}</a>`).join('');
-    res.send(
-      `<html><head><title>Template Test</title><style>
+    const html = `<html><head><title>Template Test</title><style>
         body{font-family:system-ui;padding:24px;background:#1a1a2e;color:#eee;}
         h1{color:#a78bfa;margin-bottom:20px;}
         .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;max-width:800px;}
         .grid a{display:block;padding:10px 14px;background:rgba(139,92,246,0.2);border:1px solid rgba(139,92,246,0.4);border-radius:8px;color:#c4b5fd;text-decoration:none;transition:background .2s;}
         .grid a:hover{background:rgba(139,92,246,0.35);}
-      </style></head><body><h1>Template Test Links</h1><div class="grid">${links}</div></body></html>`,
-    );
+      </style></head><body><h1>Template Test Links</h1><div class="grid">${links}</div></body></html>`;
+    res.setHeader('Content-Security-Policy', devCsp);
+    res.send(html);
   });
 }
 
@@ -482,7 +512,11 @@ app.get('*', async (req, res, next) => {
   const distIndex = path.join(DIST_DIR, 'index.html');
   try {
     await fs.access(distIndex);
-    res.sendFile(distIndex);
+    let html = await fs.readFile(distIndex, 'utf-8');
+    html = injectNonce(html, req.cspNonce);
+    res.setHeader('Content-Type', 'text/html');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.send(html);
   } catch {
     next();
   }

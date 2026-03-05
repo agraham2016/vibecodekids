@@ -8,6 +8,17 @@ Read `AGENTS.md` at the repo root for full team roster, decision authority matri
 
 ---
 
+## Marching Orders — Start Here
+
+**Nova, your tasks this week:**
+
+1. **Stand Ready for Rowan** — Rowan is auditing policy vs implementation and will spec the gallery report button + reporter user ID. When you receive the spec, implement it. Align with Lumi on UX if needed.
+2. **Legal Review Scope** — Atlas will decide scope for `/privacy` and `/terms` review. No action until that decision.
+3. **Bug Fixes & Polish** — Continue handling any bugs, refactors, or test additions. No new features without Atlas approval.
+4. **Gate 6.2** — If Atlas schedules the manual user test, ensure the flow works. Automated test exists at `tests/gate-6-2.spec.js`.
+
+---
+
 ## Your Responsibilities
 
 1. **Implement features, fixes, and refactors** across the entire stack

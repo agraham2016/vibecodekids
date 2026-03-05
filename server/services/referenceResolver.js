@@ -17,7 +17,9 @@ import { fileURLToPath } from 'url';
 import { REFERENCE_MAX_CHARS } from '../config/index.js';
 import { getRelevantSnippets } from '../snippets/index.js';
 import { detectGitHubUrl, fetchRepoCode } from './githubFetcher.js';
-import { formatAssetsForPrompt } from '../assets/assetManifest.js';
+import { formatAssetsForPrompt, formatAssetsFromSearch } from '../assets/assetManifest.js';
+import { searchSprites } from './spriteSearch.js';
+import { USE_POSTGRES } from '../config/index.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -113,6 +115,9 @@ const GENRE_TEMPLATE_MAP = {
   'fish-game': 'fishing.html',
   'simon-says': 'simon-says.html',
   sequence: 'simon-says.html',
+  parking: 'parking.html',
+  'car-parking': 'parking.html',
+  '3d-parking': 'parking.html',
 };
 
 /**
@@ -207,11 +212,29 @@ export async function resolveReferences({ prompt, genre, gameConfig, isNewGame }
 
   // ===== 4. INJECT ASSET LIST FOR GENRE =====
   if (effectiveGenre) {
-    const assetBlock = formatAssetsForPrompt(effectiveGenre);
+    let assetBlock = '';
+    if (USE_POSTGRES) {
+      try {
+        const sprites = await searchSprites({
+          prompt,
+          genre: effectiveGenre,
+          roles: ['player', 'enemy', 'collectible', 'background'],
+        });
+        if (sprites && sprites.length > 0) {
+          assetBlock = formatAssetsFromSearch(sprites, effectiveGenre);
+          sources.push(`assets:search:${effectiveGenre}`);
+        }
+      } catch (err) {
+        console.error('⚠️ Sprite search failed (using manifest):', err.message);
+      }
+    }
+    if (!assetBlock) {
+      assetBlock = formatAssetsForPrompt(effectiveGenre);
+      if (assetBlock) sources.push(`assets:${effectiveGenre}`);
+    }
     if (assetBlock && assetBlock.length <= charBudget) {
       parts.push(assetBlock);
       charBudget -= assetBlock.length;
-      sources.push(`assets:${effectiveGenre}`);
     }
   }
 

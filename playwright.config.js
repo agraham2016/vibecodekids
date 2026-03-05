@@ -35,7 +35,7 @@ export default defineConfig({
     ? {
         command: 'node server/index.js',
         port: 3001,
-        reuseExistingServer: false,
+        reuseExistingServer: true,
         timeout: 30000,
       }
     : undefined,

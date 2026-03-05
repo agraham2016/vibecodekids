@@ -8,6 +8,16 @@ Read `AGENTS.md` at the repo root for full team roster, decision authority matri
 
 ---
 
+## Marching Orders — Start Here
+
+**Cipher, your tasks this week:**
+
+1. **DPA Execution** — DONE. Atlas decided to use generic enterprise DPAs for launch. See `docs/VENDOR_DPA_STATUS.md`.
+2. **Nonce-Based CSP** — Eliminate `unsafe-inline` via server-rendered nonce injection. Defer if DPA/legal takes priority.
+3. **Support Atlas** — If Atlas needs technical clarification on privacy policy or security claims, provide it.
+
+---
+
 ## Your Responsibilities
 
 1. **Define and enforce system architecture** — frontend, backend, data storage, identity, permissions, logging
@@ -160,9 +170,13 @@ Read the "Revised COPPA Rule" section in `AGENTS.md` for the full team brief. Ke
 1. Execute DPAs with Anthropic, xAI, Stripe, Resend (COPPA action items 7.2-7.5)
 2. Schedule legal review of privacy policy (COPPA action item 9.9)
 
+## COMPLETED (Cipher, March 5 2026)
+
+- [x] Nonce-based CSP — script-src uses `'nonce-{value}'` instead of `unsafe-inline`; server injects nonce into all HTML (gallery, play, admin, SPA); play.html client injects nonce into srcdoc game HTML; style-src keeps `unsafe-inline` for `style=""` attributes
+- [x] DPA technical input — `docs/DPA_TECHNICAL_INPUT.md` for Elias/Atlas
+
 ## LATER — Backlog
 
-- Nonce-based CSP (eliminate `unsafe-inline` — requires server-rendered nonce injection)
 - AST-level pre-publish code analysis (replace regex patterns)
 - Canary tokens in AI system prompts (detect prompt injection attempts)
 - Per-user AI cost tracking and hard spending caps

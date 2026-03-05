@@ -82,6 +82,9 @@ export const RESPONSE_CACHE_MAX_SIZE = 500; // Max entries in response cache
 
 export const GITHUB_TOKEN = process.env.GITHUB_TOKEN || null; // Optional — raises rate limit from 60 to 5000 req/hr
 export const REFERENCE_MAX_CHARS = parseInt(process.env.REFERENCE_MAX_CHARS || '30000', 10);
+export const SPRITE_ASSET_MAX_CHARS = parseInt(process.env.SPRITE_ASSET_MAX_CHARS || '4000', 10);
+export const SPRITE_SEARCH_LIMIT_PER_ROLE = parseInt(process.env.SPRITE_SEARCH_LIMIT_PER_ROLE || '6', 10);
+export const SPRITE_SEARCH_MAX_TOTAL = parseInt(process.env.SPRITE_SEARCH_MAX_TOTAL || '24', 10);
 export const GITHUB_CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
 export const GITHUB_MAX_FILE_SIZE = 100000; // Skip files larger than 100KB
 export const GITHUB_MAX_FETCHES_PER_SESSION = 3;

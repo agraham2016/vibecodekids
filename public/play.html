@@ -662,6 +662,14 @@
         codeToWrite = responsiveStyle + codeToWrite;
       }
 
+      // CSP nonce for srcdoc (inherits parent policy; inline scripts need nonce)
+      const cspNonce = document.querySelector('meta[name="csp-nonce"]')?.getAttribute('content');
+      if (cspNonce) {
+        const esc = cspNonce.replace(/[\\"]/g, '\\$&');
+        codeToWrite = codeToWrite.replace(/<script(?=\s|>)/gi, '<script nonce="' + esc + '"');
+        codeToWrite = codeToWrite.replace(/<style(?=\s|>)/gi, '<style nonce="' + esc + '"');
+      }
+
       // Use srcdoc for clean document loading (no about:blank race condition,
       // no re-declaration errors on refresh — each srcdoc is a fresh document)
       iframe.srcdoc = codeToWrite;

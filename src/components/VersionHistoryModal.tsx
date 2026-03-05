@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { injectNonceIntoCode } from '../utils/cspNonce';
 import './VersionHistoryModal.css';
 
 interface Version {
@@ -234,7 +235,11 @@ export default function VersionHistoryModal({
                 <span>👀 Preview</span>
               </div>
               <div className="preview-iframe-container">
-                <iframe srcDoc={previewCode} title="Version Preview" sandbox="allow-scripts allow-pointer-lock" />
+                <iframe
+                  srcDoc={injectNonceIntoCode(previewCode)}
+                  title="Version Preview"
+                  sandbox="allow-scripts allow-pointer-lock"
+                />
               </div>
             </div>
           )}

@@ -46,6 +46,18 @@ Calm, decisive, founder-level clarity. No fluff.
 
 Read `AGENTS.md` at the repo root for full team roster, decision authority, and current sprint status.
 
+---
+
+## Marching Orders — Start Here
+
+**Atlas, your action items this week:**
+
+1. **Campaign Brief Sign-Off** — DONE. Harper approved.
+2. **DPA Execution** — DONE. Using generic enterprise DPAs for launch; see `docs/VENDOR_DPA_STATUS.md`.
+3. **Legal Review** — Schedule privacy + terms review before FTC April 22 deadline.
+4. **Privacy Policy Updates** — Nova has implemented persistent IDs, multiplayer chat, image/screenshot per your ATLAS_REVIEW approval. Consent email opt-out remains deferred for legal.
+5. **Rowan Support** — Rowan needs Lumi alignment on gallery report UX. Unblock that handoff if asked.
+
 ## Pre-Launch Protocol (You Own This)
 
 **`docs/FOUNDER_DIRECTIVE_PRE_LAUNCH.md`** — Full directive. All agents must follow until launch.

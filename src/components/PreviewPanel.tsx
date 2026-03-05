@@ -1,4 +1,5 @@
 import { useRef, useEffect, useState } from 'react';
+import { injectNonceIntoCode } from '../utils/cspNonce';
 import './PreviewPanel.css';
 
 interface PreviewPanelProps {
@@ -59,7 +60,8 @@ export default function PreviewPanel({ code }: PreviewPanelProps) {
   const [key, setKey] = useState(0);
 
   // Inject libraries into the code (used as srcdoc for sandboxing)
-  const enhancedCode = injectLibraries(code);
+  // Apply CSP nonce so parent's nonce-based CSP allows inline script/style in iframe
+  const enhancedCode = injectNonceIntoCode(injectLibraries(code));
 
   // Handle Escape key to exit fullscreen
   useEffect(() => {

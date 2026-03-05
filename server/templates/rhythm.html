@@ -33,17 +33,11 @@ class RhythmScene extends Phaser.Scene {
 
   create() {
     const g = this.make.graphics({ add: false });
-    const ARROW_ANGLES = [270, 180, 0, 90];
     for (let i = 0; i < LANES; i++) {
       g.clear();
       const c = ARROW_COLORS[i];
-      g.save();
-      g.translate(20, 20);
-      g.rotate((ARROW_ANGLES[i] * Math.PI) / 180);
-      g.translate(-20, -20);
       g.fillStyle(c); g.fillTriangle(20, 4, 4, 28, 36, 28);
       g.fillStyle(c, 0.6); g.fillRect(14, 24, 12, 14);
-      g.restore();
       g.generateTexture('arrow_' + i, 40, 40);
     }
     g.clear();

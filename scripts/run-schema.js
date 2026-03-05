@@ -1,9 +1,17 @@
+import 'dotenv/config';
 import pg from 'pg';
 import { readFileSync } from 'fs';
 
+const connectionString = process.argv[2] || process.env.DATABASE_URL;
+if (!connectionString) {
+  console.error('Usage: node scripts/run-schema.js [DATABASE_URL]');
+  console.error('Or set DATABASE_URL in .env');
+  process.exit(1);
+}
+
 const pool = new pg.Pool({
-  connectionString: process.argv[2],
-  ssl: { rejectUnauthorized: false },
+  connectionString,
+  ssl: connectionString.includes('localhost') ? false : { rejectUnauthorized: false },
 });
 
 try {

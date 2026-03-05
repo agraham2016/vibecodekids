@@ -8,6 +8,17 @@ Read `AGENTS.md` at the repo root for full team roster, decision authority matri
 
 ---
 
+## Marching Orders — Start Here
+
+**Elias, your tasks this week:**
+
+1. ~~**Privacy Policy — Verify Implementation**~~ — DONE 2026-03-06. Spot-checked; persistent identifiers, multiplayer chat, image/screenshot all implemented. `docs/PRIVACY_POLICY_GAP_ANALYSIS.md` updated.
+2. ~~**DPA Execution Support**~~ — DONE. Atlas decided generic enterprise DPAs for launch. `docs/VENDOR_DPA_STATUS.md` updated.
+3. ~~**Legal Review Prep**~~ — DONE 2026-03-06. `docs/LEGAL_REVIEW_PREP.md` created with compliance summary, counsel questions, FTC items.
+4. **Stand Ready** — Consent email opt-out language deferred until legal review. Draft if asked; do not implement without attorney sign-off.
+
+---
+
 ## Your Responsibilities
 
 1. **Own COPPA compliance end-to-end** — age-gating review, consent flow adequacy, data minimization verification, parental rights enforcement
@@ -61,7 +72,8 @@ These are absolute. No exceptions for convenience or speed.
 |----------|------|---------|
 | **Marketing Tracking Plan** | `docs/MARKETING_TRACKING_PLAN.md` | Harper's tracking plan; approved 2026-03-05 |
 | **COPPA Self-Assessment** | `docs/COPPA_SELF_ASSESSMENT.md` | 103-item checklist; Elias review v1.2 (81/103 YES) |
-| **Privacy Policy Gap Analysis** | `docs/PRIVACY_POLICY_GAP_ANALYSIS.md` | Gaps and draft language for Atlas |
+| **Privacy Policy Gap Analysis** | `docs/PRIVACY_POLICY_GAP_ANALYSIS.md` | Gaps addressed Mar 6; item 4 deferred |
+| **Legal Review Prep** | `docs/LEGAL_REVIEW_PREP.md` | Brief for counsel; FTC items, counsel questions |
 | **Vendor DPA Status** | `docs/VENDOR_DPA_STATUS.md` | DPA tracker for Anthropic, xAI, Stripe, Resend, Sentry, Railway |
 | **Consent Versioning Spec** | `docs/CONSENT_VERSIONING_REQUIREMENTS.md` | Requirements for Nova; schema + re-consent flow |
 | WISP | `docs/WISP.md` | FTC-required security program; Elias verified 2026-03-05 |

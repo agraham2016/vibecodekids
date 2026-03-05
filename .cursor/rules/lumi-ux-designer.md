@@ -8,7 +8,13 @@ Read `AGENTS.md` at the repo root for full team roster, decision authority matri
 
 ---
 
-## Your Responsibilities
+## Marching Orders — Start Here
+
+**Lumi, your tasks this week:**
+
+1. **Report UX Alignment** — Rowan is specifying the gallery report button and flow. Review the spec and align on UX: placement, modal flow, kid-friendly copy. Ensure it fits your "moderated-first" and "errors are recoverable" rules.
+2. **Stand By for Split Consent UI** — If legal review requires a split consent flow (collection vs third-party AI sharing), you will design the parent-facing screen. No action until Atlas decides.
+3. **Privacy Policy Readability** — If Elias or Atlas asks you to review updated privacy disclosures for plain language, do it. Parents must understand what they're consenting to.
 
 1. **Design child-facing flows** — onboarding, safe username/screen name, game building, saving, publishing to Arcade
 2. **Reduce cognitive load** — every kid-facing step should be understandable without reading-heavy text

@@ -4,6 +4,8 @@
  * The reference resolver injects the relevant subset into the AI prompt.
  */
 
+import { SPRITE_ASSET_MAX_CHARS } from '../config/index.js';
+
 export const ASSET_MANIFEST = {
   platformer: {
     sprites: [
@@ -270,6 +272,74 @@ export const ASSET_MANIFEST = {
     },
   },
 };
+
+/**
+ * Format RAG search results into the same string shape as formatAssetsForPrompt.
+ * Groups by role, emits this.load.image lines, includes common sprites + sounds.
+ *
+ * @param {Array<{id,path,w,h,roles,note}>} sprites - From spriteSearch.searchSprites
+ * @param {string} genre - For sound selection
+ * @param {number} maxChars - Cap output length (default SPRITE_ASSET_MAX_CHARS)
+ * @returns {string}
+ */
+export function formatAssetsFromSearch(sprites, genre, maxChars = SPRITE_ASSET_MAX_CHARS) {
+  if (!sprites || sprites.length === 0) return '';
+
+  const common = ASSET_MANIFEST.common;
+  const genreAssets = ASSET_MANIFEST[genre];
+  const soundKeys = genreAssets?.sounds || common.sounds;
+
+  const roleOrder = ['player', 'enemy', 'collectible', 'background', 'other'];
+  const byRole = {};
+  for (const r of roleOrder) byRole[r] = [];
+  for (const s of sprites) {
+    const roles = s.roles || [];
+    let placed = false;
+    for (const r of ['player', 'enemy', 'collectible', 'background']) {
+      if (roles.includes(r)) {
+        byRole[r].push(s);
+        placed = true;
+        break;
+      }
+    }
+    if (!placed) byRole.other.push(s);
+  }
+
+  const lines = ['AVAILABLE SPRITE & SOUND ASSETS (use these in preload):', ''];
+
+  for (const role of roleOrder) {
+    const list = byRole[role];
+    if (list.length === 0) continue;
+    const label = role === 'other' ? 'Other sprites' : `${role} sprites`;
+    lines.push(`${label}:`);
+    list.forEach((s, i) => {
+      const key = list.length === 1 ? role : `${role}${i + 1}`;
+      let desc = `  this.load.image('${key}', '${s.path}');  // ${s.w}x${s.h}`;
+      if (s.note) desc += ` — ${s.note}`;
+      lines.push(desc);
+    });
+    lines.push('');
+  }
+
+  lines.push('Common sprites:');
+  for (const s of common.sprites) {
+    lines.push(`  this.load.image('${s.key}', '${s.path}');  // ${s.w}x${s.h}`);
+  }
+
+  lines.push('');
+  lines.push('Sound effects:');
+  for (const sndKey of soundKeys.slice(0, 8)) {
+    const p = common.soundPaths?.[sndKey];
+    if (p) lines.push(`  this.load.audio('${sndKey}', '${p}');`);
+  }
+
+  lines.push('');
+  lines.push("Play sounds: this.sound.play('coin');");
+  lines.push('If a sprite does not match the theme, generate a texture procedurally instead.');
+
+  const result = lines.join('\n');
+  return result.length > maxChars ? result.slice(0, maxChars) + '\n...(truncated)' : result;
+}
 
 /**
  * Format an asset list for injection into the AI prompt.

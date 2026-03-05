@@ -436,7 +436,7 @@ async function handleSingleModel({ prompt, currentCode, conversationHistory, gam
   }
 
   // Build the friendly response message
-  let response = cleanAssistantMessage(assistantText, wasTruncated);
+  let response = cleanAssistantMessage(assistantText, wasTruncated, !!code);
 
   return {
     response,
@@ -641,17 +641,32 @@ async function handleCriticMode({ prompt, currentCode, conversationHistory, game
 
 // ========== MESSAGE CLEANUP ==========
 
+/** Refusal/error patterns from Claude when it fails to produce code. Replace with kid-friendly retry message. */
+const REFUSAL_PATTERNS = [
+  /i\s+(can't|cannot)\s+(build|create|make|do)/i,
+  /i'm\s+(sorry|unable)\s+(i\s+)?(can't|cannot)/i,
+  /i\s+(can't|cannot)\s+(help|assist)/i,
+  /i'm\s+not\s+able\s+to/i,
+  /i\s+don't\s+think\s+i\s+can/i,
+  /unable\s+to\s+(build|create|generate)/i,
+  /i\s+(can't|cannot)\s+fulfill/i,
+  /sorry,?\s+i\s+(can't|cannot)/i,
+  /i\s+(can't|cannot)\s+generate/i,
+  /there\s+was\s+an\s+error/i,
+  /something\s+went\s+wrong/i,
+  /i\s+encountered\s+(an?\s+)?error/i,
+];
+
 /**
  * Clean the assistant's raw response into a kid-friendly message.
  * Strips code blocks and technical jargon.
+ * When no code was produced and the message looks like a refusal/error, replaces with a friendly retry prompt.
  */
-function cleanAssistantMessage(text, wasTruncated) {
+function cleanAssistantMessage(text, wasTruncated, hasCode = true) {
   if (wasTruncated) {
     return 'That game got really big! 😅 Let me try a simpler approach — ask me to add one feature at a time! 🎮';
   }
 
-  // Import the sanitizer from prompts
-  // We do a simpler version here since sanitizeOutput is quite aggressive
   let cleaned = text;
 
   // Remove code blocks
@@ -673,8 +688,19 @@ function cleanAssistantMessage(text, wasTruncated) {
     .replace(/^\s+|\s+$/g, '')
     .trim();
 
+  // When AI produced no code and the message sounds like a refusal/error, replace with friendly retry
+  if (!hasCode && cleaned) {
+    const looksLikeRefusal = REFUSAL_PATTERNS.some((p) => p.test(cleaned));
+    if (looksLikeRefusal) {
+      console.log('🤖 AI refusal/error detected (no code) — replacing with retry message');
+      return "Hmm, I got a little stuck on that one! 🤔 Try describing your game again, or ask for something simpler — I'm here to help!";
+    }
+  }
+
   if (!cleaned || cleaned.length < 5) {
-    return 'I made it! Check out your creation in the preview! 🎉';
+    return hasCode
+      ? 'I made it! Check out your creation in the preview! 🎉'
+      : 'Let me try that again! Can you describe your game one more time? 🎮';
   }
 
   return cleaned;
