@@ -74,16 +74,16 @@ function App() {
     onUpgradeNeeded: () => setShowUpgradeModal(true),
   });
 
-  // Fetch projects when user logs in; show welcome overlay for new users
+  // Fetch projects when user logs in; show welcome overlay for new users only
   useEffect(() => {
     if (token) {
-      fetchUserProjects().then(() => {
-        if (userProjects.length === 0 && messages.length === 0 && !localStorage.getItem('vck_welcomed')) {
+      fetchUserProjects().then((projects) => {
+        if (projects.length === 0 && messages.length === 0 && !localStorage.getItem('vck_welcomed')) {
           setShowWelcomeOverlay(true);
         }
       });
     }
-  }, [token, fetchUserProjects]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [token, fetchUserProjects, messages.length]);
 
   // Login handler
   const handleLogin = useCallback(

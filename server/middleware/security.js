@@ -5,7 +5,7 @@
  * Protects against common web vulnerabilities.
  *
  * Uses nonce-based CSP when req.cspNonce is set (HTML pages).
- * Eliminates unsafe-inline for script-src and style-src.
+ * script-src: nonce (no unsafe-inline). style-src: unsafe-inline (AI games need inline styles).
  */
 
 export function securityHeaders() {
@@ -23,8 +23,10 @@ export function securityHeaders() {
     const scriptSrc = nonce
       ? `'self' 'nonce-${nonce}' https://js.stripe.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com`
       : "'self' 'unsafe-inline' https://js.stripe.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com";
-    // style-src: nonce for <style> blocks; keep unsafe-inline for style="" attributes (heavy use in gallery/admin)
-    const styleSrc = nonce ? `'self' 'nonce-${nonce}' 'unsafe-inline'` : "'self' 'unsafe-inline'";
+    // style-src: use 'unsafe-inline' only (no nonce). Per CSP spec, nonce+unsafe-inline ignores
+    // unsafe-inline, blocking style="" attributes. AI-generated games (Phaser, etc.) rely on
+    // inline styles—without this, preview iframe shows blank white screen.
+    const styleSrc = "'self' 'unsafe-inline'";
 
     const csp = [
       "default-src 'self'",

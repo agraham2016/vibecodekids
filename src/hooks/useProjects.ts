@@ -7,7 +7,7 @@
  */
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { api, ApiError } from '../lib/api';
+import { api, ApiError, getAuthToken } from '../lib/api';
 import type { Project, UserProject } from '../types';
 
 const AUTO_SAVE_DELAY_MS = 30_000; // 30 seconds after last edit
@@ -15,39 +15,39 @@ const AUTO_SAVE_DELAY_MS = 30_000; // 30 seconds after last edit
 const DEFAULT_HTML = `<!DOCTYPE html>
 <html>
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      font-family: 'Nunito', sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      font-family: 'Nunito', -apple-system, sans-serif;
+      background: #1a1a2e;
+      background-image: linear-gradient(135deg, #1a1a2e 0%, #2d1b69 50%, #1a1a2e 100%);
       min-height: 100vh;
       display: flex;
       justify-content: center;
       align-items: center;
-      margin: 0;
     }
     .welcome {
       text-align: center;
-      color: white;
+      color: #e0e7ff;
       padding: 40px;
     }
     h1 {
-      font-size: 3rem;
-      margin-bottom: 20px;
-      text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+      font-size: 2.5rem;
+      margin-bottom: 16px;
+      color: #e0e7ff;
     }
     p {
-      font-size: 1.5rem;
+      font-size: 1.25rem;
       opacity: 0.9;
+      color: rgba(224, 231, 255, 0.9);
     }
     .welcome-logo {
       height: 80px;
       width: auto;
-      filter: drop-shadow(0 0 16px rgba(167, 139, 250, 0.5));
-      animation: bounce 1s ease infinite;
-    }
-    @keyframes bounce {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-20px); }
+      filter: drop-shadow(0 0 16px rgba(139, 92, 246, 0.5));
+      margin-bottom: 20px;
     }
   </style>
 </head>
@@ -55,7 +55,7 @@ const DEFAULT_HTML = `<!DOCTYPE html>
   <div class="welcome">
     <img src="/images/logo.png" alt="VibeCode Kids" class="welcome-logo" />
     <h1>Vibe Code Studio</h1>
-    <p>Tell me what you want to create and I'll help you make it!</p>
+    <p>Your game will appear here! Tell the AI what to make.</p>
   </div>
 </body>
 </html>`;
@@ -80,13 +80,17 @@ export function useProjects(isLoggedIn = false) {
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isAutoSaving = useRef(false);
 
-  const fetchUserProjects = useCallback(async () => {
+  const fetchUserProjects = useCallback(async (): Promise<UserProject[]> => {
+    const tokenAtCall = getAuthToken();
     setIsLoadingProjects(true);
     try {
       const projects = await api.get<UserProject[]>('/api/auth/my-projects');
+      // Ignore stale response if user logged in as someone else while fetch was in flight
+      if (getAuthToken() !== tokenAtCall) return [];
       setUserProjects(projects);
+      return projects;
     } catch {
-      // Silently fail
+      return [];
     } finally {
       setIsLoadingProjects(false);
     }

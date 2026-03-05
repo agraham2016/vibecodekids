@@ -47,6 +47,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       api
         .get<AuthMeResponse>('/api/auth/me')
         .then((data) => {
+          // Ignore stale response if user logged in as someone else while /me was in flight
+          if (getAuthToken() !== savedToken) return;
           if (data.user) {
             setUser(data.user);
             if (data.membership) setMembership(data.membership);
@@ -56,10 +58,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         })
         .catch(() => {
+          if (getAuthToken() !== savedToken) return;
           setAuthToken(null);
           setToken(null);
         })
         .finally(() => setIsCheckingAuth(false));
+    } else {
+      queueMicrotask(() => setIsCheckingAuth(false));
     }
 
     // Load tiers

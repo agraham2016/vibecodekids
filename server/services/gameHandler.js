@@ -309,7 +309,10 @@ function resolveTargetModel(mode, lastModelUsed) {
 async function handleSingleModel({ prompt, currentCode, conversationHistory, gameConfig, image, userId, targetModel }) {
   // Detect genre for reference resolution
   const genre = gameConfig?.gameType || detectGameGenre(prompt || '') || null;
-  const isNewGame = !currentCode || currentCode.includes('Tell me what you want to create');
+  const isNewGame =
+    !currentCode ||
+    currentCode.includes('Tell me what you want to create') ||
+    currentCode.includes('Your game will appear here');
 
   // Check pattern cache for iteration hints
   const iterationCategory = detectIterationPattern(prompt);

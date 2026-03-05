@@ -133,10 +133,9 @@ export async function searchSprites({
     const pool = getPool();
 
     const hasTerms = terms.length > 0;
-    const byRole = { player: [], enemy: [], collectible: [], background: [] };
 
     // Fetch per-role in parallel for efficiency (balanced mix)
-    const queries = rolesArr.map((role) => {
+    const queries = rolesArr.map((r) => {
       if (hasTerms) {
         return pool.query(
           `SELECT id, path, w, h, tags, roles, genres, note
@@ -144,7 +143,7 @@ export async function searchSprites({
            WHERE genres @> ARRAY[$1] AND $4 = ANY(roles) AND tags && $2
            ORDER BY (SELECT COUNT(*) FROM unnest(tags) t WHERE t = ANY($2)) DESC NULLS LAST, created_at
            LIMIT $3`,
-          [genre, terms, limitPerRole, role],
+          [genre, terms, limitPerRole, r],
         );
       }
       return pool.query(
@@ -153,7 +152,7 @@ export async function searchSprites({
          WHERE genres @> ARRAY[$1] AND $3 = ANY(roles)
          ORDER BY created_at
          LIMIT $2`,
-        [genre, limitPerRole, role],
+        [genre, limitPerRole, r],
       );
     });
 
@@ -162,7 +161,6 @@ export async function searchSprites({
     const merged = [];
 
     for (let i = 0; i < results.length; i++) {
-      const role = rolesArr[i];
       const rows = results[i]?.rows || [];
       for (const r of rows) {
         if (!seen.has(r.id)) {

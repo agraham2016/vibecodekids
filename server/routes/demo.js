@@ -53,7 +53,10 @@ function checkDemoLimit(ip) {
 
 function _isDefaultCode(code) {
   if (!code) return true;
-  return code.includes('Vibe Code Studio') && code.includes('Tell me what you want to create');
+  return (
+    code.includes('Vibe Code Studio') &&
+    (code.includes('Tell me what you want to create') || code.includes('Your game will appear here'))
+  );
 }
 
 // ========== DEMO GENERATE ==========
