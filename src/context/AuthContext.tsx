@@ -77,7 +77,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = useCallback((data: LoginResponse) => {
-    setAuthToken(data.token);
+    setAuthToken(data.token); // Must run first so api client uses new token before any subsequent fetch
     setToken(data.token);
     setUser(data.user);
     if (data.membership) setMembership(data.membership);

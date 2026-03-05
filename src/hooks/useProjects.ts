@@ -62,7 +62,7 @@ const DEFAULT_HTML = `<!DOCTYPE html>
 
 export { DEFAULT_HTML };
 
-export function useProjects(isLoggedIn = false, userId: string | null = null) {
+export function useProjects(isLoggedIn = false, userId: string | null = null, onSessionMismatch?: () => void) {
   const [code, setCode] = useState(DEFAULT_HTML);
   const [currentProject, setCurrentProject] = useState<Project>({
     id: 'new',
@@ -101,25 +101,33 @@ export function useProjects(isLoggedIn = false, userId: string | null = null) {
     }
   }, [isLoggedIn, userId]);
 
-  const fetchUserProjects = useCallback(async (): Promise<UserProject[]> => {
-    const tokenAtCall = getAuthToken();
-    setIsLoadingProjects(true);
-    setUserProjects([]); // Clear immediately to avoid showing previous user's projects
-    try {
-      const projects = await api.get<UserProject[]>('/api/auth/my-projects');
-      // Ignore stale response if user logged in as someone else while fetch was in flight
-      if (getAuthToken() !== tokenAtCall) {
+  const fetchUserProjects = useCallback(
+    async (expectedUserId?: string | null): Promise<UserProject[]> => {
+      const tokenAtCall = getAuthToken();
+      setIsLoadingProjects(true);
+      setUserProjects([]); // Clear immediately to avoid showing previous user's projects
+      try {
+        const headers: Record<string, string> = {};
+        if (expectedUserId) headers['X-Expected-User'] = expectedUserId;
+        const projects = await api.get<UserProject[]>(
+          `/api/auth/my-projects?t=${Date.now()}`,
+          Object.keys(headers).length ? headers : undefined,
+        );
+        // Ignore stale response if user logged in as someone else while fetch was in flight
+        if (getAuthToken() !== tokenAtCall) {
+          return [];
+        }
+        setUserProjects(projects);
+        return projects;
+      } catch {
+        setUserProjects([]);
         return [];
+      } finally {
+        setIsLoadingProjects(false);
       }
-      setUserProjects(projects);
-      return projects;
-    } catch {
-      setUserProjects([]);
-      return [];
-    } finally {
-      setIsLoadingProjects(false);
-    }
-  }, []);
+    },
+    [onSessionMismatch],
+  );
 
   const loadProject = useCallback(async (projectId: string) => {
     try {
@@ -162,7 +170,7 @@ export function useProjects(isLoggedIn = false, userId: string | null = null) {
 
       try {
         await api.delete(`/api/projects/${projectId}`);
-        fetchUserProjects();
+        fetchUserProjects(userId ?? undefined);
         if (currentProject.id === projectId) {
           newProject();
         }
@@ -173,7 +181,7 @@ export function useProjects(isLoggedIn = false, userId: string | null = null) {
         return false;
       }
     },
-    [currentProject.id, fetchUserProjects, newProject],
+    [currentProject.id, fetchUserProjects, newProject, userId],
   );
 
   const saveProject = useCallback(
@@ -229,7 +237,7 @@ export function useProjects(isLoggedIn = false, userId: string | null = null) {
         }
       }
     },
-    [code, currentProject.id, currentProject.name, isSaving, fetchUserProjects],
+    [code, currentProject.id, currentProject.name, isSaving, fetchUserProjects, userId],
   );
 
   // Helper to reset the auto-save debounce timer

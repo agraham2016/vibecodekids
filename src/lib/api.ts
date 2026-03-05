@@ -84,6 +84,7 @@ export const api = {
     return request<T>(url, {
       method: 'GET',
       headers: buildHeaders(headers),
+      cache: 'no-store', // Prevent showing wrong user's cached data
     });
   },
 

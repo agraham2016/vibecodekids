@@ -444,6 +444,16 @@ export default function createAuthRouter(sessions) {
       const session = await sessions.get(token);
       if (!session) return res.status(401).json({ error: 'Invalid or expired session' });
 
+      // Reject if client claims a different user (catches token/localStorage mix-up)
+      const expectedUser = req.headers['x-expected-user'];
+      if (expectedUser && expectedUser !== session.userId) {
+        log.warn(
+          { sessionUserId: session.userId, expectedUser, event: 'my_projects_user_mismatch' },
+          'Token/user mismatch',
+        );
+        return res.status(401).json({ error: 'Session mismatch. Please log in again.' });
+      }
+
       const allProjects = await listProjects();
       const userProjects = allProjects
         .filter((p) => p.userId === session.userId)

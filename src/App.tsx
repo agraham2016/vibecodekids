@@ -39,7 +39,7 @@ function App() {
     updateCode,
     restoreVersion,
     setGeneratedCode,
-  } = useProjects(!!user, user?.id ?? null);
+  } = useProjects(!!user, user?.id ?? null, logout);
 
   // UI state
   const [showShareModal, setShowShareModal] = useState(false);
@@ -76,14 +76,14 @@ function App() {
 
   // Fetch projects when user logs in; show welcome overlay for new users only
   useEffect(() => {
-    if (token) {
-      fetchUserProjects().then((projects) => {
+    if (token && user?.id) {
+      fetchUserProjects(user.id).then((projects) => {
         if (projects.length === 0 && messages.length === 0 && !localStorage.getItem('vck_welcomed')) {
           setShowWelcomeOverlay(true);
         }
       });
     }
-  }, [token, fetchUserProjects, messages.length]);
+  }, [token, user?.id, fetchUserProjects, messages.length]);
 
   // Login handler
   const handleLogin = useCallback(
