@@ -308,6 +308,8 @@ export default function createAuthRouter(sessions) {
         ...safeUser
       } = updatedUser;
 
+      log.info({ userId: user.id, event: 'login_success' }, 'User logged in');
+
       res.json({
         success: true,
         token,
@@ -442,14 +444,17 @@ export default function createAuthRouter(sessions) {
       if (!token) return res.status(401).json({ error: 'No token provided' });
 
       const session = await sessions.get(token);
-      if (!session) return res.status(401).json({ error: 'Invalid or expired session' });
+      if (!session) {
+        log.info({ event: 'my_projects_no_session', tokenPrefix: token.slice(0, 6) }, 'No session for token');
+        return res.status(401).json({ error: 'Invalid or expired session' });
+      }
 
       // Reject if client claims a different user (catches token/localStorage mix-up)
       const expectedUser = req.headers['x-expected-user'];
       if (expectedUser && expectedUser !== session.userId) {
         log.warn(
           { sessionUserId: session.userId, expectedUser, event: 'my_projects_user_mismatch' },
-          'Token/user mismatch',
+          'Token/user mismatch — forcing re-login',
         );
         return res.status(401).json({ error: 'Session mismatch. Please log in again.' });
       }
@@ -467,6 +472,12 @@ export default function createAuthRouter(sessions) {
           likes: p.likes || 0,
         }))
         .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+      // Diagnostic: for support tracing (LOG_LEVEL=debug to see)
+      log.debug(
+        { sessionUserId: session.userId, projectCount: userProjects.length, event: 'my_projects_ok' },
+        'my-projects returned',
+      );
 
       res.json(userProjects);
     } catch (error) {

@@ -119,8 +119,12 @@ export function useProjects(isLoggedIn = false, userId: string | null = null, on
         }
         setUserProjects(projects);
         return projects;
-      } catch {
+      } catch (err) {
         setUserProjects([]);
+        // Session mismatch or expired — force re-login so user gets fresh token
+        if (err instanceof ApiError && err.status === 401 && onSessionMismatch) {
+          onSessionMismatch();
+        }
         return [];
       } finally {
         setIsLoadingProjects(false);
