@@ -69,7 +69,10 @@ function App() {
     grokAvailable,
     lastModelUsed,
   } = useChat({
-    onCodeGenerated: setGeneratedCode,
+    onCodeGenerated: (newCode) => {
+      setGeneratedCode(newCode);
+      setMobileTab('game'); // Switch to game tab so user sees the preview
+    },
     onUsageUpdate: setMembership,
     onUpgradeNeeded: () => setShowUpgradeModal(true),
   });
@@ -126,8 +129,8 @@ function App() {
   }, [logout, clearMessages]);
 
   const handleSendMessage = useCallback(
-    async (content: string, image?: string, modeOverride?: AIMode) => {
-      await sendMessage(content, image, code, null, modeOverride);
+    async (content: string, image?: string, modeOverride?: AIMode, gameConfig?: GameConfig | null) => {
+      await sendMessage(content, image, code, gameConfig ?? null, modeOverride);
     },
     [sendMessage, code],
   );
@@ -164,7 +167,7 @@ function App() {
       const prompt = `Make me a ${dimensionLabel} ${config.theme} ${config.gameType} game where I control a ${config.character} and dodge ${config.obstacles}! Use a ${config.visualStyle} visual style.`;
       setShowGameSurvey(false);
       localStorage.setItem('vck_welcomed', '1');
-      handleSendMessage(prompt);
+      handleSendMessage(prompt, undefined, undefined, config);
     },
     [handleSendMessage],
   );
