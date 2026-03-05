@@ -93,6 +93,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setToken(null);
     setUser(null);
     setMembership(null);
+    localStorage.removeItem('authToken');
   }, []);
 
   const refreshUser = useCallback(async () => {

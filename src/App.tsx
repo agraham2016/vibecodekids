@@ -359,6 +359,7 @@ function App() {
             hasUnsavedChanges={hasUnsavedChanges}
             isLoggedIn={!!user}
             lastAutoSavedAt={lastAutoSavedAt}
+            username={user?.username}
           />
         </div>
 

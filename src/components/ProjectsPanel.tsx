@@ -1,33 +1,34 @@
-import { UserProject } from '../types'
-import './ProjectsPanel.css'
+import { UserProject } from '../types';
+import './ProjectsPanel.css';
 
 interface ProjectsPanelProps {
-  userProjects: UserProject[]
-  isLoadingProjects: boolean
-  currentProjectId: string
-  projectName: string
-  onLoadProject: (projectId: string) => void
-  onNewProject: () => void
-  onSave: () => void
-  onShare: () => void
-  onOpenVersionHistory: () => void
-  onStartOver: () => void
-  onDeleteProject: (projectId: string) => void
-  isSaving: boolean
-  hasUnsavedChanges: boolean
-  isLoggedIn: boolean
-  lastAutoSavedAt: Date | null
+  userProjects: UserProject[];
+  isLoadingProjects: boolean;
+  currentProjectId: string;
+  projectName: string;
+  onLoadProject: (projectId: string) => void;
+  onNewProject: () => void;
+  onSave: () => void;
+  onShare: () => void;
+  onOpenVersionHistory: () => void;
+  onStartOver: () => void;
+  onDeleteProject: (projectId: string) => void;
+  isSaving: boolean;
+  hasUnsavedChanges: boolean;
+  isLoggedIn: boolean;
+  lastAutoSavedAt: Date | null;
+  username?: string;
 }
 
 function formatAutoSaveTime(date: Date): string {
-  const now = new Date()
-  const diffMs = now.getTime() - date.getTime()
-  const diffSec = Math.floor(diffMs / 1000)
-  if (diffSec < 10) return 'just now'
-  if (diffSec < 60) return `${diffSec}s ago`
-  const diffMin = Math.floor(diffSec / 60)
-  if (diffMin < 60) return `${diffMin}m ago`
-  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffSec = Math.floor(diffMs / 1000);
+  if (diffSec < 10) return 'just now';
+  if (diffSec < 60) return `${diffSec}s ago`;
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${diffMin}m ago`;
+  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
 // Category icons
@@ -38,8 +39,8 @@ const CATEGORY_ICONS: Record<string, string> = {
   tool: '🔧',
   story: '📖',
   music: '🎵',
-  other: '✨'
-}
+  other: '✨',
+};
 
 export default function ProjectsPanel({
   userProjects,
@@ -56,28 +57,35 @@ export default function ProjectsPanel({
   isSaving,
   hasUnsavedChanges,
   isLoggedIn,
-  lastAutoSavedAt
+  lastAutoSavedAt,
+  username,
 }: ProjectsPanelProps) {
   return (
     <div className="projects-panel">
       {/* Panel Header */}
       <div className="pp-header">
-        <span className="pp-title">My Projects</span>
+        <span className="pp-title" title={username ? `Projects for @${username}` : undefined}>
+          My Projects{username ? ` (@${username})` : ''}
+        </span>
       </div>
 
       {/* New Project Button */}
       <button className="pp-new-btn" onClick={onNewProject} aria-label="Create new project">
-        <span className="pp-new-icon" aria-hidden="true">➕</span>
+        <span className="pp-new-icon" aria-hidden="true">
+          ➕
+        </span>
         <span>New Project</span>
       </button>
 
       {/* Current Project Indicator */}
       <div className="pp-current">
         <span className="pp-current-dot">●</span>
-        <span className="pp-current-name">
-          {currentProjectId === 'new' ? 'New Project' : projectName}
-        </span>
-        {hasUnsavedChanges && <span className="pp-unsaved-dot" title="Unsaved changes">●</span>}
+        <span className="pp-current-name">{currentProjectId === 'new' ? 'New Project' : projectName}</span>
+        {hasUnsavedChanges && (
+          <span className="pp-unsaved-dot" title="Unsaved changes">
+            ●
+          </span>
+        )}
       </div>
 
       {/* Auto-save status */}
@@ -95,35 +103,24 @@ export default function ProjectsPanel({
         ) : userProjects.length === 0 ? (
           <div className="pp-empty">No saved projects yet</div>
         ) : (
-          userProjects.map(project => (
-            <div
-              key={project.id}
-              className={`pp-item-wrap ${project.id === currentProjectId ? 'active' : ''}`}
-            >
-              <button
-                type="button"
-                className="pp-item"
-                onClick={() => onLoadProject(project.id)}
-              >
-                <span className="pp-item-icon">
-                  {CATEGORY_ICONS[project.category] || '✨'}
-                </span>
+          userProjects.map((project) => (
+            <div key={project.id} className={`pp-item-wrap ${project.id === currentProjectId ? 'active' : ''}`}>
+              <button type="button" className="pp-item" onClick={() => onLoadProject(project.id)}>
+                <span className="pp-item-icon">{CATEGORY_ICONS[project.category] || '✨'}</span>
                 <div className="pp-item-info">
                   <span className="pp-item-title">{project.title}</span>
                   <span className="pp-item-meta">
                     {project.isPublic ? '🌐' : '🔒'} {project.views} views
                   </span>
                 </div>
-                {project.id === currentProjectId && (
-                  <span className="pp-item-active">●</span>
-                )}
+                {project.id === currentProjectId && <span className="pp-item-active">●</span>}
               </button>
               <button
                 type="button"
                 className="pp-item-delete"
                 onClick={(e) => {
-                  e.stopPropagation()
-                  onDeleteProject(project.id)
+                  e.stopPropagation();
+                  onDeleteProject(project.id);
                 }}
                 title="Delete this project (removes from Arcade too)"
                 aria-label={`Delete project ${project.title || 'Untitled'}`}
@@ -168,5 +165,5 @@ export default function ProjectsPanel({
         </a>
       </div>
     </div>
-  )
+  );
 }
