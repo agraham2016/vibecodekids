@@ -19,9 +19,17 @@ export function injectNonce(html, nonce) {
   html = html.replace(/<script(?=\s|>)/gi, () => `<script nonce="${escaped}" `);
   html = html.replace(/<style(?=\s|>)/gi, () => `<style nonce="${escaped}" `);
 
-  // Add meta tag for play.html client to read nonce for srcdoc injection
+  // Add meta tag for play.html / PreviewPanel to read nonce for srcdoc injection
   if (!/name=["']csp-nonce["']/i.test(html)) {
     html = html.replace(/<head[^>]*>/i, (m) => m + `<meta name="csp-nonce" content="${escaped}">`);
+  }
+
+  // Fallback: also add to #root so SPA can read if meta is unavailable
+  if (!/data-csp-nonce=/i.test(html)) {
+    html = html.replace(
+      /<div\s+id=["']root["']([^>]*)>/i,
+      (m, rest) => `<div id="root"${rest} data-csp-nonce="${escaped}">`,
+    );
   }
 
   return html;

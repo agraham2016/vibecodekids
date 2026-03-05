@@ -515,7 +515,7 @@ app.get('*', async (req, res, next) => {
     let html = await fs.readFile(distIndex, 'utf-8');
     html = injectNonce(html, req.cspNonce);
     res.setHeader('Content-Type', 'text/html');
-    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Cache-Control', 'no-store'); // Prevent cache; nonce must match CSP each request
     res.send(html);
   } catch {
     next();
