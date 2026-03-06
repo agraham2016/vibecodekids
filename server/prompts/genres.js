@@ -161,7 +161,15 @@ export function detectGameGenre(message) {
 
 // 3D game rules - controls and camera
 export const THREE_D_GAME_RULES = `
-3D GAME - CRITICAL CONTROL AND CAMERA RULES:
+3D GAME - CRITICAL RULES:
+
+DO NOT ADD THREE.JS SCRIPT TAGS — Three.js r128 and GLTFLoader are already pre-loaded by the preview. Adding duplicate script tags causes "Multiple instances" errors and black screens. Just use THREE.* and new THREE.GLTFLoader() directly.
+
+SCENE SETUP ORDER (prevents black screen):
+1. Create scene, camera, renderer, lights, ground plane, sky color FIRST
+2. Start the requestAnimationFrame render loop IMMEDIATELY
+3. THEN call loader.load() for GLB models — they appear when loaded
+4. EVERY loader.load() MUST have an error callback that creates a colored fallback mesh
 
 MOVEMENT CONTROLS - USE ARROW KEYS (not WASD):
 - ArrowUp = move FORWARD (the direction the camera faces)
@@ -209,6 +217,8 @@ MOVEMENT DIRECTION (prevent "backwards" controls):
 // 3D Racing rules
 export const THREE_D_RACING_RULES = `
 3D RACING GAME - CRITICAL RULES (these prevent the most common 3D racing bugs):
+
+REMINDER: Do NOT add <script> tags for Three.js — it is pre-loaded. Start the render loop BEFORE loading GLB models. Always include error callbacks with colored-box fallbacks on loader.load().
 
 CAMERA SETUP (chase cam - NOT free-look):
 - The camera goes BEHIND and ABOVE the car, looking forward
@@ -274,6 +284,8 @@ OBSTACLES AND SCORING:
 // 3D Shooter-specific rules
 export const THREE_D_SHOOTER_RULES = `
 3D SHOOTING GAME - CRITICAL RULES (FPS / third-person shooter):
+
+REMINDER: Do NOT add <script> tags for Three.js — it is pre-loaded. Start the render loop BEFORE loading GLB models. Always include error callbacks with colored-box fallbacks on loader.load().
 
 POINTER LOCK SETUP (required for mouse look):
 - The game MUST use requestPointerLock() for mouse-based camera control

@@ -8,22 +8,30 @@ interface PreviewPanelProps {
 
 // Inject Three.js and other 3D libraries into the preview
 function injectLibraries(code: string): string {
-  // Check if code already has doctype/html structure
   const hasFullStructure = code.toLowerCase().includes('<!doctype') || code.toLowerCase().includes('<html');
+  const codeLower = code.toLowerCase();
 
-  // Preview scrollbar: so the full game is visible when the iframe is shorter than the game
   const previewScrollStyle = `
     <style id="vibe-preview-scroll">
       html, body { overflow-y: auto !important; overflow-x: hidden; min-height: 100%; }
     </style>
   `;
-  // Libraries to inject
-  const libraryScripts = `
+
+  // Only inject Three.js if the code doesn't already include it (prevents duplicate instance warnings)
+  const alreadyHasThree =
+    codeLower.includes('three.min.js') ||
+    codeLower.includes('three.js') ||
+    codeLower.includes('three@') ||
+    codeLower.includes('cdn.jsdelivr.net/npm/three') ||
+    codeLower.includes('cdnjs.cloudflare.com/ajax/libs/three');
+
+  const libraryScripts = alreadyHasThree
+    ? ''
+    : `
     <!-- 3D Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
     <script>
-      // Make Three.js globally available
       window.THREE = THREE;
     </script>
   `;

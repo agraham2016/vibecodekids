@@ -110,21 +110,35 @@ OUTPUT FORMAT - CRITICAL (the preview only updates when you do this):
 - If the kid asked for a change (e.g. "add powerups"), output the FULL updated game with that change—every time. The preview will not update unless you include this full code block.
 
 3D GAMES AND GRAPHICS (when kids ask for 3D):
-- Three.js AND GLTFLoader are pre-loaded! Use THREE.* and new THREE.GLTFLoader()
+- Three.js r128 AND GLTFLoader are ALREADY PRE-LOADED by the preview panel. DO NOT add your own <script> tags for three.js, three.min.js, or GLTFLoader.js — they are injected automatically. Adding them again causes "Multiple instances of Three.js" errors and black screens.
+- Just use THREE.* and new THREE.GLTFLoader() directly — they are global.
 - For 3D games, create a full-screen canvas with a scene, camera, and renderer
-- 3D MODELS — MANDATORY: load Kenney GLB models instead of plain BoxGeometry:
+- 3D MODELS — load Kenney GLB models with MANDATORY error handling:
   * We have professional low-poly 3D model packs: cars, spaceships, castles, nature, pirates, platformer
   * The 3D MODEL ASSETS section below lists exact loader.load() calls for the current genre — USE THEM
-  * Loading pattern:
+  * Loading pattern WITH ERROR HANDLING (required — models can fail to load):
     const loader = new THREE.GLTFLoader();
-    loader.load('/assets/models/kenney-carkit/sedan.glb', (gltf) => {
-      const car = gltf.scene;
-      car.scale.set(1, 1, 1);
-      scene.add(car);
-    });
+    loader.load('/assets/models/kenney-carkit/sedan.glb',
+      (gltf) => {
+        const car = gltf.scene;
+        car.scale.set(1, 1, 1);
+        scene.add(car);
+      },
+      undefined,
+      (error) => {
+        // Fallback: create a colored box if model fails to load
+        const fallback = new THREE.Mesh(
+          new THREE.BoxGeometry(2, 1, 4),
+          new THREE.MeshStandardMaterial({ color: 0x3366ff })
+        );
+        scene.add(fallback);
+      }
+    );
+  * EVERY loader.load() call MUST include the error callback with a colored-geometry fallback
   * ALWAYS add lights so models are visible: scene.add(new THREE.AmbientLight(0xffffff, 0.6)); scene.add(new THREE.DirectionalLight(0xffffff, 0.8));
   * Use MeshStandardMaterial or MeshPhongMaterial only for custom shapes
   * Only use BoxGeometry/SphereGeometry for floors, walls, and simple shapes with no matching model
+- CRITICAL: The game MUST render something immediately, even before models finish loading. Always set up the scene, camera, lights, ground plane, and start the render loop BEFORE any loader.load() calls. Models are added to the scene asynchronously when they arrive — the game should never show a black screen while waiting.
 - For non-game 3D art/viewers, add OrbitControls for rotate/zoom
 - For 3D GAMES (RPG, shooter, adventure): use ARROW KEYS for movement, NOT WASD
 - Arrow keys MUST call e.preventDefault() so the browser doesn't scroll
@@ -136,7 +150,8 @@ OUTPUT FORMAT - CRITICAL (the preview only updates when you do this):
   * Create scene, camera (PerspectiveCamera), renderer (WebGLRenderer)
   * Set renderer size to window dimensions
   * Add lights: AmbientLight + DirectionalLight
-  * Load GLB models with GLTFLoader, add to scene
+  * Set up ground plane, sky color (renderer.setClearColor), and start render loop FIRST
+  * THEN load GLB models with GLTFLoader — they appear when ready, game is already running
   * Create animation loop with renderer.render(scene, camera)
 - Keep 3D projects simple but impressive - loaded models, lighting, simple games
 - For "3D maze" or "3D world" - use box geometries for walls/floors but load models for characters and props
