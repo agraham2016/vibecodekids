@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', sans-serif; background: linear-gradient(135deg, #ffeaa7 0%, #fdcb6e 50%, #e17055 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; overflow: hidden; touch-action: none; }
+    #game-container { border-radius: 12px; overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
+    .hint { margin-top: 12px; color: rgba(0,0,0,0.6); font-size: 13px; }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.86.0/dist/phaser.min.js" crossorigin="anonymous"></script>
+</head>
+<body>
+  <div id="game-container"></div>
+  <div class="hint">Tap fruit to slice! Avoid bombs • 60 seconds • Score 100 to win</div>
+  <script>
+    const W = 800, H = 500;
+    const FRUIT_R = 28;
+    const TARGET_SCORE = 100;
+    const GAME_TIME = 60000;
+    const BOMB_PENALTY = 20;
+
+    class FruitSliceScene extends Phaser.Scene {
+      preload() {
+        this.load.image('apple', '/assets/sprites/kenney-food/tile_0000.png');
+        this.load.image('lemon', '/assets/sprites/kenney-food/tile_0003.png');
+        this.load.image('lime', '/assets/sprites/kenney-food/tile_0002.png');
+        this.load.image('banana', '/assets/sprites/kenney-food/tile_0004.png');
+        this.load.image('strawberry', '/assets/sprites/kenney-food/tile_0005.png');
+        this.load.image('bomb', '/assets/sprites/kenney-food/tile_0010.png');
+      }
+
+      create() {
+
+        const bg = this.add.graphics();
+        bg.fillStyle(0xffeaa7); bg.fillRect(0, 0, W, H);
+        for (let i = 0; i < 30; i++) bg.fillStyle(0xfdcb6e, 0.3); bg.fillCircle(Phaser.Math.Between(0, W), Phaser.Math.Between(0, H), Phaser.Math.Between(20, 50));
+
+        this.score = 0; this.gameOver = false; this.lives = 3;
+        this.fruits = this.add.group();
+        this.scoreText = this.add.text(12, 12, 'Score: 0', { fontSize: '22px', fill: '#2d3436', stroke: '#fff', strokeThickness: 3 }).setDepth(10);
+        this.timeText = this.add.text(W - 12, 12, '60', { fontSize: '22px', fill: '#e17055', stroke: '#fff', strokeThickness: 3 }).setOrigin(1, 0).setDepth(10);
+        this.msgText = this.add.text(W / 2, H / 2, '', { fontSize: '28px', fill: '#2d3436', stroke: '#fff', strokeThickness: 4, align: 'center' }).setOrigin(0.5).setDepth(20).setVisible(false);
+
+        this.startTime = Date.now();
+        this.spawnFruit();
+        this.spawnTimer = this.time.addEvent({ delay: 800, callback: () => this.spawnFruit(), loop: true });
+      }
+
+      spawnFruit() {
+        if (this.gameOver) return;
+        const isBomb = Math.random() < 0.15;
+        const key = isBomb ? 'bomb' : Phaser.Utils.Array.GetRandom(['apple', 'lemon', 'lime', 'banana', 'strawberry']);
+        const dir = Math.random() < 0.5 ? 1 : -1;
+        const startX = dir < 0 ? W + FRUIT_R : -FRUIT_R;
+        const endX = dir < 0 ? -FRUIT_R : W + FRUIT_R;
+        const y = Phaser.Math.Between(FRUIT_R * 2, H - FRUIT_R * 2);
+        const speed = Phaser.Math.Between(80, 180) * dir;
+
+        const fruit = this.add.image(startX, y, key).setDisplaySize(FRUIT_R * 2, FRUIT_R * 2);
+        fruit.isBomb = isBomb;
+        fruit.setInteractive({ useHandCursor: true });
+        fruit.on('pointerdown', () => {
+          if (this.gameOver) return;
+          if (fruit.isBomb) {
+            this.score = Math.max(0, this.score - BOMB_PENALTY);
+            this.lives--;
+            if (this.lives <= 0) this.lose();
+            else this.cameras.main.shake(150, 0.015);
+            fruit.destroy();
+          } else {
+            this.score += 12;
+            this.scoreText.setText('Score: ' + this.score);
+            this.tweens.add({ targets: fruit, scale: 0.3, alpha: 0, duration: 150, onComplete: () => fruit.destroy() });
+            if (this.score >= TARGET_SCORE) this.win();
+          }
+        });
+        this.fruits.add(fruit);
+
+        this.tweens.add({ targets: fruit, x: endX, duration: Math.abs((endX - startX) / speed) * 1000, onComplete: () => { if (fruit.active && !fruit.isBomb) fruit.destroy(); } });
+      }
+
+      win() {
+        this.gameOver = true;
+        this.msgText.setText('SLICED!\nScore: ' + this.score).setTint(0x55efc4).setVisible(true);
+        this.input.once('pointerdown', () => this.scene.restart());
+      }
+
+      lose() {
+        this.gameOver = true;
+        this.msgText.setText('GAME OVER\nScore: ' + this.score + '\nTap to restart').setVisible(true);
+        this.input.once('pointerdown', () => this.scene.restart());
+      }
+
+      update() {
+        if (this.gameOver) return;
+        const elapsed = (Date.now() - this.startTime) / 1000;
+        const left = Math.max(0, Math.ceil(GAME_TIME / 1000 - elapsed));
+        this.timeText.setText(left + 's');
+        if (left <= 0 && this.score < TARGET_SCORE) this.lose();
+      }
+    }
+
+    new Phaser.Game({ type: Phaser.AUTO, width: W, height: H, parent: 'game-container', backgroundColor: '#ffeaa7', scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH }, scene: FruitSliceScene });
+  </script>
+</body>
+</html>

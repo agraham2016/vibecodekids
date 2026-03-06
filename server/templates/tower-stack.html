@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', sans-serif; background: linear-gradient(135deg, #a29bfe 0%, #6c5ce7 50%, #fd79a8 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; overflow: hidden; touch-action: none; }
+    #game-container { border-radius: 12px; overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
+    .hint { margin-top: 12px; color: rgba(255,255,255,0.9); font-size: 13px; }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.86.0/dist/phaser.min.js" crossorigin="anonymous"></script>
+</head>
+<body>
+  <div id="game-container"></div>
+  <div class="hint">Tap to drop the block! Stack 15 high to win</div>
+  <script>
+    const W = 800, H = 500;
+    const BLOCK_W = 120; const BLOCK_H = 32;
+    const MOVE_SPEED = 280;
+    const SHRINK = 0.92;
+    const TARGET_HEIGHT = 15;
+
+    class TowerStackScene extends Phaser.Scene {
+      preload() {}
+
+      create() {
+        const g = this.make.graphics({ add: false });
+        const colors = [0x74b9ff, 0x55efc4, 0xfdcb6e, 0xfd79a8, 0xa29bfe];
+        colors.forEach((c, i) => {
+          g.fillStyle(c); g.fillRoundedRect(0, 0, BLOCK_W, BLOCK_H, 6);
+          g.generateTexture('block' + i, BLOCK_W, BLOCK_H); g.clear();
+        });
+        g.destroy();
+
+        const bg = this.add.graphics();
+        bg.fillStyle(0x2d3436); bg.fillRect(0, 0, W, H);
+        bg.fillStyle(0x636e72); bg.fillRect(0, H - 60, W, 60);
+
+        this.stack = [];
+        this.level = 0;
+        this.gameOver = false;
+        this.placed = false;
+        this.scoreText = this.add.text(12, 12, 'Height: 0', { fontSize: '22px', fill: '#fff', stroke: '#000', strokeThickness: 2 }).setDepth(10);
+        this.msgText = this.add.text(W / 2, H / 2, '', { fontSize: '28px', fill: '#fff', stroke: '#000', strokeThickness: 4, align: 'center' }).setOrigin(0.5).setDepth(20).setVisible(false);
+
+        this.spawnBlock();
+        this.input.on('pointerdown', () => this.dropBlock());
+        this.input.keyboard.on('keydown-SPACE', () => this.dropBlock());
+      }
+
+      spawnBlock() {
+        if (this.gameOver) return;
+        const w = BLOCK_W * Math.pow(SHRINK, this.level);
+        const colorIdx = this.level % 5;
+        this.movingBlock = this.add.rectangle(W / 2, 80, w, BLOCK_H, [0x74b9ff, 0x55efc4, 0xfdcb6e, 0xfd79a8, 0xa29bfe][colorIdx]);
+        this.movingBlock.direction = 1;
+        this.movingBlock.width = w;
+      }
+
+      dropBlock() {
+        if (!this.movingBlock || this.gameOver) return;
+        const block = this.movingBlock;
+        const prev = this.stack[this.stack.length - 1];
+        const blockW = block.width;
+
+        let dropX = block.x;
+        let platformLeft = block.x - blockW / 2;
+        let platformRight = block.x + blockW / 2;
+
+        if (prev) {
+          const prevLeft = prev.x - prev.width / 2;
+          const prevRight = prev.x + prev.width / 2;
+          const overlapLeft = Math.max(platformLeft, prevLeft);
+          const overlapRight = Math.min(platformRight, prevRight);
+          if (overlapLeft >= overlapRight) {
+            this.gameOver = true;
+            this.msgText.setText('MISSED!\nHeight: ' + this.level + '\nTap to restart').setVisible(true);
+            this.input.once('pointerdown', () => this.scene.restart());
+            return;
+          }
+          dropX = (overlapLeft + overlapRight) / 2;
+          block.width = overlapRight - overlapLeft;
+        }
+
+        const dropY = H - 60 - this.level * BLOCK_H - BLOCK_H / 2;
+        this.tweens.add({ targets: block, y: dropY, duration: 150, onComplete: () => {
+          block.x = dropX;
+          block.setSize(block.width, BLOCK_H);
+          this.stack.push({ x: dropX, width: block.width });
+          this.level++;
+          this.scoreText.setText('Height: ' + this.level);
+          this.movingBlock = null;
+          if (this.level >= TARGET_HEIGHT) {
+            this.gameOver = true;
+            this.msgText.setText('TOWER BUILT!\nHeight: ' + this.level).setTint(0x55efc4).setVisible(true);
+            this.input.once('pointerdown', () => this.scene.restart());
+          } else {
+            this.spawnBlock();
+          }
+        }});
+      }
+
+      update(_, delta) {
+        if (!this.movingBlock || this.gameOver) return;
+        const dt = delta / 1000;
+        this.movingBlock.x += MOVE_SPEED * dt * this.movingBlock.direction;
+        if (this.movingBlock.x <= this.movingBlock.width / 2 + 10) this.movingBlock.direction = 1;
+        if (this.movingBlock.x >= W - this.movingBlock.width / 2 - 10) this.movingBlock.direction = -1;
+      }
+    }
+
+    new Phaser.Game({ type: Phaser.AUTO, width: W, height: H, parent: 'game-container', backgroundColor: '#2d3436', scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH }, scene: TowerStackScene });
+  </script>
+</body>
+</html>

@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', sans-serif; background: linear-gradient(180deg, #0a3d62 0%, #0c5280 50%, #0984e3 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; overflow: hidden; touch-action: none; }
+    #game-container { border-radius: 12px; overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
+    .hint { margin-top: 12px; color: rgba(255,255,255,0.8); font-size: 13px; }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.86.0/dist/phaser.min.js" crossorigin="anonymous"></script>
+</head>
+<body>
+  <div id="game-container"></div>
+  <div class="hint">Arrow keys or tap buttons to swim • Collect gems, avoid jellyfish • Score 500 to win</div>
+  <script>
+    const W = 800, H = 500;
+    const DIVER_W = 40, DIVER_H = 32;
+    const GEM_R = 14, ENEMY_R = 20;
+    const MOVE_SPEED = 180;
+    const TARGET_SCORE = 500;
+    const GEM_POINTS = 25;
+    const LIVES = 3;
+
+    let sceneRef;
+
+    class TreasureDiverScene extends Phaser.Scene {
+      preload() {
+        this.load.image('diver', '/assets/sprites/kenney-fish/fish_blue.png');
+        this.load.image('gem', '/assets/sprites/common/star.png');
+        this.load.image('jellyfish', '/assets/sprites/kenney-fish/fish_red.png');
+        this.load.image('seaweed', '/assets/sprites/kenney-fish/seaweed_green_a.png');
+        this.load.image('rock', '/assets/sprites/kenney-fish/rock_a.png');
+        this.load.image('bubble', '/assets/sprites/kenney-fish/bubble_a.png');
+      }
+
+      create() {
+
+        const bg = this.add.graphics();
+        bg.fillGradientStyle(0x0a3d62, 0x0a3d62, 0x0984e3, 0x0984e3);
+        bg.fillRect(0, 0, W, H);
+        for (let i = 0; i < 80; i++) {
+          bg.fillStyle(0xffffff, Phaser.Math.FloatBetween(0.05, 0.2));
+          bg.fillCircle(Phaser.Math.Between(0, W), Phaser.Math.Between(0, H), Phaser.Math.Between(2, 5));
+        }
+
+        for (let i = 0; i < 6; i++) this.add.image(Phaser.Math.Between(40, W - 40), H - 20, 'seaweed').setDisplaySize(32, 64).setAlpha(0.5);
+        for (let i = 0; i < 3; i++) this.add.image(Phaser.Math.Between(60, W - 60), H - 16, 'rock').setDisplaySize(48, 48).setAlpha(0.4);
+
+        this.score = 0; this.lives = LIVES; this.gameOver = false;
+        this.player = this.physics.add.sprite(W / 2, H / 2, 'diver');
+        this.player.setDisplaySize(DIVER_W, DIVER_H);
+        this.player.setCollideWorldBounds(true);
+        this.player.body.setSize(DIVER_W - 8, DIVER_H - 6);
+        this.player.body.setOffset(4, 3);
+
+        this.gems = this.physics.add.group();
+        this.enemies = this.physics.add.group();
+        this.physics.add.overlap(this.player, this.gems, (p, gem) => { gem.destroy(); this.score += GEM_POINTS; this.scoreText.setText('Score: ' + this.score); if (this.score >= TARGET_SCORE) this.win(); }, null, this);
+        this.physics.add.overlap(this.player, this.enemies, () => { this.lives--; this.livesText.setText('Lives: ' + this.lives); if (this.lives <= 0) this.lose(); else this.cameras.main.flash(150, 255, 0, 0); }, null, this);
+
+        this.cursors = this.input.keyboard.createCursorKeys();
+        this.scoreText = this.add.text(12, 12, 'Score: 0', { fontSize: '20px', fill: '#ffd700', stroke: '#000', strokeThickness: 2 }).setDepth(10);
+        this.livesText = this.add.text(W - 12, 12, 'Lives: ' + LIVES, { fontSize: '20px', fill: '#e17055', stroke: '#000', strokeThickness: 2 }).setOrigin(1, 0).setDepth(10);
+        this.msgText = this.add.text(W / 2, H / 2, '', { fontSize: '28px', fill: '#fff', stroke: '#000', strokeThickness: 4, align: 'center' }).setOrigin(0.5).setDepth(20).setVisible(false);
+
+        const pad = 50;
+        const btns = [
+          { id: 'up', x: W / 2, y: H - pad - 60, key: 'up' },
+          { id: 'down', x: W / 2, y: H - pad, key: 'down' },
+          { id: 'left', x: W / 2 - 60, y: H - pad - 30, key: 'left' },
+          { id: 'right', x: W / 2 + 60, y: H - pad - 30, key: 'right' }
+        ];
+        this.touchKeys = { up: false, down: false, left: false, right: false };
+        btns.forEach(b => {
+          const zone = this.add.rectangle(b.x, b.y, 56, 56, 0xffffff, 0.25).setScrollFactor(0).setDepth(100).setInteractive();
+          this.add.text(b.x, b.y, b.id === 'up' ? '\u25B2' : b.id === 'down' ? '\u25BC' : b.id === 'left' ? '\u25C0' : '\u25B6', { fontSize: '24px', fill: '#fff' }).setOrigin(0.5).setScrollFactor(0).setDepth(101);
+          zone.on('pointerdown', () => { this.touchKeys[b.key] = true; });
+          zone.on('pointerup', () => { this.touchKeys[b.key] = false; });
+          zone.on('pointerout', () => { this.touchKeys[b.key] = false; });
+        });
+
+        this.spawnGem(); this.spawnEnemy();
+        this.spawnTimer = this.time.addEvent({ delay: 2000, callback: () => { this.spawnGem(); this.spawnEnemy(); }, loop: true });
+      }
+
+      spawnGem() {
+        if (this.gameOver) return;
+        const x = Phaser.Math.Between(GEM_R * 2, W - GEM_R * 2);
+        const y = Phaser.Math.Between(GEM_R * 2, H - GEM_R * 2);
+        const gem = this.gems.create(x, y, 'gem');
+        gem.setDisplaySize(GEM_R * 2, GEM_R * 2);
+        gem.setCircle(GEM_R - 2);
+      }
+
+      spawnEnemy() {
+        if (this.gameOver) return;
+        const side = Phaser.Math.Between(0, 3);
+        let x, y;
+        if (side === 0) { x = -ENEMY_R; y = Phaser.Math.Between(0, H); }
+        else if (side === 1) { x = W + ENEMY_R; y = Phaser.Math.Between(0, H); }
+        else if (side === 2) { x = Phaser.Math.Between(0, W); y = -ENEMY_R; }
+        else { x = Phaser.Math.Between(0, W); y = H + ENEMY_R; }
+        const e = this.enemies.create(x, y, 'jellyfish');
+        e.setDisplaySize(ENEMY_R * 2, ENEMY_R * 2);
+        e.setCircle(ENEMY_R - 2);
+        this.physics.moveToObject(e, this.player, 45);
+        this.time.delayedCall(Phaser.Math.Between(3000, 6000), () => { if (e.active) e.destroy(); });
+      }
+
+      win() {
+        this.gameOver = true;
+        this.msgText.setText('YOU WIN!\nScore: ' + this.score).setTint(0x00ff88).setVisible(true);
+        this.input.once('pointerdown', () => this.scene.restart());
+      }
+
+      lose() {
+        this.gameOver = true;
+        this.msgText.setText('GAME OVER\nScore: ' + this.score + '\nTap to restart').setVisible(true);
+        this.input.once('pointerdown', () => this.scene.restart());
+      }
+
+      update(_, delta) {
+        if (this.gameOver) return;
+        const dt = delta / 1000;
+        const left = this.cursors.left.isDown || this.touchKeys.left;
+        const right = this.cursors.right.isDown || this.touchKeys.right;
+        const up = this.cursors.up.isDown || this.touchKeys.up;
+        const down = this.cursors.down.isDown || this.touchKeys.down;
+        if (left) this.player.x -= MOVE_SPEED * dt;
+        if (right) this.player.x += MOVE_SPEED * dt;
+        if (up) this.player.y -= MOVE_SPEED * dt;
+        if (down) this.player.y += MOVE_SPEED * dt;
+        if (left) this.player.setFlipX(true);
+        if (right) this.player.setFlipX(false);
+      }
+    }
+
+    new Phaser.Game({ type: Phaser.AUTO, width: W, height: H, parent: 'game-container', backgroundColor: '#0a3d62', physics: { default: 'arcade', arcade: { gravity: { y: 0 } } }, scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH }, scene: TreasureDiverScene });
+  </script>
+</body>
+</html>

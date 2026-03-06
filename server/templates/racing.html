@@ -40,10 +40,12 @@ let touchLeft = false, touchRight = false, touchUp = false, touchDown = false;
 
 class Race extends Phaser.Scene {
   preload() {
-    this.load.image('car-player', '/assets/sprites/racing/car-player.png');
-    this.load.image('car-obstacle', '/assets/sprites/racing/car-obstacle.png');
-    this.load.audio('hitSfx', '/assets/sounds/hit.wav');
-    this.load.audio('explosionSfx', '/assets/sounds/explosion.wav');
+    this.load.image('car-player', '/assets/sprites/kenney-racing/Cars/car_blue_1.png');
+    this.load.image('car-obstacle', '/assets/sprites/kenney-racing/Cars/car_red_1.png');
+    this.load.image('car-green', '/assets/sprites/kenney-racing/Cars/car_green_1.png');
+    this.load.image('car-yellow', '/assets/sprites/kenney-racing/Cars/car_yellow_1.png');
+    this.load.image('cone', '/assets/sprites/kenney-racing/Objects/cone_straight.png');
+    this.load.image('oil', '/assets/sprites/kenney-racing/Objects/oil.png');
   }
 
   create() {
@@ -145,7 +147,8 @@ class Race extends Phaser.Scene {
     this.spawnCD += dt;
     const diff = 1 + this.elapsed / 12000;
     if (this.spawnCD > Math.max(350, 1300 / diff)) {
-      const o = this.obs.create(Phaser.Math.RND.pick(LANES), -CH, 'car-obstacle');
+      const tex = Phaser.Math.RND.pick(['car-obstacle', 'car-green', 'car-yellow']);
+      const o = this.obs.create(Phaser.Math.RND.pick(LANES), -CH, tex);
       o.setDisplaySize(CW, CH);
       o.setOrigin(0.5, 0.5);
       o.body.setSize(CW - 12, CH - 12);

@@ -118,6 +118,19 @@ const GENRE_TEMPLATE_MAP = {
   parking: 'parking.html',
   'car-parking': 'parking.html',
   '3d-parking': 'parking.html',
+  'treasure-diver': 'treasure-diver.html',
+  diver: 'treasure-diver.html',
+  'trash-sorter': 'trash-sorter.html',
+  sorting: 'trash-sorter.html',
+  recycle: 'trash-sorter.html',
+  'fruit-slice': 'fruit-slice.html',
+  fruit: 'fruit-slice.html',
+  slice: 'fruit-slice.html',
+  'tower-stack': 'tower-stack.html',
+  stack: 'tower-stack.html',
+  'find-the-friend': 'find-the-friend.html',
+  'hidden-object': 'find-the-friend.html',
+  seek: 'find-the-friend.html',
 };
 
 /**

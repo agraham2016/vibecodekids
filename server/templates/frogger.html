@@ -22,24 +22,14 @@ const W = COLS * CELL, H = ROWS * CELL;
 class Frog extends Phaser.Scene {
   constructor() { super('Frog'); }
 
+  preload() {
+    this.load.image('frog', '/assets/sprites/kenney-animals/Round/frog.png');
+    this.load.image('car1', '/assets/sprites/kenney-racing/Cars/car_blue_small_1.png');
+    this.load.image('car2', '/assets/sprites/kenney-racing/Cars/car_red_small_1.png');
+    this.load.image('truck', '/assets/sprites/kenney-racing/Cars/car_yellow_small_3.png');
+  }
+
   create() {
-    const g = this.make.graphics({ add: false });
-    g.fillStyle(0x44cc44); g.fillCircle(16, 16, 14);
-    g.fillStyle(0x228822); g.fillCircle(10, 10, 4); g.fillCircle(22, 10, 4);
-    g.fillStyle(0xffffff); g.fillCircle(10, 10, 2); g.fillCircle(22, 10, 2);
-    g.generateTexture('frog', 32, 32); g.clear();
-    g.fillStyle(0x3388ff); g.fillRect(0, 6, 40, 18);
-    g.fillStyle(0x2266cc); g.fillRect(2, 8, 8, 8); g.fillRect(30, 8, 8, 8);
-    g.fillStyle(0xffcc00); g.fillRect(2, 6, 4, 3); g.fillRect(34, 6, 4, 3);
-    g.generateTexture('car1', 40, 30); g.clear();
-    g.fillStyle(0xff4444); g.fillRect(0, 6, 40, 18);
-    g.fillStyle(0xcc2222); g.fillRect(2, 8, 8, 8); g.fillRect(30, 8, 8, 8);
-    g.fillStyle(0xffcc00); g.fillRect(2, 6, 4, 3); g.fillRect(34, 6, 4, 3);
-    g.generateTexture('car2', 40, 30); g.clear();
-    g.fillStyle(0xffaa00); g.fillRect(0, 4, 60, 22);
-    g.fillStyle(0xcc8800); g.fillRect(2, 6, 10, 10); g.fillRect(48, 6, 10, 10);
-    g.generateTexture('truck', 60, 30); g.clear();
-    g.destroy();
 
     this.score = 0; this.lives = 3; this.round = 1; this.moving = false;
 
@@ -53,7 +43,7 @@ class Frog extends Phaser.Scene {
     }
 
     this.player = this.physics.add.sprite(W / 2, (ROWS - 1) * CELL + CELL / 2, 'frog');
-    this.player.setCollideWorldBounds(true).setDepth(10);
+    this.player.setDisplaySize(38, 38).setCollideWorldBounds(true).setDepth(10);
 
     this.obstacles = this.physics.add.group();
     this.laneConfig = [
@@ -80,6 +70,7 @@ class Frog extends Phaser.Scene {
       const spacing = W / lane.count;
       for (let i = 0; i < lane.count; i++) {
         const ob = this.obstacles.create(spacing * i + spacing / 2, lane.row * CELL + CELL / 2, lane.tex);
+        ob.setDisplaySize(lane.tex === 'truck' ? 60 : 40, 30);
         ob.setVelocityX(lane.speed * lane.dir * (1 + (this.round - 1) * 0.15));
         ob.body.setAllowGravity(false);
         ob.laneDir = lane.dir;

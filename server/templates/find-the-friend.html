@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', sans-serif; background: linear-gradient(135deg, #81ecec 0%, #74b9ff 50%, #a29bfe 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; overflow: hidden; touch-action: none; }
+    #game-container { border-radius: 12px; overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
+    .hint { margin-top: 12px; color: rgba(0,0,0,0.6); font-size: 13px; }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.86.0/dist/phaser.min.js" crossorigin="anonymous"></script>
+</head>
+<body>
+  <div id="game-container"></div>
+  <div class="hint">Find the hidden friend! Wrong clicks cost time • Find before time runs out</div>
+  <script>
+    const W = 800, H = 500;
+    const GAME_TIME = 45000;
+    const WRONG_PENALTY = 3000;
+    const FRIEND_SIZE = 24;
+
+    class FindTheFriendScene extends Phaser.Scene {
+      preload() {
+        this.load.image('friend', '/assets/sprites/kenney-animals/Round/rabbit.png');
+        this.load.image('decoy1', '/assets/sprites/kenney-animals/Round/bear.png');
+        this.load.image('decoy2', '/assets/sprites/kenney-animals/Round/elephant.png');
+        this.load.image('decoy3', '/assets/sprites/kenney-animals/Round/penguin.png');
+        this.load.image('decoy4', '/assets/sprites/kenney-animals/Round/owl.png');
+        this.load.image('decoy5', '/assets/sprites/kenney-animals/Round/monkey.png');
+        this.load.image('decoy6', '/assets/sprites/kenney-animals/Round/panda.png');
+        this.load.image('decoy7', '/assets/sprites/kenney-animals/Round/dog.png');
+      }
+
+      create() {
+
+        const bg = this.add.graphics();
+        bg.fillStyle(0x81ecec); bg.fillRect(0, 0, W, H);
+        bg.fillStyle(0x55efc4); bg.fillEllipse(W / 2, H - 30, W * 0.8, 80);
+        bg.fillStyle(0x74b9ff, 0.5); bg.fillCircle(150, 120, 60); bg.fillCircle(650, 180, 50); bg.fillCircle(400, 80, 40);
+        bg.fillStyle(0xfdcb6e, 0.4); bg.fillRect(100, 200, 120, 80); bg.fillRect(580, 280, 100, 70);
+
+        this.startTime = Date.now();
+        this.timeLeft = GAME_TIME;
+        this.gameOver = false;
+        this.decoys = [];
+        const decoyKeys = ['decoy1', 'decoy2', 'decoy3', 'decoy4', 'decoy5', 'decoy6', 'decoy7'];
+
+        const friendX = Phaser.Math.Between(60, W - 60);
+        const friendY = Phaser.Math.Between(60, H - 80);
+        this.friend = this.add.image(friendX, friendY, 'friend').setDisplaySize(FRIEND_SIZE * 2, FRIEND_SIZE * 2).setInteractive({ useHandCursor: true });
+        this.friend.on('pointerdown', () => this.found());
+
+        for (let i = 0; i < 25; i++) {
+          let x = Phaser.Math.Between(40, W - 40);
+          let y = Phaser.Math.Between(40, H - 60);
+          while (Phaser.Math.Distance.Between(x, y, friendX, friendY) < 80) {
+            x = Phaser.Math.Between(40, W - 40);
+            y = Phaser.Math.Between(40, H - 60);
+          }
+          const key = Phaser.Utils.Array.GetRandom(decoyKeys);
+          const decoy = this.add.image(x, y, key).setDisplaySize(FRIEND_SIZE * 2, FRIEND_SIZE * 2).setInteractive({ useHandCursor: true });
+          decoy.on('pointerdown', () => this.wrong());
+          this.decoys.push(decoy);
+        }
+
+        this.timeText = this.add.text(W - 12, 12, Math.ceil(GAME_TIME / 1000) + 's', { fontSize: '22px', fill: '#2d3436', stroke: '#fff', strokeThickness: 3 }).setOrigin(1, 0).setDepth(10);
+        this.msgText = this.add.text(W / 2, H / 2, '', { fontSize: '26px', fill: '#2d3436', stroke: '#fff', strokeThickness: 4, align: 'center' }).setOrigin(0.5).setDepth(20).setVisible(false);
+      }
+
+      found() {
+        if (this.gameOver) return;
+        this.gameOver = true;
+        this.msgText.setText('FOUND!\nYour friend was hiding!').setTint(0x55efc4).setVisible(true);
+        this.input.once('pointerdown', () => this.scene.restart());
+      }
+
+      wrong() {
+        if (this.gameOver) return;
+        this.timeLeft -= WRONG_PENALTY;
+        this.cameras.main.shake(80, 0.008);
+      }
+
+      update(_, delta) {
+        if (this.gameOver) return;
+        this.timeLeft -= delta;
+        const sec = Math.max(0, Math.ceil(this.timeLeft / 1000));
+        this.timeText.setText(sec + 's');
+        if (this.timeLeft <= 0) {
+          this.gameOver = true;
+          this.msgText.setText('TIME\'S UP!\nYour friend is still hiding.\nTap to try again').setVisible(true);
+          this.input.once('pointerdown', () => this.scene.restart());
+        }
+      }
+    }
+
+    new Phaser.Game({ type: Phaser.AUTO, width: W, height: H, parent: 'game-container', backgroundColor: '#81ecec', scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH }, scene: FindTheFriendScene });
+  </script>
+</body>
+</html>

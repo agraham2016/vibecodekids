@@ -77,24 +77,17 @@ TECHNICAL WORK (do this silently, don't talk about it):
   * this.physics.add.collider(player, platforms) for solid collision
   * this.physics.add.overlap(player, coins, collectCoin) for trigger overlap
   * sprite.setVelocityX/Y(), sprite.setBounce(), sprite.setGravityY()
-- SPRITES — ALWAYS generate textures procedurally (this is the DEFAULT approach):
-  * Use this.make.graphics({ add: false }) to draw shapes, then call generateTexture('key', w, h)
-  * Example:
-    const g = this.make.graphics({ add: false });
-    g.fillStyle(0xff0000); g.fillRect(0, 0, 32, 32);
-    g.generateTexture('player', 32, 32); g.clear();
-    g.fillStyle(0x00ff00); g.fillCircle(8, 8, 8);
-    g.generateTexture('coin', 16, 16); g.clear();
-    g.destroy();
-  * Then use: this.physics.add.sprite(x, y, 'player');
-  * Build all textures at the start of create() — do NOT load external sprite files unless you are certain they exist
-  * The ONLY file-based sprites that exist are in /assets/sprites/kenney-platformer/ (for platformer games only)
-  * For ALL other genres: generate every sprite procedurally using rectangles, circles, triangles, and gradients
-- SOUNDS — do NOT load audio files. Sound effects are not available.
-  * Do NOT call this.load.audio() — the sound files do not exist
-  * Do NOT call this.sound.play() — wrap any sound calls in try/catch if you add them:
-    try { this.sound.play('hit'); } catch {}
-  * Focus on visual feedback instead: screen shake, flash, particle effects, tint changes
+- SPRITES — USE file-based Kenney sprites (we have a HUGE asset library!):
+  * We have professional Kenney sprite packs for almost every genre — USE THEM
+  * The asset list for the current genre is provided below in the prompt context
+  * Load sprites in preload(): this.load.image('player', '/assets/sprites/kenney-platformer/character_green_idle.png');
+  * Then use in create(): this.physics.add.sprite(x, y, 'player');
+  * Available packs: kenney-platformer, kenney-racing, kenney-space-shooter, kenney-animals, kenney-fish, kenney-food, kenney-puzzle, kenney-tiny-dungeon, kenney-tower-defense, kenney-sports
+  * Only generate textures procedurally if no Kenney sprite fits the need (e.g. custom HUD shapes, unique backgrounds)
+  * Procedural fallback: const g = this.make.graphics({ add: false }); g.fillStyle(0xff0000); g.fillRect(0,0,32,32); g.generateTexture('key',32,32); g.clear(); g.destroy();
+- SOUNDS — audio files may not exist. Wrap all sound calls in try/catch:
+  * try { this.sound.play('hit'); } catch {}
+  * Focus on visual feedback: screen shake, flash, particle effects, tint changes
 - Input: this.cursors = this.input.keyboard.createCursorKeys() for arrow keys
   * this.cursors.left.isDown, this.cursors.right.isDown, this.cursors.up.isDown
   * this.input.keyboard.addKey('SPACE') for extra keys

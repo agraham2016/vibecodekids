@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', sans-serif; background: linear-gradient(135deg, #2d3436 0%, #636e72 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; overflow: hidden; touch-action: none; }
+    #game-container { border-radius: 12px; overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
+    .hint { margin-top: 12px; color: rgba(255,255,255,0.8); font-size: 13px; }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.86.0/dist/phaser.min.js" crossorigin="anonymous"></script>
+</head>
+<body>
+  <div id="game-container"></div>
+  <div class="hint">Tap bin or press 1=Recycle 2=Compost 3=Trash • Sort before items reach the end!</div>
+  <script>
+    const W = 800, H = 500;
+    const CONVEYOR_Y = 280;
+    const ITEM_W = 40, ITEM_H = 40;
+    const CONVEYOR_SPEED = 120;
+    const BIN_W = 100, BIN_H = 80;
+    const TARGET_SORTS = 30;
+    const MAX_MISTAKES = 5;
+
+    class TrashSorterScene extends Phaser.Scene {
+      preload() {}
+
+      create() {
+        const g = this.make.graphics({ add: false });
+
+        g.fillStyle(0x74b9ff); g.fillRoundedRect(0, 0, ITEM_W, ITEM_H, 6); g.fillStyle(0x0984e3); g.fillRect(8, 8, 24, 24);
+        g.generateTexture('recycle', ITEM_W, ITEM_H); g.clear();
+        g.fillStyle(0x55efc4); g.fillRoundedRect(0, 0, ITEM_W, ITEM_H, 6); g.fillStyle(0x00b894); g.fillCircle(20, 20, 12);
+        g.generateTexture('compost', ITEM_W, ITEM_H); g.clear();
+        g.fillStyle(0xdfe6e9); g.fillRoundedRect(0, 0, ITEM_W, ITEM_H, 6); g.fillStyle(0xb2bec3); g.fillRect(10, 10, 20, 20);
+        g.generateTexture('trash', ITEM_W, ITEM_H); g.clear();
+        g.fillStyle(0x636e72); g.fillRect(0, 0, W, 60);
+        g.fillStyle(0x2d3436); g.fillRect(0, 4, W, 52);
+        for (let x = 0; x < W; x += 24) { g.fillStyle(0x74b9ff, 0.3); g.fillRect(x, 26, 12, 8); }
+        g.generateTexture('conveyor', W, 60); g.clear();
+        g.destroy();
+
+        const bg = this.add.graphics();
+        bg.fillStyle(0x2d3436); bg.fillRect(0, 0, W, H);
+
+        const conveyor = this.add.image(W / 2, CONVEYOR_Y, 'conveyor');
+        conveyor.setDisplaySize(W, 60);
+
+        const binLabels = ['Recycle', 'Compost', 'Trash'];
+        const binColors = [0x74b9ff, 0x55efc4, 0xdfe6e9];
+        this.bins = [];
+        [0, 1, 2].forEach(i => {
+          const x = 133 + i * 267;
+          const rect = this.add.rectangle(x, H - 70, BIN_W, BIN_H, binColors[i], 0.8).setDepth(5);
+          this.add.text(x, H - 70, binLabels[i], { fontSize: '16px', fill: '#2d3436' }).setOrigin(0.5).setDepth(6);
+          rect.setInteractive();
+          rect.on('pointerdown', () => this.sortCurrent(i));
+          this.bins.push(rect);
+        });
+
+        this.sorted = 0; this.mistakes = 0; this.gameOver = false;
+        this.currentItem = null;
+        this.items = this.add.group();
+        this.scoreText = this.add.text(12, 12, 'Sorted: 0 / ' + TARGET_SORTS, { fontSize: '20px', fill: '#55efc4', stroke: '#000', strokeThickness: 2 }).setDepth(10);
+        this.mistakesText = this.add.text(W - 12, 12, 'Mistakes: 0', { fontSize: '20px', fill: '#e17055', stroke: '#000', strokeThickness: 2 }).setOrigin(1, 0).setDepth(10);
+        this.msgText = this.add.text(W / 2, H / 2, '', { fontSize: '24px', fill: '#fff', stroke: '#000', strokeThickness: 4, align: 'center' }).setOrigin(0.5).setDepth(20).setVisible(false);
+
+        this.input.keyboard.on('keydown-ONE', () => this.sortCurrent(0));
+        this.input.keyboard.on('keydown-TWO', () => this.sortCurrent(1));
+        this.input.keyboard.on('keydown-THREE', () => this.sortCurrent(2));
+
+        this.spawnItem();
+      }
+
+      spawnItem() {
+        if (this.gameOver) return;
+        const types = ['recycle', 'compost', 'trash'];
+        const type = Phaser.Utils.Array.GetRandom(types);
+        const item = this.add.image(ITEM_W, CONVEYOR_Y, type);
+        item.type = type;
+        item.typeIdx = types.indexOf(type);
+        this.items.add(item);
+        this.currentItem = item;
+      }
+
+      sortCurrent(binIdx) {
+        if (!this.currentItem || this.gameOver) return;
+        const correct = this.currentItem.typeIdx === binIdx;
+        if (correct) {
+          this.sorted++;
+          this.scoreText.setText('Sorted: ' + this.sorted + ' / ' + TARGET_SORTS);
+          this.currentItem.destroy();
+          this.currentItem = null;
+          if (this.sorted >= TARGET_SORTS) this.win();
+          else this.time.delayedCall(400, () => this.spawnItem(), [], this);
+        } else {
+          this.mistakes++;
+          this.mistakesText.setText('Mistakes: ' + this.mistakes);
+          this.cameras.main.shake(100, 0.01);
+          if (this.mistakes >= MAX_MISTAKES) this.lose();
+          else { this.currentItem.destroy(); this.currentItem = null; this.time.delayedCall(400, () => this.spawnItem(), [], this); }
+        }
+      }
+
+      win() {
+        this.gameOver = true;
+        this.msgText.setText('GREAT JOB!\nYou sorted ' + this.sorted + ' items!').setTint(0x55efc4).setVisible(true);
+        this.input.once('pointerdown', () => this.scene.restart());
+      }
+
+      lose() {
+        this.gameOver = true;
+        this.msgText.setText('GAME OVER\nSorted: ' + this.sorted + '\nTap to restart').setVisible(true);
+        this.input.once('pointerdown', () => this.scene.restart());
+      }
+
+      update() {
+        if (this.gameOver) return;
+        this.items.getChildren().forEach(item => {
+          if (!item.active) return;
+          item.x += CONVEYOR_SPEED / 60;
+          if (item.x > W - ITEM_W && this.currentItem === item) {
+            this.mistakes++;
+            this.mistakesText.setText('Mistakes: ' + this.mistakes);
+            item.destroy();
+            this.currentItem = null;
+            if (this.mistakes >= MAX_MISTAKES) this.lose();
+            else this.time.delayedCall(400, () => this.spawnItem(), [], this);
+          }
+        });
+      }
+    }
+
+    new Phaser.Game({ type: Phaser.AUTO, width: W, height: H, parent: 'game-container', backgroundColor: '#2d3436', scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH }, scene: TrashSorterScene });
+  </script>
+</body>
+</html>

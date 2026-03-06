@@ -303,6 +303,11 @@ if (!IS_PRODUCTION) {
     'rhythm',
     'pet-sim',
     'parking',
+    'treasure-diver',
+    'trash-sorter',
+    'fruit-slice',
+    'tower-stack',
+    'find-the-friend',
   ];
   const devCsp =
     "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; object-src 'none'; base-uri 'self';";
@@ -321,14 +326,16 @@ if (!IS_PRODUCTION) {
     }
   });
   app.get('/dev/templates', (req, res) => {
-    const links = ALLOWED_TEMPLATES.map((t) => `<a href="/dev/template/${t}">${t}</a>`).join('');
-    const html = `<html><head><title>Template Test</title><style>
+    const base = `${req.protocol}://${req.get('host')}`;
+    const links = ALLOWED_TEMPLATES.map((t) => `<a href="${base}/dev/template/${t}" target="_blank">${t}</a>`).join('');
+    const html = `<html><head><title>Template Test</title><meta name="viewport" content="width=device-width, initial-scale=1.0"><style>
         body{font-family:system-ui;padding:24px;background:#1a1a2e;color:#eee;}
-        h1{color:#a78bfa;margin-bottom:20px;}
-        .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;max-width:800px;}
+        h1{color:#a78bfa;margin-bottom:8px;}
+        .hint{color:rgba(255,255,255,0.6);font-size:14px;margin-bottom:20px;}
+        .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;max-width:900px;}
         .grid a{display:block;padding:10px 14px;background:rgba(139,92,246,0.2);border:1px solid rgba(139,92,246,0.4);border-radius:8px;color:#c4b5fd;text-decoration:none;transition:background .2s;}
         .grid a:hover{background:rgba(139,92,246,0.35);}
-      </style></head><body><h1>Template Test Links</h1><div class="grid">${links}</div></body></html>`;
+      </style></head><body><h1>Template Test Links</h1><p class="hint">Templates run on the backend. Use <strong>http://localhost:3001/dev/templates</strong> — restart server with <code>npm run dev:server</code> if links fail.</p><div class="grid">${links}</div></body></html>`;
     res.setHeader('Content-Security-Policy', devCsp);
     res.send(html);
   });
