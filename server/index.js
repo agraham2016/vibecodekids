@@ -270,7 +270,30 @@ async function serveHtmlWithNonce(req, res, filename) {
 }
 
 app.get('/gallery', (req, res) => serveHtmlWithNonce(req, res, 'gallery.html'));
-app.get('/admin', (req, res) => serveHtmlWithNonce(req, res, 'admin.html'));
+app.get('/admin', async (req, res) => {
+  try {
+    const html = await fs.readFile(path.join(PUBLIC_DIR, 'admin.html'), 'utf-8');
+    const scheme = req.get('x-forwarded-proto') || req.protocol || 'http';
+    const host = req.get('x-forwarded-host') || req.get('host') || 'localhost:3001';
+    const origin = `${scheme}://${host}`;
+    const csp = [
+      "default-src 'self'",
+      `script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com`,
+      "style-src 'self' 'unsafe-inline'",
+      "font-src 'self' data:",
+      `img-src 'self' ${origin} data: blob:`,
+      `connect-src 'self' ${origin}`,
+      "object-src 'none'",
+      "base-uri 'self'",
+    ].join('; ');
+    res.setHeader('Content-Security-Policy', csp);
+    res.setHeader('Content-Type', 'text/html');
+    res.setHeader('Cache-Control', 'no-store');
+    res.send(html);
+  } catch {
+    res.sendFile(path.join(PUBLIC_DIR, 'admin.html'));
+  }
+});
 app.get('/privacy', (req, res) => serveHtmlWithNonce(req, res, 'privacy.html'));
 app.get('/terms', (req, res) => serveHtmlWithNonce(req, res, 'terms.html'));
 app.get('/esa', (req, res) => serveHtmlWithNonce(req, res, 'esa.html'));
