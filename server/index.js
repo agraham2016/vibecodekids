@@ -148,21 +148,27 @@ const isProduction = await fs
 // Static assets with long cache (sprites, sounds rarely change)
 app.use('/assets', express.static(path.join(PUBLIC_DIR, 'assets'), { maxAge: '7d' }));
 
-// Serve static files from public folder (short cache for HTML)
+// Serve static files from public folder (short cache for HTML).
+// index: false so "/" falls through to the SPA catch-all for nonce injection.
 app.use(
   express.static(PUBLIC_DIR, {
     maxAge: '5m',
+    index: false,
     setHeaders: (res, filePath) => {
       if (filePath.endsWith('.html')) res.setHeader('Cache-Control', 'no-cache');
     },
   }),
 );
 
-// In production, serve the built React app
+// In production, serve the built React app (JS/CSS/images only — not index.html).
+// index: false ensures page requests fall through to the SPA catch-all, which
+// injects the CSP nonce into the HTML. Without this, express.static auto-serves
+// index.html for "/" without the nonce meta tag, breaking srcdoc iframe scripts.
 if (isProduction) {
   app.use(
     express.static(DIST_DIR, {
       maxAge: '1d',
+      index: false,
       setHeaders: (res, filePath) => {
         if (filePath.endsWith('.html')) res.setHeader('Cache-Control', 'no-cache');
       },
