@@ -218,7 +218,16 @@ export async function resolveReferences({ prompt, genre, gameConfig, isNewGame }
   }
 
   // ===== 3. LOAD BUILT-IN TEMPLATE (for new games) =====
-  if (isNewGame && effectiveGenre) {
+  // Skip 2D templates when the prompt implies a 3D game (roblox, obby, explicit 3D, etc.)
+  const lowerPrompt = (prompt || '').toLowerCase();
+  const force3D =
+    lowerPrompt.includes('roblox') ||
+    lowerPrompt.includes('obby') ||
+    lowerPrompt.includes('3d') ||
+    lowerPrompt.includes('three.js') ||
+    gameConfig?.dimension === '3d';
+
+  if (isNewGame && effectiveGenre && !force3D) {
     const template = await loadTemplate(effectiveGenre);
     if (template) {
       const chunk = formatTemplateReference(template, effectiveGenre);
@@ -260,14 +269,7 @@ export async function resolveReferences({ prompt, genre, gameConfig, isNewGame }
 
   // ===== 5. INJECT 3D MODEL LIST (when prompt mentions 3D or genre has 3D models) =====
   {
-    const lowerPrompt = (prompt || '').toLowerCase();
-    const implies3D =
-      lowerPrompt.includes('3d') ||
-      lowerPrompt.includes('roblox') ||
-      lowerPrompt.includes('obby') ||
-      lowerPrompt.includes('three.js') ||
-      gameConfig?.dimension === '3d' ||
-      effectiveGenre === 'parking';
+    const implies3D = force3D || effectiveGenre === 'parking';
 
     let modelKey = null;
     if (effectiveGenre) {
