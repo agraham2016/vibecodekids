@@ -28,13 +28,19 @@ export function securityHeaders() {
     // inline styles—without this, preview iframe shows blank white screen.
     const styleSrc = "'self' 'unsafe-inline'";
 
+    // Request origin for connect-src: srcdoc iframe games load assets via XHR; they inherit CSP
+    // and need our origin allowed (sandbox gives iframe opaque origin so 'self' differs).
+    const scheme = req.get('x-forwarded-proto') || req.protocol || 'http';
+    const host = req.get('x-forwarded-host') || req.get('host') || 'localhost:3001';
+    const requestOrigin = `${scheme}://${host}`;
+
     const csp = [
       "default-src 'self'",
       `script-src ${scriptSrc}`,
       `style-src ${styleSrc}`,
       "font-src 'self' data:",
       "img-src 'self' data: blob:",
-      "connect-src 'self' wss: ws: https://api.stripe.com",
+      `connect-src 'self' ${requestOrigin} wss: ws: https://api.stripe.com`,
       "frame-src 'self' blob: https://js.stripe.com",
       "object-src 'none'",
       "base-uri 'self'",
