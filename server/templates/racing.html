@@ -39,20 +39,14 @@ const RL = 175, RR = 625, LANES = [250, 400, 550];
 let touchLeft = false, touchRight = false, touchUp = false, touchDown = false;
 
 class Race extends Phaser.Scene {
-  create() {
-    const g = this.make.graphics({ add: false });
-    g.fillStyle(0x2288ff); g.fillRect(4, 0, CW - 8, CH);
-    g.fillStyle(0x44aaff); g.fillRect(8, 4, CW - 16, 12);
-    g.fillStyle(0x1166dd); g.fillRect(2, CH - 14, CW - 4, 10);
-    g.fillStyle(0xffcc00); g.fillRect(6, 2, 4, 4); g.fillRect(CW - 10, 2, 4, 4);
-    g.generateTexture('car-player', CW, CH); g.clear();
-    g.fillStyle(0xff4444); g.fillRect(4, 0, CW - 8, CH);
-    g.fillStyle(0xff6666); g.fillRect(8, 4, CW - 16, 12);
-    g.fillStyle(0xcc2222); g.fillRect(2, CH - 14, CW - 4, 10);
-    g.fillStyle(0xffcc00); g.fillRect(6, 2, 4, 4); g.fillRect(CW - 10, 2, 4, 4);
-    g.generateTexture('car-obstacle', CW, CH); g.clear();
-    g.destroy();
+  preload() {
+    this.load.image('car-player', '/assets/sprites/racing/car-player.png');
+    this.load.image('car-obstacle', '/assets/sprites/racing/car-obstacle.png');
+    this.load.audio('hitSfx', '/assets/sounds/hit.wav');
+    this.load.audio('explosionSfx', '/assets/sounds/explosion.wav');
+  }
 
+  create() {
     this.speed = 3;
     this.score = 0;
     this.alive = true;
@@ -68,6 +62,8 @@ class Race extends Phaser.Scene {
     });
 
     this.player = this.physics.add.sprite(400, H - 70, 'car-player');
+    this.player.setDisplaySize(CW, CH);
+    this.player.setOrigin(0.5, 0.5);
     this.player.setCollideWorldBounds(true);
     this.player.body.setSize(CW - 12, CH - 12);
 
@@ -150,6 +146,8 @@ class Race extends Phaser.Scene {
     const diff = 1 + this.elapsed / 12000;
     if (this.spawnCD > Math.max(350, 1300 / diff)) {
       const o = this.obs.create(Phaser.Math.RND.pick(LANES), -CH, 'car-obstacle');
+      o.setDisplaySize(CW, CH);
+      o.setOrigin(0.5, 0.5);
       o.body.setSize(CW - 12, CH - 12);
       this.spawnCD = 0;
     }
