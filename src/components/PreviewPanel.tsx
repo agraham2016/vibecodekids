@@ -38,11 +38,12 @@ function injectLibraries(code: string): string {
   const headInject = previewScrollStyle + libraryScripts;
 
   if (hasFullStructure) {
-    // Inject into the <head> if it exists
-    if (code.includes('</head>')) {
-      return code.replace('</head>', `${headInject}</head>`);
+    // Inject right AFTER <head> so Three.js loads before any AI-generated scripts
+    const headOpenMatch = code.match(/<head[^>]*>/i);
+    if (headOpenMatch) {
+      const idx = code.indexOf(headOpenMatch[0]) + headOpenMatch[0].length;
+      return code.slice(0, idx) + `\n${headInject}\n` + code.slice(idx);
     } else if (code.includes('<body')) {
-      // Insert before body if no head
       return code.replace(/<body/i, `${previewScrollStyle}<body`);
     }
   }

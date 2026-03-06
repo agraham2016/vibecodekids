@@ -43,7 +43,11 @@ function injectLibraries(code: string): string {
   const libraryScripts = `<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script><script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script><script>window.THREE=THREE;</script>`;
   const headInject = previewScrollStyle + libraryScripts;
   if (hasFullStructure) {
-    if (code.includes('</head>')) return code.replace('</head>', `${headInject}</head>`);
+    const headOpenMatch = code.match(/<head[^>]*>/i);
+    if (headOpenMatch) {
+      const idx = code.indexOf(headOpenMatch[0]) + headOpenMatch[0].length;
+      return code.slice(0, idx) + headInject + code.slice(idx);
+    }
     if (code.includes('<body')) return code.replace(/<body/i, `${previewScrollStyle}<body`);
   }
   return `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">${headInject}</head><body>${code}</body></html>`;
