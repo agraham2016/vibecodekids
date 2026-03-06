@@ -136,6 +136,8 @@ const GENRE_TEMPLATE_MAP = {
   'find-the-friend': 'find-the-friend.html',
   'hidden-object': 'find-the-friend.html',
   seek: 'find-the-friend.html',
+  roblox: 'platformer.html',
+  obby: 'platformer.html',
 };
 
 /**
@@ -257,17 +259,29 @@ export async function resolveReferences({ prompt, genre, gameConfig, isNewGame }
   }
 
   // ===== 5. INJECT 3D MODEL LIST (when prompt mentions 3D or genre has 3D models) =====
-  if (effectiveGenre) {
+  {
     const lowerPrompt = (prompt || '').toLowerCase();
-    const is3D = lowerPrompt.includes('3d') || effectiveGenre === 'parking';
-    const modelGenre3D = effectiveGenre + '-3d';
-    const modelKey = MODEL_MANIFEST[effectiveGenre]
-      ? effectiveGenre
-      : MODEL_MANIFEST[modelGenre3D]
-        ? modelGenre3D
-        : is3D
-          ? 'common-3d'
-          : null;
+    const implies3D =
+      lowerPrompt.includes('3d') ||
+      lowerPrompt.includes('roblox') ||
+      lowerPrompt.includes('obby') ||
+      lowerPrompt.includes('three.js') ||
+      gameConfig?.dimension === '3d' ||
+      effectiveGenre === 'parking';
+
+    let modelKey = null;
+    if (effectiveGenre) {
+      const modelGenre3D = effectiveGenre + '-3d';
+      modelKey = MODEL_MANIFEST[effectiveGenre]
+        ? effectiveGenre
+        : MODEL_MANIFEST[modelGenre3D]
+          ? modelGenre3D
+          : implies3D
+            ? 'common-3d'
+            : null;
+    } else if (implies3D) {
+      modelKey = 'common-3d';
+    }
 
     if (modelKey) {
       const modelBlock = formatModelsForPrompt(modelKey);

@@ -42,6 +42,13 @@ export const GENRE_KEYWORDS = {
     'platform game',
     'jumping game',
     'collect coins',
+    'roblox',
+    'obby',
+    'obstacle course',
+    'roblox style',
+    'roblox game',
+    'roblox obby',
+    'like roblox',
   ],
   'endless-runner': [
     'endless runner',
