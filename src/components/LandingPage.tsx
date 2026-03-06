@@ -302,6 +302,46 @@ const GAME_TEMPLATES = [
     sprite: '/assets/sprites/common/star.png',
     emoji: '🔮',
   },
+  {
+    title: 'Treasure Diver',
+    genre: 'Action',
+    description: 'Dive deep, grab gems, dodge jellyfish',
+    gradient: 'linear-gradient(135deg, #0077b6 0%, #00b4d8 50%, #90e0ef 100%)',
+    sprite: '/assets/sprites/common/star.png',
+    emoji: '🤿',
+  },
+  {
+    title: 'Trash Sorter',
+    genre: 'Reflex',
+    description: 'Sort recycling, compost, and trash before time runs out',
+    gradient: 'linear-gradient(135deg, #2d6a4f 0%, #52b788 50%, #95d5b2 100%)',
+    sprite: '/assets/sprites/common/star.png',
+    emoji: '♻️',
+  },
+  {
+    title: 'Fruit Slice',
+    genre: 'Arcade',
+    description: 'Slice the fruit, skip the bombs',
+    gradient: 'linear-gradient(135deg, #d62828 0%, #f77f00 50%, #fcbf49 100%)',
+    sprite: '/assets/sprites/common/star.png',
+    emoji: '🍉',
+  },
+  {
+    title: 'Tower Stack',
+    genre: 'Precision',
+    description: 'Stack blocks as high as you can',
+    gradient: 'linear-gradient(135deg, #4361ee 0%, #7209b7 50%, #f72585 100%)',
+    sprite: '/assets/sprites/common/star.png',
+    emoji: '🏗️',
+  },
+  {
+    title: 'Find the Friend',
+    genre: 'Seek',
+    description: 'Spot the hidden friend before time runs out',
+    gradient: 'linear-gradient(135deg, #386641 0%, #6a994e 50%, #a7c957 100%)',
+    sprite: '/assets/sprites/common/star.png',
+    emoji: '🔍',
+  },
 ];
 
 const SHOWCASE_NAMES = [
@@ -752,7 +792,7 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
 
         {/* ── 6. Template Grid (existing) ── */}
         <section className="template-showcase">
-          <h2 className="section-heading">26 Game Types to Vibecode</h2>
+          <h2 className="section-heading">31 Game Types to Vibecode</h2>
           <p className="section-subheading">Pick a template or describe something totally new</p>
           <div className="template-grid">
             {GAME_TEMPLATES.map((tmpl) => (

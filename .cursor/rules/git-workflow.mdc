@@ -1,0 +1,26 @@
+---
+description: Git commit and push workflow — output commands for user to run in Warp terminal
+alwaysApply: true
+---
+
+# Git Commit & Push Protocol
+
+NEVER run `git commit` or `git push` directly from Cursor's shell. Instead, provide ready-to-paste commands for the user to run in their Warp terminal.
+
+## When the user asks to commit and push:
+
+1. Run `git status` and `git diff --stat` in Cursor to review changes.
+2. Draft a clear commit message based on the changes.
+3. Output the full command block for the user to copy-paste into Warp:
+
+```bash
+git add <files> && \
+git commit -m "Short summary line" \
+  -m "Optional longer description body." && \
+git push
+```
+
+4. Use `git add .` only if all untracked/modified files should be included. Otherwise list specific paths.
+5. Keep the summary line under 72 characters.
+6. Escape any special characters for bash (single quotes inside message, backticks, etc.).
+7. Wait for the user to confirm the result before proceeding.

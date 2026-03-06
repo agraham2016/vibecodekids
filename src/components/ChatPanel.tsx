@@ -235,6 +235,37 @@ const GAME_STARTERS = [
     label: 'Simon Says',
     prompt: 'Make me a Simon Says game where I watch and repeat the colored pattern!',
   },
+  {
+    genre: 'Action',
+    emoji: '🤿',
+    label: 'Treasure Diver',
+    prompt: 'Make me a treasure diver game where I swim underwater to collect gems and dodge jellyfish!',
+  },
+  {
+    genre: 'Reflex',
+    emoji: '♻️',
+    label: 'Trash Sorter',
+    prompt:
+      'Make me a trash sorter game where items slide by on a conveyor and I sort them into recycle, compost, and trash bins!',
+  },
+  {
+    genre: 'Arcade',
+    emoji: '🍉',
+    label: 'Fruit Slice',
+    prompt: 'Make me a fruit slicing game where I tap fruit flying across the screen to slice it, but avoid the bombs!',
+  },
+  {
+    genre: 'Precision',
+    emoji: '🏗️',
+    label: 'Tower Stack',
+    prompt: 'Make me a tower stacking game where blocks slide back and forth and I tap to drop them perfectly!',
+  },
+  {
+    genre: 'Seek',
+    emoji: '🔍',
+    label: 'Find the Friend',
+    prompt: 'Make me a hidden object game where I search the scene to find a hidden friend before time runs out!',
+  },
 ];
 
 export default function ChatPanel({

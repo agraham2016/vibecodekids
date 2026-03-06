@@ -16,6 +16,11 @@ const GAME_TYPES = [
   { value: 'puzzle', icon: '🧩', label: 'Puzzle' },
   { value: 'clicker', icon: '👆', label: 'Clicker' },
   { value: 'rpg', icon: '⚔️', label: 'RPG' },
+  { value: 'treasure-diver', icon: '🤿', label: 'Treasure Diver' },
+  { value: 'trash-sorter', icon: '♻️', label: 'Trash Sorter' },
+  { value: 'fruit-slice', icon: '🍉', label: 'Fruit Slice' },
+  { value: 'tower-stack', icon: '🏗️', label: 'Tower Stack' },
+  { value: 'find-the-friend', icon: '🔍', label: 'Find the Friend' },
 ];
 
 const THEMES: Record<string, { icon: string; label: string; value: string }[]> = {
@@ -67,6 +72,36 @@ const THEMES: Record<string, { icon: string; label: string; value: string }[]> =
     { icon: '🌌', label: 'Space', value: 'space' },
     { icon: '🌊', label: 'Underwater', value: 'underwater' },
     { icon: '🏜️', label: 'Desert', value: 'desert' },
+  ],
+  'treasure-diver': [
+    { icon: '🌊', label: 'Ocean', value: 'ocean' },
+    { icon: '🏝️', label: 'Tropical', value: 'tropical' },
+    { icon: '🧊', label: 'Arctic', value: 'arctic' },
+    { icon: '🌋', label: 'Volcanic', value: 'volcanic' },
+  ],
+  'trash-sorter': [
+    { icon: '🏫', label: 'School', value: 'school' },
+    { icon: '🏠', label: 'Home', value: 'home' },
+    { icon: '🏭', label: 'Factory', value: 'factory' },
+    { icon: '🌳', label: 'Park', value: 'park' },
+  ],
+  'fruit-slice': [
+    { icon: '🍉', label: 'Fruit Stand', value: 'fruit-stand' },
+    { icon: '🍬', label: 'Candy', value: 'candy' },
+    { icon: '🌌', label: 'Space', value: 'space' },
+    { icon: '🎃', label: 'Spooky', value: 'spooky' },
+  ],
+  'tower-stack': [
+    { icon: '🏙️', label: 'City', value: 'city' },
+    { icon: '🌌', label: 'Space', value: 'space' },
+    { icon: '🍬', label: 'Candy', value: 'candy' },
+    { icon: '❄️', label: 'Ice', value: 'ice' },
+  ],
+  'find-the-friend': [
+    { icon: '🏞️', label: 'Park', value: 'park' },
+    { icon: '🏰', label: 'Castle', value: 'castle' },
+    { icon: '🌲', label: 'Forest', value: 'forest' },
+    { icon: '🌊', label: 'Beach', value: 'beach' },
   ],
 };
 
@@ -120,6 +155,36 @@ const CHARACTERS: Record<string, { icon: string; label: string; value: string }[
     { icon: '🦸', label: 'Hero', value: 'hero' },
     { icon: '🐉', label: 'Dragon Rider', value: 'dragon rider' },
   ],
+  'treasure-diver': [
+    { icon: '🤿', label: 'Diver', value: 'diver' },
+    { icon: '🐠', label: 'Fish', value: 'fish' },
+    { icon: '🐢', label: 'Turtle', value: 'turtle' },
+    { icon: '🧜', label: 'Mermaid', value: 'mermaid' },
+  ],
+  'trash-sorter': [
+    { icon: '🧒', label: 'Kid Helper', value: 'kid' },
+    { icon: '🤖', label: 'Robot', value: 'robot' },
+    { icon: '🐱', label: 'Cat', value: 'cat' },
+    { icon: '🦸', label: 'Eco Hero', value: 'eco hero' },
+  ],
+  'fruit-slice': [
+    { icon: '🗡️', label: 'Blade', value: 'blade' },
+    { icon: '⚡', label: 'Lightning', value: 'lightning' },
+    { icon: '🌟', label: 'Star', value: 'star' },
+    { icon: '🧙', label: 'Magic Wand', value: 'wand' },
+  ],
+  'tower-stack': [
+    { icon: '🧱', label: 'Bricks', value: 'bricks' },
+    { icon: '🍬', label: 'Candy Blocks', value: 'candy' },
+    { icon: '🧊', label: 'Ice Blocks', value: 'ice' },
+    { icon: '🌈', label: 'Rainbow', value: 'rainbow' },
+  ],
+  'find-the-friend': [
+    { icon: '🐶', label: 'Puppy', value: 'puppy' },
+    { icon: '🐱', label: 'Kitten', value: 'kitten' },
+    { icon: '🐰', label: 'Bunny', value: 'bunny' },
+    { icon: '🧸', label: 'Teddy Bear', value: 'teddy' },
+  ],
 };
 
 const OBSTACLES: Record<string, { icon: string; label: string; value: string }[]> = {
@@ -171,6 +236,36 @@ const OBSTACLES: Record<string, { icon: string; label: string; value: string }[]
     { icon: '🧌', label: 'Trolls', value: 'trolls' },
     { icon: '🐉', label: 'Dragons', value: 'dragons' },
     { icon: '👻', label: 'Ghosts', value: 'ghosts' },
+  ],
+  'treasure-diver': [
+    { icon: '🪼', label: 'Jellyfish', value: 'jellyfish' },
+    { icon: '🦈', label: 'Sharks', value: 'sharks' },
+    { icon: '🐙', label: 'Octopus', value: 'octopus' },
+    { icon: '🌊', label: 'Currents', value: 'currents' },
+  ],
+  'trash-sorter': [
+    { icon: '⏰', label: 'Speed Up', value: 'speed up' },
+    { icon: '❓', label: 'Mystery Items', value: 'mystery' },
+    { icon: '💣', label: 'Trick Items', value: 'trick items' },
+    { icon: '🌀', label: 'Mixed Up', value: 'mixed up' },
+  ],
+  'fruit-slice': [
+    { icon: '💣', label: 'Bombs', value: 'bombs' },
+    { icon: '🧊', label: 'Ice Cubes', value: 'ice' },
+    { icon: '⏰', label: 'Timer', value: 'timer' },
+    { icon: '🌪️', label: 'Speed Fruit', value: 'speed' },
+  ],
+  'tower-stack': [
+    { icon: '💨', label: 'Wind', value: 'wind' },
+    { icon: '⚡', label: 'Speed Up', value: 'speed' },
+    { icon: '🧊', label: 'Slippery', value: 'slippery' },
+    { icon: '🌀', label: 'Shrinking', value: 'shrinking' },
+  ],
+  'find-the-friend': [
+    { icon: '⏰', label: 'Timer', value: 'timer' },
+    { icon: '🌀', label: 'Decoys', value: 'decoys' },
+    { icon: '🌫️', label: 'Fog', value: 'fog' },
+    { icon: '🔀', label: 'Shuffling', value: 'shuffling' },
   ],
 };
 
