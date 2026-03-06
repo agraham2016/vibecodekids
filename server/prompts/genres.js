@@ -137,6 +137,11 @@ export const GENRE_KEYWORDS = {
   'top-down-shooter': ['top down shooter', 'twin stick', 'twin-stick', 'top-down shooter', 'overhead shooter'],
   fishing: ['fishing', 'fishing game', 'catch fish', 'fish game', 'go fishing'],
   'simon-says': ['simon says', 'simon-says', 'sequence game', 'repeat the pattern', 'memory pattern'],
+  'treasure-diver': ['treasure diver', 'diver', 'diving', 'underwater collect', 'swim and collect', 'ocean collect'],
+  'trash-sorter': ['trash sorter', 'sorting game', 'recycle game', 'recycling', 'sort trash', 'sorting'],
+  'fruit-slice': ['fruit slice', 'slice fruit', 'fruit ninja', 'slice game', 'cut fruit', 'fruit chop'],
+  'tower-stack': ['tower stack', 'stacking game', 'stack blocks', 'build tower', 'tower building', 'stacker'],
+  'find-the-friend': ['find the friend', 'hidden object', 'seek game', 'find hidden', 'search game', 'where is'],
 };
 
 /**

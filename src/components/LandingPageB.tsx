@@ -40,7 +40,7 @@ type Phase = 'idle' | 'loading' | 'playing' | 'gated';
 function injectLibraries(code: string): string {
   const hasFullStructure = code.toLowerCase().includes('<!doctype') || code.toLowerCase().includes('<html');
   const previewScrollStyle = `<style>html,body{overflow-y:auto!important;overflow-x:hidden;min-height:100%}</style>`;
-  const libraryScripts = `<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script><script>window.THREE=THREE;</script>`;
+  const libraryScripts = `<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script><script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script><script>window.THREE=THREE;</script>`;
   const headInject = previewScrollStyle + libraryScripts;
   if (hasFullStructure) {
     if (code.includes('</head>')) return code.replace('</head>', `${headInject}</head>`);

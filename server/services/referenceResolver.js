@@ -17,7 +17,12 @@ import { fileURLToPath } from 'url';
 import { REFERENCE_MAX_CHARS } from '../config/index.js';
 import { getRelevantSnippets } from '../snippets/index.js';
 import { detectGitHubUrl, fetchRepoCode } from './githubFetcher.js';
-import { formatAssetsForPrompt, formatAssetsFromSearch } from '../assets/assetManifest.js';
+import {
+  formatAssetsForPrompt,
+  formatAssetsFromSearch,
+  formatModelsForPrompt,
+  MODEL_MANIFEST,
+} from '../assets/assetManifest.js';
 import { searchSprites } from './spriteSearch.js';
 import { USE_POSTGRES } from '../config/index.js';
 
@@ -251,7 +256,30 @@ export async function resolveReferences({ prompt, genre, gameConfig, isNewGame }
     }
   }
 
-  // ===== 5. LOAD RELEVANT SNIPPETS =====
+  // ===== 5. INJECT 3D MODEL LIST (when prompt mentions 3D or genre has 3D models) =====
+  if (effectiveGenre) {
+    const lowerPrompt = (prompt || '').toLowerCase();
+    const is3D = lowerPrompt.includes('3d') || effectiveGenre === 'parking';
+    const modelGenre3D = effectiveGenre + '-3d';
+    const modelKey = MODEL_MANIFEST[effectiveGenre]
+      ? effectiveGenre
+      : MODEL_MANIFEST[modelGenre3D]
+        ? modelGenre3D
+        : is3D
+          ? 'common-3d'
+          : null;
+
+    if (modelKey) {
+      const modelBlock = formatModelsForPrompt(modelKey);
+      if (modelBlock && modelBlock.length <= charBudget) {
+        parts.push(modelBlock);
+        charBudget -= modelBlock.length;
+        sources.push(`models:${modelKey}`);
+      }
+    }
+  }
+
+  // ===== 6. LOAD RELEVANT SNIPPETS =====
   const snippets = getRelevantSnippets(effectiveGenre, prompt);
   for (const snippet of snippets) {
     if (snippet.content.length > charBudget) continue;

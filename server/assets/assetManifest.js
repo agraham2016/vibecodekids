@@ -1,6 +1,6 @@
 /**
  * Asset Manifest
- * Maps game genres to available Kenney sprite assets.
+ * Maps game genres to available Kenney sprite and 3D model assets.
  * The reference resolver injects the relevant subset into the AI prompt.
  */
 
@@ -588,6 +588,211 @@ export function formatAssetsForPrompt(genre) {
 
   lines.push('EXTRA PACKS — more sprites available if the game theme needs them:');
   for (const [pack, info] of Object.entries(EXTRA_PACKS)) {
+    lines.push(`  ${pack}: ${info.note}`);
+    lines.push(`    Example: ${info.example}`);
+  }
+
+  return lines.join('\n');
+}
+
+// ========== 3D MODEL MANIFEST ==========
+
+export const MODEL_MANIFEST = {
+  'racing-3d': {
+    models: [
+      { key: 'sedan', path: '/assets/models/kenney-carkit/sedan.glb', scale: 1, note: 'player car' },
+      { key: 'taxi', path: '/assets/models/kenney-carkit/taxi.glb', scale: 1, note: 'yellow taxi' },
+      { key: 'suv', path: '/assets/models/kenney-carkit/suv.glb', scale: 1, note: 'SUV obstacle' },
+      { key: 'truck', path: '/assets/models/kenney-carkit/truck.glb', scale: 1, note: 'delivery truck' },
+      { key: 'ambulance', path: '/assets/models/kenney-carkit/ambulance.glb', scale: 1, note: 'ambulance' },
+      { key: 'police', path: '/assets/models/kenney-carkit/police.glb', scale: 1, note: 'police car' },
+      { key: 'raceCar', path: '/assets/models/kenney-carkit/race.glb', scale: 1, note: 'race car' },
+      { key: 'cone', path: '/assets/models/kenney-carkit/cone.glb', scale: 1, note: 'traffic cone' },
+      { key: 'gateFinish', path: '/assets/models/kenney-carkit/gate-finish.glb', scale: 1, note: 'finish line gate' },
+      { key: 'treePine', path: '/assets/models/kenney-carkit/tree-pine.glb', scale: 1, note: 'roadside tree' },
+    ],
+  },
+  parking: {
+    models: [
+      { key: 'sedan', path: '/assets/models/kenney-carkit/sedan.glb', scale: 1, note: 'player car' },
+      { key: 'delivery', path: '/assets/models/kenney-carkit/delivery.glb', scale: 1, note: 'parked truck' },
+      { key: 'suv', path: '/assets/models/kenney-carkit/suv.glb', scale: 1, note: 'parked SUV' },
+      { key: 'cone', path: '/assets/models/kenney-carkit/cone.glb', scale: 1, note: 'traffic cone' },
+    ],
+  },
+  'space-3d': {
+    models: [
+      { key: 'speederA', path: '/assets/models/kenney-spacekit/craft_speederA.glb', scale: 2, note: 'player ship' },
+      { key: 'speederB', path: '/assets/models/kenney-spacekit/craft_speederB.glb', scale: 2, note: 'enemy ship' },
+      { key: 'rocketBase', path: '/assets/models/kenney-spacekit/rocket_baseA.glb', scale: 2, note: 'rocket' },
+      { key: 'turret', path: '/assets/models/kenney-spacekit/turret_double.glb', scale: 2, note: 'turret' },
+      {
+        key: 'astronaut',
+        path: '/assets/models/kenney-spacekit/astronautA.glb',
+        scale: 2,
+        note: 'astronaut character',
+      },
+      { key: 'satellite', path: '/assets/models/kenney-spacekit/satelliteDish.glb', scale: 2, note: 'satellite dish' },
+      { key: 'meteor', path: '/assets/models/kenney-spacekit/meteor.glb', scale: 2, note: 'space rock' },
+      { key: 'alien', path: '/assets/models/kenney-spacekit/alien.glb', scale: 2, note: 'alien character' },
+      { key: 'rover', path: '/assets/models/kenney-spacekit/rover.glb', scale: 2, note: 'space rover' },
+    ],
+  },
+  'rpg-3d': {
+    models: [
+      { key: 'towerSquare', path: '/assets/models/kenney-castlekit/tower-square.glb', scale: 1, note: 'castle tower' },
+      { key: 'wall', path: '/assets/models/kenney-castlekit/wall.glb', scale: 1, note: 'castle wall' },
+      { key: 'gate', path: '/assets/models/kenney-castlekit/gate.glb', scale: 1, note: 'castle gate' },
+      { key: 'catapult', path: '/assets/models/kenney-castlekit/siege-catapult.glb', scale: 1, note: 'siege catapult' },
+      { key: 'treeLarge', path: '/assets/models/kenney-castlekit/tree-large.glb', scale: 1, note: 'large tree' },
+      { key: 'flag', path: '/assets/models/kenney-castlekit/flag.glb', scale: 1, note: 'flag' },
+      { key: 'rocksLarge', path: '/assets/models/kenney-castlekit/rocks-large.glb', scale: 1, note: 'large rocks' },
+    ],
+  },
+  'platformer-3d': {
+    models: [
+      {
+        key: 'character',
+        path: '/assets/models/kenney-platformerkit/character-oobi.glb',
+        scale: 1,
+        note: 'player character',
+      },
+      {
+        key: 'blockGrass',
+        path: '/assets/models/kenney-platformerkit/block-grass.glb',
+        scale: 1,
+        note: 'grass platform',
+      },
+      {
+        key: 'blockGrassLarge',
+        path: '/assets/models/kenney-platformerkit/block-grass-large.glb',
+        scale: 1,
+        note: 'large platform',
+      },
+      { key: 'coinGold', path: '/assets/models/kenney-platformerkit/coin-gold.glb', scale: 1, note: 'gold coin' },
+      { key: 'flag', path: '/assets/models/kenney-platformerkit/flag.glb', scale: 1, note: 'finish flag' },
+      { key: 'spring', path: '/assets/models/kenney-platformerkit/spring.glb', scale: 1, note: 'jump spring' },
+      {
+        key: 'spikeBlock',
+        path: '/assets/models/kenney-platformerkit/spike-block.glb',
+        scale: 1,
+        note: 'spike hazard',
+      },
+      { key: 'tree', path: '/assets/models/kenney-platformerkit/tree.glb', scale: 1, note: 'decoration tree' },
+      { key: 'chest', path: '/assets/models/kenney-platformerkit/chest.glb', scale: 1, note: 'treasure chest' },
+    ],
+  },
+  'pirate-3d': {
+    models: [
+      { key: 'shipLarge', path: '/assets/models/kenney-piratekit/ship-large.glb', scale: 1, note: 'large ship' },
+      {
+        key: 'shipPirate',
+        path: '/assets/models/kenney-piratekit/ship-pirate-large.glb',
+        scale: 1,
+        note: 'pirate ship',
+      },
+      { key: 'cannon', path: '/assets/models/kenney-piratekit/cannon.glb', scale: 1, note: 'cannon' },
+      {
+        key: 'cannonBall',
+        path: '/assets/models/kenney-piratekit/cannon-ball.glb',
+        scale: 1,
+        note: 'cannon ball projectile',
+      },
+      { key: 'chest', path: '/assets/models/kenney-piratekit/chest.glb', scale: 1, note: 'treasure chest' },
+      { key: 'barrel', path: '/assets/models/kenney-piratekit/barrel.glb', scale: 1, note: 'barrel' },
+      { key: 'palmBend', path: '/assets/models/kenney-piratekit/palm-bend.glb', scale: 1, note: 'palm tree' },
+      { key: 'towerWatch', path: '/assets/models/kenney-piratekit/tower-watch.glb', scale: 1, note: 'watchtower' },
+    ],
+  },
+  'common-3d': {
+    models: [
+      { key: 'treeOak', path: '/assets/models/kenney-naturekit/tree_oak.glb', scale: 1, note: 'oak tree' },
+      { key: 'treePine', path: '/assets/models/kenney-naturekit/tree_pineDefaultA.glb', scale: 1, note: 'pine tree' },
+      { key: 'treePalm', path: '/assets/models/kenney-naturekit/tree_palm.glb', scale: 1, note: 'palm tree' },
+      { key: 'rockLarge', path: '/assets/models/kenney-naturekit/rock_largeA.glb', scale: 1, note: 'large rock' },
+      { key: 'rockSmall', path: '/assets/models/kenney-naturekit/rock_smallA.glb', scale: 1, note: 'small rock' },
+      { key: 'bush', path: '/assets/models/kenney-naturekit/plant_bushLarge.glb', scale: 1, note: 'bush' },
+      { key: 'flowerRed', path: '/assets/models/kenney-naturekit/flower_redA.glb', scale: 1, note: 'red flower' },
+      { key: 'mushroom', path: '/assets/models/kenney-naturekit/mushroom_red.glb', scale: 1, note: 'red mushroom' },
+      { key: 'fence', path: '/assets/models/kenney-naturekit/fence_simple.glb', scale: 1, note: 'fence' },
+    ],
+  },
+};
+
+export const EXTRA_MODEL_PACKS = {
+  'kenney-carkit': {
+    note: 'Low-poly cars: sedan, taxi, SUV, truck, ambulance, police, race car, tractor, plus cones, barriers, road signs',
+    basePath: '/assets/models/kenney-carkit/',
+    example: "loader.load('/assets/models/kenney-carkit/sedan.glb', (gltf) => scene.add(gltf.scene));",
+  },
+  'kenney-spacekit': {
+    note: 'Sci-fi models: spaceships, rockets, turrets, astronauts, satellites, space stations, meteorites, monorail',
+    basePath: '/assets/models/kenney-spacekit/',
+    example: "loader.load('/assets/models/kenney-spacekit/craft_speederA.glb', (gltf) => scene.add(gltf.scene));",
+  },
+  'kenney-castlekit': {
+    note: 'Medieval models: castle towers, walls, gates, bridges, catapults, knight figures',
+    basePath: '/assets/models/kenney-castlekit/',
+    example: "loader.load('/assets/models/kenney-castlekit/towerSquare.glb', (gltf) => scene.add(gltf.scene));",
+  },
+  'kenney-naturekit': {
+    note: 'Nature models: oak/pine trees, rocks, flowers, bushes, mushrooms, fences, logs — great for any outdoor scene',
+    basePath: '/assets/models/kenney-naturekit/',
+    example: "loader.load('/assets/models/kenney-naturekit/tree_oak.glb', (gltf) => scene.add(gltf.scene));",
+  },
+  'kenney-platformerkit': {
+    note: '3D platformer models: characters, blocks, coins, flags, springs, spikes, moving platforms',
+    basePath: '/assets/models/kenney-platformerkit/',
+    example: "loader.load('/assets/models/kenney-platformerkit/character.glb', (gltf) => scene.add(gltf.scene));",
+  },
+  'kenney-piratekit': {
+    note: 'Pirate models: ships, cannons, treasure chests, barrels, palm trees, docks, lighthouse',
+    basePath: '/assets/models/kenney-piratekit/',
+    example: "loader.load('/assets/models/kenney-piratekit/ship_large.glb', (gltf) => scene.add(gltf.scene));",
+  },
+};
+
+/**
+ * Format 3D model assets for injection into the AI prompt.
+ */
+export function formatModelsForPrompt(genre) {
+  const genreModels = MODEL_MANIFEST[genre] || MODEL_MANIFEST[genre + '-3d'];
+  const common = MODEL_MANIFEST['common-3d'];
+
+  const lines = ['═══════════════════════════════════════════════════════════════'];
+  lines.push('3D MODEL ASSETS — MANDATORY: load GLB models with GLTFLoader');
+  lines.push('═══════════════════════════════════════════════════════════════');
+  lines.push('');
+  lines.push('GLTFLoader is pre-loaded. Use new THREE.GLTFLoader() to load models.');
+  lines.push('DO NOT build everything from BoxGeometry — use real 3D models!');
+  lines.push('ALWAYS add lights (AmbientLight + DirectionalLight) so models are visible.');
+  lines.push('');
+
+  if (genreModels && genreModels.models.length > 0) {
+    lines.push(`COPY THIS MODEL LOADING CODE for ${genre}:`);
+    lines.push('```');
+    lines.push('const loader = new THREE.GLTFLoader();');
+    for (const m of genreModels.models) {
+      lines.push(`loader.load('${m.path}', (gltf) => {`);
+      lines.push(`  const ${m.key} = gltf.scene;`);
+      lines.push(`  ${m.key}.scale.set(${m.scale}, ${m.scale}, ${m.scale});`);
+      lines.push(`  scene.add(${m.key});  // ${m.note}`);
+      lines.push(`});`);
+    }
+    lines.push('```');
+    lines.push('');
+  }
+
+  if (common && common.models.length > 0) {
+    lines.push('Common 3D models (nature props for any scene):');
+    for (const m of common.models) {
+      lines.push(`  loader.load('${m.path}', ...);  // ${m.note}`);
+    }
+    lines.push('');
+  }
+
+  lines.push('EXTRA 3D PACKS — more models available:');
+  for (const [pack, info] of Object.entries(EXTRA_MODEL_PACKS)) {
     lines.push(`  ${pack}: ${info.note}`);
     lines.push(`    Example: ${info.example}`);
   }
