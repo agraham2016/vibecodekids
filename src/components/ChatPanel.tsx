@@ -333,19 +333,25 @@ export default function ChatPanel({
 
     rec.onerror = (event: Event & { error?: string }) => {
       setIsListening(false);
+      if (speechTimeoutRef.current) {
+        clearTimeout(speechTimeoutRef.current);
+        speechTimeoutRef.current = null;
+      }
       const error = event?.error || 'unknown';
       if (error === 'not-allowed' || error === 'permission-denied') {
-        setSpeechError('Mic permission denied — check your browser settings');
-      } else if (error === 'audio-capture' || error === 'no-speech') {
-        setSpeechError("Couldn't hear you — try again closer to the mic");
+        setSpeechError("Mic blocked! Click the 🔒 icon in your browser's address bar → allow Microphone → try again");
+      } else if (error === 'audio-capture') {
+        setSpeechError('No microphone found — plug one in or check your device settings');
+      } else if (error === 'no-speech') {
+        setSpeechError("Couldn't hear you — try speaking louder or closer to the mic");
       } else if (error === 'network') {
-        setSpeechError('Speech needs an internet connection');
+        setSpeechError('Speech needs an internet connection — check your Wi-Fi');
       } else if (error === 'aborted') {
-        // User or code cancelled
+        // User or code cancelled — no error to show
       } else {
         setSpeechError('Speech not working — try typing instead');
       }
-      setTimeout(() => setSpeechError(null), 4000);
+      setTimeout(() => setSpeechError(null), 6000);
     };
 
     rec.onend = () => {
@@ -405,10 +411,10 @@ export default function ChatPanel({
               /* ignore */
             }
             setIsListening(false);
-            setSpeechError("Couldn't hear anything — make sure your mic is allowed in browser settings");
-            setTimeout(() => setSpeechError(null), 5000);
+            setSpeechError("Couldn't hear anything — make sure your mic is allowed (click 🔒 in address bar)");
+            setTimeout(() => setSpeechError(null), 6000);
           }
-        }, 8000);
+        }, 15000);
       } catch {
         setIsListening(false);
         setSpeechError('Speech not available — try typing instead');
