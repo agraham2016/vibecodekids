@@ -165,12 +165,6 @@ app.use(
   }),
 );
 
-// Return 404 for missing assets so GLTFLoader/Phaser get a clean error
-// instead of the SPA catch-all returning HTML that corrupts binary loaders.
-app.use('/assets', (_req, res) => {
-  res.status(404).json({ error: 'Asset not found' });
-});
-
 // Serve static files from public folder (short cache for HTML).
 // index: false so "/" falls through to the SPA catch-all for nonce injection.
 app.use(
@@ -198,6 +192,19 @@ if (isProduction) {
     }),
   );
 }
+
+// Return 404 for missing game assets (models, sprites, sounds) so GLTFLoader/Phaser
+// get a clean error instead of the SPA catch-all returning HTML.
+// Placed AFTER DIST_DIR static so Vite's /assets/*.css and /assets/*.js still serve.
+app.use('/assets/models', (_req, res) => {
+  res.status(404).json({ error: 'Model not found' });
+});
+app.use('/assets/sprites', (_req, res) => {
+  res.status(404).json({ error: 'Sprite not found' });
+});
+app.use('/assets/sounds', (_req, res) => {
+  res.status(404).json({ error: 'Sound not found' });
+});
 
 // Sitemap (dynamically generated)
 app.get('/sitemap.xml', async (_req, res) => {
