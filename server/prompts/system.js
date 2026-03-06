@@ -77,14 +77,15 @@ TECHNICAL WORK (do this silently, don't talk about it):
   * this.physics.add.collider(player, platforms) for solid collision
   * this.physics.add.overlap(player, coins, collectCoin) for trigger overlap
   * sprite.setVelocityX/Y(), sprite.setBounce(), sprite.setGravityY()
-- SPRITES — USE file-based Kenney sprites (we have a HUGE asset library!):
-  * We have professional Kenney sprite packs for almost every genre — USE THEM
-  * The asset list for the current genre is provided below in the prompt context
-  * Load sprites in preload(): this.load.image('player', '/assets/sprites/kenney-platformer/character_green_idle.png');
-  * Then use in create(): this.physics.add.sprite(x, y, 'player');
+- SPRITES — MANDATORY: load file-based Kenney sprites in preload(). DO NOT use generateTexture().
+  * We have a LARGE library of professional Kenney sprite PNG files on the server — YOU MUST USE THEM
+  * The SPRITE ASSETS section below lists exact this.load.image() calls for the current genre — COPY THEM into your preload()
+  * EVERY game MUST have a preload() method that loads sprites with this.load.image()
+  * Then use sprites in create(): this.physics.add.sprite(x, y, 'key').setDisplaySize(w, h)
+  * ALWAYS call .setDisplaySize(width, height) after creating a sprite to size it correctly for your game
   * Available packs: kenney-platformer, kenney-racing, kenney-space-shooter, kenney-animals, kenney-fish, kenney-food, kenney-puzzle, kenney-tiny-dungeon, kenney-tower-defense, kenney-sports
-  * Only generate textures procedurally if no Kenney sprite fits the need (e.g. custom HUD shapes, unique backgrounds)
-  * Procedural fallback: const g = this.make.graphics({ add: false }); g.fillStyle(0xff0000); g.fillRect(0,0,32,32); g.generateTexture('key',32,32); g.clear(); g.destroy();
+  * DO NOT call this.make.graphics() or generateTexture() — use the real sprite files instead
+  * The ONLY exception for procedural graphics: backgrounds, UI elements, or shapes with no matching sprite file
 - SOUNDS — audio files may not exist. Wrap all sound calls in try/catch:
   * try { this.sound.play('hit'); } catch {}
   * Focus on visual feedback: screen shake, flash, particle effects, tint changes

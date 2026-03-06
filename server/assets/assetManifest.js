@@ -499,11 +499,14 @@ export const EXTRA_PACKS = {
 export function formatAssetsFromSearch(sprites, genre, maxChars = SPRITE_ASSET_MAX_CHARS) {
   if (!sprites || sprites.length === 0) return formatAssetsForPrompt(genre);
 
-  const lines = ['SPRITE ASSETS — use file-based sprites from the Kenney packs:', ''];
-  lines.push('IMPORTANT: We have a large library of professional Kenney sprite assets. USE THEM!');
-  lines.push('Load sprites with this.load.image() in preload(), then use them in create().');
-  lines.push('Do NOT generate textures procedurally if file-based sprites are available for the genre.');
-  lines.push('Wrap any this.sound.play() calls in try/catch — audio files may not exist.');
+  const lines = ['═══════════════════════════════════════════════════════════════'];
+  lines.push('SPRITE ASSETS — MANDATORY: copy these this.load.image() lines into your preload()');
+  lines.push('═══════════════════════════════════════════════════════════════');
+  lines.push('');
+  lines.push('⚠️  DO NOT use generateTexture() or make.graphics() for sprites.');
+  lines.push('⚠️  ALWAYS load sprites from files using the exact paths below.');
+  lines.push('⚠️  ALWAYS call .setDisplaySize(w, h) on sprites after creating them.');
+  lines.push('⚠️  Wrap any this.sound.play() calls in try/catch.');
   lines.push('');
 
   const roleOrder = ['player', 'enemy', 'collectible', 'background', 'other'];
@@ -547,21 +550,31 @@ export function formatAssetsForPrompt(genre) {
   const genreAssets = ASSET_MANIFEST[genre];
   const common = ASSET_MANIFEST.common;
 
-  let lines = ['SPRITE ASSETS — use file-based Kenney sprites:'];
+  let lines = ['═══════════════════════════════════════════════════════════════'];
+  lines.push('SPRITE ASSETS — MANDATORY: copy these this.load.image() lines into your preload()');
+  lines.push('═══════════════════════════════════════════════════════════════');
   lines.push('');
-  lines.push('IMPORTANT: We have a large library of professional Kenney sprite assets. USE THEM!');
-  lines.push('Load sprites in preload() with this.load.image(), then reference them in create().');
-  lines.push('Only generate textures procedurally as a LAST RESORT for shapes not covered by these assets.');
-  lines.push('Wrap any this.sound.play() calls in try/catch — audio files may not exist.');
+  lines.push('⚠️  DO NOT use generateTexture() or make.graphics() for sprites.');
+  lines.push('⚠️  ALWAYS load sprites from files using the exact paths below.');
+  lines.push('⚠️  ALWAYS call .setDisplaySize(w, h) on sprites after creating them.');
+  lines.push('⚠️  Wrap any this.sound.play() calls in try/catch.');
   lines.push('');
 
   if (genreAssets && genreAssets.sprites.length > 0) {
-    lines.push(`Sprites for ${genre}:`);
+    lines.push(`COPY THIS INTO YOUR preload() METHOD for ${genre}:`);
+    lines.push('```');
+    lines.push('preload() {');
     for (const s of genreAssets.sprites) {
-      let desc = `  this.load.image('${s.key}', '${s.path}');  // ${s.w}x${s.h}`;
-      if (s.note) desc += ` — ${s.note}`;
+      let desc = `  this.load.image('${s.key}', '${s.path}');`;
+      if (s.note) desc += `  // ${s.note}`;
       lines.push(desc);
     }
+    lines.push('}');
+    lines.push('```');
+    lines.push('');
+    lines.push('Then in create(), use sprites like this:');
+    const first = genreAssets.sprites[0];
+    lines.push(`  this.physics.add.sprite(x, y, '${first.key}').setDisplaySize(${first.w}, ${first.h});`);
     lines.push('');
   }
 
@@ -578,12 +591,6 @@ export function formatAssetsForPrompt(genre) {
     lines.push(`  ${pack}: ${info.note}`);
     lines.push(`    Example: ${info.example}`);
   }
-  lines.push('');
-
-  lines.push('Procedural fallback (only when no sprite file fits):');
-  lines.push('  const g = this.make.graphics({ add: false });');
-  lines.push('  g.fillStyle(0xff0000); g.fillRect(0, 0, 32, 32);');
-  lines.push("  g.generateTexture('myShape', 32, 32); g.clear(); g.destroy();");
 
   return lines.join('\n');
 }
