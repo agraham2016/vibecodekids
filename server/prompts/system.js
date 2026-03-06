@@ -135,7 +135,12 @@ OUTPUT FORMAT - CRITICAL (the preview only updates when you do this):
         scene.add(fallback);
       }
     );
-  * EVERY loader.load() call MUST include the error callback with a colored-geometry fallback
+  * ONLY use model paths from the 3D MODEL ASSETS section below — NEVER invent/guess .glb paths
+  * EVERY loader.load() call MUST include the error callback with a GOOD-LOOKING fallback:
+    - Player/character fallback: CapsuleGeometry or composed boxes, bright color, add to scene at player position
+    - Buildings: BoxGeometry with varied colors and window details (small dark boxes on faces)
+    - Trees: ConeGeometry (green) on CylinderGeometry (brown) trunk
+    - Vehicles: Composed boxes with different colors for body/roof/wheels
   * ALWAYS add lights so models are visible: scene.add(new THREE.AmbientLight(0xffffff, 0.6)); scene.add(new THREE.DirectionalLight(0xffffff, 0.8));
   * Use MeshStandardMaterial or MeshPhongMaterial only for custom shapes
   * Only use BoxGeometry/SphereGeometry for floors, walls, and simple shapes with no matching model

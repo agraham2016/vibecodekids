@@ -152,10 +152,24 @@ app.use(
   '/assets',
   (req, res, next) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Headers', 'Range');
     next();
   },
-  express.static(path.join(PUBLIC_DIR, 'assets'), { maxAge: '7d' }),
+  express.static(path.join(PUBLIC_DIR, 'assets'), {
+    maxAge: '7d',
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith('.glb') || filePath.endsWith('.gltf')) {
+        res.setHeader('Content-Type', 'model/gltf-binary');
+      }
+    },
+  }),
 );
+
+// Return 404 for missing assets so GLTFLoader/Phaser get a clean error
+// instead of the SPA catch-all returning HTML that corrupts binary loaders.
+app.use('/assets', (_req, res) => {
+  res.status(404).json({ error: 'Asset not found' });
+});
 
 // Serve static files from public folder (short cache for HTML).
 // index: false so "/" falls through to the SPA catch-all for nonce injection.
@@ -552,7 +566,7 @@ app.get('/api/multiplayer/phrases', (_req, res) => {
 // ========== SPA CATCH-ALL ==========
 
 app.get('*', async (req, res, next) => {
-  if (req.path.startsWith('/api/')) return next();
+  if (req.path.startsWith('/api/') || req.path.startsWith('/assets/')) return next();
 
   const distIndex = path.join(DIST_DIR, 'index.html');
   try {

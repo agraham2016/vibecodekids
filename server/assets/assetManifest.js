@@ -803,6 +803,7 @@ export function formatModelsForPrompt(genre) {
   lines.push('═══════════════════════════════════════════════════════════════');
   lines.push('');
   lines.push('GLTFLoader is pre-loaded. Use new THREE.GLTFLoader() to load models.');
+  lines.push('ONLY use paths listed below — NEVER invent .glb paths. Wrong paths return 404.');
   lines.push('DO NOT build everything from BoxGeometry — use real 3D models!');
   lines.push('ALWAYS add lights (AmbientLight + DirectionalLight) so models are visible.');
   lines.push('');
