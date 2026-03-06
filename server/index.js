@@ -145,8 +145,17 @@ const isProduction = await fs
   .then(() => true)
   .catch(() => false);
 
-// Static assets with long cache (sprites, sounds rarely change)
-app.use('/assets', express.static(path.join(PUBLIC_DIR, 'assets'), { maxAge: '7d' }));
+// Static assets with long cache (sprites, sounds rarely change).
+// CORS: srcdoc iframes have origin "null" and Phaser loads images via XHR,
+// so we must allow cross-origin access for game assets to render.
+app.use(
+  '/assets',
+  (req, res, next) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    next();
+  },
+  express.static(path.join(PUBLIC_DIR, 'assets'), { maxAge: '7d' }),
+);
 
 // Serve static files from public folder (short cache for HTML).
 // index: false so "/" falls through to the SPA catch-all for nonce injection.
