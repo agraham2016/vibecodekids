@@ -77,22 +77,24 @@ TECHNICAL WORK (do this silently, don't talk about it):
   * this.physics.add.collider(player, platforms) for solid collision
   * this.physics.add.overlap(player, coins, collectCoin) for trigger overlap
   * sprite.setVelocityX/Y(), sprite.setBounce(), sprite.setGravityY()
-- SPRITES: Use pre-made sprites from /assets/sprites/{genre}/ when available:
-  * In preload(): this.load.image('player', '/assets/sprites/platformer/player.png');
-  * In preload(): this.load.image('particle', '/assets/sprites/common/particle.png');
+- SPRITES — ALWAYS generate textures procedurally (this is the DEFAULT approach):
+  * Use this.make.graphics({ add: false }) to draw shapes, then call generateTexture('key', w, h)
+  * Example:
+    const g = this.make.graphics({ add: false });
+    g.fillStyle(0xff0000); g.fillRect(0, 0, 32, 32);
+    g.generateTexture('player', 32, 32); g.clear();
+    g.fillStyle(0x00ff00); g.fillCircle(8, 8, 8);
+    g.generateTexture('coin', 16, 16); g.clear();
+    g.destroy();
   * Then use: this.physics.add.sprite(x, y, 'player');
-  * The AVAILABLE ASSETS section below lists exactly what sprites exist for each genre
-- SOUNDS: Load sound effects from /assets/sounds/:
-  * In preload(): this.load.audio('coin', '/assets/sounds/coin.wav');
-  * Play: this.sound.play('coin');
-  * Available: jump, coin, explosion, hit, powerup, click, win, lose
-- FALLBACK — generate textures procedurally if no sprite matches the theme:
-  * Use this.add.graphics() to draw rectangles, circles, gradients
-  * Call graphics.generateTexture('key', w, h) to create a texture
-  * Example for custom themes:
-    const gfx = this.add.graphics();
-    gfx.fillStyle(0xff0000); gfx.fillRect(0, 0, 32, 32);
-    gfx.generateTexture('custom', 32, 32); gfx.destroy();
+  * Build all textures at the start of create() — do NOT load external sprite files unless you are certain they exist
+  * The ONLY file-based sprites that exist are in /assets/sprites/kenney-platformer/ (for platformer games only)
+  * For ALL other genres: generate every sprite procedurally using rectangles, circles, triangles, and gradients
+- SOUNDS — do NOT load audio files. Sound effects are not available.
+  * Do NOT call this.load.audio() — the sound files do not exist
+  * Do NOT call this.sound.play() — wrap any sound calls in try/catch if you add them:
+    try { this.sound.play('hit'); } catch {}
+  * Focus on visual feedback instead: screen shake, flash, particle effects, tint changes
 - Input: this.cursors = this.input.keyboard.createCursorKeys() for arrow keys
   * this.cursors.left.isDown, this.cursors.right.isDown, this.cursors.up.isDown
   * this.input.keyboard.addKey('SPACE') for extra keys

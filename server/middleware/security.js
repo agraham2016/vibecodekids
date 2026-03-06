@@ -39,7 +39,7 @@ export function securityHeaders() {
       `script-src ${scriptSrc}`,
       `style-src ${styleSrc}`,
       "font-src 'self' data:",
-      "img-src 'self' data: blob:",
+      `img-src 'self' ${requestOrigin} data: blob:`,
       `connect-src 'self' ${requestOrigin} wss: ws: https://api.stripe.com`,
       "frame-src 'self' blob: https://js.stripe.com",
       "object-src 'none'",
