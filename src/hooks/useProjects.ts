@@ -81,9 +81,13 @@ export function useProjects(isLoggedIn = false, userId: string | null = null, on
   const isAutoSaving = useRef(false);
   const lastUserIdRef = useRef<string | null>(null);
 
-  // Clear projects and editor when user logs out or switches accounts
+  // Clear projects, editor, and pending auto-save when user logs out or switches accounts
   useEffect(() => {
     if (!isLoggedIn || !userId) {
+      if (autoSaveTimer.current) {
+        clearTimeout(autoSaveTimer.current);
+        autoSaveTimer.current = null;
+      }
       setUserProjects([]);
       setCode(DEFAULT_HTML);
       setCurrentProject({
@@ -94,9 +98,24 @@ export function useProjects(isLoggedIn = false, userId: string | null = null, on
         updatedAt: new Date(),
       });
       lastSavedCode.current = DEFAULT_HTML;
+      setHasUnsavedChanges(false);
       lastUserIdRef.current = null;
     } else if (userId !== lastUserIdRef.current) {
+      if (autoSaveTimer.current) {
+        clearTimeout(autoSaveTimer.current);
+        autoSaveTimer.current = null;
+      }
       setUserProjects([]);
+      setCurrentProject({
+        id: 'new',
+        name: 'My Awesome Project',
+        code: DEFAULT_HTML,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      setCode(DEFAULT_HTML);
+      lastSavedCode.current = DEFAULT_HTML;
+      setHasUnsavedChanges(false);
       lastUserIdRef.current = userId;
     }
   }, [isLoggedIn, userId]);
@@ -193,6 +212,9 @@ export function useProjects(isLoggedIn = false, userId: string | null = null, on
       const isAuto = options?.autoSave ?? false;
       if (isSaving || isAutoSaving.current) return false;
 
+      // Block auto-save if user changed since it was scheduled
+      if (isAuto && (!isLoggedIn || !getAuthToken())) return false;
+
       if (isAuto) {
         isAutoSaving.current = true;
       } else {
@@ -244,14 +266,17 @@ export function useProjects(isLoggedIn = false, userId: string | null = null, on
     [code, currentProject.id, currentProject.name, isSaving, fetchUserProjects, userId],
   );
 
-  // Helper to reset the auto-save debounce timer
+  // Helper to reset the auto-save debounce timer.
+  // Captures userId at schedule time so a stale timer can't save under a different account.
   const scheduleAutoSave = useCallback(() => {
-    if (!isLoggedIn) return;
+    if (!isLoggedIn || !userId) return;
     if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
+    const scheduledForUser = userId;
     autoSaveTimer.current = setTimeout(() => {
+      if (lastUserIdRef.current !== scheduledForUser) return;
       saveProject({ autoSave: true });
     }, AUTO_SAVE_DELAY_MS);
-  }, [isLoggedIn, saveProject]);
+  }, [isLoggedIn, userId, saveProject]);
 
   const updateCode = useCallback(
     (newCode: string) => {

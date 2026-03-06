@@ -559,8 +559,9 @@ export function detectMultiplayerIntent(message) {
 // Phaser 2D game rules (general, injected when Phaser code is detected)
 export const PHASER_GAME_RULES = `
 PHASER 2D GAME - IMPORTANT RULES:
-- ALWAYS generate textures procedurally in preload() using this.make.graphics() + generateTexture()
-- NEVER reference external image files — they won't load
+- When an AVAILABLE SPRITE & SOUND ASSETS section is provided in the reference material, USE THOSE ASSETS with this.load.image() and this.load.audio() exactly as shown. These are real files hosted on the server.
+- When NO asset list is provided, or the theme doesn't match any provided assets, generate textures procedurally in preload() using this.make.graphics() + generateTexture()
+- NEVER make up image file paths (like 'apple.png', 'banana.png') — either use the provided asset paths or generate procedurally
 - ALWAYS use arcade physics for movement and collision — never write custom collision math
 - Use this.physics.add.collider() for solid walls/platforms, this.physics.add.overlap() for triggers
 - Clean up off-screen objects to prevent memory leaks: check bounds and call destroy()
