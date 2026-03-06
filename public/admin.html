@@ -1347,11 +1347,11 @@
           body: JSON.stringify({ adminKey: key })
         });
         const data = await response.json().catch(() => ({}));
-        if (response.ok && data.ok) {
+        if (response.ok && data.needs2FASetup) {
           adminKey = key;
           sessionStorage.setItem('adminKey', adminKey);
           loginError.classList.add('hidden');
-          showDashboard();
+          showSetup2FAModal();
         } else if (response.ok && data.needs2FA) {
           adminKey = key;
           sessionStorage.setItem('adminKey', adminKey);
@@ -1362,6 +1362,11 @@
           const emailHint = document.getElementById('login2FAEmailHint');
           if (emailHint) emailHint.textContent = data.email ? `Check ${data.email} for your code.` : 'Check your email for your code.';
           document.getElementById('code2FA').focus();
+        } else if (response.ok && data.ok) {
+          adminKey = key;
+          sessionStorage.setItem('adminKey', adminKey);
+          loginError.classList.add('hidden');
+          showDashboard();
         } else {
           loginError.textContent = data.error || 'Invalid admin key. Access denied.';
           loginError.classList.remove('hidden');
