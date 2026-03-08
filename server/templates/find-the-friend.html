@@ -14,64 +14,145 @@
   <div id="game-container"></div>
   <div class="hint">Find the hidden friend! Wrong clicks cost time • Find before time runs out</div>
   <script>
-    const W = 800, H = 500;
-    const GAME_TIME = 45000;
-    const WRONG_PENALTY = 3000;
-    const FRIEND_SIZE = 24;
+    var W = 800, H = 500;
+    var GAME_TIME = 45000;
+    var WRONG_PENALTY = 3000;
+    var CRITTER_SIZE = 24;
+
+    var CRITTER_DEFS = [
+      { key: 'rabbit', bodyColor: 0xffffff, earColor: 0xfab1a0, eyeColor: 0x2d3436, nose: 0xfab1a0 },
+      { key: 'bear', bodyColor: 0x795548, earColor: 0x5d4037, eyeColor: 0x2d3436, nose: 0x2d3436 },
+      { key: 'elephant', bodyColor: 0x95a5a6, earColor: 0x7f8c8d, eyeColor: 0x2d3436, nose: 0x636e72 },
+      { key: 'penguin', bodyColor: 0x2d3436, earColor: 0xffffff, eyeColor: 0x2d3436, nose: 0xf39c12 },
+      { key: 'owl', bodyColor: 0x8e6c4f, earColor: 0x6d5139, eyeColor: 0xf1c40f, nose: 0xf39c12 },
+      { key: 'monkey', bodyColor: 0x8d6e63, earColor: 0xfab1a0, eyeColor: 0x2d3436, nose: 0x5d4037 },
+      { key: 'panda', bodyColor: 0xffffff, earColor: 0x2d3436, eyeColor: 0x2d3436, nose: 0x2d3436 },
+      { key: 'dog', bodyColor: 0xd4a76a, earColor: 0xa0784c, eyeColor: 0x2d3436, nose: 0x2d3436 }
+    ];
 
     class FindTheFriendScene extends Phaser.Scene {
       preload() {
-        this.load.image('friend', '/assets/sprites/kenney-animals/Round/rabbit.png');
-        this.load.image('decoy1', '/assets/sprites/kenney-animals/Round/bear.png');
-        this.load.image('decoy2', '/assets/sprites/kenney-animals/Round/elephant.png');
-        this.load.image('decoy3', '/assets/sprites/kenney-animals/Round/penguin.png');
-        this.load.image('decoy4', '/assets/sprites/kenney-animals/Round/owl.png');
-        this.load.image('decoy5', '/assets/sprites/kenney-animals/Round/monkey.png');
-        this.load.image('decoy6', '/assets/sprites/kenney-animals/Round/panda.png');
-        this.load.image('decoy7', '/assets/sprites/kenney-animals/Round/dog.png');
+        var g = this.make.graphics({ add: false });
+        var sz = 48;
+        for (var i = 0; i < CRITTER_DEFS.length; i++) {
+          var c = CRITTER_DEFS[i];
+          g.clear();
+          // Body (round)
+          g.fillStyle(c.bodyColor); g.fillCircle(sz / 2, sz / 2, 18);
+          // Ears
+          g.fillStyle(c.earColor);
+          g.fillCircle(sz / 2 - 12, sz / 2 - 16, 7);
+          g.fillCircle(sz / 2 + 12, sz / 2 - 16, 7);
+          // Inner ears
+          g.fillStyle(c.bodyColor === 0xffffff && c.key !== 'panda' ? c.earColor : 0xfab1a0, 0.5);
+          g.fillCircle(sz / 2 - 12, sz / 2 - 16, 4);
+          g.fillCircle(sz / 2 + 12, sz / 2 - 16, 4);
+          // Eyes
+          g.fillStyle(0xffffff); g.fillCircle(sz / 2 - 6, sz / 2 - 3, 5); g.fillCircle(sz / 2 + 6, sz / 2 - 3, 5);
+          g.fillStyle(c.eyeColor); g.fillCircle(sz / 2 - 5, sz / 2 - 3, 3); g.fillCircle(sz / 2 + 5, sz / 2 - 3, 3);
+          g.fillStyle(0xffffff); g.fillCircle(sz / 2 - 4, sz / 2 - 4, 1); g.fillCircle(sz / 2 + 6, sz / 2 - 4, 1);
+          // Nose
+          g.fillStyle(c.nose); g.fillCircle(sz / 2, sz / 2 + 4, 3);
+          // Mouth
+          g.lineStyle(1, 0x636e72);
+          g.lineBetween(sz / 2 - 3, sz / 2 + 8, sz / 2, sz / 2 + 10);
+          g.lineBetween(sz / 2, sz / 2 + 10, sz / 2 + 3, sz / 2 + 8);
+          g.generateTexture(c.key, sz, sz);
+        }
+        g.destroy();
       }
 
       create() {
-
-        const bg = this.add.graphics();
+        var bg = this.add.graphics();
+        // Sky
         bg.fillStyle(0x81ecec); bg.fillRect(0, 0, W, H);
-        bg.fillStyle(0x55efc4); bg.fillEllipse(W / 2, H - 30, W * 0.8, 80);
-        bg.fillStyle(0x74b9ff, 0.5); bg.fillCircle(150, 120, 60); bg.fillCircle(650, 180, 50); bg.fillCircle(400, 80, 40);
-        bg.fillStyle(0xfdcb6e, 0.4); bg.fillRect(100, 200, 120, 80); bg.fillRect(580, 280, 100, 70);
+        // Ground
+        bg.fillStyle(0x55efc4); bg.fillEllipse(W / 2, H - 30, W * 0.9, 100);
+        // Bushes
+        bg.fillStyle(0x2ecc71, 0.6);
+        for (var i = 0; i < 8; i++) {
+          bg.fillCircle(Phaser.Math.Between(30, W - 30), Phaser.Math.Between(H - 90, H - 40), Phaser.Math.Between(20, 45));
+        }
+        // Clouds
+        bg.fillStyle(0xffffff, 0.5);
+        bg.fillCircle(150, 70, 40); bg.fillCircle(180, 60, 35); bg.fillCircle(210, 70, 30);
+        bg.fillCircle(550, 90, 35); bg.fillCircle(580, 80, 30); bg.fillCircle(600, 90, 25);
+        // Trees
+        bg.fillStyle(0x6d5139); bg.fillRect(80, 180, 16, 60); bg.fillRect(680, 200, 16, 50);
+        bg.fillStyle(0x27ae60); bg.fillCircle(88, 170, 35); bg.fillCircle(688, 190, 30);
+        // Houses
+        bg.fillStyle(0xfdcb6e, 0.5); bg.fillRect(300, 220, 80, 60);
+        bg.fillStyle(0xe17055, 0.5); bg.fillTriangle(290, 220, 340, 185, 390, 220);
 
         this.startTime = Date.now();
         this.timeLeft = GAME_TIME;
         this.gameOver = false;
-        this.decoys = [];
-        const decoyKeys = ['decoy1', 'decoy2', 'decoy3', 'decoy4', 'decoy5', 'decoy6', 'decoy7'];
+        this.found_count = 0;
+        this.level = 1;
 
-        const friendX = Phaser.Math.Between(60, W - 60);
-        const friendY = Phaser.Math.Between(60, H - 80);
-        this.friend = this.add.image(friendX, friendY, 'friend').setDisplaySize(FRIEND_SIZE * 2, FRIEND_SIZE * 2).setInteractive({ useHandCursor: true });
-        this.friend.on('pointerdown', () => this.found());
-
-        for (let i = 0; i < 25; i++) {
-          let x = Phaser.Math.Between(40, W - 40);
-          let y = Phaser.Math.Between(40, H - 60);
-          while (Phaser.Math.Distance.Between(x, y, friendX, friendY) < 80) {
-            x = Phaser.Math.Between(40, W - 40);
-            y = Phaser.Math.Between(40, H - 60);
-          }
-          const key = Phaser.Utils.Array.GetRandom(decoyKeys);
-          const decoy = this.add.image(x, y, key).setDisplaySize(FRIEND_SIZE * 2, FRIEND_SIZE * 2).setInteractive({ useHandCursor: true });
-          decoy.on('pointerdown', () => this.wrong());
-          this.decoys.push(decoy);
-        }
-
+        this.hintText = this.add.text(12, 12, '', { fontSize: '18px', fill: '#6c5ce7', stroke: '#fff', strokeThickness: 3, fontStyle: 'bold' }).setDepth(10);
         this.timeText = this.add.text(W - 12, 12, Math.ceil(GAME_TIME / 1000) + 's', { fontSize: '22px', fill: '#2d3436', stroke: '#fff', strokeThickness: 3 }).setOrigin(1, 0).setDepth(10);
+        this.levelText = this.add.text(W / 2, 12, 'Level 1', { fontSize: '20px', fill: '#6c5ce7', stroke: '#fff', strokeThickness: 3 }).setOrigin(0.5, 0).setDepth(10);
         this.msgText = this.add.text(W / 2, H / 2, '', { fontSize: '26px', fill: '#2d3436', stroke: '#fff', strokeThickness: 4, align: 'center' }).setOrigin(0.5).setDepth(20).setVisible(false);
+
+        this.critterGroup = this.add.group();
+        this.placeLevel();
       }
 
-      found() {
+      placeLevel() {
+        this.critterGroup.clear(true, true);
+
+        var friendDef = CRITTER_DEFS[Phaser.Math.Between(0, CRITTER_DEFS.length - 1)];
+        this.hintText.setText('Find the ' + friendDef.key + '!');
+
+        var decoyDefs = CRITTER_DEFS.filter(function(d) { return d.key !== friendDef.key; });
+        var numDecoys = Math.min(15 + this.level * 4, 35);
+        var allSpots = [];
+
+        var friendX = Phaser.Math.Between(60, W - 60);
+        var friendY = Phaser.Math.Between(80, H - 80);
+        allSpots.push({ x: friendX, y: friendY });
+
+        // Place decoys first so friend can be on top or behind
+        for (var i = 0; i < numDecoys; i++) {
+          var x, y, tooClose;
+          var attempts = 0;
+          do {
+            x = Phaser.Math.Between(40, W - 40);
+            y = Phaser.Math.Between(60, H - 60);
+            tooClose = false;
+            for (var j = 0; j < allSpots.length; j++) {
+              if (Phaser.Math.Distance.Between(x, y, allSpots[j].x, allSpots[j].y) < 36) { tooClose = true; break; }
+            }
+            attempts++;
+          } while (tooClose && attempts < 30);
+          allSpots.push({ x: x, y: y });
+          var dKey = decoyDefs[Phaser.Math.Between(0, decoyDefs.length - 1)].key;
+          var decoy = this.add.image(x, y, dKey).setDisplaySize(CRITTER_SIZE * 2, CRITTER_SIZE * 2).setInteractive({ useHandCursor: true });
+          decoy.on('pointerdown', this.wrong.bind(this));
+          this.critterGroup.add(decoy);
+        }
+
+        var friend = this.add.image(friendX, friendY, friendDef.key).setDisplaySize(CRITTER_SIZE * 2, CRITTER_SIZE * 2).setInteractive({ useHandCursor: true });
+        friend.on('pointerdown', this.foundFriend.bind(this));
+        this.critterGroup.add(friend);
+        this.levelText.setText('Level ' + this.level);
+      }
+
+      foundFriend() {
         if (this.gameOver) return;
-        this.gameOver = true;
-        this.msgText.setText('FOUND!\nYour friend was hiding!').setTint(0x55efc4).setVisible(true);
-        this.input.once('pointerdown', () => this.scene.restart());
+        this.found_count++;
+        this.level++;
+        this.cameras.main.flash(200, 0, 255, 100);
+
+        if (this.level > 5) {
+          this.gameOver = true;
+          this.msgText.setText('YOU WIN! 🎉\nFound all 5 friends!\nTap to play again').setTint(0x55efc4).setVisible(true);
+          this.input.once('pointerdown', function() { this.scene.restart(); }.bind(this));
+        } else {
+          this.timeLeft += 5000;
+          this.placeLevel();
+        }
       }
 
       wrong() {
@@ -83,17 +164,24 @@
       update(_, delta) {
         if (this.gameOver) return;
         this.timeLeft -= delta;
-        const sec = Math.max(0, Math.ceil(this.timeLeft / 1000));
+        var sec = Math.max(0, Math.ceil(this.timeLeft / 1000));
         this.timeText.setText(sec + 's');
+        if (sec <= 10) this.timeText.setFill('#e74c3c');
+        else this.timeText.setFill('#2d3436');
         if (this.timeLeft <= 0) {
           this.gameOver = true;
-          this.msgText.setText('TIME\'S UP!\nYour friend is still hiding.\nTap to try again').setVisible(true);
-          this.input.once('pointerdown', () => this.scene.restart());
+          this.msgText.setText("TIME'S UP! ⏰\nFound " + this.found_count + " friends\nTap to try again").setVisible(true);
+          this.input.once('pointerdown', function() { this.scene.restart(); }.bind(this));
         }
       }
     }
 
-    new Phaser.Game({ type: Phaser.AUTO, width: W, height: H, parent: 'game-container', backgroundColor: '#81ecec', scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH }, scene: FindTheFriendScene });
+    new Phaser.Game({
+      type: Phaser.AUTO, width: W, height: H,
+      parent: 'game-container', backgroundColor: '#81ecec',
+      scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
+      scene: FindTheFriendScene
+    });
   </script>
 </body>
 </html>

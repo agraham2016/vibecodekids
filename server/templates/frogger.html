@@ -8,7 +8,8 @@
       background: linear-gradient(135deg, #1a472a 0%, #2d6a4f 50%, #1a472a 100%);
       min-height: 100vh; display: flex; align-items: center; justify-content: center;
       font-family: 'Segoe UI', sans-serif;
-     touch-action: none; }
+      touch-action: none;
+    }
     #game { border-radius: 12px; overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.86.0/dist/phaser.min.js" crossorigin="anonymous"></script>
@@ -16,122 +17,367 @@
 <body>
 <div id="game"></div>
 <script>
-const COLS = 16, ROWS = 10, CELL = 50;
-const W = COLS * CELL, H = ROWS * CELL;
+var COLS = 16, CELL = 50;
+var W = COLS * CELL, H = 500;
+var SCROLL_SPEED = 18;
+var WORLD_ROWS = 200;
+var WORLD_H = WORLD_ROWS * CELL;
 
 class Frog extends Phaser.Scene {
   constructor() { super('Frog'); }
 
   preload() {
-    this.load.image('frog', '/assets/sprites/kenney-animals/Round/frog.png');
-    this.load.image('car1', '/assets/sprites/kenney-racing/Cars/car_blue_small_1.png');
-    this.load.image('car2', '/assets/sprites/kenney-racing/Cars/car_red_small_1.png');
-    this.load.image('truck', '/assets/sprites/kenney-racing/Cars/car_yellow_small_3.png');
+    var g = this.make.graphics({ add: false });
+
+    // Frog (green body, big eyes)
+    g.fillStyle(0x27ae60); g.fillCircle(20, 22, 16);
+    g.fillStyle(0x2ecc71); g.fillCircle(20, 20, 14);
+    g.fillStyle(0xffffff); g.fillCircle(14, 14, 5); g.fillCircle(26, 14, 5);
+    g.fillStyle(0x2d3436); g.fillCircle(14, 14, 3); g.fillCircle(26, 14, 3);
+    g.fillStyle(0x27ae60); g.fillEllipse(10, 30, 10, 6); g.fillEllipse(30, 30, 10, 6);
+    g.generateTexture('frog', 40, 40); g.clear();
+
+    // Cars (3 color variants)
+    var carColors = [0x3498db, 0xe74c3c, 0xf39c12];
+    for (var ci = 0; ci < carColors.length; ci++) {
+      g.fillStyle(carColors[ci]); g.fillRoundedRect(2, 6, 44, 24, 6);
+      g.fillStyle(0x74b9ff, 0.4); g.fillRoundedRect(30, 10, 12, 8, 3);
+      g.fillStyle(0x2d3436); g.fillCircle(12, 32, 5); g.fillCircle(36, 32, 5);
+      g.fillStyle(0x636e72); g.fillCircle(12, 32, 3); g.fillCircle(36, 32, 3);
+      g.generateTexture('car' + ci, 48, 38); g.clear();
+    }
+
+    // Truck (wider)
+    g.fillStyle(0xfdcb6e); g.fillRoundedRect(2, 4, 64, 28, 6);
+    g.fillStyle(0xf39c12); g.fillRoundedRect(4, 8, 24, 20, 4);
+    g.fillStyle(0x2d3436); g.fillCircle(16, 34, 5); g.fillCircle(52, 34, 5);
+    g.generateTexture('truck', 68, 40); g.clear();
+
+    // Log (brown)
+    g.fillStyle(0x8d6e63); g.fillRoundedRect(0, 4, 80, 28, 10);
+    g.fillStyle(0x6d4c41); g.fillCircle(6, 18, 10); g.fillCircle(74, 18, 10);
+    g.lineStyle(1, 0x5d4037, 0.4);
+    g.lineBetween(20, 10, 20, 26); g.lineBetween(40, 10, 40, 26); g.lineBetween(60, 10, 60, 26);
+    g.generateTexture('log', 80, 36); g.clear();
+
+    g.destroy();
   }
 
   create() {
+    this.score = 0;
+    this.bestRow = 0;
+    this.lives = 3;
+    this.gameOver = false;
+    this.moving = false;
+    this.scrolling = true;
 
-    this.score = 0; this.lives = 3; this.round = 1; this.moving = false;
+    this.physics.world.setBounds(0, 0, W, WORLD_H);
 
-    this.add.rectangle(W / 2, H / 2, W, H, 0x555555);
-    [0, 4, ROWS - 1].forEach(r => this.add.rectangle(W / 2, r * CELL + CELL / 2, W, CELL, 0x44aa44));
-    for (let r = 0; r < ROWS; r++) {
-      if (r === 0 || r === 4 || r === ROWS - 1) continue;
-      for (let x = 0; x < W; x += CELL * 2) {
-        this.add.rectangle(x + 10, r * CELL + CELL / 2, 6, 12, 0xffffff).setAlpha(0.3);
-      }
-    }
+    // Generate lane map: 'grass', 'road', 'water'
+    this.lanes = [];
+    this.laneObjects = [];
+    this.generateLanes();
 
-    this.player = this.physics.add.sprite(W / 2, (ROWS - 1) * CELL + CELL / 2, 'frog');
-    this.player.setDisplaySize(38, 38).setCollideWorldBounds(true).setDepth(10);
+    // Draw all lanes
+    this.laneBg = this.add.graphics().setDepth(0);
+    this.drawVisibleLanes();
 
+    // Player starts near bottom of visible area
+    var startRow = WORLD_ROWS - 2;
+    this.player = this.physics.add.sprite(W / 2, startRow * CELL + CELL / 2, 'frog');
+    this.player.setDisplaySize(38, 38).setDepth(10);
+    this.player.body.setAllowGravity(false);
+    this.player.body.setSize(30, 30);
+    this.playerRow = startRow;
+
+    // Obstacles and rideable groups
     this.obstacles = this.physics.add.group();
-    this.laneConfig = [
-      { row: 1, speed: 100, dir: 1, tex: 'car1', count: 3 },
-      { row: 2, speed: 130, dir: -1, tex: 'car2', count: 3 },
-      { row: 3, speed: 90, dir: 1, tex: 'truck', count: 2 },
-      { row: 5, speed: 140, dir: -1, tex: 'car1', count: 3 },
-      { row: 6, speed: 110, dir: 1, tex: 'car2', count: 4 },
-      { row: 7, speed: 160, dir: -1, tex: 'truck', count: 2 },
-      { row: 8, speed: 120, dir: 1, tex: 'car1', count: 3 },
-    ];
-    this.spawnObstacles();
+    this.rideables = this.physics.add.group();
+    this.spawnVisibleLaneObjects();
+
     this.physics.add.overlap(this.player, this.obstacles, this.hitCar, null, this);
 
+    // Camera setup — start looking at the bottom
+    this.cameras.main.setBounds(0, 0, W, WORLD_H);
+    this.cameras.main.scrollY = WORLD_H - H;
+    this.camTarget = this.cameras.main.scrollY;
+
+    // Input
     this.cursors = this.input.keyboard.createCursorKeys();
-    this.scoreText = this.add.text(10, 6, 'Score: 0', { fontSize: '18px', fill: '#fff', stroke: '#000', strokeThickness: 3 }).setDepth(20);
-    this.livesText = this.add.text(W - 10, 6, 'Lives: 3', { fontSize: '18px', fill: '#ff6666', stroke: '#000', strokeThickness: 3 }).setOrigin(1, 0).setDepth(20);
-    this.gameOver = false;
+
+    // HUD (fixed to camera)
+    this.scoreText = this.add.text(10, 6, 'Score: 0', { fontSize: '18px', fill: '#fff', stroke: '#000', strokeThickness: 3 }).setDepth(20).setScrollFactor(0);
+    this.livesText = this.add.text(W - 10, 6, '❤️❤️❤️', { fontSize: '18px' }).setOrigin(1, 0).setDepth(20).setScrollFactor(0);
+    this.msgText = this.add.text(W / 2, H / 2, '', { fontSize: '26px', fill: '#fff', stroke: '#000', strokeThickness: 4, align: 'center' }).setOrigin(0.5).setDepth(30).setScrollFactor(0).setVisible(false);
+
+    // Touch D-pad
+    this.touchDir = null;
+    var btnSize = 52;
+    var padX = W / 2, padY = H - 70;
+    var dirs = [
+      { dir: 'up', x: padX, y: padY - 50, label: '\u25B2' },
+      { dir: 'down', x: padX, y: padY + 10, label: '\u25BC' },
+      { dir: 'left', x: padX - 55, y: padY - 20, label: '\u25C0' },
+      { dir: 'right', x: padX + 55, y: padY - 20, label: '\u25B6' }
+    ];
+    for (var di = 0; di < dirs.length; di++) {
+      var d = dirs[di];
+      var btn = this.add.rectangle(d.x, d.y, btnSize, btnSize, 0xffffff, 0.2)
+        .setScrollFactor(0).setDepth(100).setInteractive();
+      this.add.text(d.x, d.y, d.label, { fontSize: '22px', fill: '#fff' })
+        .setOrigin(0.5).setScrollFactor(0).setDepth(101);
+      btn.dir = d.dir;
+      btn.on('pointerdown', function() { this.scene.touchDir = this.dir; });
+      btn.on('pointerup', function() { this.scene.touchDir = null; });
+      btn.on('pointerout', function() { this.scene.touchDir = null; });
+    }
+
+    this.lastScrollY = this.cameras.main.scrollY;
   }
 
-  spawnObstacles() {
-    this.obstacles.clear(true, true);
-    this.laneConfig.forEach(lane => {
-      const spacing = W / lane.count;
-      for (let i = 0; i < lane.count; i++) {
-        const ob = this.obstacles.create(spacing * i + spacing / 2, lane.row * CELL + CELL / 2, lane.tex);
-        ob.setDisplaySize(lane.tex === 'truck' ? 60 : 40, 30);
-        ob.setVelocityX(lane.speed * lane.dir * (1 + (this.round - 1) * 0.15));
-        ob.body.setAllowGravity(false);
-        ob.laneDir = lane.dir;
+  generateLanes() {
+    // Bottom 3 rows are always grass (starting area)
+    for (var r = WORLD_ROWS - 1; r >= WORLD_ROWS - 3; r--) {
+      this.lanes[r] = { type: 'grass', speed: 0, dir: 0, variant: 0 };
+    }
+    // Generate the rest upward
+    var consecutive = 0;
+    var lastType = 'grass';
+    for (var r = WORLD_ROWS - 4; r >= 0; r--) {
+      consecutive++;
+      var type;
+      if (lastType === 'grass' && consecutive >= 2) {
+        type = Math.random() < 0.6 ? 'road' : 'water';
+        consecutive = 0;
+      } else if (lastType === 'road' && consecutive >= 4) {
+        type = Math.random() < 0.7 ? 'grass' : 'water';
+        consecutive = 0;
+      } else if (lastType === 'water' && consecutive >= 3) {
+        type = Math.random() < 0.7 ? 'grass' : 'road';
+        consecutive = 0;
+      } else {
+        type = lastType;
       }
-    });
+      var dir = Math.random() < 0.5 ? 1 : -1;
+      var difficulty = Math.max(0, (WORLD_ROWS - r) / WORLD_ROWS);
+      var speed;
+      if (type === 'road') {
+        speed = 60 + difficulty * 120 + Phaser.Math.Between(-20, 20);
+      } else if (type === 'water') {
+        speed = 40 + difficulty * 60 + Phaser.Math.Between(-10, 10);
+      } else {
+        speed = 0;
+      }
+      this.lanes[r] = { type: type, speed: speed, dir: dir, variant: Phaser.Math.Between(0, 2) };
+      lastType = type;
+    }
+  }
+
+  drawVisibleLanes() {
+    var camTop = this.cameras.main.scrollY;
+    var camBot = camTop + H;
+    var startRow = Math.max(0, Math.floor(camTop / CELL) - 2);
+    var endRow = Math.min(WORLD_ROWS - 1, Math.ceil(camBot / CELL) + 2);
+
+    this.laneBg.clear();
+    for (var r = startRow; r <= endRow; r++) {
+      var lane = this.lanes[r];
+      if (!lane) continue;
+      var y = r * CELL;
+      var color;
+      if (lane.type === 'grass') color = 0x44aa44;
+      else if (lane.type === 'road') color = 0x555555;
+      else color = 0x2980b9;
+      this.laneBg.fillStyle(color); this.laneBg.fillRect(0, y, W, CELL);
+
+      if (lane.type === 'road') {
+        for (var x = 0; x < W; x += CELL * 2) {
+          this.laneBg.fillStyle(0xffffff, 0.25);
+          this.laneBg.fillRect(x + 10, y + CELL / 2 - 2, 16, 4);
+        }
+      } else if (lane.type === 'water') {
+        for (var x = 0; x < W; x += 30) {
+          this.laneBg.fillStyle(0x3498db, 0.3);
+          this.laneBg.fillEllipse(x + 15, y + CELL / 2, 20, 6);
+        }
+      } else {
+        if (r % 5 === 0) {
+          this.laneBg.fillStyle(0x2ecc71, 0.5);
+          this.laneBg.fillCircle(Phaser.Math.Between(30, W - 30), y + CELL / 2, 8);
+        }
+      }
+    }
+  }
+
+  spawnVisibleLaneObjects() {
+    var camTop = this.cameras.main.scrollY;
+    var camBot = camTop + H;
+    var startRow = Math.max(0, Math.floor(camTop / CELL) - 3);
+    var endRow = Math.min(WORLD_ROWS - 1, Math.ceil(camBot / CELL) + 3);
+
+    for (var r = startRow; r <= endRow; r++) {
+      if (this.laneObjects[r]) continue;
+      var lane = this.lanes[r];
+      if (!lane || lane.type === 'grass') continue;
+
+      this.laneObjects[r] = [];
+      var count = lane.type === 'road' ? Phaser.Math.Between(2, 4) : Phaser.Math.Between(2, 3);
+      var spacing = W / count;
+
+      for (var i = 0; i < count; i++) {
+        var x = spacing * i + Phaser.Math.Between(10, spacing - 10);
+        var y = r * CELL + CELL / 2;
+        var obj;
+
+        if (lane.type === 'road') {
+          var tex = lane.variant === 2 ? 'truck' : 'car' + lane.variant;
+          obj = this.obstacles.create(x, y, tex);
+          obj.setDisplaySize(tex === 'truck' ? 60 : 42, 30);
+          obj.setVelocityX(lane.speed * lane.dir);
+          obj.body.setAllowGravity(false);
+        } else {
+          obj = this.rideables.create(x, y, 'log');
+          obj.setDisplaySize(80, 30);
+          obj.setVelocityX(lane.speed * lane.dir);
+          obj.body.setAllowGravity(false);
+          obj.body.setImmovable(true);
+        }
+        obj.laneDir = lane.dir;
+        obj.laneRow = r;
+        this.laneObjects[r].push(obj);
+      }
+    }
+  }
+
+  cleanupDistantObjects() {
+    var camTop = this.cameras.main.scrollY;
+    var camBot = camTop + H;
+    for (var r = 0; r < WORLD_ROWS; r++) {
+      if (!this.laneObjects[r]) continue;
+      var y = r * CELL;
+      if (y > camBot + CELL * 8 || y < camTop - CELL * 8) {
+        for (var i = 0; i < this.laneObjects[r].length; i++) {
+          this.laneObjects[r][i].destroy();
+        }
+        delete this.laneObjects[r];
+      }
+    }
   }
 
   hitCar() {
-    if (this.gameOver) return;
-    try { this.sound.play('hitSfx'); } catch {}
+    if (this.gameOver || this.player.alpha < 1) return;
     this.lives--;
-    this.livesText.setText('Lives: ' + this.lives);
+    this.livesText.setText('❤️'.repeat(Math.max(0, this.lives)));
     if (this.lives <= 0) {
-      this.gameOver = true;
-      this.physics.pause();
-      this.add.text(W / 2, H / 2, 'GAME OVER\nScore: ' + this.score + '\nPress SPACE', { fontSize: '28px', fill: '#fff', stroke: '#000', strokeThickness: 4, align: 'center' }).setOrigin(0.5).setDepth(30);
-      this.input.keyboard.once('keydown-SPACE', () => this.scene.restart());
+      this.endGame();
     } else {
-      this.resetPlayer();
+      this.cameras.main.shake(100, 0.01);
+      this.player.setAlpha(0.4);
+      this.time.delayedCall(600, function() { this.player.setAlpha(1); }.bind(this));
     }
   }
 
-  resetPlayer() {
-    this.player.setPosition(W / 2, (ROWS - 1) * CELL + CELL / 2);
-    this.player.setAlpha(0.5);
-    this.time.delayedCall(500, () => this.player.setAlpha(1));
-    this.moving = false;
+  endGame() {
+    this.gameOver = true;
+    this.scrolling = false;
+    this.physics.pause();
+    this.msgText.setText('GAME OVER\nScore: ' + this.score + '\nTap or SPACE to retry').setVisible(true);
+    this.input.keyboard.once('keydown-SPACE', function() { this.scene.restart(); }.bind(this));
+    this.input.once('pointerdown', function() { this.scene.restart(); }.bind(this));
   }
 
-  update() {
-    if (this.gameOver || this.moving) return;
-    let dx = 0, dy = 0;
-    if (Phaser.Input.Keyboard.JustDown(this.cursors.left)) dx = -CELL;
-    else if (Phaser.Input.Keyboard.JustDown(this.cursors.right)) dx = CELL;
-    else if (Phaser.Input.Keyboard.JustDown(this.cursors.up)) dy = -CELL;
-    else if (Phaser.Input.Keyboard.JustDown(this.cursors.down)) dy = CELL;
+  update(_, delta) {
+    if (this.gameOver) return;
 
-    if (dx !== 0 || dy !== 0) {
-      try { this.sound.play('jumpSfx'); } catch {}
-      const nx = Phaser.Math.Clamp(this.player.x + dx, CELL / 2, W - CELL / 2);
-      const ny = Phaser.Math.Clamp(this.player.y + dy, CELL / 2, H - CELL / 2);
-      this.moving = true;
-      this.tweens.add({
-        targets: this.player, x: nx, y: ny, duration: 120, ease: 'Quad.easeOut',
-        onComplete: () => {
-          this.moving = false;
-          if (this.player.y <= CELL / 2 + 5) {
-            this.score += 100 * this.round;
-            this.scoreText.setText('Score: ' + this.score);
-            this.round++;
-            this.resetPlayer();
-            this.spawnObstacles();
-          }
+    // Auto-scroll camera upward
+    if (this.scrolling) {
+      this.camTarget -= SCROLL_SPEED * (delta / 1000);
+      this.camTarget = Math.max(0, this.camTarget);
+      this.cameras.main.scrollY = this.camTarget;
+    }
+
+    // Check if player fell off the bottom
+    var camBot = this.cameras.main.scrollY + H;
+    if (this.player.y > camBot + CELL) {
+      this.lives--;
+      this.livesText.setText('❤️'.repeat(Math.max(0, this.lives)));
+      if (this.lives <= 0) { this.endGame(); return; }
+      // Respawn player near bottom of camera view
+      this.player.setPosition(W / 2, this.cameras.main.scrollY + H - CELL * 2);
+      this.player.setAlpha(0.4);
+      this.moving = false;
+      this.time.delayedCall(600, function() { this.player.setAlpha(1); }.bind(this));
+    }
+
+    // Player in water check
+    var pRow = Math.round((this.player.y - CELL / 2) / CELL);
+    var lane = this.lanes[pRow];
+    if (lane && lane.type === 'water' && !this.moving) {
+      var onLog = false;
+      this.rideables.children.each(function(log) {
+        if (log.laneRow === pRow && Math.abs(log.x - this.player.x) < 45) {
+          this.player.x += log.body.velocity.x * (delta / 1000);
+          onLog = true;
         }
-      });
+      }.bind(this));
+      if (!onLog && this.player.alpha >= 1) {
+        this.lives--;
+        this.livesText.setText('❤️'.repeat(Math.max(0, this.lives)));
+        if (this.lives <= 0) { this.endGame(); return; }
+        this.player.setPosition(W / 2, this.cameras.main.scrollY + H - CELL * 2);
+        this.player.setAlpha(0.4);
+        this.time.delayedCall(600, function() { this.player.setAlpha(1); }.bind(this));
+      }
     }
 
-    this.obstacles.children.each(ob => {
-      if (ob.laneDir > 0 && ob.x > W + 50) ob.x = -50;
-      else if (ob.laneDir < 0 && ob.x < -50) ob.x = W + 50;
+    // Movement input
+    if (!this.moving) {
+      var dx = 0, dy = 0;
+      if (Phaser.Input.Keyboard.JustDown(this.cursors.left) || this.touchDir === 'left') dx = -CELL;
+      else if (Phaser.Input.Keyboard.JustDown(this.cursors.right) || this.touchDir === 'right') dx = CELL;
+      else if (Phaser.Input.Keyboard.JustDown(this.cursors.up) || this.touchDir === 'up') dy = -CELL;
+      else if (Phaser.Input.Keyboard.JustDown(this.cursors.down) || this.touchDir === 'down') dy = CELL;
+
+      if (this.touchDir) this.touchDir = null;
+
+      if (dx !== 0 || dy !== 0) {
+        var nx = Phaser.Math.Clamp(this.player.x + dx, CELL / 2, W - CELL / 2);
+        var ny = this.player.y + dy;
+        this.moving = true;
+        this.tweens.add({
+          targets: this.player, x: nx, y: ny, duration: 100, ease: 'Quad.easeOut',
+          onComplete: function() {
+            this.moving = false;
+            var newRow = Math.round((this.player.y - CELL / 2) / CELL);
+            var rowsAdvanced = this.playerRow - newRow;
+            if (rowsAdvanced > 0 && newRow < this.bestRow || this.bestRow === 0) {
+              this.score += rowsAdvanced * 10;
+              this.bestRow = newRow;
+              this.scoreText.setText('Score: ' + this.score);
+            }
+            this.playerRow = newRow;
+          }.bind(this)
+        });
+      }
+    }
+
+    // Wrap lane objects
+    this.obstacles.children.each(function(ob) {
+      if (ob.laneDir > 0 && ob.x > W + 60) ob.x = -60;
+      else if (ob.laneDir < 0 && ob.x < -60) ob.x = W + 60;
     });
+    this.rideables.children.each(function(ob) {
+      if (ob.laneDir > 0 && ob.x > W + 60) ob.x = -60;
+      else if (ob.laneDir < 0 && ob.x < -60) ob.x = W + 60;
+    });
+
+    // Spawn/cleanup lane objects based on camera
+    if (Math.abs(this.cameras.main.scrollY - this.lastScrollY) > CELL) {
+      this.spawnVisibleLaneObjects();
+      this.cleanupDistantObjects();
+      this.drawVisibleLanes();
+      this.lastScrollY = this.cameras.main.scrollY;
+    }
   }
 }
 
