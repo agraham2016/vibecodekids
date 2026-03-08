@@ -86,8 +86,8 @@ function App() {
   // Fetch projects when user logs in; show welcome overlay or resume tutorial
   useEffect(() => {
     if (token && user?.id) {
-      fetchUserProjects(user.id).then((projects) => {
-        if (projects.length === 0 && messages.length === 0 && !localStorage.getItem(welcomedKey(user?.id))) {
+      fetchUserProjects(user.id).then(() => {
+        if (messages.length === 0) {
           const { status, step } = getTutorialStatus(user?.id);
           if (status === 'in_progress') {
             setTutorialStartStep(step);
@@ -319,34 +319,40 @@ function App() {
         />
       )}
 
-      {/* Welcome overlay for first-time users */}
-      {showWelcomeOverlay && (
-        <div className="modal-overlay welcome-overlay" role="dialog" aria-modal="true" aria-label="Welcome">
-          <div className="welcome-card" onClick={(e) => e.stopPropagation()}>
-            <button
-              type="button"
-              className="welcome-close-btn"
-              onClick={handleWelcomeFreeChat}
-              aria-label="Close welcome"
-            >
-              ✕
-            </button>
-            <h2>🎮 Welcome, {user.displayName}!</h2>
-            <p>Ready to make your first game?</p>
-            <div className="welcome-actions">
-              <button className="welcome-btn guided" onClick={handleWelcomeGuided} type="button">
-                🧙 Help Me Pick!
-              </button>
-              <button className="welcome-btn tutorial" onClick={handleStartTutorial} type="button">
-                📖 Show Me How!
-              </button>
+      {/* Welcome overlay — shown every login */}
+      {showWelcomeOverlay &&
+        (() => {
+          const tutStatus = getTutorialStatus(user?.id);
+          const isReturning =
+            userProjects.length > 0 || tutStatus.status === 'completed' || tutStatus.status === 'skipped';
+          return (
+            <div className="modal-overlay welcome-overlay" role="dialog" aria-modal="true" aria-label="Welcome">
+              <div className="welcome-card" onClick={(e) => e.stopPropagation()}>
+                <button
+                  type="button"
+                  className="welcome-close-btn"
+                  onClick={handleWelcomeFreeChat}
+                  aria-label="Close welcome"
+                >
+                  ✕
+                </button>
+                <h2>🎮 {isReturning ? `Welcome back, ${user.displayName}!` : `Welcome, ${user.displayName}!`}</h2>
+                <p>{isReturning ? 'What do you want to build today?' : 'Ready to make your first game?'}</p>
+                <div className="welcome-actions">
+                  <button className="welcome-btn guided" onClick={handleWelcomeGuided} type="button">
+                    🧙 Help Me Pick!
+                  </button>
+                  <button className="welcome-btn tutorial" onClick={handleStartTutorial} type="button">
+                    📖 {isReturning ? 'Replay Tutorial' : 'Show Me How!'}
+                  </button>
+                </div>
+                <button className="welcome-skip-link" onClick={handleWelcomeFreeChat} type="button">
+                  {isReturning ? 'Jump right in' : "Skip, I've got this"}
+                </button>
+              </div>
             </div>
-            <button className="welcome-skip-link" onClick={handleWelcomeFreeChat} type="button">
-              Skip, I've got this
-            </button>
-          </div>
-        </div>
-      )}
+          );
+        })()}
 
       {/* Coach-bubble tutorial */}
       <StudioTutorial
