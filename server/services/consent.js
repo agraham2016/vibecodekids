@@ -213,7 +213,7 @@ export async function getUserByParentToken(token) {
  * For now, logs the consent URL so you can manually verify during development.
  */
 export async function sendConsentEmail(parentEmail, childUsername, token, action = 'consent') {
-  const consentUrl = `${BASE_URL}/api/parent/verify?token=${token}&action=grant`;
+  const consentUrl = `${BASE_URL}/parent-consent?token=${token}`;
   const denyUrl = `${BASE_URL}/api/parent/verify?token=${token}&action=deny`;
   const verifyChargeUrl = `${BASE_URL}/parent-verify-charge?token=${token}`;
 
@@ -268,7 +268,8 @@ A small $0.50 charge (immediately refunded) verifies your identity:
 ${verifyChargeUrl}
 
 OPTION 2 — APPROVE VIA EMAIL:
-Click here to approve without card verification:
+Review and approve your child's account (you'll be asked to agree to our
+Privacy Policy and Terms of Service):
 ${consentUrl}
 
 To DENY this request:

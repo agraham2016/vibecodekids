@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Approve Account - VibeCodeKidz</title>
+  <link href="/fonts/fonts.css" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Nunito', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 40px;
+      max-width: 540px;
+      width: 100%;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    }
+    .logo { text-align: center; margin-bottom: 24px; }
+    .logo h1 {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1.5rem;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .logo p { color: #888; font-size: 0.85rem; margin-top: 4px; }
+    h2 { color: #333; font-size: 1.3rem; margin-bottom: 12px; }
+    p { color: #555; line-height: 1.6; margin-bottom: 12px; font-size: 0.95rem; }
+    .info-box {
+      background: #f0f4ff;
+      border-left: 4px solid #667eea;
+      padding: 16px;
+      border-radius: 8px;
+      margin: 20px 0;
+    }
+    .info-box strong { color: #667eea; }
+    .info-box ul { margin-top: 8px; padding-left: 20px; color: #555; font-size: 0.9rem; }
+    .info-box li { margin-bottom: 4px; }
+    .consent-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      margin: 24px 0 20px;
+      text-align: left;
+    }
+    .consent-row input[type="checkbox"] {
+      width: 20px;
+      height: 20px;
+      flex-shrink: 0;
+      margin-top: 2px;
+      accent-color: #667eea;
+      cursor: pointer;
+    }
+    .consent-row label {
+      font-size: 0.9rem;
+      color: #555;
+      line-height: 1.5;
+      cursor: pointer;
+    }
+    .consent-row label a { color: #667eea; font-weight: 600; }
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 16px;
+      border: none;
+      border-radius: 12px;
+      font-size: 1.05rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+    }
+    .btn-primary:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(102,126,234,0.4); }
+    .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; box-shadow: none; }
+    .btn-deny {
+      background: none;
+      color: #d32f2f;
+      font-size: 0.9rem;
+      margin-top: 12px;
+      padding: 8px;
+      text-decoration: underline;
+    }
+    .btn-deny:hover { color: #b71c1c; }
+    .btn-link {
+      background: none;
+      color: #667eea;
+      text-decoration: underline;
+      font-size: 0.9rem;
+      margin-top: 12px;
+      padding: 8px;
+    }
+    .error-msg { color: #d32f2f; font-size: 0.9rem; margin-top: 12px; display: none; text-align: center; }
+    .loading { text-align: center; padding: 40px; color: #888; }
+    .spinner {
+      width: 40px; height: 40px;
+      border: 4px solid #e0e0e0;
+      border-top-color: #667eea;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 16px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .hidden { display: none; }
+    .success-card { text-align: center; }
+    .success-card .icon { font-size: 3rem; margin-bottom: 16px; }
+    .success-card h2 { color: #2e7d32; }
+    .success-card .dashboard-link {
+      display: inline-block;
+      margin-top: 16px;
+      padding: 14px 28px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      border-radius: 12px;
+      text-decoration: none;
+      font-weight: 700;
+    }
+    .alt-verify {
+      background: #fff8e1;
+      border-left: 4px solid #ffa000;
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin: 20px 0 0;
+      font-size: 0.9rem;
+      color: #6d4c00;
+    }
+    .alt-verify a { color: #667eea; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div id="loadingState" class="loading">
+      <div class="spinner"></div>
+      <p>Loading...</p>
+    </div>
+
+    <div id="errorState" class="hidden">
+      <div style="text-align:center;padding:20px 0;">
+        <div style="font-size:3rem;margin-bottom:16px;">&#x274C;</div>
+        <h2 style="color:#d32f2f;">Something Went Wrong</h2>
+        <p id="errorMessage" style="margin-top:12px;">Could not load this page.</p>
+        <a href="/" class="btn btn-link">Go to VibeCodeKidz</a>
+      </div>
+    </div>
+
+    <div id="consentState" class="hidden">
+      <div class="logo">
+        <h1>VibeCodeKidz</h1>
+        <p>Parental Consent</p>
+      </div>
+
+      <h2>Approve Your Child's Account</h2>
+      <p>Your child has requested to create an account on VibeCodeKidz, a kid-friendly game creation platform. Under COPPA, we need your explicit consent before they can use the platform.</p>
+
+      <div class="info-box">
+        <strong>By approving, you consent to:</strong>
+        <ul>
+          <li>Collection of your child's username, display name, and age bracket</li>
+          <li>Storage of games your child creates on the platform</li>
+          <li>Use of AI services (Anthropic/xAI) to generate game code from your child's prompts</li>
+          <li>Basic anonymized usage data collection</li>
+        </ul>
+      </div>
+
+      <div class="info-box">
+        <strong>Your rights as a parent:</strong>
+        <ul>
+          <li>Review all data collected about your child at any time</li>
+          <li>Toggle publishing and multiplayer features (default: OFF)</li>
+          <li>Request deletion of all your child's data</li>
+          <li>Revoke consent and deactivate the account</li>
+        </ul>
+      </div>
+
+      <div class="consent-row">
+        <input type="checkbox" id="consentCheck">
+        <label for="consentCheck">
+          I am the parent or legal guardian of this child and I have read and agree to the
+          <a href="/privacy" target="_blank">Privacy Policy</a> and
+          <a href="/terms" target="_blank">Terms of Service</a>.
+          I consent to my child's use of VibeCodeKidz as described above.
+        </label>
+      </div>
+
+      <p class="error-msg" id="consentError"></p>
+
+      <button id="approveBtn" class="btn btn-primary" disabled>
+        Approve My Child's Account
+      </button>
+
+      <button id="denyBtn" class="btn btn-deny">
+        Deny This Request
+      </button>
+
+      <div class="alt-verify">
+        <strong>Want extra security?</strong>
+        <a id="chargeLink" href="#">Verify with a $0.50 credit card charge</a> (immediately refunded) for stronger identity verification.
+      </div>
+    </div>
+
+    <div id="successState" class="hidden success-card">
+      <div class="icon">&#x2705;</div>
+      <h2>Account Approved!</h2>
+      <p>Your child can now log in and start creating games.</p>
+      <p style="font-size:0.85rem;color:#888;">You'll manage your child's account through the Parent Command Center.</p>
+      <a id="dashboardLink" href="#" class="dashboard-link hidden">Open Parent Command Center</a>
+      <br>
+      <a href="/" class="btn btn-link" style="margin-top:20px;">Go to VibeCodeKidz</a>
+    </div>
+
+    <div id="deniedState" class="hidden" style="text-align:center;padding:20px 0;">
+      <div style="font-size:3rem;margin-bottom:16px;">&#x1F6AB;</div>
+      <h2 style="color:#555;">Request Denied</h2>
+      <p style="margin-top:12px;">You have denied your child's account request. No account will be created.</p>
+      <a href="/" class="btn btn-link" style="margin-top:20px;">Go to VibeCodeKidz</a>
+    </div>
+  </div>
+
+  <script>
+    var consentToken = new URLSearchParams(window.location.search).get('token');
+    var approveBtn = document.getElementById('approveBtn');
+    var denyBtn = document.getElementById('denyBtn');
+    var consentCheck = document.getElementById('consentCheck');
+    var chargeLink = document.getElementById('chargeLink');
+
+    function show(id) {
+      ['loadingState','errorState','consentState','successState','deniedState'].forEach(function(s) {
+        document.getElementById(s).classList.toggle('hidden', s !== id);
+      });
+    }
+
+    function showError(msg) {
+      document.getElementById('errorMessage').textContent = msg;
+      show('errorState');
+    }
+
+    consentCheck.addEventListener('change', function() {
+      approveBtn.disabled = !consentCheck.checked;
+    });
+
+    approveBtn.addEventListener('click', async function() {
+      if (!consentCheck.checked || !consentToken) return;
+      approveBtn.disabled = true;
+      approveBtn.textContent = 'Approving...';
+      var errEl = document.getElementById('consentError');
+      errEl.style.display = 'none';
+
+      try {
+        var resp = await fetch('/api/parent/verify?token=' + encodeURIComponent(consentToken) + '&action=grant&explicit_consent=true');
+        if (resp.ok) {
+          var text = await resp.text();
+          var dashMatch = text.match(/href="([^"]*parent-dashboard[^"]*)"/);
+          if (dashMatch) {
+            var link = document.getElementById('dashboardLink');
+            link.href = dashMatch[1];
+            link.classList.remove('hidden');
+          }
+          show('successState');
+        } else {
+          var errText = await resp.text();
+          if (errText.includes('already been')) {
+            errEl.textContent = 'This consent request has already been processed.';
+          } else if (errText.includes('expired')) {
+            errEl.textContent = 'This consent link has expired. Your child can request a new one by registering again.';
+          } else {
+            errEl.textContent = 'Something went wrong. Please try again.';
+          }
+          errEl.style.display = 'block';
+          approveBtn.disabled = false;
+          approveBtn.textContent = "Approve My Child's Account";
+        }
+      } catch (e) {
+        errEl.textContent = 'Could not connect to the server. Please try again.';
+        errEl.style.display = 'block';
+        approveBtn.disabled = false;
+        approveBtn.textContent = "Approve My Child's Account";
+      }
+    });
+
+    denyBtn.addEventListener('click', async function() {
+      if (!consentToken) return;
+      denyBtn.disabled = true;
+      denyBtn.textContent = 'Processing...';
+
+      try {
+        await fetch('/api/parent/verify?token=' + encodeURIComponent(consentToken) + '&action=deny');
+        show('deniedState');
+      } catch (e) {
+        show('deniedState');
+      }
+    });
+
+    if (consentToken) {
+      chargeLink.href = '/parent-verify-charge?token=' + encodeURIComponent(consentToken);
+      show('consentState');
+    } else {
+      showError('No consent token found. Please use the link from your email.');
+    }
+  </script>
+</body>
+</html>

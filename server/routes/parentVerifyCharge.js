@@ -50,7 +50,8 @@ router.post('/create', async (req, res) => {
 
     const consent = await getConsentByToken(consentToken);
     if (!consent) return res.status(404).json({ error: 'Consent request not found or expired.' });
-    if (consent.status !== 'pending') return res.status(400).json({ error: 'This consent request has already been processed.' });
+    if (consent.status !== 'pending')
+      return res.status(400).json({ error: 'This consent request has already been processed.' });
 
     if (new Date(consent.expiresAt) < new Date()) {
       return res.status(410).json({ error: 'This consent link has expired.' });
@@ -123,6 +124,8 @@ router.post('/confirm', async (req, res) => {
         user.parentVerifiedMethod = 'stripe_micro';
         user.parentVerifiedAt = new Date().toISOString();
         user.consentPolicyVersion = CONSENT_POLICY_VERSION;
+        user.parentAcceptedTerms = true;
+        user.parentAcceptedTermsAt = new Date().toISOString();
         user.status = 'approved';
         user.approvedAt = new Date().toISOString();
         if (user.publishingEnabled === undefined) user.publishingEnabled = false;
@@ -130,7 +133,11 @@ router.post('/confirm', async (req, res) => {
         const dashboardToken = await createParentDashboardToken(consent.userId);
         user.parentDashboardToken = dashboardToken;
         await writeUser(consent.userId, user);
-        logAdminAction({ action: 'consent_granted', targetId: consent.userId, details: { username: user.username, method: 'stripe_micro' } }).catch(() => {});
+        logAdminAction({
+          action: 'consent_granted',
+          targetId: consent.userId,
+          details: { username: user.username, method: 'stripe_micro' },
+        }).catch(() => {});
       } catch (err) {
         console.error('User update after micro-charge failed:', err.message);
       }

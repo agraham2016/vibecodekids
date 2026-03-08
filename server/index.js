@@ -320,9 +320,36 @@ app.get('/terms', (req, res) => serveHtmlWithNonce(req, res, 'terms.html'));
 app.get('/esa', (req, res) => serveHtmlWithNonce(req, res, 'esa.html'));
 app.get('/contact', (req, res) => serveHtmlWithNonce(req, res, 'contact.html'));
 app.get('/faq', (req, res) => serveHtmlWithNonce(req, res, 'faq.html'));
-app.get('/parent-dashboard', (req, res) => serveHtmlWithNonce(req, res, 'parent-dashboard.html'));
-app.get('/parent-portal', (req, res) => serveHtmlWithNonce(req, res, 'parent-portal.html'));
-app.get('/parent-verify-charge', (req, res) => serveHtmlWithNonce(req, res, 'parent-verify-charge.html'));
+// Parent pages need unsafe-inline for onclick handlers + Stripe JS
+const serveParentPage = async (req, res, filename) => {
+  try {
+    const html = await fs.readFile(path.join(PUBLIC_DIR, filename), 'utf-8');
+    const scheme = req.get('x-forwarded-proto') || req.protocol || 'http';
+    const host = req.get('x-forwarded-host') || req.get('host') || 'localhost:3001';
+    const origin = `${scheme}://${host}`;
+    const csp = [
+      "default-src 'self'",
+      `script-src 'self' 'unsafe-inline' https://js.stripe.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com`,
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+      "font-src 'self' https://fonts.gstatic.com data:",
+      `img-src 'self' ${origin} data: blob:`,
+      `connect-src 'self' ${origin} https://api.stripe.com`,
+      `frame-src https://js.stripe.com`,
+      "object-src 'none'",
+      "base-uri 'self'",
+    ].join('; ');
+    res.setHeader('Content-Security-Policy', csp);
+    res.setHeader('Content-Type', 'text/html');
+    res.setHeader('Cache-Control', 'no-store');
+    res.send(html);
+  } catch {
+    res.sendFile(path.join(PUBLIC_DIR, filename));
+  }
+};
+app.get('/parent-dashboard', (req, res) => serveParentPage(req, res, 'parent-dashboard.html'));
+app.get('/parent-portal', (req, res) => serveParentPage(req, res, 'parent-portal.html'));
+app.get('/parent-verify-charge', (req, res) => serveParentPage(req, res, 'parent-verify-charge.html'));
+app.get('/parent-consent', (req, res) => serveParentPage(req, res, 'parent-consent.html'));
 app.get('/forgot-password/reset', (req, res) => serveHtmlWithNonce(req, res, 'forgot-password.html'));
 
 // Dev-only: template preview for testing (serves raw template HTML)

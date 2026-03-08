@@ -85,6 +85,7 @@ router.get('/verify', async (req, res) => {
     }
 
     const granted = action === 'grant';
+    const explicitConsent = req.query.explicit_consent === 'true';
     await resolveConsent(token, granted);
 
     // Update user based on consent action
@@ -98,6 +99,8 @@ router.get('/verify', async (req, res) => {
           user.parentVerifiedMethod = 'email_plus';
           user.parentVerifiedAt = new Date().toISOString();
           user.consentPolicyVersion = CONSENT_POLICY_VERSION;
+          user.parentAcceptedTerms = explicitConsent;
+          user.parentAcceptedTermsAt = explicitConsent ? new Date().toISOString() : null;
           user.status = 'approved';
           user.approvedAt = new Date().toISOString();
           // Default: publishing and multiplayer OFF for under-13 until parent enables
@@ -167,7 +170,7 @@ ${JSON.stringify(data, null, 2)}
           (dashUrl
             ? `<br><br><strong>Parent Command Center:</strong><br>Manage your child's privacy settings, toggle publishing and multiplayer, review data, or delete the account:<br><a href="${dashUrl}" style="color:#667eea;font-weight:bold">${dashUrl}</a><br><small>Bookmark this link — it's your portal to manage your child's account.</small>`
             : '') +
-          `<br><br><small>You agreed to our Terms of Service and Privacy Policy. You may opt out of AI improvement data use at any time by emailing ${SUPPORT_EMAIL}.</small>`;
+          `<br><br><small>By approving, you agreed to our <a href="/terms" target="_blank">Terms of Service</a> and <a href="/privacy" target="_blank">Privacy Policy</a>. You may opt out of AI improvement data use at any time by emailing ${SUPPORT_EMAIL}.</small>`;
       } else {
         message = 'Your request has been approved.';
       }

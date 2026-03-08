@@ -90,6 +90,28 @@
       padding: 8px;
     }
     .error-msg { color: #d32f2f; font-size: 0.9rem; margin-top: 12px; display: none; }
+    .consent-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      margin: 20px 0 8px;
+      text-align: left;
+    }
+    .consent-row input[type="checkbox"] {
+      width: 20px;
+      height: 20px;
+      flex-shrink: 0;
+      margin-top: 2px;
+      accent-color: #667eea;
+      cursor: pointer;
+    }
+    .consent-row label {
+      font-size: 0.9rem;
+      color: #555;
+      line-height: 1.5;
+      cursor: pointer;
+    }
+    .consent-row label a { color: #667eea; font-weight: 600; }
     .success-card { text-align: center; }
     .success-card .icon { font-size: 3rem; margin-bottom: 16px; }
     .success-card h2 { color: #2e7d32; }
@@ -178,13 +200,23 @@
       <div id="payment-element"></div>
       <p class="error-msg" id="paymentError"></p>
 
-      <button id="submitBtn" class="btn btn-primary" onclick="handleSubmit()" disabled>
+      <div class="consent-row">
+        <input type="checkbox" id="consentCheck">
+        <label for="consentCheck">
+          I have read and agree to the
+          <a href="/privacy" target="_blank">Privacy Policy</a> and
+          <a href="/terms" target="_blank">Terms of Service</a>
+          for my child's use of VibeCodeKidz.
+        </label>
+      </div>
+
+      <button id="submitBtn" class="btn btn-primary" disabled>
         Verify &amp; Approve ($0.50 — refunded)
       </button>
 
       <div class="or-divider">or</div>
 
-      <button class="btn btn-link" id="emailApproveBtn" onclick="approveViaEmail()">
+      <button class="btn btn-link" id="emailApproveBtn">
         Approve via email instead (no credit card needed)
       </button>
     </div>
@@ -209,12 +241,17 @@
     let clientSecret = null;
     let paymentIntentId = null;
     let consentToken = null;
+    let stripeReady = false;
 
     const params = new URLSearchParams(window.location.search);
     consentToken = params.get('token');
 
+    const submitBtn = document.getElementById('submitBtn');
+    const emailApproveBtn = document.getElementById('emailApproveBtn');
+    const consentCheck = document.getElementById('consentCheck');
+
     function show(id) {
-      ['loadingState','errorState','paymentState','successState'].forEach(s => {
+      ['loadingState','errorState','paymentState','successState'].forEach(function(s) {
         document.getElementById(s).classList.toggle('hidden', s !== id);
       });
     }
@@ -224,6 +261,12 @@
       show('errorState');
     }
 
+    function updateSubmitState() {
+      submitBtn.disabled = !(consentCheck.checked && stripeReady);
+    }
+
+    consentCheck.addEventListener('change', updateSubmitState);
+
     async function init() {
       if (!consentToken) {
         showError('No consent token found. Please use the link from your email.');
@@ -231,21 +274,21 @@
       }
 
       try {
-        const configResp = await fetch('/api/parent/verify-charge/config');
+        var configResp = await fetch('/api/parent/verify-charge/config');
         if (!configResp.ok) {
           showError('Payment verification is not available at this time.');
           return;
         }
-        const config = await configResp.json();
+        var config = await configResp.json();
 
         stripe = Stripe(config.publishableKey);
 
-        const createResp = await fetch('/api/parent/verify-charge/create', {
+        var createResp = await fetch('/api/parent/verify-charge/create', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ consentToken }),
+          body: JSON.stringify({ consentToken: consentToken }),
         });
-        const createData = await createResp.json();
+        var createData = await createResp.json();
 
         if (!createResp.ok) {
           showError(createData.error || 'Could not start verification.');
@@ -255,18 +298,19 @@
         clientSecret = createData.clientSecret;
         paymentIntentId = createData.paymentIntentId;
 
-        elements = stripe.elements({ clientSecret, appearance: {
+        elements = stripe.elements({ clientSecret: clientSecret, appearance: {
           theme: 'stripe',
           variables: { colorPrimary: '#667eea', borderRadius: '8px', fontFamily: 'Nunito, sans-serif' },
         }});
 
         paymentElement = elements.create('payment');
         paymentElement.mount('#payment-element');
-        paymentElement.on('ready', () => {
-          document.getElementById('submitBtn').disabled = false;
+        paymentElement.on('ready', function() {
+          stripeReady = true;
+          updateSubmitState();
         });
-        paymentElement.on('change', (e) => {
-          const errEl = document.getElementById('paymentError');
+        paymentElement.on('change', function(e) {
+          var errEl = document.getElementById('paymentError');
           if (e.error) {
             errEl.textContent = e.error.message;
             errEl.style.display = 'block';
@@ -282,44 +326,44 @@
     }
 
     async function handleSubmit() {
-      const btn = document.getElementById('submitBtn');
-      btn.disabled = true;
-      btn.textContent = 'Verifying...';
-      const errEl = document.getElementById('paymentError');
+      if (!consentCheck.checked) return;
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Verifying...';
+      var errEl = document.getElementById('paymentError');
       errEl.style.display = 'none';
 
       try {
-        const { error } = await stripe.confirmPayment({
-          elements,
+        var result = await stripe.confirmPayment({
+          elements: elements,
           confirmParams: {},
           redirect: 'if_required',
         });
 
-        if (error) {
-          errEl.textContent = error.message;
+        if (result.error) {
+          errEl.textContent = result.error.message;
           errEl.style.display = 'block';
-          btn.disabled = false;
-          btn.textContent = 'Verify & Approve ($0.50 — refunded)';
+          updateSubmitState();
+          submitBtn.textContent = 'Verify & Approve ($0.50 — refunded)';
           return;
         }
 
-        const confirmResp = await fetch('/api/parent/verify-charge/confirm', {
+        var confirmResp = await fetch('/api/parent/verify-charge/confirm', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ consentToken, paymentIntentId }),
+          body: JSON.stringify({ consentToken: consentToken, paymentIntentId: paymentIntentId }),
         });
-        const confirmData = await confirmResp.json();
+        var confirmData = await confirmResp.json();
 
         if (!confirmResp.ok) {
           errEl.textContent = confirmData.error || 'Verification failed. Please try again.';
           errEl.style.display = 'block';
-          btn.disabled = false;
-          btn.textContent = 'Verify & Approve ($0.50 — refunded)';
+          updateSubmitState();
+          submitBtn.textContent = 'Verify & Approve ($0.50 — refunded)';
           return;
         }
 
         if (confirmData.dashboardUrl) {
-          const link = document.getElementById('dashboardLink');
+          var link = document.getElementById('dashboardLink');
           link.href = confirmData.dashboardUrl;
           link.classList.remove('hidden');
         }
@@ -328,15 +372,18 @@
       } catch (err) {
         errEl.textContent = 'An unexpected error occurred. Please try again.';
         errEl.style.display = 'block';
-        btn.disabled = false;
-        btn.textContent = 'Verify & Approve ($0.50 — refunded)';
+        updateSubmitState();
+        submitBtn.textContent = 'Verify & Approve ($0.50 — refunded)';
       }
     }
 
     function approveViaEmail() {
       if (!consentToken) return;
-      window.location.href = '/api/parent/verify?token=' + encodeURIComponent(consentToken) + '&action=grant';
+      window.location.href = '/parent-consent?token=' + encodeURIComponent(consentToken);
     }
+
+    submitBtn.addEventListener('click', handleSubmit);
+    emailApproveBtn.addEventListener('click', approveViaEmail);
 
     init();
   </script>
