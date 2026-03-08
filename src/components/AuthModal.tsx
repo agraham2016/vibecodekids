@@ -27,6 +27,71 @@ interface AuthModalProps {
 type AuthMode = 'login' | 'signup';
 type SignupStep = 'plan' | 'details';
 
+const NAME_ADJECTIVES = [
+  'Cosmic',
+  'Neon',
+  'Pixel',
+  'Turbo',
+  'Ultra',
+  'Super',
+  'Mega',
+  'Epic',
+  'Shadow',
+  'Star',
+  'Blaze',
+  'Thunder',
+  'Crystal',
+  'Hyper',
+  'Rocket',
+  'Astro',
+  'Magic',
+  'Ninja',
+  'Mystic',
+  'Brave',
+  'Swift',
+  'Lucky',
+];
+const NAME_NOUNS = [
+  'Panda',
+  'Dragon',
+  'Wizard',
+  'Fox',
+  'Phoenix',
+  'Tiger',
+  'Wolf',
+  'Falcon',
+  'Spark',
+  'Comet',
+  'Racer',
+  'Knight',
+  'Gamer',
+  'Coder',
+  'Hero',
+  'Builder',
+  'Explorer',
+  'Pirate',
+  'Bot',
+  'Ninja',
+  'Hawk',
+];
+
+function generateNameSuggestions(): string[] {
+  const results: string[] = [];
+  const usedAdj = new Set<number>();
+  const usedNoun = new Set<number>();
+  while (results.length < 3) {
+    let ai = Math.floor(Math.random() * NAME_ADJECTIVES.length);
+    let ni = Math.floor(Math.random() * NAME_NOUNS.length);
+    while (usedAdj.has(ai)) ai = Math.floor(Math.random() * NAME_ADJECTIVES.length);
+    while (usedNoun.has(ni)) ni = Math.floor(Math.random() * NAME_NOUNS.length);
+    usedAdj.add(ai);
+    usedNoun.add(ni);
+    const num = Math.floor(Math.random() * 90) + 10;
+    results.push(`${NAME_ADJECTIVES[ai]}${NAME_NOUNS[ni]}${num}`);
+  }
+  return results;
+}
+
 export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: AuthModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
   const [mode, setMode] = useState<AuthMode>(initialMode);
@@ -46,6 +111,8 @@ export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: A
   const [success, setSuccess] = useState('');
   const [forgotStep, setForgotStep] = useState<'request' | null>(null);
   const [recaptchaSiteKey, setRecaptchaSiteKey] = useState<string | null>(null);
+  const [nameSuggestions, setNameSuggestions] = useState<string[]>(() => generateNameSuggestions());
+  const refreshNames = useCallback(() => setNameSuggestions(generateNameSuggestions()), []);
 
   // Load reCAPTCHA site key and script
   useEffect(() => {
@@ -380,11 +447,27 @@ export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: A
                     type="text"
                     value={displayName}
                     onChange={(e) => setDisplayName(e.target.value)}
-                    placeholder="What should we call you?"
+                    placeholder="e.g. CosmicPanda42"
                     maxLength={30}
                     required
                   />
-                  <span className="input-hint">This is shown on your creations</span>
+                  <span className="input-hint">Pick a fun nickname — don't use your real name!</span>
+                  <div className="name-suggestions">
+                    <span className="suggestion-label">Try one:</span>
+                    {nameSuggestions.map((name) => (
+                      <button key={name} type="button" className="suggestion-chip" onClick={() => setDisplayName(name)}>
+                        {name}
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      className="suggestion-chip suggestion-refresh"
+                      onClick={refreshNames}
+                      title="More ideas"
+                    >
+                      🔄
+                    </button>
+                  </div>
                 </div>
               )}
 
