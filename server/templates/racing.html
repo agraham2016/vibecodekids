@@ -20,7 +20,8 @@
       align-items: center;
       justify-content: center;
       overflow: hidden;
-     touch-action: none; }
+      touch-action: none;
+    }
     canvas { border-radius: 8px; box-shadow: 0 0 30px rgba(0,0,0,0.5); }
     .controls-hint { margin-top: 16px; color: rgba(255,255,255,0.55); font-size: 13px; }
   </style>
@@ -38,14 +39,63 @@ const RL = 175, RR = 625, LANES = [250, 400, 550];
 
 let touchLeft = false, touchRight = false, touchUp = false, touchDown = false;
 
+function drawCar(scene, key, bodyColor, windshieldColor, accentColor) {
+  const g = scene.make.graphics({ add: false });
+  const w = CW, h = CH;
+
+  g.fillStyle(0x222222);
+  g.fillRect(2, 8, 7, 14);
+  g.fillRect(w - 9, 8, 7, 14);
+  g.fillRect(2, h - 22, 7, 14);
+  g.fillRect(w - 9, h - 22, 7, 14);
+
+  g.fillStyle(bodyColor);
+  g.fillRoundedRect(7, 0, w - 14, h, 8);
+
+  g.fillStyle(accentColor);
+  g.fillRect(7, 0, w - 14, 4);
+
+  g.fillStyle(windshieldColor);
+  g.fillRoundedRect(11, 8, w - 22, 16, 3);
+
+  g.fillStyle(windshieldColor, 0.7);
+  g.fillRoundedRect(11, h - 22, w - 22, 12, 3);
+
+  g.fillStyle(0xffffff);
+  g.fillRect(10, h - 3, 6, 3);
+  g.fillRect(w - 16, h - 3, 6, 3);
+
+  g.fillStyle(0xff4444);
+  g.fillRect(10, 0, 6, 3);
+  g.fillRect(w - 16, 0, 6, 3);
+
+  g.generateTexture(key, w, h);
+  g.destroy();
+}
+
 class Race extends Phaser.Scene {
   preload() {
-    this.load.image('car-player', '/assets/sprites/kenney-racing/Cars/car_blue_1.png');
-    this.load.image('car-obstacle', '/assets/sprites/kenney-racing/Cars/car_red_1.png');
-    this.load.image('car-green', '/assets/sprites/kenney-racing/Cars/car_green_1.png');
-    this.load.image('car-yellow', '/assets/sprites/kenney-racing/Cars/car_yellow_1.png');
-    this.load.image('cone', '/assets/sprites/kenney-racing/Objects/cone_straight.png');
-    this.load.image('oil', '/assets/sprites/kenney-racing/Objects/oil.png');
+    drawCar(this, 'car-player', 0x2277dd, 0x88ccff, 0x55aaff);
+    drawCar(this, 'car-obstacle', 0xcc2222, 0x663333, 0xff4444);
+    drawCar(this, 'car-green', 0x22aa44, 0x336633, 0x44dd66);
+    drawCar(this, 'car-yellow', 0xddaa22, 0x665533, 0xffcc44);
+
+    const cone = this.make.graphics({ add: false });
+    cone.fillStyle(0xff6600);
+    cone.fillTriangle(12, 0, 0, 24, 24, 24);
+    cone.fillStyle(0xffffff);
+    cone.fillRect(3, 10, 18, 3);
+    cone.fillRect(5, 17, 14, 3);
+    cone.generateTexture('cone', 24, 24);
+    cone.destroy();
+
+    const oil = this.make.graphics({ add: false });
+    oil.fillStyle(0x222222);
+    oil.fillEllipse(16, 16, 32, 28);
+    oil.fillStyle(0x444466, 0.5);
+    oil.fillEllipse(12, 12, 12, 10);
+    oil.generateTexture('oil', 32, 32);
+    oil.destroy();
   }
 
   create() {

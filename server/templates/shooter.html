@@ -6,7 +6,7 @@
     :root { --game-primary:#00ffff; --game-secondary:#4400ff; --game-bg:#0a0a20; --game-text:#fff; --game-accent:#0f0; }
     * { margin:0; padding:0; box-sizing:border-box; }
     body { font-family:'Segoe UI',sans-serif; background:linear-gradient(180deg,#0a0a20,#1a0a30); min-height:100vh;
-      display:flex; flex-direction:column; align-items:center; justify-content:center; overflow:hidden;  touch-action: none; }
+      display:flex; flex-direction:column; align-items:center; justify-content:center; overflow:hidden; touch-action: none; }
     canvas { border-radius:10px; box-shadow:0 0 30px rgba(0,255,255,.25); }
     .hint { margin-top:14px; color:rgba(255,255,255,.5); font-size:14px; }
   </style>
@@ -21,15 +21,135 @@
   <script>
   class ShooterScene extends Phaser.Scene {
     preload() {
-      this.load.image('ship', '/assets/sprites/kenney-space-shooter/playerShip1_blue.png');
-      this.load.image('enemy', '/assets/sprites/kenney-space-shooter/Enemies/enemyRed1.png');
-      this.load.image('enemy2', '/assets/sprites/kenney-space-shooter/Enemies/enemyBlack2.png');
-      this.load.image('enemy3', '/assets/sprites/kenney-space-shooter/Enemies/enemyGreen3.png');
-      this.load.image('bullet', '/assets/sprites/kenney-space-shooter/Lasers/laserBlue01.png');
-      this.load.image('meteor', '/assets/sprites/kenney-space-shooter/Meteors/meteorBrown_big1.png');
-      this.load.image('powerup', '/assets/sprites/kenney-space-shooter/Power-ups/powerupBlue_shield.png');
-      this.load.image('star', '/assets/sprites/kenney-space-shooter/Effects/star1.png');
-      this.load.image('particle', '/assets/sprites/common/particle.png');
+      const g = this.make.graphics({ add: false });
+
+      // --- Player ship: blue triangular with cockpit and engine glow ---
+      g.fillStyle(0x003399);
+      g.beginPath();
+      g.moveTo(24, 2); g.lineTo(4, 42); g.lineTo(16, 34);
+      g.lineTo(32, 34); g.lineTo(44, 42);
+      g.closePath(); g.fillPath();
+      g.fillStyle(0x0055cc);
+      g.beginPath();
+      g.moveTo(24, 2); g.lineTo(10, 38); g.lineTo(18, 32);
+      g.lineTo(30, 32); g.lineTo(38, 38);
+      g.closePath(); g.fillPath();
+      g.fillStyle(0x00bbff);
+      g.beginPath();
+      g.moveTo(24, 10); g.lineTo(19, 24); g.lineTo(29, 24);
+      g.closePath(); g.fillPath();
+      g.fillStyle(0x4488ff, 0.7);
+      g.fillCircle(18, 40, 4);
+      g.fillCircle(30, 40, 4);
+      g.fillStyle(0xaaddff, 0.9);
+      g.fillCircle(18, 40, 2);
+      g.fillCircle(30, 40, 2);
+      g.generateTexture('ship', 48, 48); g.clear();
+
+      // --- Enemy 1: red aggressive V-wing ---
+      g.fillStyle(0x990000);
+      g.beginPath();
+      g.moveTo(24, 44); g.lineTo(2, 6); g.lineTo(18, 18);
+      g.lineTo(30, 18); g.lineTo(46, 6);
+      g.closePath(); g.fillPath();
+      g.fillStyle(0xdd2222);
+      g.beginPath();
+      g.moveTo(24, 40); g.lineTo(14, 18); g.lineTo(34, 18);
+      g.closePath(); g.fillPath();
+      g.fillStyle(0xff6666);
+      g.fillCircle(24, 26, 4);
+      g.generateTexture('enemy', 48, 48); g.clear();
+
+      // --- Enemy 2: orange diamond interceptor ---
+      g.fillStyle(0xcc5500);
+      g.beginPath();
+      g.moveTo(24, 44); g.lineTo(4, 24); g.lineTo(24, 4); g.lineTo(44, 24);
+      g.closePath(); g.fillPath();
+      g.fillStyle(0xff8833);
+      g.beginPath();
+      g.moveTo(24, 36); g.lineTo(12, 24); g.lineTo(24, 12); g.lineTo(36, 24);
+      g.closePath(); g.fillPath();
+      g.fillStyle(0xffbb66);
+      g.fillRect(20, 20, 8, 8);
+      g.generateTexture('enemy2', 48, 48); g.clear();
+
+      // --- Enemy 3: green angular dart ---
+      g.fillStyle(0x007700);
+      g.beginPath();
+      g.moveTo(24, 44); g.lineTo(2, 14); g.lineTo(14, 4);
+      g.lineTo(24, 16); g.lineTo(34, 4); g.lineTo(46, 14);
+      g.closePath(); g.fillPath();
+      g.fillStyle(0x22aa22);
+      g.beginPath();
+      g.moveTo(24, 38); g.lineTo(12, 16); g.lineTo(24, 20); g.lineTo(36, 16);
+      g.closePath(); g.fillPath();
+      g.fillStyle(0x66dd66);
+      g.fillCircle(24, 28, 4);
+      g.generateTexture('enemy3', 48, 48); g.clear();
+
+      // --- Bullet: cyan laser bolt ---
+      g.fillStyle(0x00cccc);
+      g.fillRect(1, 0, 6, 16);
+      g.fillStyle(0x00ffff);
+      g.fillRect(2, 1, 4, 14);
+      g.fillStyle(0xaaffff);
+      g.fillRect(3, 2, 2, 12);
+      g.generateTexture('bullet', 8, 16); g.clear();
+
+      // --- Meteor: brown rocky asteroid with craters ---
+      g.fillStyle(0x7B4A1B);
+      g.beginPath();
+      g.moveTo(24, 2); g.lineTo(36, 6); g.lineTo(44, 16);
+      g.lineTo(42, 32); g.lineTo(34, 42); g.lineTo(20, 46);
+      g.lineTo(8, 40); g.lineTo(2, 28); g.lineTo(4, 14); g.lineTo(14, 4);
+      g.closePath(); g.fillPath();
+      g.fillStyle(0x9B6A3B);
+      g.beginPath();
+      g.moveTo(24, 8); g.lineTo(34, 12); g.lineTo(38, 20);
+      g.lineTo(34, 32); g.lineTo(24, 38); g.lineTo(14, 34);
+      g.lineTo(10, 24); g.lineTo(14, 14);
+      g.closePath(); g.fillPath();
+      g.fillStyle(0x5B3A0B);
+      g.fillCircle(20, 18, 5);
+      g.fillCircle(32, 28, 4);
+      g.fillCircle(15, 33, 3);
+      g.fillCircle(30, 14, 3);
+      g.generateTexture('meteor', 48, 48); g.clear();
+
+      // --- Powerup: blue shield orb ---
+      g.fillStyle(0x0066dd, 0.4);
+      g.fillCircle(16, 16, 14);
+      g.lineStyle(2, 0x00aaff, 1);
+      g.strokeCircle(16, 16, 14);
+      g.fillStyle(0x00bbff);
+      g.beginPath();
+      g.moveTo(16, 4); g.lineTo(7, 14); g.lineTo(7, 23);
+      g.lineTo(16, 30); g.lineTo(25, 23); g.lineTo(25, 14);
+      g.closePath(); g.fillPath();
+      g.fillStyle(0x88ddff);
+      g.beginPath();
+      g.moveTo(16, 8); g.lineTo(11, 15); g.lineTo(11, 20);
+      g.lineTo(16, 25); g.lineTo(21, 20); g.lineTo(21, 15);
+      g.closePath(); g.fillPath();
+      g.generateTexture('powerup', 32, 32); g.clear();
+
+      // --- Star particle (white glow) ---
+      g.fillStyle(0xffffff, 0.3);
+      g.fillCircle(5, 5, 5);
+      g.fillStyle(0xffffff, 0.7);
+      g.fillCircle(5, 5, 3);
+      g.fillStyle(0xffffff);
+      g.fillCircle(5, 5, 1);
+      g.generateTexture('star', 10, 10); g.clear();
+
+      // --- Explosion / generic particle ---
+      g.fillStyle(0xffffff, 0.6);
+      g.fillCircle(4, 4, 4);
+      g.fillStyle(0xffffff);
+      g.fillCircle(4, 4, 2);
+      g.generateTexture('particle', 8, 8); g.clear();
+
+      g.destroy();
     }
 
     create() {
@@ -37,6 +157,7 @@
       this.gameOver = false; this.lastFired = 0;
       this.waveKills = 0; this.enemiesPerWave = 8;
       this.enemySpeed = 90; this.spawnDelay = 1200;
+      this.shielded = false;
 
       const g = this.make.graphics({ add: false });
       g.fillStyle(0x060618); g.fillRect(0, 0, 800, 500);
@@ -57,6 +178,8 @@
       this.player = this.physics.add.sprite(400, 460, 'ship').setDisplaySize(48, 48).setCollideWorldBounds(true);
       this.bullets = this.physics.add.group({ maxSize: 30 });
       this.enemies = this.physics.add.group();
+      this.meteors = this.physics.add.group();
+      this.powerups = this.physics.add.group();
 
       this.exploder = this.add.particles(0, 0, 'particle', {
         speed: { min: 80, max: 200 }, lifespan: 350, scale: { start: 1.2, end: 0 },
@@ -65,6 +188,9 @@
 
       this.physics.add.overlap(this.bullets, this.enemies, this.hitEnemy, null, this);
       this.physics.add.overlap(this.player, this.enemies, this.hitPlayer, null, this);
+      this.physics.add.overlap(this.bullets, this.meteors, this.hitMeteor, null, this);
+      this.physics.add.overlap(this.player, this.meteors, this.hitPlayer, null, this);
+      this.physics.add.overlap(this.player, this.powerups, this.collectPowerup, null, this);
 
       const ts = { fontFamily:'Segoe UI', fontSize:'18px' };
       const sh = (c) => ({ offsetX:0, offsetY:0, color:c, blur:8, fill:true });
@@ -80,6 +206,14 @@
       if (this.spawnTimer) this.spawnTimer.remove();
       this.spawnTimer = this.time.addEvent({
         delay: this.spawnDelay, callback: this.spawnEnemy, callbackScope: this, loop: true
+      });
+      if (this.meteorTimer) this.meteorTimer.remove();
+      this.meteorTimer = this.time.addEvent({
+        delay: 3200, callback: this.spawnMeteor, callbackScope: this, loop: true
+      });
+      if (this.powerupTimer) this.powerupTimer.remove();
+      this.powerupTimer = this.time.addEvent({
+        delay: 14000, callback: this.spawnPowerup, callbackScope: this, loop: true
       });
     }
 
@@ -99,6 +233,12 @@
       this.enemies.children.each(e => {
         if (e.active && e.y > 530) { e.destroy(); this.loseLife(); }
       });
+      this.meteors.children.each(m => {
+        if (m.active && m.y > 530) m.destroy();
+      });
+      this.powerups.children.each(p => {
+        if (p.active && p.y > 530) p.destroy();
+      });
     }
 
     spawnEnemy() {
@@ -108,6 +248,23 @@
       e.setDisplaySize(40, 40);
       e.setVelocityY(this.enemySpeed + Phaser.Math.Between(-15,15));
       e.setVelocityX(Phaser.Math.Between(-30,30));
+    }
+
+    spawnMeteor() {
+      if (this.gameOver) return;
+      const m = this.meteors.create(Phaser.Math.Between(30,770), -30, 'meteor');
+      m.setDisplaySize(44, 44);
+      m.setVelocityY(Phaser.Math.Between(60, 130));
+      m.setVelocityX(Phaser.Math.Between(-40, 40));
+      m.setAngularVelocity(Phaser.Math.Between(-60, 60));
+      m.hp = 2;
+    }
+
+    spawnPowerup() {
+      if (this.gameOver) return;
+      const p = this.powerups.create(Phaser.Math.Between(40,760), -20, 'powerup');
+      p.setDisplaySize(28, 28);
+      p.setVelocityY(80);
     }
 
     hitEnemy(bullet, enemy) {
@@ -120,17 +277,45 @@
       if (++this.waveKills >= this.enemiesPerWave) this.nextWave();
     }
 
+    hitMeteor(bullet, meteor) {
+      bullet.destroy();
+      meteor.hp--;
+      if (meteor.hp <= 0) {
+        this.exploder.emitParticleAt(meteor.x, meteor.y);
+        this.playExplosion(meteor.x, meteor.y);
+        meteor.destroy();
+        this.score += 20 * this.wave;
+        this.scoreText.setText('Score: ' + this.score);
+      }
+    }
+
+    collectPowerup(_player, powerup) {
+      powerup.destroy();
+      this.shielded = true;
+      this.player.setTint(0x00aaff);
+      this.time.delayedCall(5000, () => {
+        this.shielded = false;
+        if (!this.gameOver) this.player.clearTint();
+      });
+    }
+
     hitPlayer(_player, enemy) {
       try { this.sound.play('hitSfx'); } catch {}
       this.exploder.emitParticleAt(enemy.x, enemy.y);
       this.playExplosion(enemy.x, enemy.y);
-      enemy.destroy(); this.loseLife();
+      enemy.destroy();
+      if (this.shielded) {
+        this.shielded = false;
+        this.player.clearTint();
+        return;
+      }
+      this.loseLife();
     }
 
     playExplosion(x, y) {
       const spr = this.add.image(x, y, 'exp0').setDepth(10);
       let i = 0;
-      const t = this.time.addEvent({ delay: 80, repeat: 3, callback: () => {
+      this.time.addEvent({ delay: 80, repeat: 3, callback: () => {
         i++; if (i < 4) spr.setTexture('exp' + i); else spr.destroy();
       }});
     }

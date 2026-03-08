@@ -39,46 +39,92 @@
   <script>
   class FightScene extends Phaser.Scene {
     preload() {
-      this.load.image('fighter', '/assets/sprites/fighting/fighter.png');
-      this.load.image('enemy', '/assets/sprites/fighting/enemy.png');
-      this.load.image('punch', '/assets/sprites/fighting/punch.png');
-      this.load.image('particle', '/assets/sprites/common/particle.png');
+      const g = this.make.graphics({ add: false });
+
+      // --- Fighter (player): blue gi, skin tone head, red headband ---
+      g.fillStyle(0x2d3436); g.fillRect(0, 0, 32, 40);
+      // Headband
+      g.fillStyle(0xe74c3c); g.fillRect(6, 0, 20, 4);
+      g.fillStyle(0xc0392b); g.fillRect(26, 1, 6, 3);
+      // Head (skin)
+      g.fillStyle(0xf5cba7); g.fillRect(8, 4, 16, 14);
+      // Eyes (determined look)
+      g.fillStyle(0x2c3e50); g.fillRect(11, 9, 4, 3); g.fillRect(19, 9, 4, 3);
+      g.fillStyle(0xffffff); g.fillRect(12, 9, 2, 2); g.fillRect(20, 9, 2, 2);
+      // Mouth
+      g.fillStyle(0xd35400); g.fillRect(13, 15, 6, 2);
+      // Body (blue gi)
+      g.fillStyle(0x2980b9); g.fillRect(6, 18, 20, 14);
+      // Belt
+      g.fillStyle(0x1a1a2e); g.fillRect(6, 26, 20, 3);
+      // Arms (skin)
+      g.fillStyle(0xf5cba7); g.fillRect(0, 20, 6, 5); g.fillRect(26, 20, 6, 5);
+      // Fists
+      g.fillStyle(0xfdebd0); g.fillRect(0, 25, 6, 3); g.fillRect(26, 25, 6, 3);
+      // Legs (blue)
+      g.fillStyle(0x2471a3); g.fillRect(8, 32, 7, 8); g.fillRect(17, 32, 7, 8);
+      g.generateTexture('fighter', 32, 40);
+      g.clear();
+
+      // --- Enemy: red outfit, pale skin, angry eyes ---
+      g.fillStyle(0x2d3436); g.fillRect(0, 0, 32, 40);
+      // Spiky hair
+      g.fillStyle(0x1a1a2e);
+      g.fillRect(8, 0, 16, 4);
+      g.fillRect(6, 1, 4, 5); g.fillRect(22, 1, 4, 5);
+      g.fillRect(10, 0, 3, 2); g.fillRect(19, 0, 3, 2);
+      // Head (pale)
+      g.fillStyle(0xdfe6e9); g.fillRect(8, 4, 16, 14);
+      // Angry eyes (red pupils, angled brows)
+      g.fillStyle(0xc0392b); g.fillRect(11, 9, 4, 3); g.fillRect(19, 9, 4, 3);
+      g.fillStyle(0xff6b6b); g.fillRect(12, 10, 2, 2); g.fillRect(20, 10, 2, 2);
+      // Angry brows
+      g.fillStyle(0x1a1a2e); g.fillRect(10, 7, 6, 2); g.fillRect(18, 7, 6, 2);
+      // Snarl mouth
+      g.fillStyle(0xe74c3c); g.fillRect(12, 15, 8, 2);
+      g.fillStyle(0xffffff); g.fillRect(14, 15, 2, 1); g.fillRect(18, 15, 2, 1);
+      // Body (red outfit)
+      g.fillStyle(0xc0392b); g.fillRect(6, 18, 20, 14);
+      // Belt (dark)
+      g.fillStyle(0x2d3436); g.fillRect(6, 26, 20, 3);
+      g.fillStyle(0xf1c40f); g.fillRect(13, 26, 6, 3);
+      // Arms (pale)
+      g.fillStyle(0xdfe6e9); g.fillRect(0, 20, 6, 5); g.fillRect(26, 20, 6, 5);
+      // Fists
+      g.fillStyle(0xbdc3c7); g.fillRect(0, 25, 6, 3); g.fillRect(26, 25, 6, 3);
+      // Legs (dark red)
+      g.fillStyle(0x922b21); g.fillRect(8, 32, 7, 8); g.fillRect(17, 32, 7, 8);
+      g.generateTexture('enemy', 32, 40);
+      g.clear();
+
+      // --- Punch/kick effect: yellow starburst ---
+      g.fillStyle(0xf1c40f);
+      g.fillCircle(10, 10, 10);
+      g.fillStyle(0xfdcb6e);
+      g.fillCircle(10, 10, 6);
+      g.fillStyle(0xffeaa7);
+      g.fillCircle(8, 8, 3);
+      // Spikes for impact feel
+      g.fillStyle(0xf39c12);
+      g.fillTriangle(10, 0, 8, 5, 12, 5);
+      g.fillTriangle(20, 10, 15, 8, 15, 12);
+      g.fillTriangle(10, 20, 8, 15, 12, 15);
+      g.fillTriangle(0, 10, 5, 8, 5, 12);
+      g.generateTexture('punch', 20, 20);
+      g.clear();
+
+      // --- Particle: small white glow ---
+      g.fillStyle(0xffffff, 0.9);
+      g.fillCircle(4, 4, 4);
+      g.fillStyle(0xffeaa7, 0.6);
+      g.fillCircle(4, 4, 2);
+      g.generateTexture('particle', 8, 8);
+      g.clear();
+
+      g.destroy();
     }
 
     create() {
-      const g = this.make.graphics({ add: false });
-
-      if (!this.textures.exists('fighter') || this.textures.get('fighter').key === '__MISSING') {
-        g.fillStyle(0x2980b9); g.fillRect(4, 0, 24, 14);
-        g.fillStyle(0xfad390); g.fillRect(8, 0, 16, 14);
-        g.fillStyle(0x2d3436); g.fillRect(12, 4, 3, 3); g.fillRect(19, 4, 3, 3);
-        g.fillStyle(0xe17055); g.fillRect(14, 10, 6, 2);
-        g.fillStyle(0xd63031); g.fillRect(4, 14, 24, 18);
-        g.fillStyle(0xfad390); g.fillRect(0, 16, 6, 4); g.fillRect(26, 16, 6, 4);
-        g.fillStyle(0x2d3436); g.fillRect(8, 32, 7, 8); g.fillRect(18, 32, 7, 8);
-        g.generateTexture('fighter', 32, 40); g.clear();
-      }
-      if (!this.textures.exists('enemy') || this.textures.get('enemy').key === '__MISSING') {
-        g.fillStyle(0x6c5ce7); g.fillRect(4, 0, 24, 14);
-        g.fillStyle(0xb8b5c4); g.fillRect(8, 0, 16, 14);
-        g.fillStyle(0x2d3436); g.fillRect(12, 4, 3, 3); g.fillRect(19, 4, 3, 3);
-        g.fillStyle(0xff3838); g.fillRect(14, 10, 6, 2);
-        g.fillStyle(0x636e72); g.fillRect(4, 14, 24, 18);
-        g.fillStyle(0xb8b5c4); g.fillRect(0, 16, 6, 4); g.fillRect(26, 16, 6, 4);
-        g.fillStyle(0x2d3436); g.fillRect(8, 32, 7, 8); g.fillRect(18, 32, 7, 8);
-        g.generateTexture('enemy', 32, 40); g.clear();
-      }
-      if (!this.textures.exists('punch') || this.textures.get('punch').key === '__MISSING') {
-        g.fillStyle(0xfdcb6e); g.fillCircle(8, 8, 8);
-        g.fillStyle(0xffeaa7); g.fillCircle(6, 6, 3);
-        g.generateTexture('punch', 16, 16); g.clear();
-      }
-      if (!this.textures.exists('particle') || this.textures.get('particle').key === '__MISSING') {
-        g.fillStyle(0xffffff); g.fillCircle(4, 4, 4);
-        g.generateTexture('particle', 8, 8); g.clear();
-      }
-      g.destroy();
-
       this.touchLeft = false;
       this.touchRight = false;
       this.touchJump = false;
@@ -99,12 +145,35 @@
       this.attackCooldown = 0;
       this.facingRight = true;
 
+      // Dark urban backdrop
       const bg = this.add.graphics();
-      bg.fillGradientStyle(0x2d3436, 0x2d3436, 0x636e72, 0x636e72);
+      bg.fillGradientStyle(0x1a1a2e, 0x1a1a2e, 0x16213e, 0x16213e);
       bg.fillRect(0, 0, 800, 500);
-      bg.fillStyle(0x1e272e); bg.fillRect(0, 430, 800, 70);
+      // Distant city silhouettes
+      bg.fillStyle(0x0f3460);
+      bg.fillRect(20, 300, 60, 130); bg.fillRect(100, 280, 40, 150);
+      bg.fillRect(160, 320, 70, 110); bg.fillRect(260, 260, 50, 170);
+      bg.fillRect(340, 300, 80, 130); bg.fillRect(460, 270, 45, 160);
+      bg.fillRect(540, 310, 65, 120); bg.fillRect(640, 280, 55, 150);
+      bg.fillRect(720, 300, 80, 130);
+      // Building windows (dim yellow)
+      bg.fillStyle(0x534b2e, 0.4);
+      for (let bx = 20; bx < 780; bx += 120) {
+        for (let wy = 290; wy < 420; wy += 20) {
+          if (Math.random() > 0.4) {
+            bg.fillRect(bx + 8, wy, 6, 8);
+            bg.fillRect(bx + 22, wy, 6, 8);
+          }
+        }
+      }
+      // Street / ground
+      bg.fillStyle(0x2d3436); bg.fillRect(0, 430, 800, 70);
+      // Sidewalk lines
       bg.fillStyle(0x485460, 0.3);
       for (let x = 0; x < 800; x += 80) bg.fillRect(x, 430, 40, 70);
+      // Lane marking
+      bg.fillStyle(0xf1c40f, 0.15);
+      bg.fillRect(0, 428, 800, 2);
 
       this.player = this.physics.add.sprite(120, 390, 'fighter')
         .setCollideWorldBounds(true).setScale(2).setDepth(5);

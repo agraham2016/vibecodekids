@@ -4,27 +4,28 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <style>
     :root {
-      --game-primary: #6c5ce7;
-      --game-secondary: #a29bfe;
-      --game-bg: #2d1b69;
+      --game-primary: #00ffff;
+      --game-secondary: #ff00ff;
+      --game-bg: #0a0a2e;
       --game-text: #ffffff;
-      --game-accent: #fd79a8;
+      --game-accent: #ff0055;
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: 'Segoe UI', sans-serif;
-      background: linear-gradient(135deg, #6c5ce7 0%, #a29bfe 50%, #fd79a8 100%);
+      background: linear-gradient(135deg, #05051a 0%, #0a0a2e 50%, #0f0a2a 100%);
       min-height: 100vh;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       overflow: hidden;
-     touch-action: none; }
+      touch-action: none;
+    }
     #game-container {
       border-radius: 12px;
       overflow: hidden;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+      box-shadow: 0 0 40px rgba(0, 255, 255, 0.25), 0 0 80px rgba(255, 0, 255, 0.12);
     }
   </style>
 </head>
@@ -39,7 +40,7 @@
     const COLS = 10, ROWS = 6;
     const BALL_SPEED = 300;
 
-    const BRICK_COLORS = [0xe74c3c, 0xe67e22, 0xf1c40f, 0x2ecc71, 0x3498db, 0x9b59b6];
+    const BRICK_COLORS = [0xff0055, 0xff6600, 0xffee00, 0x00ff66, 0x00ddff, 0xcc44ff];
     const BRICK_HP =     [3,        2,        2,        1,        1,        1];
     const BRICK_SCORE =  [50,       40,       30,       20,       15,       10];
 
@@ -53,74 +54,100 @@
       width: W,
       height: H,
       parent: 'game-container',
-      backgroundColor: '#2d1b69',
+      backgroundColor: '#0a0a2e',
       physics: { default: 'arcade', arcade: { gravity: { y: 0 }, debug: false, checkCollision: { down: false } } },
       scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
       scene: { preload, create, update }
     };
 
     function preload() {
-      this.load.image('paddle', '/assets/sprites/brick-breaker/paddle.png');
-      this.load.image('ball', '/assets/sprites/brick-breaker/ball.png');
-      this.load.image('brick', '/assets/sprites/brick-breaker/brick.png');
-      this.load.image('powerup', '/assets/sprites/brick-breaker/powerup.png');
-      this.load.image('particle', '/assets/sprites/common/particle.png');
+      const g = this.make.graphics({ add: false });
+
+      // Paddle: sleek metallic chrome with neon cyan trim
+      g.fillStyle(0x00ffff, 0.3);
+      g.fillRoundedRect(0, 0, PADDLE_W, PADDLE_H, 7);
+      g.fillStyle(0x3a4a6a);
+      g.fillRoundedRect(1, 1, PADDLE_W - 2, PADDLE_H - 2, 6);
+      g.fillStyle(0x5a6a8a);
+      g.fillRoundedRect(2, 2, PADDLE_W - 4, 6, 4);
+      g.fillStyle(0x7a8aaa);
+      g.fillRoundedRect(4, 2, PADDLE_W - 8, 3, 2);
+      g.fillStyle(0x00ffff, 0.7);
+      g.fillRect(8, 0, PADDLE_W - 16, 1);
+      g.generateTexture('paddle', PADDLE_W, PADDLE_H);
+      g.clear();
+
+      // Ball: glowing cyan/white orb
+      g.fillStyle(0x00aaff);
+      g.fillCircle(BALL_R, BALL_R, BALL_R);
+      g.fillStyle(0x44ddff);
+      g.fillCircle(BALL_R, BALL_R, BALL_R - 1);
+      g.fillStyle(0xaaeeff);
+      g.fillCircle(BALL_R, BALL_R, BALL_R - 3);
+      g.fillStyle(0xffffff);
+      g.fillCircle(BALL_R, BALL_R, BALL_R - 4);
+      g.fillStyle(0xffffff, 0.9);
+      g.fillCircle(BALL_R - 2, BALL_R - 2, 2);
+      g.generateTexture('ball', BALL_R * 2, BALL_R * 2);
+      g.clear();
+
+      // Brick: white base with bevel for tinting — bright edge, slightly darker center
+      g.fillStyle(0xffffff);
+      g.fillRoundedRect(0, 0, BRICK_W, BRICK_H, 4);
+      g.fillStyle(0xcccccc);
+      g.fillRoundedRect(2, 2, BRICK_W - 4, BRICK_H - 4, 3);
+      g.fillStyle(0xffffff, 0.45);
+      g.fillRoundedRect(3, 2, BRICK_W - 6, (BRICK_H - 4) / 2, 2);
+      g.generateTexture('brick', BRICK_W, BRICK_H);
+      g.clear();
+
+      // Powerup: neon glowing orb
+      g.fillStyle(0xffffff, 0.2);
+      g.fillCircle(10, 10, 10);
+      g.fillStyle(0xffffff, 0.5);
+      g.fillCircle(10, 10, 7);
+      g.fillStyle(0xffffff);
+      g.fillCircle(10, 10, 4);
+      g.fillStyle(0xffffff, 0.85);
+      g.fillCircle(9, 9, 2);
+      g.generateTexture('powerup', 20, 20);
+      g.clear();
+
+      // Particle: small bright dot
+      g.fillStyle(0xffffff, 0.6);
+      g.fillCircle(4, 4, 4);
+      g.fillStyle(0xffffff);
+      g.fillCircle(4, 4, 3);
+      g.generateTexture('particle', 8, 8);
+      g.clear();
+
+      g.destroy();
     }
 
     function create() {
-      const g = this.make.graphics({ x: 0, y: 0, add: false });
-
-      if (!this.textures.exists('paddle') || this.textures.get('paddle').key === '__MISSING') {
-        g.fillStyle(0xffffff);
-        g.fillRoundedRect(0, 0, PADDLE_W, PADDLE_H, 6);
-        g.fillStyle(0xa29bfe);
-        g.fillRoundedRect(2, 2, PADDLE_W - 4, PADDLE_H - 4, 5);
-        g.fillStyle(0x6c5ce7);
-        g.fillRoundedRect(4, 4, PADDLE_W - 8, PADDLE_H - 8, 4);
-        g.generateTexture('paddle', PADDLE_W, PADDLE_H);
-        g.clear();
-      }
-
-      if (!this.textures.exists('ball') || this.textures.get('ball').key === '__MISSING') {
-        g.fillStyle(0xffffff);
-        g.fillCircle(BALL_R, BALL_R, BALL_R);
-        g.fillStyle(0xdfe6e9, 0.6);
-        g.fillCircle(BALL_R - 2, BALL_R - 2, 3);
-        g.generateTexture('ball', BALL_R * 2, BALL_R * 2);
-        g.clear();
-      }
-
-      if (!this.textures.exists('brick') || this.textures.get('brick').key === '__MISSING') {
-        g.fillStyle(0xffffff);
-        g.fillRoundedRect(0, 0, BRICK_W, BRICK_H, 3);
-        g.generateTexture('brick', BRICK_W, BRICK_H);
-        g.clear();
-      }
-
-      if (!this.textures.exists('powerup') || this.textures.get('powerup').key === '__MISSING') {
-        g.fillStyle(0xfd79a8);
-        g.fillCircle(10, 10, 10);
-        g.fillStyle(0xffffff);
-        g.fillCircle(10, 10, 6);
-        g.generateTexture('powerup', 20, 20);
-        g.clear();
-      }
-
-      if (!this.textures.exists('particle') || this.textures.get('particle').key === '__MISSING') {
-        g.fillStyle(0xffffff);
-        g.fillCircle(4, 4, 4);
-        g.generateTexture('particle', 8, 8);
-        g.clear();
-      }
-
-      g.destroy();
-
       const bg = this.add.graphics();
-      bg.fillStyle(0x2d1b69);
+      bg.fillStyle(0x0a0a2e);
       bg.fillRect(0, 0, W, H);
-      for (let i = 0; i < 50; i++) {
-        bg.fillStyle(0xffffff, Phaser.Math.FloatBetween(0.05, 0.2));
-        bg.fillCircle(Phaser.Math.Between(0, W), Phaser.Math.Between(0, H), Phaser.Math.Between(1, 2));
+
+      bg.lineStyle(1, 0x141440, 0.35);
+      for (let x = 0; x <= W; x += 40) {
+        bg.moveTo(x, 0);
+        bg.lineTo(x, H);
+      }
+      for (let y = 0; y <= H; y += 40) {
+        bg.moveTo(0, y);
+        bg.lineTo(W, y);
+      }
+      bg.strokePath();
+
+      const starColors = [0x00ffff, 0xff00ff, 0xff0055, 0x00ff66, 0xffee00];
+      for (let i = 0; i < 40; i++) {
+        bg.fillStyle(starColors[i % starColors.length], Phaser.Math.FloatBetween(0.04, 0.15));
+        bg.fillCircle(
+          Phaser.Math.Between(0, W),
+          Phaser.Math.Between(0, H),
+          Phaser.Math.Between(1, 2)
+        );
       }
 
       score = 0;
@@ -145,19 +172,19 @@
       this.physics.add.overlap(powerups, paddle, collectPowerup, null, this);
 
       scoreText = this.add.text(12, H - 24, 'Score: 0', {
-        fontSize: '16px', fontFamily: 'Segoe UI', fill: '#fff', stroke: '#000', strokeThickness: 2
+        fontSize: '16px', fontFamily: 'Segoe UI', fill: '#00ffff', stroke: '#000', strokeThickness: 2
       }).setDepth(10);
 
       livesText = this.add.text(W - 12, H - 24, 'Lives: 3', {
-        fontSize: '16px', fontFamily: 'Segoe UI', fill: '#fd79a8', stroke: '#000', strokeThickness: 2
+        fontSize: '16px', fontFamily: 'Segoe UI', fill: '#ff0055', stroke: '#000', strokeThickness: 2
       }).setOrigin(1, 0).setDepth(10);
 
       levelText = this.add.text(W / 2, H - 24, 'Level 1', {
-        fontSize: '16px', fontFamily: 'Segoe UI', fill: '#f1c40f', stroke: '#000', strokeThickness: 2
+        fontSize: '16px', fontFamily: 'Segoe UI', fill: '#ffee00', stroke: '#000', strokeThickness: 2
       }).setOrigin(0.5, 0).setDepth(10);
 
       msgText = this.add.text(W / 2, H / 2, '', {
-        fontSize: '28px', fontFamily: 'Segoe UI', fill: '#fff', stroke: '#000', strokeThickness: 4, align: 'center'
+        fontSize: '28px', fontFamily: 'Segoe UI', fill: '#fff', stroke: '#0a0a2e', strokeThickness: 4, align: 'center'
       }).setOrigin(0.5).setDepth(20).setVisible(false);
 
       cursors = this.input.keyboard.createCursorKeys();
@@ -270,7 +297,7 @@
           pw.setVelocityY(120);
           const types = ['wide', 'multi', 'slow'];
           pw.powerType = types[Phaser.Math.Between(0, types.length - 1)];
-          const tints = { wide: 0x2ecc71, multi: 0x3498db, slow: 0xf1c40f };
+          const tints = { wide: 0x00ff66, multi: 0x00ccff, slow: 0xffee00 };
           pw.setTint(tints[pw.powerType]);
         }
 

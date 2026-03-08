@@ -8,209 +8,231 @@
     body {
       font-family: 'Segoe UI', sans-serif;
       background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      overflow: hidden;
-      touch-action: none;
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      overflow: hidden; touch-action: none;
     }
-    #game-container {
-      min-width: 320px;
-      min-height: 200px;
-      border-radius: 12px;
-      overflow: hidden;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-    }
-    #error-msg { display: none; color: #fff; padding: 20px; background: rgba(0,0,0,0.5); border-radius: 8px; margin: 20px; }
-    #error-msg.visible { display: block; }
+    #game-container { min-width: 320px; min-height: 200px; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
   </style>
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.86.0/dist/phaser.min.js" crossorigin="anonymous"></script>
 </head>
 <body>
   <div id="game-container"></div>
-  <div id="error-msg"></div>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.70.0/phaser.min.js" crossorigin="anonymous"></script>
   <script>
-    (function() {
-      const errEl = document.getElementById('error-msg');
-      function showErr(msg) { errEl.textContent = msg; errEl.classList.add('visible'); }
+  (function() {
+    var W = 800, H = 500, WORLD_W = 2400;
 
-      if (typeof Phaser === 'undefined') {
-        showErr('Phaser failed to load. Check your internet connection.');
-        return;
+    function preload() {
+      var g = this.make.graphics({ add: false });
+
+      // Player — green character with eyes and feet
+      g.fillStyle(0x2ecc71); g.fillRoundedRect(8, 8, 28, 28, 6);
+      g.fillStyle(0x27ae60); g.fillRoundedRect(10, 12, 24, 22, 5);
+      g.fillStyle(0xffffff); g.fillCircle(18, 16, 5); g.fillCircle(30, 16, 5);
+      g.fillStyle(0x2d3436); g.fillCircle(19, 16, 3); g.fillCircle(31, 16, 3);
+      g.fillStyle(0xffffff); g.fillCircle(20, 15, 1); g.fillCircle(32, 15, 1);
+      g.fillStyle(0xe17055); g.fillRect(22, 24, 6, 3);
+      g.fillStyle(0x2d3436); g.fillRoundedRect(12, 36, 10, 8, 3);
+      g.fillRoundedRect(26, 36, 10, 8, 3);
+      g.generateTexture('player', 48, 48); g.clear();
+
+      // Ground tile — grass top, dirt bottom
+      g.fillStyle(0x8B4513); g.fillRect(0, 0, 70, 70);
+      g.fillStyle(0xa0522d); g.fillRect(0, 0, 70, 70);
+      g.fillStyle(0x2ecc71); g.fillRect(0, 0, 70, 14);
+      g.fillStyle(0x27ae60); g.fillRect(0, 10, 70, 8);
+      g.fillStyle(0x6d4c41, 0.4); g.fillCircle(20, 40, 6); g.fillCircle(50, 50, 5); g.fillCircle(35, 60, 4);
+      g.generateTexture('ground', 70, 70); g.clear();
+
+      // Platform — wooden plank
+      g.fillStyle(0xd4a76a); g.fillRoundedRect(0, 0, 96, 24, 4);
+      g.fillStyle(0xc49a5e); g.fillRect(4, 4, 88, 16);
+      g.lineStyle(1, 0xb08d4f, 0.5);
+      g.lineBetween(8, 8, 88, 8); g.lineBetween(8, 14, 88, 14);
+      g.fillStyle(0x8B6914, 0.3); g.fillCircle(20, 12, 3); g.fillCircle(72, 10, 2);
+      g.generateTexture('platform', 96, 24); g.clear();
+
+      // Coin — spinning gold circle
+      g.fillStyle(0xffd700); g.fillCircle(14, 14, 13);
+      g.fillStyle(0xffa502); g.fillCircle(14, 14, 9);
+      g.fillStyle(0xffd700); g.fillCircle(14, 14, 6);
+      g.fillStyle(0xfffff0, 0.5); g.fillCircle(11, 11, 4);
+      g.generateTexture('coin', 28, 28); g.clear();
+
+      // Enemy — purple slime with eyes
+      g.fillStyle(0x6c5ce7); g.fillEllipse(18, 22, 32, 26);
+      g.fillStyle(0xa29bfe); g.fillEllipse(18, 18, 26, 18);
+      g.fillStyle(0xffffff); g.fillCircle(12, 16, 5); g.fillCircle(24, 16, 5);
+      g.fillStyle(0x2d3436); g.fillCircle(13, 17, 3); g.fillCircle(25, 17, 3);
+      g.fillStyle(0xdfe6e9, 0.3); g.fillEllipse(14, 12, 8, 4);
+      g.generateTexture('enemy', 36, 36); g.clear();
+
+      // Sky background tile
+      g.fillGradientStyle(0x74b9ff, 0x74b9ff, 0xa29bfe, 0xa29bfe);
+      g.fillRect(0, 0, 128, 128);
+      g.fillStyle(0xffffff, 0.3); g.fillEllipse(40, 30, 50, 20);
+      g.fillStyle(0xffffff, 0.2); g.fillEllipse(100, 50, 40, 16);
+      g.generateTexture('bgSky', 128, 128); g.clear();
+
+      // Hills background tile
+      g.fillStyle(0x55efc4, 0.4);
+      g.fillEllipse(64, 100, 160, 80);
+      g.fillStyle(0x00b894, 0.3);
+      g.fillEllipse(30, 110, 100, 60);
+      g.fillEllipse(100, 115, 120, 50);
+      g.generateTexture('bgHills', 128, 128); g.clear();
+
+      g.destroy();
+    }
+
+    function create() {
+      var player, cursors, coins, enemies, platforms, scoreText;
+      var score = 0, gameOver = false;
+      var touchLeft = false, touchRight = false, touchJump = false;
+      var scene = this;
+
+      this.physics.world.setBounds(0, 0, WORLD_W, H);
+      this.add.tileSprite(0, 0, WORLD_W, H, 'bgSky').setOrigin(0);
+      this.add.tileSprite(0, 0, WORLD_W, H, 'bgHills').setOrigin(0);
+
+      platforms = this.physics.add.staticGroup();
+      for (var x = 0; x < WORLD_W; x += 70) {
+        platforms.create(x + 35, H - 35, 'ground');
+      }
+      var platPositions = [
+        [200,380],[400,300],[600,350],[750,250],[1000,320],[1200,260],
+        [1400,380],[1600,300],[1800,250],[2000,340],[2200,280]
+      ];
+      for (var i = 0; i < platPositions.length; i++) {
+        var plat = platforms.create(platPositions[i][0], platPositions[i][1], 'platform');
+        plat.setDisplaySize(96, 24).refreshBody();
       }
 
-      let player, cursors, coins, enemies, platforms, scoreText, score = 0, gameOver = false;
-      let touchLeft = false, touchRight = false, touchJump = false;
+      player = this.physics.add.sprite(100, 400, 'player');
+      player.setDisplaySize(48, 48);
+      player.body.setSize(28, 36); player.body.setOffset(10, 8);
+      player.setCollideWorldBounds(true).setBounce(0.1);
 
-      function preload() {
-        this.load.image('player', '/assets/sprites/kenney-platformer/character_green_idle.png');
-        this.load.image('ground', '/assets/sprites/kenney-platformer/terrain_grass_block.png');
-        this.load.image('platform', '/assets/sprites/kenney-platformer/block_plank.png');
-        this.load.image('coin', '/assets/sprites/kenney-platformer/coin_gold.png');
-        this.load.image('enemy', '/assets/sprites/kenney-platformer/slime_normal_rest.png');
-        this.load.image('bgSky', '/assets/sprites/kenney-platformer/background_solid_sky.png');
-        this.load.image('bgHills', '/assets/sprites/kenney-platformer/background_color_hills.png');
+      coins = this.physics.add.group();
+      var coinPositions = [
+        [200,340],[400,260],[600,310],[750,210],[1000,280],[1200,220],[1400,340],
+        [1600,260],[1800,210],[2000,300],[2200,240],[300,440],[550,440],
+        [900,440],[1300,440],[1700,440],[2100,440]
+      ];
+      for (var i = 0; i < coinPositions.length; i++) {
+        var c = coins.create(coinPositions[i][0], coinPositions[i][1], 'coin');
+        c.setDisplaySize(28, 28); c.body.setSize(24, 24);
+        c.setBounceY(0.3);
       }
 
-      function create() {
-        this.physics.world.setBounds(0, 0, 2400, 500);
-        this.add.tileSprite(0, 0, 2400, 500, 'bgSky').setOrigin(0);
-        this.add.tileSprite(0, 0, 2400, 500, 'bgHills').setOrigin(0);
-
-        var tex = this.textures.get('ground');
-        var f = tex && (tex.frames['__BASE'] || tex.frames[Object.keys(tex.frames)[0]]);
-        var gw = f ? f.cutWidth : 70;
-        var gh = f ? f.cutHeight : 70;
-
-        platforms = this.physics.add.staticGroup();
-        for (var x = 0; x < 2400; x += gw) {
-          platforms.create(x + gw / 2, 500 - gh / 2, 'ground');
-        }
-        [[200,380],[400,300],[600,350],[750,250],[1000,320],[1200,260],
-         [1400,380],[1600,300],[1800,250],[2000,340],[2200,280]
-        ].forEach(function(p) {
-          var plat = platforms.create(p[0], p[1], 'platform');
-          plat.setDisplaySize(96, 24);
-          plat.refreshBody();
-        });
-
-        player = this.physics.add.sprite(100, 400, 'player');
-        player.setDisplaySize(48, 48);
-        player.body.setSize(48, 48);
-        player.setCollideWorldBounds(true);
-        player.setBounce(0.1);
-
-        coins = this.physics.add.group();
-        [[200,340],[400,260],[600,310],[750,210],[1000,280],[1200,220],[1400,340],
-         [1600,260],[1800,210],[2000,300],[2200,240],[300,440],[550,440],
-         [900,440],[1300,440],[1700,440],[2100,440]
-        ].forEach(function(c) {
-          var coin = coins.create(c[0], c[1], 'coin');
-          coin.setDisplaySize(28, 28);
-          coin.body.setSize(28, 28);
-          coin.setBounceY(0.3);
-        });
-
-        enemies = this.physics.add.group();
-        [[380,270,340,460],[730,220,690,810],[1180,230,1140,1260],
-         [1580,270,1540,1660],[1980,310,1940,2060]
-        ].forEach(function(e) {
-          var enemy = enemies.create(e[0], e[1], 'enemy');
-          enemy.setDisplaySize(36, 36);
-          enemy.body.setSize(36, 36);
-          enemy.setCollideWorldBounds(true);
-          enemy.setBounce(1, 0);
-          enemy.setVelocityX(60);
-          enemy.patrolMin = e[2];
-          enemy.patrolMax = e[3];
-        });
-
-        this.physics.add.collider(player, platforms);
-        this.physics.add.collider(coins, platforms);
-        this.physics.add.collider(enemies, platforms);
-        this.physics.add.overlap(player, coins, collectCoin, null, this);
-        this.physics.add.overlap(player, enemies, hitEnemy, null, this);
-
-        scoreText = this.add.text(16, 16, 'Score: 0', {
-          fontSize: '22px', fontFamily: 'Segoe UI', fill: '#fff', stroke: '#333', strokeThickness: 3
-        }).setScrollFactor(0).setDepth(10);
-
-        this.cameras.main.setBounds(0, 0, 2400, 500);
-        this.cameras.main.startFollow(player, true, 0.08, 0.08);
-
-        var kb = this.input.keyboard;
-        cursors = kb ? kb.createCursorKeys() : null;
-        if (kb) {
-          kb.on('keydown-SPACE', function() {
-            if (gameOver) { gameOver = false; score = 0; this.scene.restart(); }
-          }.bind(this));
-        }
-        if (this.game.canvas) {
-          this.game.canvas.tabIndex = 1;
-          this.game.canvas.style.outline = 'none';
-        }
-        this.input.on('pointerdown', function() {
-          if (this.game.canvas && document.activeElement !== this.game.canvas) {
-            this.game.canvas.focus();
-          }
-        }, this);
-
-        var bw = 72, bh = 72, ba = 0.35, bd = 2000;
-        var btnL = this.add.rectangle(60, 440, bw, bh, 0xffffff, ba).setScrollFactor(0).setDepth(bd).setInteractive({ useHandCursor: true });
-        var btnR = this.add.rectangle(160, 440, bw, bh, 0xffffff, ba).setScrollFactor(0).setDepth(bd).setInteractive({ useHandCursor: true });
-        var btnJ = this.add.rectangle(700, 440, bw, bh, 0xffffff, ba).setScrollFactor(0).setDepth(bd).setInteractive({ useHandCursor: true });
-        this.add.text(60, 440, '\u25C0', { fontSize: '32px', fill: '#fff', stroke: '#333', strokeThickness: 2 }).setOrigin(0.5).setScrollFactor(0).setDepth(bd + 1);
-        this.add.text(160, 440, '\u25B6', { fontSize: '32px', fill: '#fff', stroke: '#333', strokeThickness: 2 }).setOrigin(0.5).setScrollFactor(0).setDepth(bd + 1);
-        this.add.text(700, 440, '\u25B2', { fontSize: '32px', fill: '#fff', stroke: '#333', strokeThickness: 2 }).setOrigin(0.5).setScrollFactor(0).setDepth(bd + 1);
-        btnL.on('pointerdown', function() { touchLeft = true; });
-        btnL.on('pointerup', function() { touchLeft = false; });
-        btnL.on('pointerout', function() { touchLeft = false; });
-        btnR.on('pointerdown', function() { touchRight = true; });
-        btnR.on('pointerup', function() { touchRight = false; });
-        btnR.on('pointerout', function() { touchRight = false; });
-        btnJ.on('pointerdown', function() { touchJump = true; });
-        btnJ.on('pointerup', function() { touchJump = false; });
-        btnJ.on('pointerout', function() { touchJump = false; });
-        this.input.on('pointerdown', function() {
-          if (gameOver) { gameOver = false; score = 0; this.scene.restart(); }
-        }.bind(this));
+      enemies = this.physics.add.group();
+      var enemyData = [
+        [380,270,340,460],[730,220,690,810],[1180,230,1140,1260],
+        [1580,270,1540,1660],[1980,310,1940,2060]
+      ];
+      for (var i = 0; i < enemyData.length; i++) {
+        var ed = enemyData[i];
+        var e = enemies.create(ed[0], ed[1], 'enemy');
+        e.setDisplaySize(36, 36); e.body.setSize(30, 26); e.body.setOffset(3, 8);
+        e.setCollideWorldBounds(true).setBounce(1, 0).setVelocityX(60);
+        e.patrolMin = ed[2]; e.patrolMax = ed[3];
       }
 
-      function update() {
-        if (gameOver) return;
-        var left = cursors && cursors.left.isDown;
-        var right = cursors && cursors.right.isDown;
-        var up = cursors && cursors.up.isDown;
-        if (left || touchLeft) { player.setVelocityX(-200); player.setFlipX(true); }
-        else if (right || touchRight) { player.setVelocityX(200); player.setFlipX(false); }
-        else { player.setVelocityX(0); }
-        if ((up || touchJump) && player.body.touching.down) {
-          player.setVelocityY(-420);
-          touchJump = false;
-        }
-        enemies.children.iterate(function(e) {
-          if (!e || !e.active) return;
-          if (e.x <= e.patrolMin) e.setVelocityX(60);
-          else if (e.x >= e.patrolMax) e.setVelocityX(-60);
-        });
-      }
-
-      function collectCoin(p, coin) {
+      this.physics.add.collider(player, platforms);
+      this.physics.add.collider(coins, platforms);
+      this.physics.add.collider(enemies, platforms);
+      this.physics.add.overlap(player, coins, function(p, coin) {
         coin.destroy();
         score += 10;
         scoreText.setText('Score: ' + score);
-        var sparkle = this.add.circle(coin.x, coin.y, 10, 0xffd700);
-        this.tweens.add({ targets: sparkle, scale: 2, alpha: 0, duration: 300, onComplete: function() { sparkle.destroy(); } });
+        var sparkle = scene.add.circle(coin.x, coin.y, 10, 0xffd700);
+        scene.tweens.add({ targets: sparkle, scale: 2, alpha: 0, duration: 300, onComplete: function() { sparkle.destroy(); } });
         if (coins.countActive(true) === 0) {
-          scoreText.setText('YOU WIN! Score: ' + score + '\nPress SPACE');
+          scoreText.setText('YOU WIN! Score: ' + score + '\nTap or SPACE to restart');
           gameOver = true;
         }
-      }
-
-      function hitEnemy(p, enemy) {
-        this.physics.pause();
+      }, null, this);
+      this.physics.add.overlap(player, enemies, function() {
+        scene.physics.pause();
         player.setTint(0xff0000);
-        scoreText.setText('GAME OVER! Score: ' + score + '\nPress SPACE');
+        scoreText.setText('GAME OVER! Score: ' + score + '\nTap or SPACE to restart');
         gameOver = true;
-      }
+      }, null, this);
 
-      try {
-        var config = {
-          type: Phaser.CANVAS,
-          width: 800,
-          height: 500,
-          parent: 'game-container',
-          backgroundColor: '#87CEEB',
-          physics: { default: 'arcade', arcade: { gravity: { y: 800 }, debug: false } },
-          scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
-          scene: { preload: preload, create: create, update: update }
-        };
-        new Phaser.Game(config);
-      } catch (e) {
-        showErr('Error: ' + (e.message || String(e)));
+      scoreText = this.add.text(16, 16, 'Score: 0', {
+        fontSize: '22px', fill: '#fff', stroke: '#333', strokeThickness: 3
+      }).setScrollFactor(0).setDepth(10);
+
+      this.cameras.main.setBounds(0, 0, WORLD_W, H);
+      this.cameras.main.startFollow(player, true, 0.08, 0.08);
+
+      cursors = this.input.keyboard ? this.input.keyboard.createCursorKeys() : null;
+      if (this.input.keyboard) {
+        this.input.keyboard.on('keydown-SPACE', function() {
+          if (gameOver) { gameOver = false; score = 0; scene.scene.restart(); }
+        });
       }
-    })();
+      if (this.game.canvas) { this.game.canvas.tabIndex = 1; this.game.canvas.style.outline = 'none'; }
+      this.input.on('pointerdown', function() {
+        if (scene.game.canvas && document.activeElement !== scene.game.canvas) scene.game.canvas.focus();
+        if (gameOver) { gameOver = false; score = 0; scene.scene.restart(); }
+      });
+
+      // Touch controls
+      var bw = 72, bh = 72;
+      var btnL = this.add.rectangle(60, 440, bw, bh, 0xffffff, 0.3).setScrollFactor(0).setDepth(100).setInteractive();
+      var btnR = this.add.rectangle(160, 440, bw, bh, 0xffffff, 0.3).setScrollFactor(0).setDepth(100).setInteractive();
+      var btnJ = this.add.rectangle(W - 100, 440, bw, bh, 0xffffff, 0.3).setScrollFactor(0).setDepth(100).setInteractive();
+      this.add.text(60, 440, '\u25C0', { fontSize: '28px', fill: '#fff' }).setOrigin(0.5).setScrollFactor(0).setDepth(101);
+      this.add.text(160, 440, '\u25B6', { fontSize: '28px', fill: '#fff' }).setOrigin(0.5).setScrollFactor(0).setDepth(101);
+      this.add.text(W - 100, 440, '\u25B2', { fontSize: '28px', fill: '#fff' }).setOrigin(0.5).setScrollFactor(0).setDepth(101);
+      btnL.on('pointerdown', function() { touchLeft = true; });
+      btnL.on('pointerup', function() { touchLeft = false; });
+      btnL.on('pointerout', function() { touchLeft = false; });
+      btnR.on('pointerdown', function() { touchRight = true; });
+      btnR.on('pointerup', function() { touchRight = false; });
+      btnR.on('pointerout', function() { touchRight = false; });
+      btnJ.on('pointerdown', function() { touchJump = true; });
+      btnJ.on('pointerup', function() { touchJump = false; });
+      btnJ.on('pointerout', function() { touchJump = false; });
+
+      // Store refs for update
+      this.gd = { player: player, cursors: cursors, enemies: enemies,
+        touchLeft: function() { return touchLeft; },
+        touchRight: function() { return touchRight; },
+        touchJump: function() { return touchJump; },
+        setTouchJump: function(v) { touchJump = v; },
+        isGameOver: function() { return gameOver; }
+      };
+    }
+
+    function update() {
+      var d = this.gd;
+      if (!d || d.isGameOver()) return;
+      var left = (d.cursors && d.cursors.left.isDown) || d.touchLeft();
+      var right = (d.cursors && d.cursors.right.isDown) || d.touchRight();
+      var up = (d.cursors && d.cursors.up.isDown) || d.touchJump();
+      if (left) { d.player.setVelocityX(-200); d.player.setFlipX(true); }
+      else if (right) { d.player.setVelocityX(200); d.player.setFlipX(false); }
+      else { d.player.setVelocityX(0); }
+      if (up && d.player.body.touching.down) {
+        d.player.setVelocityY(-420);
+        d.setTouchJump(false);
+      }
+      d.enemies.children.iterate(function(e) {
+        if (!e || !e.active) return;
+        if (e.x <= e.patrolMin) e.setVelocityX(60);
+        else if (e.x >= e.patrolMax) e.setVelocityX(-60);
+      });
+    }
+
+    new Phaser.Game({
+      type: Phaser.AUTO, width: W, height: H,
+      parent: 'game-container', backgroundColor: '#87CEEB',
+      physics: { default: 'arcade', arcade: { gravity: { y: 800 }, debug: false } },
+      scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
+      scene: { preload: preload, create: create, update: update }
+    });
+  })();
   </script>
 </body>
 </html>

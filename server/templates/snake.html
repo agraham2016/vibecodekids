@@ -4,29 +4,30 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <style>
     :root {
-      --game-primary: #00b894;
-      --game-secondary: #00cec9;
-      --game-bg: #0984e3;
+      --game-primary: #00ffff;
+      --game-secondary: #ff00ff;
+      --game-bg: #0a0a1a;
       --game-text: #ffffff;
-      --game-accent: #ffeaa7;
+      --game-accent: #ffff00;
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: 'Segoe UI', sans-serif;
-      background: linear-gradient(135deg, #00b894 0%, #00cec9 50%, #0984e3 100%);
+      background: linear-gradient(135deg, #0a0a1a 0%, #1a0a2e 50%, #0a1a2e 100%);
       min-height: 100vh;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       overflow: hidden;
-     touch-action: none; }
+      touch-action: none;
+    }
     #game-container {
       border-radius: 12px;
       overflow: hidden;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+      box-shadow: 0 0 40px rgba(0, 255, 255, 0.15), 0 0 80px rgba(255, 0, 255, 0.1);
     }
-    .hint { margin-top: 14px; color: rgba(255,255,255,0.55); font-size: 14px; }
+    .hint { margin-top: 14px; color: rgba(0, 255, 255, 0.45); font-size: 14px; text-shadow: 0 0 8px rgba(0, 255, 255, 0.3); }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.86.0/dist/phaser.min.js" crossorigin="anonymous"></script>
 </head>
@@ -39,39 +40,64 @@
   <script>
   class SnakeScene extends Phaser.Scene {
     preload() {
-      this.load.image('head', '/assets/sprites/snake/head.png');
-      this.load.image('body', '/assets/sprites/snake/body.png');
-      this.load.image('food', '/assets/sprites/snake/food.png');
-      this.load.image('particle', '/assets/sprites/common/particle.png');
+      const g = this.make.graphics({ add: false });
+
+      // Head: cyan diamond shape with bright core and glowing eyes
+      g.fillStyle(0x00ffff, 0.25);
+      g.fillCircle(10, 10, 10);
+      g.fillStyle(0x00ffff, 0.6);
+      g.fillCircle(10, 10, 8);
+      g.fillStyle(0x00ffff);
+      g.fillRoundedRect(2, 4, 16, 12, 4);
+      g.fillStyle(0xaaffff);
+      g.fillRoundedRect(4, 6, 12, 8, 3);
+      g.fillStyle(0xffffff);
+      g.fillCircle(13, 7, 2.5);
+      g.fillCircle(13, 13, 2.5);
+      g.fillStyle(0xff00ff);
+      g.fillCircle(13, 7, 1.2);
+      g.fillCircle(13, 13, 1.2);
+      g.generateTexture('head', 20, 20);
+      g.clear();
+
+      // Body: glowing magenta/cyan particle segment
+      g.fillStyle(0xff00ff, 0.15);
+      g.fillCircle(10, 10, 10);
+      g.fillStyle(0xff00ff, 0.4);
+      g.fillCircle(10, 10, 7);
+      g.fillStyle(0xff44ff);
+      g.fillCircle(10, 10, 5);
+      g.fillStyle(0xffaaff);
+      g.fillCircle(10, 10, 2.5);
+      g.generateTexture('body', 20, 20);
+      g.clear();
+
+      // Food: bright neon yellow-green pulsing orb
+      g.fillStyle(0xffff00, 0.15);
+      g.fillCircle(10, 10, 10);
+      g.fillStyle(0xffff00, 0.35);
+      g.fillCircle(10, 10, 8);
+      g.fillStyle(0xffff00, 0.7);
+      g.fillCircle(10, 10, 6);
+      g.fillStyle(0xffffff);
+      g.fillCircle(10, 10, 3);
+      g.fillStyle(0xffffff);
+      g.fillCircle(8, 8, 1.5);
+      g.generateTexture('food', 20, 20);
+      g.clear();
+
+      // Particle: small bright white-cyan spark
+      g.fillStyle(0x00ffff, 0.3);
+      g.fillCircle(4, 4, 4);
+      g.fillStyle(0xffffff);
+      g.fillCircle(4, 4, 2);
+      g.generateTexture('particle', 8, 8);
+      g.clear();
+
+      g.destroy();
     }
 
     create() {
-      const g = this.make.graphics({ add: false });
-
-      if (!this.textures.exists('head') || this.textures.get('head').key === '__MISSING') {
-        g.fillStyle(0x00b894); g.fillRect(0, 0, 20, 20);
-        g.fillStyle(0x00d2a0); g.fillRect(2, 2, 16, 16);
-        g.fillStyle(0xffffff); g.fillCircle(7, 7, 3); g.fillCircle(14, 7, 3);
-        g.fillStyle(0x2d3436); g.fillCircle(7, 7, 1.5); g.fillCircle(14, 7, 1.5);
-        g.generateTexture('head', 20, 20); g.clear();
-      }
-      if (!this.textures.exists('body') || this.textures.get('body').key === '__MISSING') {
-        g.fillStyle(0x00cec9); g.fillRect(0, 0, 20, 20);
-        g.fillStyle(0x55efc4); g.fillRect(2, 2, 16, 16);
-        g.generateTexture('body', 20, 20); g.clear();
-      }
-      if (!this.textures.exists('food') || this.textures.get('food').key === '__MISSING') {
-        g.fillStyle(0xe17055); g.fillCircle(10, 10, 9);
-        g.fillStyle(0xd63031); g.fillCircle(10, 10, 6);
-        g.fillStyle(0xfab1a0); g.fillCircle(8, 7, 3);
-        g.generateTexture('food', 20, 20); g.clear();
-      }
-      if (!this.textures.exists('particle') || this.textures.get('particle').key === '__MISSING') {
-        g.fillStyle(0xffffff); g.fillCircle(4, 4, 4);
-        g.generateTexture('particle', 8, 8); g.clear();
-      }
-      g.destroy();
-
       this.tileSize = 20;
       this.gridW = Math.floor(800 / this.tileSize);
       this.gridH = Math.floor(500 / this.tileSize);
@@ -84,16 +110,17 @@
       this.inputQueue = [];
 
       const bg = this.add.graphics();
-      bg.fillStyle(0x1e272e); bg.fillRect(0, 0, 800, 500);
+      bg.fillStyle(0x06060f);
+      bg.fillRect(0, 0, 800, 500);
       for (let gx = 0; gx < this.gridW; gx++) {
         for (let gy = 0; gy < this.gridH; gy++) {
-          const shade = (gx + gy) % 2 === 0 ? 0x2d3436 : 0x2c3e50;
+          const shade = (gx + gy) % 2 === 0 ? 0x0a0a18 : 0x080814;
           bg.fillStyle(shade);
           bg.fillRect(gx * this.tileSize, gy * this.tileSize, this.tileSize, this.tileSize);
         }
       }
 
-      bg.lineStyle(2, 0x00b894, 0.5);
+      bg.lineStyle(2, 0x00ffff, 0.3);
       bg.strokeRect(0, 0, this.gridW * this.tileSize, this.gridH * this.tileSize);
 
       this.snake = [];
@@ -114,20 +141,20 @@
       this.foodSprite = this.add.image(0, 0, 'food').setDepth(4);
       this.placeFood();
 
-      this.foodGlow = this.add.circle(this.foodSprite.x, this.foodSprite.y, 12, 0xffeaa7, 0.25).setDepth(3);
+      this.foodGlow = this.add.circle(this.foodSprite.x, this.foodSprite.y, 14, 0xffff00, 0.12).setDepth(3);
       this.tweens.add({
-        targets: this.foodGlow, scale: 1.5, alpha: 0.05, duration: 800,
+        targets: this.foodGlow, scale: 1.8, alpha: 0.02, duration: 900,
         yoyo: true, repeat: -1, ease: 'Sine.easeInOut'
       });
 
       this.particles = this.add.particles(0, 0, 'particle', {
         speed: { min: 40, max: 140 }, lifespan: 350, scale: { start: 1.2, end: 0 },
-        emitting: false, quantity: 10, tint: [0x00b894, 0x00cec9, 0xffeaa7]
+        emitting: false, quantity: 10, tint: [0x00ffff, 0xff00ff, 0xffff00]
       });
 
-      const ts = { fontFamily: 'Segoe UI', fontSize: '20px', fill: '#fff', stroke: '#000', strokeThickness: 3 };
+      const ts = { fontFamily: 'Segoe UI', fontSize: '20px', fill: '#00ffff', stroke: '#000', strokeThickness: 3 };
       this.scoreText = this.add.text(12, 8, 'Score: 3', ts).setDepth(10);
-      this.speedText = this.add.text(788, 8, 'Speed: 1', { ...ts, fontSize: '16px', fill: '#ffeaa7' })
+      this.speedText = this.add.text(788, 8, 'Speed: 1', { ...ts, fontSize: '16px', fill: '#ffff00' })
         .setOrigin(1, 0).setDepth(10);
 
       this.cursors = this.input.keyboard.createCursorKeys();
@@ -143,15 +170,15 @@
       });
 
       if ('ontouchstart' in window) {
-        const ba = 0.25, bd = 1000, cx = 90, cy = 410;
-        const bU = this.add.rectangle(cx, cy - 50, 60, 60, 0xffffff, ba).setDepth(bd).setInteractive();
-        const bD = this.add.rectangle(cx, cy + 50, 60, 60, 0xffffff, ba).setDepth(bd).setInteractive();
-        const bL = this.add.rectangle(cx - 50, cy, 60, 60, 0xffffff, ba).setDepth(bd).setInteractive();
-        const bR = this.add.rectangle(cx + 50, cy, 60, 60, 0xffffff, ba).setDepth(bd).setInteractive();
-        this.add.text(cx, cy - 50, '\u25B2', { fontSize: '24px', fill: '#fff' }).setOrigin(0.5).setDepth(bd + 1);
-        this.add.text(cx, cy + 50, '\u25BC', { fontSize: '24px', fill: '#fff' }).setOrigin(0.5).setDepth(bd + 1);
-        this.add.text(cx - 50, cy, '\u25C0', { fontSize: '24px', fill: '#fff' }).setOrigin(0.5).setDepth(bd + 1);
-        this.add.text(cx + 50, cy, '\u25B6', { fontSize: '24px', fill: '#fff' }).setOrigin(0.5).setDepth(bd + 1);
+        const ba = 0.15, bd = 1000, cx = 90, cy = 410;
+        const bU = this.add.rectangle(cx, cy - 50, 60, 60, 0x00ffff, ba).setDepth(bd).setInteractive();
+        const bD = this.add.rectangle(cx, cy + 50, 60, 60, 0x00ffff, ba).setDepth(bd).setInteractive();
+        const bL = this.add.rectangle(cx - 50, cy, 60, 60, 0x00ffff, ba).setDepth(bd).setInteractive();
+        const bR = this.add.rectangle(cx + 50, cy, 60, 60, 0x00ffff, ba).setDepth(bd).setInteractive();
+        this.add.text(cx, cy - 50, '\u25B2', { fontSize: '24px', fill: '#00ffff' }).setOrigin(0.5).setDepth(bd + 1);
+        this.add.text(cx, cy + 50, '\u25BC', { fontSize: '24px', fill: '#00ffff' }).setOrigin(0.5).setDepth(bd + 1);
+        this.add.text(cx - 50, cy, '\u25C0', { fontSize: '24px', fill: '#00ffff' }).setOrigin(0.5).setDepth(bd + 1);
+        this.add.text(cx + 50, cy, '\u25B6', { fontSize: '24px', fill: '#00ffff' }).setOrigin(0.5).setDepth(bd + 1);
         const queueDir = (d) => { if (this.inputQueue.length < 3) this.inputQueue.push(d); };
         bU.on('pointerdown', () => queueDir({ x: 0, y: -1 }));
         bD.on('pointerdown', () => queueDir({ x: 0, y: 1 }));
@@ -236,17 +263,13 @@
       const len = this.snake.length;
       for (let i = 0; i < len; i++) {
         const t = len > 1 ? i / (len - 1) : 0;
-        const r = Phaser.Math.Linear(0x00, 0x09, t);
-        const g2 = Phaser.Math.Linear(0xb8, 0x84, t);
-        const b = Phaser.Math.Linear(0x94, 0xe3, t);
-        this.snake[i].setTint(Phaser.Display.Color.GetColor(
-          Math.round(r * 255) || Math.round(r),
-          Math.round(g2),
-          Math.round(b)
-        ));
+        const r = Math.round(Phaser.Math.Linear(0, 255, t));
+        const g2 = Math.round(Phaser.Math.Linear(255, 0, t));
+        const b = Math.round(Phaser.Math.Linear(255, 255, t));
+        this.snake[i].setTint(Phaser.Display.Color.GetColor(r, g2, b));
       }
-      this.snake[0].setTint(0x00b894);
-      if (len > 1) this.snake[len - 1].setTint(0x0984e3);
+      this.snake[0].setTint(0x00ffff);
+      if (len > 1) this.snake[len - 1].setTint(0xff00ff);
     }
 
     setHeadRotation() {
@@ -276,24 +299,24 @@
       this.gameOver = true;
       if (this.cache.audio.exists('hitSfx')) this.sound.play('hitSfx');
 
-      this.snake[0].setTint(0xff0000);
+      this.snake[0].setTint(0xff0044);
       this.tweens.add({
         targets: this.snake, alpha: 0.3, duration: 400, ease: 'Power2'
       });
 
-      this.add.rectangle(400, 250, 800, 500, 0x000000, 0.75).setDepth(20);
+      this.add.rectangle(400, 250, 800, 500, 0x000000, 0.8).setDepth(20);
       this.add.text(400, 170, 'GAME OVER', {
-        fontSize: '52px', fill: '#e17055', fontFamily: 'Segoe UI', fontStyle: 'bold',
+        fontSize: '52px', fill: '#ff00ff', fontFamily: 'Segoe UI', fontStyle: 'bold',
         stroke: '#000', strokeThickness: 5
       }).setOrigin(0.5).setDepth(21);
       this.add.text(400, 240, 'Score: ' + this.score, {
         fontSize: '28px', fill: '#fff', fontFamily: 'Segoe UI'
       }).setOrigin(0.5).setDepth(21);
       this.add.text(400, 280, 'Length: ' + this.snake.length, {
-        fontSize: '18px', fill: '#00cec9', fontFamily: 'Segoe UI'
+        fontSize: '18px', fill: '#00ffff', fontFamily: 'Segoe UI'
       }).setOrigin(0.5).setDepth(21);
       this.add.text(400, 340, 'Click to Restart', {
-        fontSize: '20px', fill: '#00b894', fontFamily: 'Segoe UI'
+        fontSize: '20px', fill: '#ffff00', fontFamily: 'Segoe UI'
       }).setOrigin(0.5).setDepth(21);
 
       this.input.once('pointerdown', () => this.scene.restart());
@@ -302,7 +325,7 @@
 
   new Phaser.Game({
     type: Phaser.AUTO, width: 800, height: 500, parent: 'game-container',
-    backgroundColor: '#1e272e',
+    backgroundColor: '#06060f',
     scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
     scene: SnakeScene
   });

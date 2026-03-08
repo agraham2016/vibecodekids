@@ -4,23 +4,24 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <style>
     :root {
-      --game-primary: #00b894;
-      --game-secondary: #636e72;
-      --game-bg: #2d3436;
+      --game-primary: #4a7c59;
+      --game-secondary: #8b7355;
+      --game-bg: #2b4a2e;
       --game-text: #ffffff;
-      --game-accent: #00b894;
+      --game-accent: #5b9bd5;
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: 'Segoe UI', sans-serif;
-      background: linear-gradient(135deg, #2d3436 0%, #636e72 50%, #00b894 100%);
+      background: linear-gradient(135deg, #2b4a2e 0%, #3d6b47 50%, #8b7355 100%);
       min-height: 100vh;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       overflow: hidden;
-     touch-action: none; }
+      touch-action: none;
+    }
     #game-container {
       border-radius: 12px;
       overflow: hidden;
@@ -34,46 +35,85 @@
   <script>
   class TowerDefenseScene extends Phaser.Scene {
     preload() {
-      this.load.image('tower', '/assets/sprites/tower-defense/tower.png');
-      this.load.image('enemy', '/assets/sprites/tower-defense/enemy.png');
-      this.load.image('bullet', '/assets/sprites/tower-defense/bullet.png');
-      this.load.image('path', '/assets/sprites/tower-defense/path.png');
-      this.load.image('particle', '/assets/sprites/common/particle.png');
+      const g = this.make.graphics({ add: false });
+
+      // Tower: blue crystal on stone base
+      g.fillStyle(0x6b6b5a);
+      g.fillRect(6, 24, 28, 12);
+      g.fillStyle(0x8a8a72);
+      g.fillRect(8, 26, 24, 8);
+      g.fillStyle(0x3a6ea5);
+      g.fillRect(12, 6, 16, 22);
+      g.fillStyle(0x5b9bd5);
+      g.fillRect(14, 8, 12, 18);
+      g.fillStyle(0x8fc4e8);
+      g.fillTriangle(20, 0, 12, 10, 28, 10);
+      g.fillStyle(0xaadcf0);
+      g.fillRect(17, 12, 3, 6);
+      g.fillStyle(0xd4eef8);
+      g.fillCircle(18, 13, 2);
+      g.generateTexture('tower', 40, 40);
+      g.clear();
+
+      // Enemy: red goblin (circle body + eyes)
+      g.fillStyle(0xb33030);
+      g.fillCircle(12, 14, 10);
+      g.fillStyle(0xd44040);
+      g.fillCircle(12, 13, 8);
+      g.fillStyle(0xe06050);
+      g.fillTriangle(4, 6, 7, 12, 2, 12);
+      g.fillTriangle(20, 6, 17, 12, 22, 12);
+      g.fillStyle(0xffffff);
+      g.fillCircle(9, 11, 3);
+      g.fillCircle(15, 11, 3);
+      g.fillStyle(0x220000);
+      g.fillCircle(10, 11, 1.5);
+      g.fillCircle(16, 11, 1.5);
+      g.fillStyle(0x801010);
+      g.fillRect(9, 18, 6, 2);
+      g.generateTexture('enemy', 24, 24);
+      g.clear();
+
+      // Bullet: yellow dot projectile
+      g.fillStyle(0xdaa520);
+      g.fillCircle(4, 4, 4);
+      g.fillStyle(0xffd700);
+      g.fillCircle(3, 3, 2.5);
+      g.fillStyle(0xfffacd);
+      g.fillCircle(2, 2, 1);
+      g.generateTexture('bullet', 8, 8);
+      g.clear();
+
+      // Path tile: tan/stone cobblestone
+      g.fillStyle(0xc2a868);
+      g.fillRect(0, 0, 40, 40);
+      g.fillStyle(0xb09858);
+      g.fillRect(1, 1, 18, 12);
+      g.fillRect(21, 1, 18, 12);
+      g.fillRect(10, 15, 20, 11);
+      g.fillRect(1, 28, 16, 11);
+      g.fillRect(19, 28, 20, 11);
+      g.lineStyle(1, 0x8a7840, 0.5);
+      g.strokeRect(1, 1, 18, 12);
+      g.strokeRect(21, 1, 18, 12);
+      g.strokeRect(10, 15, 20, 11);
+      g.strokeRect(1, 28, 16, 11);
+      g.strokeRect(19, 28, 20, 11);
+      g.generateTexture('path', 40, 40);
+      g.clear();
+
+      // Particle: soft glow circle
+      g.fillStyle(0xffffff);
+      g.fillCircle(4, 4, 4);
+      g.fillStyle(0xffffff, 0.5);
+      g.fillCircle(4, 4, 3);
+      g.generateTexture('particle', 8, 8);
+      g.clear();
+
+      g.destroy();
     }
 
     create() {
-      const g = this.make.graphics({ add: false });
-
-      if (!this.textures.exists('tower') || this.textures.get('tower').key === '__MISSING') {
-        g.fillStyle(0x636e72); g.fillRect(4, 4, 32, 32);
-        g.fillStyle(0x00b894); g.fillRect(8, 8, 24, 24);
-        g.fillStyle(0x00cec9); g.fillRect(14, 2, 12, 8);
-        g.fillStyle(0x55efc4); g.fillCircle(20, 20, 6);
-        g.fillStyle(0x2d3436); g.fillCircle(20, 20, 3);
-        g.generateTexture('tower', 40, 40); g.clear();
-      }
-      if (!this.textures.exists('enemy') || this.textures.get('enemy').key === '__MISSING') {
-        g.fillStyle(0xe74c3c); g.fillCircle(12, 12, 12);
-        g.fillStyle(0xc0392b); g.fillCircle(12, 12, 8);
-        g.fillStyle(0xff7675); g.fillCircle(10, 9, 3);
-        g.generateTexture('enemy', 24, 24); g.clear();
-      }
-      if (!this.textures.exists('bullet') || this.textures.get('bullet').key === '__MISSING') {
-        g.fillStyle(0x00b894); g.fillCircle(4, 4, 4);
-        g.fillStyle(0x55efc4); g.fillCircle(3, 3, 2);
-        g.generateTexture('bullet', 8, 8); g.clear();
-      }
-      if (!this.textures.exists('path') || this.textures.get('path').key === '__MISSING') {
-        g.fillStyle(0x6c5ce7, 0.15); g.fillRect(0, 0, 40, 40);
-        g.lineStyle(1, 0x6c5ce7, 0.3); g.strokeRect(0, 0, 40, 40);
-        g.generateTexture('path', 40, 40); g.clear();
-      }
-      if (!this.textures.exists('particle') || this.textures.get('particle').key === '__MISSING') {
-        g.fillStyle(0xffffff); g.fillCircle(4, 4, 4);
-        g.generateTexture('particle', 8, 8); g.clear();
-      }
-      g.destroy();
-
       this.CELL = 40;
       this.COLS = 20;
       this.ROWS = 12;
@@ -141,9 +181,9 @@
       this.physics.add.overlap(this.bullets, this.enemies, this.bulletHitEnemy, null, this);
 
       const panelY = 0;
-      this.uiPanel = this.add.rectangle(400, panelY + 20, 800, 40, 0x2d3436, 0.85).setDepth(20);
+      this.uiPanel = this.add.rectangle(400, panelY + 20, 800, 40, 0x2b2b1a, 0.9).setDepth(20);
 
-      const ts = { fontFamily: 'Segoe UI', fontSize: '16px', stroke: '#2d3436', strokeThickness: 2 };
+      const ts = { fontFamily: 'Segoe UI', fontSize: '16px', stroke: '#1a1a10', strokeThickness: 2 };
       this.moneyText = this.add.text(16, panelY + 12, '$' + this.money, {
         ...ts, fill: '#ffd700',
         shadow: { offsetX: 0, offsetY: 0, color: '#ffd700', blur: 6, fill: true }
@@ -155,12 +195,12 @@
       }).setDepth(21);
 
       this.waveText = this.add.text(400, panelY + 12, 'Click START to begin', {
-        ...ts, fontSize: '15px', fill: '#00b894',
-        shadow: { offsetX: 0, offsetY: 0, color: '#00b894', blur: 6, fill: true }
+        ...ts, fontSize: '15px', fill: '#5b9bd5',
+        shadow: { offsetX: 0, offsetY: 0, color: '#5b9bd5', blur: 6, fill: true }
       }).setOrigin(0.5, 0).setDepth(21);
 
       this.costText = this.add.text(784, panelY + 12, 'Tower: $' + this.towerCost, {
-        ...ts, fill: '#55efc4'
+        ...ts, fill: '#8fc4e8'
       }).setOrigin(1, 0).setDepth(21);
 
       this.startBtn = this.add.text(680, panelY + 12, '[START]', {
@@ -170,8 +210,8 @@
       this.startBtn.on('pointerover', () => this.startBtn.setFill('#fff'));
       this.startBtn.on('pointerout', () => this.startBtn.setFill('#fdcb6e'));
 
-      this.placementPreview = this.add.rectangle(0, 0, this.CELL - 4, this.CELL - 4, 0x00b894, 0.3)
-        .setStrokeStyle(2, 0x00b894, 0.6).setDepth(15).setVisible(false);
+      this.placementPreview = this.add.rectangle(0, 0, this.CELL - 4, this.CELL - 4, 0x5b9bd5, 0.3)
+        .setStrokeStyle(2, 0x5b9bd5, 0.6).setDepth(15).setVisible(false);
 
       this.input.on('pointermove', (pointer) => {
         if (this.gameOver) return;
@@ -184,8 +224,8 @@
         const key = col + ',' + row;
         const canPlace = !this.pathCells.has(key) && !this.towerAt(col, row) && this.money >= this.towerCost;
         this.placementPreview.setPosition(col * this.CELL + this.CELL / 2, row * this.CELL + this.CELL / 2 + this.CELL);
-        this.placementPreview.setFillStyle(canPlace ? 0x00b894 : 0xe74c3c, 0.3);
-        this.placementPreview.setStrokeStyle(2, canPlace ? 0x00b894 : 0xe74c3c, 0.6);
+        this.placementPreview.setFillStyle(canPlace ? 0x5b9bd5 : 0xe74c3c, 0.3);
+        this.placementPreview.setStrokeStyle(2, canPlace ? 0x5b9bd5 : 0xe74c3c, 0.6);
         this.placementPreview.setVisible(true);
       });
 
@@ -200,22 +240,41 @@
 
     drawBackground() {
       const bg = this.add.graphics();
-      bg.fillStyle(0x2d3436); bg.fillRect(0, 0, 800, 520);
 
+      // Dark green grass base
       for (let c = 0; c < this.COLS; c++) {
         for (let r = 0; r < this.ROWS; r++) {
-          const shade = (c + r) % 2 === 0 ? 0x353b48 : 0x2d3436;
+          const shade = (c + r) % 2 === 0 ? 0x2e6b3a : 0x276031;
           bg.fillStyle(shade);
           bg.fillRect(c * this.CELL, r * this.CELL + this.CELL, this.CELL, this.CELL);
         }
       }
 
-      bg.lineStyle(1, 0x636e72, 0.15);
+      // Subtle grass texture dots
+      for (let c = 0; c < this.COLS; c++) {
+        for (let r = 0; r < this.ROWS; r++) {
+          if (!this.pathCells.has(c + ',' + r) && Math.random() > 0.5) {
+            bg.fillStyle(0x3a8a4a, 0.3);
+            const ox = c * this.CELL + 5 + Math.random() * 30;
+            const oy = r * this.CELL + this.CELL + 5 + Math.random() * 30;
+            bg.fillCircle(ox, oy, 1.5);
+          }
+        }
+      }
+
+      bg.lineStyle(1, 0x1a4a22, 0.2);
       for (let c = 0; c <= this.COLS; c++) bg.lineBetween(c * this.CELL, this.CELL, c * this.CELL, this.ROWS * this.CELL + this.CELL);
       for (let r = 0; r <= this.ROWS; r++) bg.lineBetween(0, r * this.CELL + this.CELL, this.COLS * this.CELL, r * this.CELL + this.CELL);
 
-      const pathG = this.add.graphics();
-      pathG.lineStyle(this.CELL * 0.8, 0x6c5ce7, 0.25);
+      // Stone path tiles
+      this.pathCells.forEach(key => {
+        const [cx, cy] = key.split(',').map(Number);
+        this.add.image(cx * this.CELL + this.CELL / 2, cy * this.CELL + this.CELL / 2 + this.CELL, 'path').setDepth(1);
+      });
+
+      // Path edge darkening
+      const pathG = this.add.graphics().setDepth(2);
+      pathG.lineStyle(this.CELL * 0.8, 0x8a7840, 0.12);
       pathG.beginPath();
       pathG.moveTo(this.pixelPath[0].x, this.pixelPath[0].y);
       for (let i = 1; i < this.pixelPath.length; i++) {
@@ -223,14 +282,7 @@
       }
       pathG.strokePath();
 
-      pathG.lineStyle(this.CELL * 0.5, 0x6c5ce7, 0.15);
-      pathG.beginPath();
-      pathG.moveTo(this.pixelPath[0].x, this.pixelPath[0].y);
-      for (let i = 1; i < this.pixelPath.length; i++) {
-        pathG.lineTo(this.pixelPath[i].x, this.pixelPath[i].y);
-      }
-      pathG.strokePath();
-
+      // Direction arrows along the path
       for (let i = 0; i < this.pixelPath.length - 1; i++) {
         const a = this.pixelPath[i];
         const b = this.pixelPath[i + 1];
@@ -241,7 +293,7 @@
           const x = a.x + (b.x - a.x) * t;
           const y = a.y + (b.y - a.y) * t;
           const angle = Math.atan2(b.y - a.y, b.x - a.x);
-          pathG.fillStyle(0x6c5ce7, 0.3);
+          pathG.fillStyle(0x6b5830, 0.35);
           pathG.fillTriangle(
             x + Math.cos(angle) * 6, y + Math.sin(angle) * 6,
             x + Math.cos(angle + 2.5) * 4, y + Math.sin(angle + 2.5) * 4,
@@ -250,12 +302,13 @@
         }
       }
 
+      // Start and end markers
       const startX = this.pixelPath[0].x;
       const startY = this.pixelPath[0].y;
       const endX = this.pixelPath[this.pixelPath.length - 1].x;
       const endY = this.pixelPath[this.pixelPath.length - 1].y;
 
-      pathG.fillStyle(0x00b894, 0.6);
+      pathG.fillStyle(0x5b9bd5, 0.6);
       pathG.fillCircle(startX, startY, 10);
       pathG.fillStyle(0xe74c3c, 0.6);
       pathG.fillCircle(endX, endY, 10);
@@ -279,8 +332,8 @@
       sprite.setScale(0);
       this.tweens.add({ targets: sprite, scale: 1, duration: 200, ease: 'Back.easeOut' });
 
-      const rangeCircle = this.add.circle(x, y, 120, 0x00b894, 0.05)
-        .setStrokeStyle(1, 0x00b894, 0.15).setDepth(4);
+      const rangeCircle = this.add.circle(x, y, 120, 0x5b9bd5, 0.05)
+        .setStrokeStyle(1, 0x5b9bd5, 0.15).setDepth(4);
 
       const tower = {
         col, row, x, y, sprite, rangeCircle,
@@ -335,8 +388,8 @@
         e.setTint(0x6c5ce7);
       }
 
-      const hpBarBg = this.add.rectangle(e.x, e.y - 16, 22, 4, 0x2d3436).setDepth(7);
-      const hpBar = this.add.rectangle(e.x, e.y - 16, 20, 2, 0x00b894).setDepth(8);
+      const hpBarBg = this.add.rectangle(e.x, e.y - 16, 22, 4, 0x1a1a10).setDepth(7);
+      const hpBar = this.add.rectangle(e.x, e.y - 16, 20, 2, 0x4a7c59).setDepth(8);
       e.hpBarBg = hpBarBg;
       e.hpBar = hpBar;
     }
@@ -355,7 +408,7 @@
         const pct = Math.max(0, enemy.hp / enemy.maxHp);
         if (enemy.hpBar) {
           enemy.hpBar.width = 20 * pct;
-          enemy.hpBar.fillColor = pct > 0.5 ? 0x00b894 : pct > 0.25 ? 0xfdcb6e : 0xe74c3c;
+          enemy.hpBar.fillColor = pct > 0.5 ? 0x4a7c59 : pct > 0.25 ? 0xfdcb6e : 0xe74c3c;
         }
         enemy.setTintFill(0xffffff);
         this.time.delayedCall(60, () => { if (enemy.active) enemy.clearTint(); });
@@ -420,12 +473,12 @@
       this.add.rectangle(400, 260, 800, 520, 0x000000, 0.75).setDepth(30);
       this.add.text(400, 180, 'GAME OVER', {
         fontSize: '48px', fill: '#e74c3c', fontFamily: 'Segoe UI', fontStyle: 'bold',
-        stroke: '#2d3436', strokeThickness: 4,
+        stroke: '#1a1a10', strokeThickness: 4,
         shadow: { offsetX: 0, offsetY: 0, color: '#e74c3c', blur: 16, fill: true }
       }).setOrigin(0.5).setDepth(31);
 
       this.add.text(400, 240, 'Survived ' + this.wave + ' waves', {
-        fontSize: '24px', fill: '#00b894', fontFamily: 'Segoe UI'
+        fontSize: '24px', fill: '#5b9bd5', fontFamily: 'Segoe UI'
       }).setOrigin(0.5).setDepth(31);
 
       this.add.text(400, 280, 'Towers built: ' + this.towers.length, {
@@ -518,7 +571,7 @@
     width: 800,
     height: 520,
     parent: 'game-container',
-    backgroundColor: '#2d3436',
+    backgroundColor: '#2b4a2e',
     physics: { default: 'arcade', arcade: { gravity: { y: 0 }, debug: false } },
     scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
     scene: TowerDefenseScene

@@ -3,24 +3,18 @@
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <style>
-    :root {
-      --game-primary: #74b9ff;
-      --game-secondary: #55efc4;
-      --game-bg: #0984e3;
-      --game-text: #ffffff;
-      --game-accent: #ffeaa7;
-    }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: 'Segoe UI', sans-serif;
-      background: linear-gradient(135deg, #74b9ff 0%, #a29bfe 50%, #55efc4 100%);
+      background: linear-gradient(135deg, #1a0533 0%, #c0392b 50%, #f39c12 100%);
       min-height: 100vh;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       overflow: hidden;
-     touch-action: none; }
+      touch-action: none;
+    }
     #game {
       border-radius: 12px;
       overflow: hidden;
@@ -36,54 +30,61 @@
     constructor() { super('FlappyScene'); }
 
     preload() {
-      this.load.image('bird', '/assets/sprites/kenney-animals/Round/parrot.png');
-      this.load.image('pipe', '/assets/sprites/flappy/pipe.png');
-      this.load.image('particle', '/assets/sprites/common/particle.png');
+      const g = this.make.graphics({ add: false });
+
+      g.fillStyle(0xffeaa7);
+      g.fillCircle(16, 16, 14);
+      g.fillStyle(0xfdcb6e);
+      g.fillCircle(16, 16, 11);
+      g.fillStyle(0xffffff);
+      g.fillCircle(20, 12, 5);
+      g.fillStyle(0x2d3436);
+      g.fillCircle(21, 12, 2.5);
+      g.fillStyle(0xe17055);
+      g.fillTriangle(28, 16, 36, 14, 28, 20);
+      g.fillStyle(0xf0b232);
+      g.fillEllipse(8, 18, 12, 7);
+      g.generateTexture('bird', 38, 32);
+      g.clear();
+
+      g.fillStyle(0x2ecc71);
+      g.fillRect(0, 0, 46, 16);
+      g.fillStyle(0x58d68d);
+      g.fillRect(2, 2, 8, 12);
+      g.fillStyle(0x239b56);
+      g.fillRect(44, 0, 2, 16);
+      g.generateTexture('pipe-body', 46, 16);
+      g.clear();
+
+      g.fillStyle(0x1e8449);
+      g.fillRect(0, 0, 52, 24);
+      g.fillStyle(0x27ae60);
+      g.fillRect(2, 2, 48, 20);
+      g.fillStyle(0x58d68d);
+      g.fillRect(4, 4, 10, 16);
+      g.generateTexture('pipe-cap', 52, 24);
+      g.clear();
+
+      g.fillStyle(0xffeaa7);
+      g.fillCircle(4, 4, 4);
+      g.generateTexture('particle', 8, 8);
+      g.clear();
+
+      g.fillStyle(0xffffff);
+      g.fillCircle(20, 16, 12);
+      g.fillCircle(36, 14, 14);
+      g.fillCircle(50, 16, 10);
+      g.fillCircle(28, 10, 10);
+      g.generateTexture('cloud', 64, 28);
+      g.clear();
+
+      g.destroy();
     }
 
     create() {
       const W = 400, H = 600;
       this.W = W;
       this.H = H;
-
-      const g = this.make.graphics({ add: false });
-
-      if (!this.textures.exists('bird') || this.textures.get('bird').key === '__MISSING') {
-        g.fillStyle(0xffeaa7);
-        g.fillCircle(16, 16, 14);
-        g.fillStyle(0xfdcb6e);
-        g.fillCircle(16, 16, 11);
-        g.fillStyle(0xffffff);
-        g.fillCircle(20, 12, 5);
-        g.fillStyle(0x2d3436);
-        g.fillCircle(21, 12, 2.5);
-        g.fillStyle(0xe17055);
-        g.fillTriangle(28, 16, 36, 14, 28, 20);
-        g.fillStyle(0xfdcb6e);
-        g.fillTriangle(6, 10, 2, 18, 12, 16);
-        g.generateTexture('bird', 38, 32);
-        g.clear();
-      }
-
-      if (!this.textures.exists('pipe') || this.textures.get('pipe').key === '__MISSING') {
-        g.fillStyle(0x00b894);
-        g.fillRect(0, 0, 52, 32);
-        g.fillStyle(0x00cec9);
-        g.fillRect(2, 2, 48, 28);
-        g.fillStyle(0x55efc4);
-        g.fillRect(4, 4, 12, 24);
-        g.generateTexture('pipe', 52, 32);
-        g.clear();
-      }
-
-      if (!this.textures.exists('particle') || this.textures.get('particle').key === '__MISSING') {
-        g.fillStyle(0xffffff);
-        g.fillCircle(4, 4, 4);
-        g.generateTexture('particle', 8, 8);
-        g.clear();
-      }
-
-      g.destroy();
 
       this.drawBackground();
 
@@ -113,10 +114,10 @@
       this.pipes = this.physics.add.group();
       this.scoreZones = this.physics.add.group();
 
-      this.ground = this.add.rectangle(W / 2, H - 5, W, 10, 0x55efc4).setDepth(15);
+      this.ground = this.add.rectangle(W / 2, H - 5, W, 10, 0x1a0a2e).setDepth(15);
       this.physics.add.existing(this.ground, true);
 
-      this.ceiling = this.add.rectangle(W / 2, -5, W, 10, 0x74b9ff);
+      this.ceiling = this.add.rectangle(W / 2, -5, W, 10, 0x1a0533);
       this.physics.add.existing(this.ceiling, true);
 
       this.physics.add.overlap(this.bird, this.pipes, this.hitPipe, null, this);
@@ -125,7 +126,7 @@
 
       this.particles = this.add.particles(0, 0, 'particle', {
         speed: { min: 30, max: 100 }, lifespan: 300, scale: { start: 0.8, end: 0 },
-        emitting: false, quantity: 5, tint: [0xffeaa7, 0xfdcb6e, 0xffffff]
+        emitting: false, quantity: 5, tint: [0xffeaa7, 0xfdcb6e, 0xf39c12]
       });
 
       const ts = { fontFamily: 'Segoe UI', fontSize: '36px', fill: '#fff', stroke: '#2d3436', strokeThickness: 5 };
@@ -144,27 +145,32 @@
       const W = this.W, H = this.H;
       const bg = this.add.graphics();
 
-      bg.fillGradientStyle(0x74b9ff, 0x74b9ff, 0xa29bfe, 0xa29bfe);
-      bg.fillRect(0, 0, W, H * 0.65);
-      bg.fillGradientStyle(0xa29bfe, 0xa29bfe, 0x55efc4, 0x55efc4);
-      bg.fillRect(0, H * 0.65, W, H * 0.35);
+      bg.fillGradientStyle(0x1a0533, 0x1a0533, 0x6c2c91, 0x6c2c91);
+      bg.fillRect(0, 0, W, H * 0.3);
+      bg.fillGradientStyle(0x6c2c91, 0x6c2c91, 0xc0392b, 0xc0392b);
+      bg.fillRect(0, H * 0.3, W, H * 0.25);
+      bg.fillGradientStyle(0xc0392b, 0xc0392b, 0xe67e22, 0xe67e22);
+      bg.fillRect(0, H * 0.55, W, H * 0.2);
+      bg.fillGradientStyle(0xe67e22, 0xe67e22, 0xf1c40f, 0xf1c40f);
+      bg.fillRect(0, H * 0.75, W, H * 0.25);
 
-      for (let i = 0; i < 5; i++) {
+      for (let i = 0; i < 6; i++) {
         const cx = Phaser.Math.Between(30, W - 30);
-        const cy = Phaser.Math.Between(30, 120);
-        bg.fillStyle(0xffffff, 0.6);
-        bg.fillEllipse(cx, cy, Phaser.Math.Between(30, 60), 18);
-        bg.fillEllipse(cx + 15, cy - 6, 30, 14);
+        const cy = Phaser.Math.Between(40, 180);
+        const cloud = this.add.image(cx, cy, 'cloud');
+        cloud.setAlpha(0.3 + Math.random() * 0.25);
+        cloud.setScale(0.8 + Math.random() * 1.0);
+        cloud.setDepth(0);
       }
 
-      bg.fillStyle(0x55efc4);
+      bg.fillStyle(0x1a0a2e);
       bg.fillRect(0, H - 40, W, 40);
-      bg.fillStyle(0x00b894);
+      bg.fillStyle(0x2c1654);
       bg.fillRect(0, H - 40, W, 4);
 
       for (let x = 0; x < W; x += 20) {
-        bg.fillStyle(0x00cec9);
-        bg.fillTriangle(x, H - 40, x + 10, H - 50, x + 20, H - 40);
+        bg.fillStyle(0x2c1654);
+        bg.fillTriangle(x, H - 40, x + 10, H - 48, x + 20, H - 40);
       }
     }
 
@@ -229,36 +235,34 @@
     }
 
     createPipeColumn(x, y, height, flipped) {
-      const container = this.add.graphics();
       const pw = this.pipeW;
       const capH = 24;
+      const bodyH = Math.max(height - capH, 1);
+      const sprites = [];
 
-      container.fillStyle(0x00b894);
+      let bodyY, capY;
       if (flipped) {
-        container.fillRect(x - pw / 2 + 3, y, pw - 6, height);
-        container.fillRect(x - pw / 2, y, pw, capH);
-        container.fillStyle(0x55efc4);
-        container.fillRect(x - pw / 2 + 6, y + capH, 10, height - capH);
+        capY = y + capH / 2;
+        bodyY = y + capH + bodyH / 2;
       } else {
-        container.fillRect(x - pw / 2 + 3, y, pw - 6, height);
-        container.fillRect(x - pw / 2, y + height - capH, pw, capH);
-        container.fillStyle(0x55efc4);
-        container.fillRect(x - pw / 2 + 6, y, 10, height - capH);
+        bodyY = y + bodyH / 2;
+        capY = y + height - capH / 2;
       }
 
-      container.fillStyle(0x00cec9);
-      if (flipped) {
-        container.fillRect(x - pw / 2 + 2, y + 2, pw - 4, 3);
-      } else {
-        container.fillRect(x - pw / 2 + 2, y + height - capH + 2, pw - 4, 3);
-      }
+      const body = this.add.tileSprite(x, bodyY, pw - 6, bodyH, 'pipe-body');
+      body.setDepth(5);
+      body.initX = x;
+      sprites.push(body);
 
-      container.setDepth(5);
+      const cap = this.add.image(x, capY, 'pipe-cap');
+      cap.setDepth(5);
+      cap.initX = x;
+      sprites.push(cap);
 
       const hitbox = this.add.rectangle(x, y + height / 2, pw, height, 0x000000, 0);
       this.physics.add.existing(hitbox);
       hitbox.body.setImmovable(true);
-      hitbox.gfx = container;
+      hitbox.pipeSprites = sprites;
       hitbox.startX = x;
       hitbox.setDepth(5);
 
@@ -313,7 +317,7 @@
         }).setOrigin(0.5).setDepth(26);
 
         this.add.text(this.W / 2, this.H / 2 + 60, 'Tap or SPACE to Restart', {
-          fontFamily: 'Segoe UI', fontSize: '20px', fill: '#55efc4',
+          fontFamily: 'Segoe UI', fontSize: '20px', fill: '#f39c12',
           stroke: '#000', strokeThickness: 3
         }).setOrigin(0.5).setDepth(26);
       });
@@ -332,12 +336,12 @@
       this.bird.angle = Phaser.Math.Linear(this.bird.angle, targetAngle, 0.15);
 
       this.pipes.getChildren().forEach(pipe => {
-        if (pipe.gfx) {
+        if (pipe.pipeSprites) {
           const dx = pipe.x - pipe.startX;
-          pipe.gfx.x = dx;
+          pipe.pipeSprites.forEach(s => { s.x = s.initX + dx; });
         }
         if (pipe.x < -80) {
-          if (pipe.gfx) pipe.gfx.destroy();
+          if (pipe.pipeSprites) pipe.pipeSprites.forEach(s => s.destroy());
           pipe.destroy();
         }
       });
@@ -353,7 +357,7 @@
     width: 400,
     height: 600,
     parent: 'game',
-    backgroundColor: '#74b9ff',
+    backgroundColor: '#1a0533',
     physics: {
       default: 'arcade',
       arcade: { gravity: { y: 700 }, debug: false }

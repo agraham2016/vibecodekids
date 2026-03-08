@@ -58,64 +58,54 @@
     };
 
     function preload() {
-      this.load.image('player', '/assets/sprites/sports/player.png');
-      this.load.image('opponent', '/assets/sprites/sports/opponent.png');
-      this.load.image('ball', '/assets/sprites/sports/ball.png');
-      this.load.image('goal', '/assets/sprites/sports/goal.png');
-      this.load.image('particle', '/assets/sprites/common/particle.png');
+      const g = this.make.graphics({ add: false });
+
+      // Player: white body with blue shirt
+      g.fillStyle(0x3498db);
+      g.fillCircle(16, 16, 14);
+      g.fillStyle(0x2980b9);
+      g.fillCircle(16, 16, 10);
+      g.fillStyle(0xffffff);
+      g.fillRect(12, 8, 3, 3);
+      g.fillRect(18, 8, 3, 3);
+      g.fillStyle(0xe74c3c);
+      g.fillRect(13, 15, 6, 2);
+      g.generateTexture('player', 32, 32);
+      g.clear();
+
+      // Opponent: red body
+      g.fillStyle(0xe74c3c);
+      g.fillCircle(16, 16, 14);
+      g.fillStyle(0xc0392b);
+      g.fillCircle(16, 16, 10);
+      g.fillStyle(0xffffff);
+      g.fillRect(12, 8, 3, 3);
+      g.fillRect(18, 8, 3, 3);
+      g.fillStyle(0x2c3e50);
+      g.fillRect(13, 15, 6, 2);
+      g.generateTexture('opponent', 32, 32);
+      g.clear();
+
+      // Ball: white with black pentagon pattern
+      g.fillStyle(0xffffff);
+      g.fillCircle(8, 8, 8);
+      g.fillStyle(0x2c3e50);
+      g.fillCircle(8, 5, 3);
+      g.fillCircle(4, 10, 2);
+      g.fillCircle(12, 10, 2);
+      g.generateTexture('ball', 16, 16);
+      g.clear();
+
+      // Particle
+      g.fillStyle(0xffffff);
+      g.fillCircle(4, 4, 4);
+      g.generateTexture('particle', 8, 8);
+      g.clear();
+
+      g.destroy();
     }
 
     function create() {
-      const g = this.make.graphics({ x: 0, y: 0, add: false });
-
-      if (!this.textures.exists('player') || this.textures.get('player').key === '__MISSING') {
-        g.fillStyle(0x3498db);
-        g.fillCircle(16, 16, 14);
-        g.fillStyle(0x2980b9);
-        g.fillCircle(16, 16, 10);
-        g.fillStyle(0xffffff);
-        g.fillRect(12, 8, 3, 3);
-        g.fillRect(18, 8, 3, 3);
-        g.fillStyle(0xe74c3c);
-        g.fillRect(13, 15, 6, 2);
-        g.generateTexture('player', 32, 32);
-        g.clear();
-      }
-
-      if (!this.textures.exists('opponent') || this.textures.get('opponent').key === '__MISSING') {
-        g.fillStyle(0xe74c3c);
-        g.fillCircle(16, 16, 14);
-        g.fillStyle(0xc0392b);
-        g.fillCircle(16, 16, 10);
-        g.fillStyle(0xffffff);
-        g.fillRect(12, 8, 3, 3);
-        g.fillRect(18, 8, 3, 3);
-        g.fillStyle(0x2c3e50);
-        g.fillRect(13, 15, 6, 2);
-        g.generateTexture('opponent', 32, 32);
-        g.clear();
-      }
-
-      if (!this.textures.exists('ball') || this.textures.get('ball').key === '__MISSING') {
-        g.fillStyle(0xffffff);
-        g.fillCircle(8, 8, 8);
-        g.fillStyle(0x2c3e50);
-        g.fillCircle(8, 5, 3);
-        g.fillCircle(4, 10, 2);
-        g.fillCircle(12, 10, 2);
-        g.generateTexture('ball', 16, 16);
-        g.clear();
-      }
-
-      if (!this.textures.exists('particle') || this.textures.get('particle').key === '__MISSING') {
-        g.fillStyle(0xffffff);
-        g.fillCircle(4, 4, 4);
-        g.generateTexture('particle', 8, 8);
-        g.clear();
-      }
-
-      g.destroy();
-
       drawField(this);
 
       goalLeft = this.add.rectangle(FIELD_PAD - GOAL_W / 2, H / 2, GOAL_W, GOAL_H, 0xffffff, 0.35);

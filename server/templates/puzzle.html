@@ -8,7 +8,8 @@
       background: linear-gradient(135deg, #4a1a6b 0%, #2a1040 50%, #1a0830 100%);
       min-height: 100vh; display: flex; align-items: center; justify-content: center;
       font-family: 'Segoe UI', sans-serif;
-     touch-action: none; }
+      touch-action: none;
+    }
     #game { border-radius: 12px; overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.86.0/dist/phaser.min.js" crossorigin="anonymous"></script>
@@ -18,28 +19,117 @@
 <script>
 const COLS = 7, ROWS = 8, TILE = 56, PAD = 40;
 const GW = COLS * TILE + PAD * 2, GH = ROWS * TILE + PAD * 2 + 50;
-const COLORS = [0xff4466, 0x44aaff, 0x44dd44, 0xffaa22, 0xdd44ff, 0x44ffdd];
-const COLOR_NAMES = ['red', 'blue', 'green', 'orange', 'purple', 'cyan'];
+const COLORS = [0x44aaff, 0xff4466, 0x44dd44, 0xffdd22, 0xcc44ff, 0xaabbcc];
+const COLOR_NAMES = ['blue', 'red', 'green', 'yellow', 'purple', 'grey'];
 
 class Match extends Phaser.Scene {
   constructor() { super('Match'); }
 
   preload() {
-    this.load.image('gem0', '/assets/sprites/kenney-puzzle/element_blue_diamond_glossy.png');
-    this.load.image('gem1', '/assets/sprites/kenney-puzzle/element_red_diamond_glossy.png');
-    this.load.image('gem2', '/assets/sprites/kenney-puzzle/element_green_diamond_glossy.png');
-    this.load.image('gem3', '/assets/sprites/kenney-puzzle/element_yellow_diamond_glossy.png');
-    this.load.image('gem4', '/assets/sprites/kenney-puzzle/element_purple_diamond_glossy.png');
-    this.load.image('gem5', '/assets/sprites/kenney-puzzle/element_grey_diamond_glossy.png');
+    const S = TILE, cx = S / 2, cy = S / 2;
+
+    function lighten(c, amt) {
+      return (Math.min(255, (c >> 16 & 0xFF) + amt) << 16) |
+             (Math.min(255, (c >> 8 & 0xFF) + amt) << 8) |
+              Math.min(255, (c & 0xFF) + amt);
+    }
+    function darken(c, amt) {
+      return (Math.max(0, (c >> 16 & 0xFF) - amt) << 16) |
+             (Math.max(0, (c >> 8 & 0xFF) - amt) << 8) |
+              Math.max(0, (c & 0xFF) - amt);
+    }
+    function regPoly(cx, cy, r, n, rot) {
+      return Array.from({ length: n }, (_, i) => {
+        const a = rot + (2 * Math.PI * i) / n;
+        return { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) };
+      });
+    }
+    function starPoly(cx, cy, outerR, innerR, points, rot) {
+      return Array.from({ length: points * 2 }, (_, i) => {
+        const a = rot + (Math.PI * i) / points;
+        const r = i % 2 === 0 ? outerR : innerR;
+        return { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) };
+      });
+    }
+    function tracePath(g, pts) {
+      g.beginPath();
+      g.moveTo(pts[0].x, pts[0].y);
+      for (let i = 1; i < pts.length; i++) g.lineTo(pts[i].x, pts[i].y);
+      g.closePath();
+    }
+
+    const gemDefs = [
+      { color: 0x44aaff, pts: regPoly(cx, cy, 24, 4, -Math.PI / 2) },
+      { color: 0xff4466, pts: regPoly(cx, cy, 23, 6, -Math.PI / 6) },
+      { color: 0x44dd44, pts: regPoly(cx, cy, 23, 5, -Math.PI / 2) },
+      { color: 0xffdd22, pts: starPoly(cx, cy, 24, 13, 6, -Math.PI / 2) },
+      { color: 0xcc44ff, pts: regPoly(cx, cy, 23, 8, Math.PI / 8) },
+      { color: 0xaabbcc, pts: [{ x: cx, y: 2 }, { x: cx + 14, y: cy }, { x: cx, y: S - 2 }, { x: cx - 14, y: cy }] },
+    ];
+
+    gemDefs.forEach(({ color, pts }, i) => {
+      const g = this.make.graphics({ add: false });
+      const light = lighten(color, 70);
+      const dark = darken(color, 70);
+      const inner = pts.map(p => ({
+        x: cx + (p.x - cx) * 0.38,
+        y: cy + (p.y - cy) * 0.38
+      }));
+
+      g.fillStyle(0x000000, 0.25);
+      tracePath(g, pts.map(p => ({ x: p.x + 1, y: p.y + 2 }))); g.fillPath();
+
+      g.fillStyle(color);
+      tracePath(g, pts); g.fillPath();
+
+      for (let j = 0; j < pts.length; j++) {
+        const nj = (j + 1) % pts.length;
+        const ni = (j + 1) % inner.length;
+        const midY = (pts[j].y + pts[nj].y) / 2;
+        const isUpper = midY < cy;
+        g.fillStyle(isUpper ? light : dark, isUpper ? 0.35 : 0.25);
+        g.beginPath();
+        g.moveTo(pts[j].x, pts[j].y);
+        g.lineTo(pts[nj].x, pts[nj].y);
+        g.lineTo(inner[ni].x, inner[ni].y);
+        g.lineTo(inner[j].x, inner[j].y);
+        g.closePath();
+        g.fillPath();
+      }
+
+      g.fillStyle(light, 0.3);
+      tracePath(g, inner); g.fillPath();
+
+      g.lineStyle(1, 0xffffff, 0.15);
+      for (let j = 0; j < pts.length; j++) {
+        g.lineBetween(pts[j].x, pts[j].y, inner[j].x, inner[j].y);
+      }
+
+      g.lineStyle(1, light, 0.25);
+      tracePath(g, inner); g.strokePath();
+
+      g.lineStyle(1.5, 0xffffff, 0.35);
+      tracePath(g, pts); g.strokePath();
+
+      g.fillStyle(0xffffff, 0.75);
+      g.fillCircle(cx - 5, cy - 7, 3.5);
+      g.fillStyle(0xffffff, 0.35);
+      g.fillCircle(cx - 2, cy - 4, 2);
+
+      g.generateTexture('gem' + i, S, S);
+      g.destroy();
+    });
+
+    const sg = this.make.graphics({ add: false });
+    sg.lineStyle(3, 0xffffff);
+    sg.strokeRoundedRect(2, 2, S - 4, S - 4, 8);
+    sg.generateTexture('sel', S, S);
+    sg.destroy();
   }
 
   create() {
     this.score = 0; this.selected = null;
     this.canInput = true; this.grid = [];
-
-    const gg = this.make.graphics({ add: false });
-    gg.lineStyle(3, 0xffffff); gg.strokeRoundedRect(2, 2, TILE - 4, TILE - 4, 8);
-    gg.generateTexture('sel', TILE, TILE); gg.destroy();
 
     this.add.rectangle(GW / 2, GH / 2, GW, GH, 0x1a0a2e);
     this.scoreText = this.add.text(GW / 2, 18, 'Score: 0', { fontSize: '24px', fill: '#ffcc00', stroke: '#000', strokeThickness: 3 }).setOrigin(0.5).setDepth(10);
@@ -192,7 +282,7 @@ class Match extends Phaser.Scene {
 new Phaser.Game({
   type: Phaser.AUTO, width: GW, height: GH, parent: 'game',
   backgroundColor: '#1a0a2e', scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
- scene: Match
+  scene: Match
 });
 </script>
 </body>

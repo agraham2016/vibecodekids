@@ -20,34 +20,135 @@ class PetScene extends Phaser.Scene {
   constructor() { super('PetScene'); }
 
   preload() {
-    this.load.image('pet', '/assets/sprites/pet-sim/pet.png');
-    this.load.image('heart', '/assets/sprites/pet-sim/heart.png');
-    this.load.image('food', '/assets/sprites/pet-sim/food.png');
-    this.load.image('toy', '/assets/sprites/pet-sim/toy.png');
-    this.load.image('particle', '/assets/sprites/common/particle.png');
+    const g = this.make.graphics({ add: false });
+
+    // --- PET: Kawaii orange tabby cat (64×64) ---
+    // Tail (behind body)
+    g.fillStyle(0xE88A3A);
+    g.fillCircle(56, 40, 4);
+    g.fillRect(46, 38, 12, 5);
+    g.fillStyle(0xC06828);
+    g.fillRect(48, 39, 2, 3);
+    g.fillRect(52, 39, 2, 3);
+    // Body
+    g.fillStyle(0xF4A040);
+    g.fillEllipse(32, 46, 32, 18);
+    // Body stripes
+    g.fillStyle(0xD07030);
+    g.fillRect(23, 38, 2, 10);
+    g.fillRect(29, 37, 2, 12);
+    g.fillRect(35, 37, 2, 12);
+    g.fillRect(41, 38, 2, 10);
+    // Head
+    g.fillStyle(0xF4A040);
+    g.fillCircle(32, 22, 18);
+    // Ears outer
+    g.fillTriangle(13, 18, 19, 2, 26, 15);
+    g.fillTriangle(38, 15, 45, 2, 51, 18);
+    // Ears inner (pink)
+    g.fillStyle(0xFFB0C0);
+    g.fillTriangle(15, 17, 19, 5, 25, 15);
+    g.fillTriangle(39, 15, 45, 5, 49, 17);
+    // Forehead stripes
+    g.fillStyle(0xD07030);
+    g.fillRect(28, 9, 2, 8);
+    g.fillRect(31, 7, 2, 10);
+    g.fillRect(34, 9, 2, 8);
+    // Eyes (big kawaii)
+    g.fillStyle(0xFFFFFF);
+    g.fillCircle(24, 23, 7);
+    g.fillCircle(40, 23, 7);
+    g.fillStyle(0x2D1F0E);
+    g.fillCircle(25, 24, 5);
+    g.fillCircle(39, 24, 5);
+    // Eye highlights
+    g.fillStyle(0xFFFFFF);
+    g.fillCircle(23, 21, 2.5);
+    g.fillCircle(37, 21, 2.5);
+    g.fillCircle(26, 26, 1);
+    g.fillCircle(40, 26, 1);
+    // Nose (pink)
+    g.fillStyle(0xFF8888);
+    g.fillTriangle(30, 30, 34, 30, 32, 33);
+    // Mouth
+    g.lineStyle(1.5, 0x8B6040);
+    g.lineBetween(32, 33, 28, 36);
+    g.lineBetween(32, 33, 36, 36);
+    // Whiskers
+    g.lineStyle(1, 0xC89060);
+    g.lineBetween(14, 28, 22, 30);
+    g.lineBetween(14, 32, 22, 32);
+    g.lineBetween(42, 30, 50, 28);
+    g.lineBetween(42, 32, 50, 32);
+    // Blush (rosy cheeks)
+    g.fillStyle(0xFFAAAA, 0.5);
+    g.fillCircle(16, 30, 4);
+    g.fillCircle(48, 30, 4);
+    // Front paws
+    g.fillStyle(0xF4A040);
+    g.fillCircle(22, 56, 6);
+    g.fillCircle(42, 56, 6);
+    // Paw pads
+    g.fillStyle(0xFFB0C0);
+    g.fillCircle(22, 57, 2.5);
+    g.fillCircle(42, 57, 2.5);
+    g.generateTexture('pet', 64, 64);
+    g.clear();
+
+    // --- HEART (24×24) ---
+    g.fillStyle(0xFF4466);
+    g.fillCircle(8, 8, 6);
+    g.fillCircle(16, 8, 6);
+    g.fillTriangle(2, 10, 22, 10, 12, 22);
+    g.fillStyle(0xFF8899, 0.5);
+    g.fillCircle(7, 6, 2);
+    g.generateTexture('heart', 24, 24);
+    g.clear();
+
+    // --- FOOD: Bowl of kibble (32×32) ---
+    g.fillStyle(0x8B5E3C);
+    g.fillEllipse(16, 24, 28, 14);
+    g.fillStyle(0xA0714D);
+    g.fillEllipse(16, 17, 30, 8);
+    g.fillStyle(0x704A2C);
+    g.fillEllipse(16, 17, 24, 5);
+    g.fillStyle(0xC49A6C);
+    g.fillCircle(10, 14, 3);
+    g.fillCircle(17, 12, 3);
+    g.fillCircle(23, 14, 3);
+    g.fillStyle(0xB08050);
+    g.fillCircle(13, 11, 2);
+    g.fillCircle(20, 11, 2);
+    g.generateTexture('food', 32, 32);
+    g.clear();
+
+    // --- TOY: Yarn ball (28×28) ---
+    g.fillStyle(0xDD55AA);
+    g.fillCircle(14, 14, 12);
+    g.lineStyle(1.5, 0xEE88CC);
+    g.lineBetween(5, 8, 23, 20);
+    g.lineBetween(5, 20, 23, 8);
+    g.lineBetween(14, 2, 14, 26);
+    g.lineStyle(1, 0xCC3388);
+    g.lineBetween(3, 14, 25, 14);
+    g.lineBetween(7, 4, 21, 24);
+    g.lineBetween(7, 24, 21, 4);
+    g.fillStyle(0xFFBBDD, 0.4);
+    g.fillCircle(10, 9, 4);
+    g.generateTexture('toy', 28, 28);
+    g.clear();
+
+    // --- PARTICLE (8×8) ---
+    g.fillStyle(0xFFCCDD);
+    g.fillCircle(4, 4, 3);
+    g.fillStyle(0xFFFFFF, 0.6);
+    g.fillCircle(3, 3, 1);
+    g.generateTexture('particle', 8, 8);
+    g.destroy();
   }
 
   create() {
-    if (!this.textures.exists('pet') || this.textures.get('pet').key === '__MISSING') {
-      const g = this.make.graphics({ add: false });
-      g.fillStyle(0xdcb478); g.fillCircle(24, 28, 16);
-      g.fillStyle(0xe0c890); g.fillCircle(24, 24, 14); g.fillCircle(24, 16, 12);
-      g.fillStyle(0x333333); g.fillRect(19, 13, 3, 3); g.fillRect(27, 13, 3, 3);
-      g.fillCircle(24, 18, 2);
-      g.fillStyle(0xe0c890); g.fillCircle(14, 8, 5); g.fillCircle(34, 8, 5);
-      g.generateTexture('pet', 48, 48); g.clear();
-      g.fillStyle(0xff6b6b); g.fillCircle(8, 10, 6); g.fillCircle(16, 10, 6);
-      g.fillTriangle(4, 12, 20, 12, 12, 20);
-      g.generateTexture('heart', 24, 24); g.clear();
-      g.fillStyle(0xe67e22); g.fillRect(4, 8, 16, 12); g.fillRect(2, 6, 20, 4);
-      g.generateTexture('food', 24, 24); g.clear();
-      g.fillStyle(0x3498db); g.fillCircle(12, 12, 10);
-      g.generateTexture('toy', 24, 24); g.clear();
-      g.fillStyle(0xffffff); g.fillCircle(4, 4, 3);
-      g.generateTexture('particle', 8, 8); g.destroy();
-    }
-
-    this.add.rectangle(GW / 2, GH / 2, GW, GH, 0xfff5e1);
+    this.add.rectangle(GW / 2, GH / 2, GW, GH, 0xFFE4EC);
 
     this.hunger = 80; this.happiness = 80; this.energy = 80;
     this.gameOver = false;
@@ -224,8 +325,8 @@ class PetScene extends Phaser.Scene {
 
 new Phaser.Game({
   type: Phaser.AUTO, width: GW, height: GH, parent: 'game',
-  backgroundColor: '#fff5e1', scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
- scene: PetScene
+  backgroundColor: '#FFE4EC', scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
+  scene: PetScene
 });
 </script>
 </body>
