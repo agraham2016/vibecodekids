@@ -479,6 +479,116 @@ Questions? Contact us at ${SUPPORT_EMAIL}
   return { sent: !!RESEND_API_KEY, to, resetUrl };
 }
 
+// ========== SUBSCRIPTION CONFIRMATION EMAIL ==========
+
+/**
+ * Send a subscription confirmation email after successful payment.
+ * Routes to parent email for minors (<18), recovery email for adults.
+ *
+ * @param {object} user - The user object
+ * @param {string} tierName - Display name of the tier (e.g. "Creator")
+ * @param {number} tierPrice - Monthly price in dollars
+ * @param {string} renewalDate - ISO date string for next renewal
+ * @param {boolean} isUpgrade - Whether this is an upgrade vs new signup
+ */
+export async function sendSubscriptionConfirmationEmail(user, tierName, tierPrice, renewalDate, isUpgrade = false) {
+  const isAdult = user.ageBracket === 'adult' || user.ageBracket === '18plus';
+  const recipientEmail = isAdult ? user.recoveryEmail : user.parentEmail;
+
+  if (!recipientEmail) {
+    console.log('📧 Subscription confirmation skipped — no recipient email available');
+    return { sent: false, reason: 'no_email' };
+  }
+
+  const renewalFormatted = new Date(renewalDate).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+
+  const greeting = isAdult ? `Hi ${user.displayName}!` : `Hi there!`;
+
+  const childContext = isAdult
+    ? ''
+    : `\nThis confirmation is for your child's account (username: ${user.username}) on ${SITE_NAME}.\n`;
+
+  const subject = isUpgrade
+    ? `${SITE_NAME}: Subscription upgraded to ${tierName}!`
+    : `${SITE_NAME}: Welcome to the ${tierName} plan!`;
+
+  const body = `
+${greeting}
+${childContext}
+${isUpgrade ? `The subscription has been upgraded to the ${tierName} plan.` : `Thank you for subscribing to the ${tierName} plan on ${SITE_NAME}!`}
+
+SUBSCRIPTION DETAILS:
+- Plan: ${tierName}
+- Price: $${tierPrice}/month
+- Next renewal: ${renewalFormatted}
+
+WHAT'S INCLUDED:
+${
+  tierName === 'Pro'
+    ? `- Up to 40 games per month
+- 80 AI prompts per day
+- Unlimited play sessions
+- 20 AI cover images per month
+- 10 AI sprite generations per month
+- Premium game assets`
+    : `- Up to 15 games per month
+- 50 AI prompts per day
+- Unlimited play sessions
+- 5 AI cover images per month
+- Premium game assets`
+}
+
+MANAGE YOUR SUBSCRIPTION:
+You can update your payment method, change plans, or cancel anytime
+from the Parent Portal: ${BASE_URL}/parent-portal
+
+No contracts, no cancellation fees. If you cancel, access continues
+through the end of the current billing period.
+
+Questions? Contact us at ${SUPPORT_EMAIL}
+Privacy Policy: ${BASE_URL}/privacy
+
+- The ${SITE_NAME} Team
+`;
+
+  const RESEND_API_KEY = process.env.RESEND_API_KEY;
+
+  if (RESEND_API_KEY) {
+    try {
+      const resp = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          from: `${SITE_NAME} <${SUPPORT_EMAIL}>`,
+          to: [recipientEmail],
+          subject,
+          text: body,
+        }),
+      });
+      if (!resp.ok) {
+        const errBody = await resp.text();
+        console.error('📧 Subscription confirmation email failed:', resp.status, errBody);
+      } else {
+        console.log(`📧 Subscription confirmation email sent to ${recipientEmail}`);
+      }
+    } catch (err) {
+      console.error('📧 Subscription confirmation email error:', err.message);
+    }
+  } else {
+    console.log('═══════════════════════════════════════════');
+    console.log(`📧 SUBSCRIPTION CONFIRMATION (RESEND_API_KEY not set — logging only)`);
+    console.log(`   To: ${recipientEmail}`);
+    console.log(`   Subject: ${subject}`);
+    console.log('═══════════════════════════════════════════');
+  }
+
+  return { sent: !!RESEND_API_KEY, to: recipientEmail };
+}
+
 // ========== USER DATA EXPORT (COPPA Right to Access) ==========
 
 /**

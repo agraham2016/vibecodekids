@@ -16,7 +16,13 @@ import {
 } from '../config/index.js';
 import { readUser, writeUser, userExists, findUserBySubscriptionId } from '../services/storage.js';
 import { checkAndResetCounters, calculateUsageRemaining } from '../middleware/rateLimit.js';
-import { getAgeBracket, requiresParentalConsent, createConsentRequest, sendConsentEmail } from '../services/consent.js';
+import {
+  getAgeBracket,
+  requiresParentalConsent,
+  createConsentRequest,
+  sendConsentEmail,
+  sendSubscriptionConfirmationEmail,
+} from '../services/consent.js';
 import { filterContent } from '../middleware/contentFilter.js';
 
 const stripe = STRIPE_SECRET_KEY ? new Stripe(STRIPE_SECRET_KEY) : null;
@@ -228,6 +234,17 @@ export default function createBillingRouter(sessions) {
         return res.redirect('/?signup=pending_consent&tier=' + tier);
       }
 
+      const tierInfo = MEMBERSHIP_TIERS[tier] || {};
+      sendSubscriptionConfirmationEmail(
+        user,
+        tierInfo.name || tier,
+        tierInfo.price || 0,
+        expireDate.toISOString(),
+        false,
+      ).catch((err) => {
+        console.error('Subscription confirmation email error:', err.message);
+      });
+
       res.redirect('/?signup=success&tier=' + tier);
     } catch (error) {
       console.error('❌ Stripe success handler error:', error);
@@ -328,6 +345,18 @@ export default function createBillingRouter(sessions) {
       user.stripeSubscriptionId = session.subscription;
 
       await writeUser(user_id, user);
+
+      const tierInfo = MEMBERSHIP_TIERS[tier] || {};
+      sendSubscriptionConfirmationEmail(
+        user,
+        tierInfo.name || tier,
+        tierInfo.price || 0,
+        expireDate.toISOString(),
+        true,
+      ).catch((err) => {
+        console.error('Upgrade confirmation email error:', err.message);
+      });
+
       res.redirect('/?upgrade=success&tier=' + tier);
     } catch (error) {
       console.error('Upgrade success handler error:', error);
