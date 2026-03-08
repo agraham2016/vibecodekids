@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { STORAGE_KEY } from './StudioTutorial';
+import { TUTORIAL_STORAGE_KEY as STORAGE_KEY } from './tutorialUtils';
 import './TipsModal.css';
 
 interface TipsModalProps {
