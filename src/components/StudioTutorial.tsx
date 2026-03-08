@@ -1,12 +1,13 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import CoachBubble from './CoachBubble';
-import { TUTORIAL_STORAGE_KEY } from './tutorialUtils';
+import { tutorialKey } from './tutorialUtils';
 
 interface StudioTutorialProps {
   active: boolean;
   messageCount: number;
   isLoading: boolean;
   startAtStep?: number;
+  userId?: string | null;
   onComplete: () => void;
   onSkip: () => void;
   onSwitchMobileTab?: (tab: 'chat' | 'game') => void;
@@ -66,6 +67,7 @@ export default function StudioTutorial({
   messageCount,
   isLoading,
   startAtStep = 1,
+  userId,
   onComplete,
   onSkip,
   onSwitchMobileTab,
@@ -76,9 +78,9 @@ export default function StudioTutorial({
 
   useEffect(() => {
     if (active) {
-      localStorage.setItem(TUTORIAL_STORAGE_KEY, `in_progress:${step}`);
+      localStorage.setItem(tutorialKey(userId), `in_progress:${step}`);
     }
-  }, [step, active]);
+  }, [step, active, userId]);
 
   useEffect(() => {
     if (!active) {
@@ -121,21 +123,21 @@ export default function StudioTutorial({
 
   const handleNext = useCallback(() => {
     if (step >= STEPS.length) {
-      localStorage.setItem(TUTORIAL_STORAGE_KEY, 'completed');
+      localStorage.setItem(tutorialKey(userId), 'completed');
       onComplete();
     } else {
       setStep(step + 1);
     }
-  }, [step, onComplete]);
+  }, [step, onComplete, userId]);
 
   const handleBack = useCallback(() => {
     if (step > 1) setStep(step - 1);
   }, [step]);
 
   const handleSkip = useCallback(() => {
-    localStorage.setItem(TUTORIAL_STORAGE_KEY, 'skipped');
+    localStorage.setItem(tutorialKey(userId), 'skipped');
     onSkip();
-  }, [onSkip]);
+  }, [onSkip, userId]);
 
   if (!active || step < 1 || step > STEPS.length) return null;
 

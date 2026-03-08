@@ -15,7 +15,7 @@ import LandingPage from './components/LandingPage';
 import LandingPageB from './components/LandingPageB';
 import GameSurvey from './components/GameSurvey';
 import StudioTutorial from './components/StudioTutorial';
-import { getTutorialStatus } from './components/tutorialUtils';
+import { getTutorialStatus, welcomedKey } from './components/tutorialUtils';
 import TipsModal from './components/TipsModal';
 import { getVariant } from './lib/abVariant';
 import type { User, MembershipUsage, TierInfo, AIMode, GameConfig } from './types';
@@ -87,8 +87,8 @@ function App() {
   useEffect(() => {
     if (token && user?.id) {
       fetchUserProjects(user.id).then((projects) => {
-        if (projects.length === 0 && messages.length === 0 && !localStorage.getItem('vck_welcomed')) {
-          const { status, step } = getTutorialStatus();
+        if (projects.length === 0 && messages.length === 0 && !localStorage.getItem(welcomedKey(user?.id))) {
+          const { status, step } = getTutorialStatus(user?.id);
           if (status === 'in_progress') {
             setTutorialStartStep(step);
             setTutorialActive(true);
@@ -178,27 +178,27 @@ function App() {
       const dimensionLabel = config.dimension === '3d' ? '3D' : '2D';
       const prompt = `Make me a ${dimensionLabel} ${config.theme} ${config.gameType} game where I control a ${config.character} and dodge ${config.obstacles}! Use a ${config.visualStyle} visual style.`;
       setShowGameSurvey(false);
-      localStorage.setItem('vck_welcomed', '1');
+      localStorage.setItem(welcomedKey(user?.id), '1');
       handleSendMessage(prompt, undefined, undefined, config);
       setTutorialStartStep(4);
       setTutorialActive(true);
     },
-    [handleSendMessage],
+    [handleSendMessage, user?.id],
   );
 
   const handleWelcomeFreeChat = useCallback(() => {
     setShowWelcomeOverlay(false);
     setShowGameSurvey(false);
-    localStorage.setItem('vck_welcomed', '1');
+    localStorage.setItem(welcomedKey(user?.id), '1');
     setTutorialActive(false);
-  }, []);
+  }, [user?.id]);
 
   const handleStartTutorial = useCallback(() => {
     setShowWelcomeOverlay(false);
-    localStorage.setItem('vck_welcomed', '1');
+    localStorage.setItem(welcomedKey(user?.id), '1');
     setTutorialStartStep(1);
     setTutorialActive(true);
-  }, []);
+  }, [user?.id]);
 
   const handleTutorialComplete = useCallback(() => {
     setTutorialActive(false);
@@ -354,6 +354,7 @@ function App() {
         messageCount={messages.length}
         isLoading={isLoading}
         startAtStep={tutorialStartStep}
+        userId={user?.id}
         onComplete={handleTutorialComplete}
         onSkip={handleTutorialSkip}
         onSwitchMobileTab={setMobileTab}
@@ -375,6 +376,7 @@ function App() {
       {showLearnModal && (
         <TipsModal
           isOpen={showLearnModal}
+          userId={user?.id}
           onClose={() => setShowLearnModal(false)}
           onReplayTutorial={() => {
             setShowLearnModal(false);

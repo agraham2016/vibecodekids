@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { TUTORIAL_STORAGE_KEY as STORAGE_KEY } from './tutorialUtils';
+import { tutorialKey } from './tutorialUtils';
 import './TipsModal.css';
 
 interface TipsModalProps {
   isOpen: boolean;
+  userId?: string | null;
   onClose: () => void;
   onReplayTutorial?: () => void;
 }
@@ -159,13 +160,13 @@ const STUDIO_TOOLS = [
   },
 ];
 
-export default function TipsModal({ isOpen, onClose, onReplayTutorial }: TipsModalProps) {
+export default function TipsModal({ isOpen, userId, onClose, onReplayTutorial }: TipsModalProps) {
   const [activeTab, setActiveTab] = useState<Tab>('how');
 
   if (!isOpen) return null;
 
   const handleReplay = () => {
-    localStorage.setItem(STORAGE_KEY, 'not_started');
+    localStorage.setItem(tutorialKey(userId), 'not_started');
     onClose();
     onReplayTutorial?.();
   };
