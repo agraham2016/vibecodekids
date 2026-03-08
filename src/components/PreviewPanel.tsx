@@ -33,9 +33,29 @@ function injectLibraries(code: string): string {
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
     <script>
       window.THREE = THREE;
-      // Sandboxed srcdoc iframes have an opaque origin that breaks createImageBitmap
-      // for embedded GLB textures. Removing it forces Three.js to use Image() fallback.
       delete window.createImageBitmap;
+      (function(){
+        if (!window.THREE || !window.THREE.ImageLoader) return;
+        var orig = window.THREE.ImageLoader.prototype.load;
+        window.THREE.ImageLoader.prototype.load = function(url, onLoad, onProgress, onError) {
+          if (typeof url === 'string' && url.indexOf('blob:') === 0) {
+            fetch(url).then(function(r){ return r.blob(); }).then(function(blob) {
+              return new Promise(function(res, rej) {
+                var r = new FileReader();
+                r.onload = function() { res(r.result); };
+                r.onerror = function() { rej(r.error); };
+                r.readAsDataURL(blob);
+              });
+            }).then(function(dataUrl) {
+              orig.call(this, dataUrl, onLoad, onProgress, onError);
+            }.bind(this)).catch(function(e) {
+              if (onError) onError(e);
+            });
+          } else {
+            orig.call(this, url, onLoad, onProgress, onError);
+          }
+        };
+      })();
     </script>
   `;
   const headInject = previewScrollStyle + libraryScripts;
