@@ -19,6 +19,16 @@ const router = Router();
 const parentSessions = new Map();
 const PARENT_SESSION_TTL = 30 * 60 * 1000; // 30 minutes
 
+// In-memory 6-digit verification codes (email -> { code, expiresAt, attempts })
+const portalCodes = new Map();
+const PORTAL_CODE_TTL = 15 * 60 * 1000; // 15 minutes
+const PORTAL_CODE_MAX_ATTEMPTS = 5;
+
+// Rate limit: max 3 code requests per email per hour
+const codeRequestCounts = new Map();
+const CODE_REQUEST_WINDOW = 60 * 60 * 1000; // 1 hour
+const CODE_REQUEST_MAX = 3;
+
 function generateParentToken() {
   return crypto.randomBytes(32).toString('hex');
 }
@@ -74,6 +84,99 @@ router.post('/request-access', async (req, res) => {
 
   // Always return success to avoid email enumeration
   res.json({ ok: true, message: 'If an account exists with that email, a dashboard link has been sent.' });
+});
+
+/**
+ * POST /api/parent-dashboard/portal-request-code
+ * Send a 6-digit verification code to a parent's email.
+ */
+router.post('/portal-request-code', async (req, res) => {
+  const { email } = req.body;
+  if (!email || typeof email !== 'string') {
+    return res.status(400).json({ error: 'Email is required' });
+  }
+
+  const normalizedEmail = email.toLowerCase().trim();
+
+  // Rate limit: max N code requests per email per hour
+  const now = Date.now();
+  const reqLog = codeRequestCounts.get(normalizedEmail);
+  if (reqLog && now - reqLog.windowStart < CODE_REQUEST_WINDOW && reqLog.count >= CODE_REQUEST_MAX) {
+    return res.json({ ok: true, message: 'If an account exists with that email, a code has been sent.' });
+  }
+  if (!reqLog || now - reqLog.windowStart >= CODE_REQUEST_WINDOW) {
+    codeRequestCounts.set(normalizedEmail, { windowStart: now, count: 1 });
+  } else {
+    reqLog.count++;
+  }
+
+  const code = String(Math.floor(100000 + Math.random() * 900000));
+  portalCodes.set(normalizedEmail, { code, expiresAt: now + PORTAL_CODE_TTL, attempts: 0 });
+
+  try {
+    const RESEND_API_KEY = process.env.RESEND_API_KEY;
+    if (RESEND_API_KEY) {
+      await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          from: `${SITE_NAME} <${SUPPORT_EMAIL}>`,
+          to: [normalizedEmail],
+          subject: `${SITE_NAME} - Parent Portal Access Code`,
+          text: `Your Parent Portal verification code is: ${code}\n\nThis code expires in 15 minutes.\n\nIf you didn't request this, you can safely ignore this email.\n\n- The ${SITE_NAME} Team`,
+        }),
+      });
+    } else {
+      console.log(`📧 [DEV] Parent portal code for ${normalizedEmail}: ${code}`);
+    }
+  } catch (err) {
+    console.error('Failed to send portal code email:', err.message);
+  }
+
+  res.json({ ok: true, message: 'If an account exists with that email, a code has been sent.' });
+});
+
+/**
+ * POST /api/parent-dashboard/portal-verify-code
+ * Verify the 6-digit code and return a session token.
+ */
+router.post('/portal-verify-code', async (req, res) => {
+  const { email, code } = req.body;
+  if (!email || !code) {
+    return res.status(400).json({ error: 'Email and code are required' });
+  }
+
+  const normalizedEmail = email.toLowerCase().trim();
+  const entry = portalCodes.get(normalizedEmail);
+
+  if (!entry || Date.now() > entry.expiresAt) {
+    portalCodes.delete(normalizedEmail);
+    return res.status(401).json({ error: 'Code expired or not found. Please request a new one.' });
+  }
+
+  if (entry.attempts >= PORTAL_CODE_MAX_ATTEMPTS) {
+    portalCodes.delete(normalizedEmail);
+    return res.status(429).json({ error: 'Too many attempts. Please request a new code.' });
+  }
+
+  entry.attempts++;
+
+  if (entry.code !== String(code).trim()) {
+    return res
+      .status(401)
+      .json({ error: `Incorrect code. ${PORTAL_CODE_MAX_ATTEMPTS - entry.attempts} attempts remaining.` });
+  }
+
+  portalCodes.delete(normalizedEmail);
+
+  // Create a parent session
+  const sessionToken = generateParentToken();
+  parentSessions.set(sessionToken, {
+    email: normalizedEmail,
+    expiresAt: Date.now() + PARENT_SESSION_TTL,
+  });
+
+  res.json({ ok: true, sessionToken });
 });
 
 /**

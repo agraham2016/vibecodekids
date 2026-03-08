@@ -542,6 +542,7 @@ export default function LandingPageB({ onLoginClick, onSignupClick }: LandingPag
           </div>
           <div className="footer-col">
             <h4>Parents</h4>
+            <a href="/parent-portal">Parent Portal</a>
             <a href="/esa">ESA Families</a>
             <a href="#parents">Safety</a>
           </div>

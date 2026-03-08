@@ -321,6 +321,7 @@ app.get('/esa', (req, res) => serveHtmlWithNonce(req, res, 'esa.html'));
 app.get('/contact', (req, res) => serveHtmlWithNonce(req, res, 'contact.html'));
 app.get('/faq', (req, res) => serveHtmlWithNonce(req, res, 'faq.html'));
 app.get('/parent-dashboard', (req, res) => serveHtmlWithNonce(req, res, 'parent-dashboard.html'));
+app.get('/parent-portal', (req, res) => serveHtmlWithNonce(req, res, 'parent-portal.html'));
 app.get('/parent-verify-charge', (req, res) => serveHtmlWithNonce(req, res, 'parent-verify-charge.html'));
 app.get('/forgot-password/reset', (req, res) => serveHtmlWithNonce(req, res, 'forgot-password.html'));
 

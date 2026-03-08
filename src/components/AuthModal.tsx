@@ -1,7 +1,16 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import PlanSelector from './PlanSelector';
 import type { User, MembershipUsage, TierInfo } from '../types';
 import './AuthModal.css';
+
+declare global {
+  interface Window {
+    grecaptcha?: {
+      ready: (cb: () => void) => void;
+      execute: (siteKey: string, options: { action: string }) => Promise<string>;
+    };
+  }
+}
 
 interface LoginData {
   membership?: MembershipUsage;
@@ -26,7 +35,9 @@ export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: A
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
-  const [age, setAge] = useState('');
+  const [birthMonth, setBirthMonth] = useState('');
+  const [birthDay, setBirthDay] = useState('');
+  const [birthYear, setBirthYear] = useState('');
   const [parentEmail, setParentEmail] = useState('');
   const [recoveryEmail, setRecoveryEmail] = useState('');
   const [privacyAccepted, setPrivacyAccepted] = useState(false);
@@ -34,9 +45,54 @@ export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: A
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [forgotStep, setForgotStep] = useState<'request' | null>(null);
+  const [recaptchaSiteKey, setRecaptchaSiteKey] = useState<string | null>(null);
 
-  const isUnder13 = age !== '' && parseInt(age) < 13;
-  const is13Plus = age !== '' && parseInt(age) >= 13;
+  // Load reCAPTCHA site key and script
+  useEffect(() => {
+    fetch('/api/auth/recaptcha-key')
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.siteKey) {
+          setRecaptchaSiteKey(data.siteKey);
+          if (!document.getElementById('recaptcha-script')) {
+            const script = document.createElement('script');
+            script.id = 'recaptcha-script';
+            script.src = `https://www.google.com/recaptcha/api.js?render=${data.siteKey}`;
+            document.head.appendChild(script);
+          }
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const getRecaptchaToken = useCallback(async (): Promise<string | undefined> => {
+    if (!recaptchaSiteKey || !window.grecaptcha) return undefined;
+    try {
+      return await new Promise<string>((resolve) => {
+        window.grecaptcha!.ready(() => {
+          window.grecaptcha!.execute(recaptchaSiteKey, { action: 'signup' }).then(resolve);
+        });
+      });
+    } catch {
+      return undefined;
+    }
+  }, [recaptchaSiteKey]);
+
+  const computedAge = (() => {
+    if (!birthMonth || !birthDay || !birthYear) return null;
+    const today = new Date();
+    const bday = new Date(parseInt(birthYear), parseInt(birthMonth) - 1, parseInt(birthDay));
+    if (isNaN(bday.getTime())) return null;
+    let a = today.getFullYear() - bday.getFullYear();
+    const monthDiff = today.getMonth() - bday.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < bday.getDate())) a--;
+    return a;
+  })();
+
+  const hasBirthday = computedAge !== null;
+  const isUnder13 = hasBirthday && computedAge < 13;
+  const isUnder18 = hasBirthday && computedAge < 18;
+  const isAdult = hasBirthday && computedAge >= 18;
 
   useEffect(() => {
     const closeBtn = modalRef.current?.querySelector('.close-btn') as HTMLElement | null;
@@ -58,19 +114,19 @@ export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: A
     try {
       if (mode === 'signup') {
         if (selectedPlan === 'free') {
-          // Validate age
-          const ageNum = parseInt(age);
-          if (!age || isNaN(ageNum) || ageNum < 5 || ageNum > 120) {
-            throw new Error("Hmm, that age doesn't look right. Try again?");
+          if (computedAge === null || computedAge < 5 || computedAge > 120) {
+            throw new Error("Hmm, that birthday doesn't look right. Try again?");
           }
 
-          if (ageNum < 13 && !parentEmail) {
+          if (computedAge < 18 && !parentEmail) {
             throw new Error("We need a parent's email to keep you safe. Ask a grown-up to type theirs!");
           }
 
           if (!privacyAccepted) {
             throw new Error('One more thing — check the box to agree to the rules!');
           }
+
+          const recaptchaToken = await getRecaptchaToken();
 
           const response = await fetch('/api/auth/register', {
             method: 'POST',
@@ -79,10 +135,12 @@ export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: A
               username,
               password,
               displayName,
-              age: ageNum,
-              parentEmail: ageNum < 13 ? parentEmail : undefined,
-              recoveryEmail: ageNum >= 13 && recoveryEmail ? recoveryEmail : undefined,
+              age: computedAge,
+              birthdate: `${birthYear}-${birthMonth.padStart(2, '0')}-${birthDay.padStart(2, '0')}`,
+              parentEmail: computedAge < 18 ? parentEmail : undefined,
+              recoveryEmail: computedAge >= 18 && recoveryEmail ? recoveryEmail : undefined,
               privacyAccepted,
+              recaptchaToken,
             }),
           });
 
@@ -100,7 +158,9 @@ export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: A
           setUsername('');
           setPassword('');
           setDisplayName('');
-          setAge('');
+          setBirthMonth('');
+          setBirthDay('');
+          setBirthYear('');
           setParentEmail('');
           setPrivacyAccepted(false);
           setTimeout(
@@ -112,17 +172,17 @@ export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: A
             data.requiresParentalConsent ? 8000 : 3000,
           );
         } else {
-          // Paid plan: Create Stripe checkout with COPPA fields
-          const ageNum = parseInt(age);
-          if (!age || isNaN(ageNum) || ageNum < 5 || ageNum > 120) {
-            throw new Error("Hmm, that age doesn't look right. Try again?");
+          if (computedAge === null || computedAge < 5 || computedAge > 120) {
+            throw new Error("Hmm, that birthday doesn't look right. Try again?");
           }
-          if (ageNum < 13 && !parentEmail) {
+          if (computedAge < 18 && !parentEmail) {
             throw new Error("We need a parent's email to keep you safe. Ask a grown-up to type theirs!");
           }
           if (!privacyAccepted) {
             throw new Error('One more thing — check the box to agree to the rules!');
           }
+
+          const recaptchaTokenPaid = await getRecaptchaToken();
 
           const response = await fetch('/api/stripe/checkout', {
             method: 'POST',
@@ -132,10 +192,12 @@ export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: A
               username,
               password,
               displayName,
-              age: ageNum,
-              parentEmail: ageNum < 13 ? parentEmail : undefined,
-              recoveryEmail: ageNum >= 13 && recoveryEmail ? recoveryEmail : undefined,
+              age: computedAge,
+              birthdate: `${birthYear}-${birthMonth.padStart(2, '0')}-${birthDay.padStart(2, '0')}`,
+              parentEmail: computedAge < 18 ? parentEmail : undefined,
+              recoveryEmail: computedAge >= 18 && recoveryEmail ? recoveryEmail : undefined,
               privacyAccepted,
+              recaptchaToken: recaptchaTokenPaid,
             }),
           });
 
@@ -328,23 +390,48 @@ export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: A
 
               {mode === 'signup' && (
                 <div className="form-group">
-                  <label>How old are you?</label>
-                  <input
-                    type="number"
-                    value={age}
-                    onChange={(e) => setAge(e.target.value)}
-                    placeholder="Enter your age"
-                    min={5}
-                    max={120}
-                    required
-                  />
-                  <span className="input-hint">We ask to keep everyone safe — we don't save your exact age</span>
+                  <label>When is your birthday?</label>
+                  <div className="birthday-selects">
+                    <select
+                      value={birthMonth}
+                      onChange={(e) => setBirthMonth(e.target.value)}
+                      required
+                      aria-label="Month"
+                    >
+                      <option value="">Month</option>
+                      {Array.from({ length: 12 }, (_, i) => (
+                        <option key={i + 1} value={String(i + 1)}>
+                          {new Date(2000, i).toLocaleString('en-US', { month: 'long' })}
+                        </option>
+                      ))}
+                    </select>
+                    <select value={birthDay} onChange={(e) => setBirthDay(e.target.value)} required aria-label="Day">
+                      <option value="">Day</option>
+                      {Array.from({ length: 31 }, (_, i) => (
+                        <option key={i + 1} value={String(i + 1)}>
+                          {i + 1}
+                        </option>
+                      ))}
+                    </select>
+                    <select value={birthYear} onChange={(e) => setBirthYear(e.target.value)} required aria-label="Year">
+                      <option value="">Year</option>
+                      {Array.from({ length: 100 }, (_, i) => {
+                        const y = new Date().getFullYear() - i;
+                        return (
+                          <option key={y} value={String(y)}>
+                            {y}
+                          </option>
+                        );
+                      })}
+                    </select>
+                  </div>
+                  <span className="input-hint">We use this to keep everyone safe</span>
                 </div>
               )}
 
-              {mode === 'signup' && isUnder13 && (
+              {mode === 'signup' && isUnder18 && (
                 <div className="form-group coppa-parent-field">
-                  <label>Your parent or guardian's email</label>
+                  <label>Parent or guardian's email</label>
                   <input
                     type="email"
                     value={parentEmail}
@@ -353,12 +440,14 @@ export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: A
                     required
                   />
                   <span className="input-hint">
-                    We'll send one email to ask their permission. That's the only time we use it.
+                    {isUnder13
+                      ? "We'll send one email to ask their permission. That's the only time we use it."
+                      : "We'll give your parent access to their Parent Portal to manage your account."}
                   </span>
                 </div>
               )}
 
-              {mode === 'signup' && is13Plus && (
+              {mode === 'signup' && isAdult && (
                 <div className="form-group">
                   <label>Recovery Email (optional)</label>
                   <input
@@ -462,7 +551,14 @@ export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: A
           </div>
         )}
 
-        {mode === 'signup' && selectedPlan === 'free' && !isUnder13 && (
+        {mode === 'signup' && selectedPlan === 'free' && isUnder18 && !isUnder13 && (
+          <div className="auth-note auth-note-coppa">
+            <span className="note-icon">👨‍👩‍👧</span>
+            <span>Your account will be ready right away. We'll send your parent a link to their Parent Portal.</span>
+          </div>
+        )}
+
+        {mode === 'signup' && selectedPlan === 'free' && isAdult && (
           <div className="auth-note">
             <span className="note-icon">ℹ️</span>
             <span>Your account will be ready to use right away.</span>

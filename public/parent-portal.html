@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Parent Portal - Vibe Code Kidz</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #0f0a2a 0%, #1a1145 50%, #0f0a2a 100%);
+      color: #e0e7ff;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 20px;
+    }
+    .portal-card {
+      background: rgba(255, 255, 255, 0.06);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(139, 92, 246, 0.25);
+      border-radius: 20px;
+      padding: 40px 36px;
+      max-width: 440px;
+      width: 100%;
+      text-align: center;
+    }
+    .portal-icon { font-size: 3rem; margin-bottom: 12px; }
+    h1 {
+      font-family: 'Orbitron', sans-serif;
+      color: #e0e7ff;
+      font-size: 1.4rem;
+      margin-bottom: 8px;
+    }
+    .subtitle {
+      color: rgba(224, 231, 255, 0.7);
+      font-size: 0.95rem;
+      margin-bottom: 28px;
+      line-height: 1.5;
+    }
+    .form-group {
+      text-align: left;
+      margin-bottom: 18px;
+    }
+    .form-group label {
+      display: block;
+      font-weight: 700;
+      font-size: 0.85rem;
+      color: rgba(224, 231, 255, 0.9);
+      margin-bottom: 8px;
+    }
+    .form-group input {
+      width: 100%;
+      padding: 14px 18px;
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 12px;
+      font-size: 1rem;
+      color: white;
+      font-family: inherit;
+      transition: all 0.2s;
+    }
+    .form-group input::placeholder { color: rgba(255, 255, 255, 0.4); }
+    .form-group input:focus {
+      border-color: rgba(139, 92, 246, 0.6);
+      outline: none;
+      box-shadow: 0 0 20px rgba(139, 92, 246, 0.2);
+    }
+    .code-input {
+      text-align: center;
+      font-size: 1.8rem !important;
+      font-weight: 700;
+      letter-spacing: 0.5em;
+      padding: 16px !important;
+    }
+    .btn {
+      width: 100%;
+      padding: 16px 24px;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      font-size: 1.05rem;
+      font-weight: 700;
+      font-family: 'Nunito', sans-serif;
+      transition: all 0.2s;
+      background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+      color: white;
+      box-shadow: 0 8px 25px rgba(139, 92, 246, 0.3);
+    }
+    .btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 35px rgba(139, 92, 246, 0.4);
+    }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+    .message {
+      padding: 12px 16px;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      margin-bottom: 16px;
+    }
+    .message-success {
+      background: rgba(34, 197, 94, 0.2);
+      border: 1px solid rgba(34, 197, 94, 0.4);
+      color: #86efac;
+    }
+    .message-error {
+      background: rgba(239, 68, 68, 0.2);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      color: #fca5a5;
+    }
+    .back-link {
+      display: inline-block;
+      margin-top: 20px;
+      color: rgba(196, 181, 253, 0.8);
+      text-decoration: none;
+      font-size: 0.9rem;
+      transition: color 0.2s;
+    }
+    .back-link:hover { color: #c4b5fd; }
+    .step-hint {
+      color: rgba(224, 231, 255, 0.5);
+      font-size: 0.8rem;
+      margin-top: 8px;
+    }
+    .resend-btn {
+      background: none;
+      border: none;
+      color: #a78bfa;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-family: inherit;
+      text-decoration: underline;
+      margin-top: 12px;
+      padding: 4px;
+    }
+    .resend-btn:hover { color: #c4b5fd; }
+    .resend-btn:disabled { color: rgba(167, 139, 250, 0.4); cursor: not-allowed; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <div class="portal-card">
+    <div class="portal-icon">👨‍👩‍👧</div>
+    <h1>Parent Portal</h1>
+    <p class="subtitle">Enter your email to access your child's account dashboard</p>
+
+    <div id="messageBox" class="hidden"></div>
+
+    <!-- Step 1: Email -->
+    <div id="step-email">
+      <div class="form-group">
+        <label for="emailInput">Your email address</label>
+        <input type="email" id="emailInput" placeholder="parent@example.com" autocomplete="email">
+      </div>
+      <button class="btn" id="sendCodeBtn" onclick="requestCode()">Send Verification Code</button>
+      <p class="step-hint">We'll send a 6-digit code to verify your identity</p>
+    </div>
+
+    <!-- Step 2: Code verification -->
+    <div id="step-code" class="hidden">
+      <p class="subtitle" style="margin-bottom: 20px">We sent a code to <strong id="emailDisplay"></strong></p>
+      <div class="form-group">
+        <label for="codeInput">Verification Code</label>
+        <input type="text" id="codeInput" class="code-input" placeholder="000000" maxlength="6" inputmode="numeric" autocomplete="one-time-code">
+      </div>
+      <button class="btn" id="verifyBtn" onclick="verifyCode()">Verify & Access Dashboard</button>
+      <div>
+        <button class="resend-btn" id="resendBtn" onclick="requestCode()" disabled>Resend code</button>
+        <span id="resendTimer" class="step-hint"></span>
+      </div>
+      <button class="resend-btn" onclick="showEmailStep()">Use a different email</button>
+    </div>
+
+    <a href="/" class="back-link">← Back to Vibe Code Kidz</a>
+  </div>
+
+  <script>
+    let currentEmail = '';
+    let resendCountdown = 0;
+    let resendInterval = null;
+
+    function showMessage(text, type) {
+      const box = document.getElementById('messageBox');
+      box.className = 'message message-' + type;
+      box.textContent = text;
+      box.classList.remove('hidden');
+    }
+
+    function clearMessage() {
+      document.getElementById('messageBox').classList.add('hidden');
+    }
+
+    function showEmailStep() {
+      document.getElementById('step-email').classList.remove('hidden');
+      document.getElementById('step-code').classList.add('hidden');
+      clearMessage();
+    }
+
+    function showCodeStep() {
+      document.getElementById('step-email').classList.add('hidden');
+      document.getElementById('step-code').classList.remove('hidden');
+      document.getElementById('emailDisplay').textContent = currentEmail;
+      document.getElementById('codeInput').value = '';
+      document.getElementById('codeInput').focus();
+      startResendTimer();
+    }
+
+    function startResendTimer() {
+      resendCountdown = 60;
+      const resendBtn = document.getElementById('resendBtn');
+      const timerSpan = document.getElementById('resendTimer');
+      resendBtn.disabled = true;
+      if (resendInterval) clearInterval(resendInterval);
+      resendInterval = setInterval(() => {
+        resendCountdown--;
+        if (resendCountdown <= 0) {
+          clearInterval(resendInterval);
+          resendBtn.disabled = false;
+          timerSpan.textContent = '';
+        } else {
+          timerSpan.textContent = '(' + resendCountdown + 's)';
+        }
+      }, 1000);
+      timerSpan.textContent = '(60s)';
+    }
+
+    async function requestCode() {
+      const emailInput = document.getElementById('emailInput');
+      const email = (emailInput.value || currentEmail).trim().toLowerCase();
+      if (!email || !email.includes('@')) {
+        showMessage('Please enter a valid email address.', 'error');
+        return;
+      }
+
+      currentEmail = email;
+      const btn = document.getElementById('sendCodeBtn');
+      btn.disabled = true;
+      btn.textContent = 'Sending...';
+      clearMessage();
+
+      try {
+        const resp = await fetch('/api/parent-dashboard/portal-request-code', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email }),
+        });
+        const data = await resp.json();
+        showMessage('If an account exists with that email, a code has been sent. Check your inbox.', 'success');
+        showCodeStep();
+      } catch {
+        showMessage('Something went wrong. Please try again.', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Send Verification Code';
+      }
+    }
+
+    async function verifyCode() {
+      const code = document.getElementById('codeInput').value.trim();
+      if (!code || code.length !== 6) {
+        showMessage('Please enter the 6-digit code from your email.', 'error');
+        return;
+      }
+
+      const btn = document.getElementById('verifyBtn');
+      btn.disabled = true;
+      btn.textContent = 'Verifying...';
+      clearMessage();
+
+      try {
+        const resp = await fetch('/api/parent-dashboard/portal-verify-code', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: currentEmail, code }),
+        });
+        const data = await resp.json();
+
+        if (resp.ok && data.sessionToken) {
+          window.location.href = '/parent-dashboard?session=' + data.sessionToken;
+        } else {
+          showMessage(data.error || 'Invalid code. Please try again.', 'error');
+        }
+      } catch {
+        showMessage('Something went wrong. Please try again.', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Verify & Access Dashboard';
+      }
+    }
+
+    // Enter key handling
+    document.getElementById('emailInput').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') requestCode();
+    });
+    document.getElementById('codeInput').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') verifyCode();
+    });
+  </script>
+</body>
+</html>

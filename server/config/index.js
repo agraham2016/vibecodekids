@@ -50,6 +50,11 @@ export const DATA_RETENTION_DAYS = 365; // Max days to retain inactive child dat
 export const SITE_NAME = 'VibeCodeKidz';
 export const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || 'admin@vibecodekidz.org';
 
+// ========== RECAPTCHA ==========
+
+export const RECAPTCHA_SECRET_KEY = process.env.RECAPTCHA_SECRET_KEY || '';
+export const RECAPTCHA_SITE_KEY = process.env.RECAPTCHA_SITE_KEY || '';
+
 // ========== AUTH ==========
 
 export const BCRYPT_ROUNDS = 10;

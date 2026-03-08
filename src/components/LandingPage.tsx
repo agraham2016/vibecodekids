@@ -1017,6 +1017,9 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
           </div>
           <div className="footer-col">
             <h4>Parents</h4>
+            <a href="/parent-portal" onClick={handleFooterPathLink}>
+              Parent Portal
+            </a>
             <a href="/esa" onClick={handleFooterPathLink}>
               ESA Families
             </a>

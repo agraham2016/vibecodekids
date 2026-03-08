@@ -35,6 +35,9 @@ export default function Header({
 
       {/* Right: User Badge & Actions */}
       <div className="header-right">
+        <a href="/parent-portal" className="header-parent-link">
+          For Parents
+        </a>
         {user ? (
           <div className="user-section">
             {/* Upgrade Button for Free Users */}

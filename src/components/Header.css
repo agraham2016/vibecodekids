@@ -120,6 +120,20 @@
   color: white;
 }
 
+/* Parent Portal Link */
+.header-parent-link {
+  color: rgba(224, 231, 255, 0.6);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.7rem;
+  transition: color 0.2s ease;
+  padding: 4px 8px;
+}
+
+.header-parent-link:hover {
+  color: rgba(224, 231, 255, 1);
+}
+
 /* Guest Badge */
 .guest-badge {
   padding: 8px 14px;

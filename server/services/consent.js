@@ -276,7 +276,9 @@ ${denyUrl}
 
 These links expire in 72 hours.
 
-If you didn't expect this email, you can safely ignore it.
+If you didn't expect this email, you can safely ignore it. Someone may have
+entered your email address by mistake. If you continue to receive emails
+from us, please contact ${SUPPORT_EMAIL} and we will remove your address.
 
 Questions? Contact us at ${SUPPORT_EMAIL}
 Privacy Policy: ${BASE_URL}/privacy
@@ -338,6 +340,81 @@ Questions? Contact us at ${SUPPORT_EMAIL}
   }
 
   return { sent: !!RESEND_API_KEY, to: parentEmail, consentUrl, denyUrl };
+}
+
+// ========== PARENT NOTIFICATION EMAIL (13-17) ==========
+
+/**
+ * Send a notification email to parents of teens (13-17).
+ * The account is NOT gated — this is informational with a dashboard link.
+ */
+export async function sendParentNotificationEmail(parentEmail, childUsername, dashboardToken) {
+  const dashUrl = `${BASE_URL}/parent-dashboard?token=${dashboardToken}`;
+
+  const subject = `${SITE_NAME}: Your teen created an account`;
+  const body = `
+Hi there!
+
+Your teen (username: ${childUsername}) just created an account on ${SITE_NAME},
+a kid-friendly game creation platform where kids ages 7-18 build games with AI.
+
+Their account is active and ready to use. No action is needed from you.
+
+As a parent, you have access to the Parent Portal where you can:
+- See your teen's account details and activity
+- Toggle public game publishing ON or OFF
+- Toggle multiplayer features ON or OFF
+- Export or delete your teen's data at any time
+
+ACCESS YOUR PARENT PORTAL:
+${dashUrl}
+
+Save this link — you can use it anytime to check on your teen's account.
+You can also visit ${BASE_URL}/parent-portal and enter your email to
+get a fresh access code at any time.
+
+If you didn't expect this email, you can safely ignore it. Someone may have
+entered your email address by mistake. If you continue to receive emails
+from us, please contact ${SUPPORT_EMAIL} and we will remove your address.
+
+Questions? Contact us at ${SUPPORT_EMAIL}
+Privacy Policy: ${BASE_URL}/privacy
+
+- The ${SITE_NAME} Team
+`;
+
+  const RESEND_API_KEY = process.env.RESEND_API_KEY;
+
+  if (RESEND_API_KEY) {
+    try {
+      const resp = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          from: `${SITE_NAME} <${SUPPORT_EMAIL}>`,
+          to: [parentEmail],
+          subject,
+          text: body,
+        }),
+      });
+      if (!resp.ok) {
+        const errBody = await resp.text();
+        console.error('📧 Parent notification email delivery failed:', resp.status, errBody);
+      } else {
+        console.log('Parent notification email sent successfully');
+      }
+    } catch (err) {
+      console.error('📧 Parent notification email delivery error:', err.message);
+    }
+  } else {
+    console.log('═══════════════════════════════════════════');
+    console.log(`📧 PARENT NOTIFICATION EMAIL (RESEND_API_KEY not set — logging only)`);
+    console.log('   To: [redacted]');
+    console.log(`   Dashboard: ${dashUrl}`);
+    console.log('═══════════════════════════════════════════');
+  }
+
+  return { sent: !!RESEND_API_KEY, to: parentEmail, dashUrl };
 }
 
 // ========== PASSWORD RESET EMAIL ==========

@@ -7,7 +7,13 @@
 import { Router } from 'express';
 import bcrypt from 'bcrypt';
 import crypto from 'crypto';
-import { BCRYPT_ROUNDS, MEMBERSHIP_TIERS, CONSENT_POLICY_VERSION } from '../config/index.js';
+import {
+  BCRYPT_ROUNDS,
+  MEMBERSHIP_TIERS,
+  CONSENT_POLICY_VERSION,
+  RECAPTCHA_SECRET_KEY,
+  RECAPTCHA_SITE_KEY,
+} from '../config/index.js';
 import log from '../services/logger.js';
 import { readUser, writeUser, userExists, listProjects } from '../services/storage.js';
 import { generateToken } from '../services/sessions.js';
@@ -18,6 +24,8 @@ import {
   requiresParentalConsent,
   createConsentRequest,
   sendConsentEmail,
+  sendParentNotificationEmail,
+  createParentDashboardToken,
   sendPasswordResetEmail,
 } from '../services/consent.js';
 import { createResetToken, getResetByToken, consumeToken } from '../services/passwordReset.js';
@@ -26,6 +34,25 @@ const loginAttempts = new Map();
 const forgotPasswordAttempts = new Map();
 const LOGIN_WINDOW_MS = 60 * 1000;
 const LOGIN_MAX_ATTEMPTS = 5;
+
+// Rate limit: max 3 signups per parent email per 24h
+const parentEmailSignups = new Map();
+const PARENT_EMAIL_WINDOW = 24 * 60 * 60 * 1000;
+const PARENT_EMAIL_MAX_SIGNUPS = 3;
+
+function checkParentEmailRateLimit(email) {
+  if (!email) return true;
+  const key = email.toLowerCase().trim();
+  const now = Date.now();
+  const entry = parentEmailSignups.get(key);
+  if (!entry || now - entry.windowStart >= PARENT_EMAIL_WINDOW) {
+    parentEmailSignups.set(key, { windowStart: now, count: 1 });
+    return true;
+  }
+  if (entry.count >= PARENT_EMAIL_MAX_SIGNUPS) return false;
+  entry.count++;
+  return true;
+}
 
 function checkLoginRateLimit(ip) {
   const now = Date.now();
@@ -61,13 +88,52 @@ setInterval(() => {
   }
 }, 60 * 1000);
 
+async function verifyRecaptcha(token) {
+  if (!RECAPTCHA_SECRET_KEY) return true; // Skip if not configured
+  if (!token) return false;
+  try {
+    const resp = await fetch('https://www.google.com/recaptcha/api/siteverify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: `secret=${encodeURIComponent(RECAPTCHA_SECRET_KEY)}&response=${encodeURIComponent(token)}`,
+    });
+    const data = await resp.json();
+    return data.success && (data.score === undefined || data.score >= 0.5);
+  } catch {
+    return true; // Fail open if Google is unreachable
+  }
+}
+
 export default function createAuthRouter(sessions) {
   const router = Router();
+
+  // Serve reCAPTCHA site key to frontend
+  router.get('/recaptcha-key', (_req, res) => {
+    res.json({ siteKey: RECAPTCHA_SITE_KEY || null });
+  });
 
   // Register
   router.post('/register', async (req, res) => {
     try {
-      const { username, password, displayName, age, parentEmail, recoveryEmail, privacyAccepted } = req.body;
+      const {
+        username,
+        password,
+        displayName,
+        age,
+        birthdate,
+        parentEmail,
+        recoveryEmail,
+        privacyAccepted,
+        recaptchaToken,
+      } = req.body;
+
+      // reCAPTCHA verification (skipped if key not configured)
+      if (RECAPTCHA_SECRET_KEY) {
+        const captchaValid = await verifyRecaptcha(recaptchaToken);
+        if (!captchaValid) {
+          return res.status(400).json({ error: 'Bot verification failed. Please try again.' });
+        }
+      }
 
       if (!username || !password || !displayName) {
         return res.status(400).json({ error: 'Username, password, and display name are required' });
@@ -96,9 +162,10 @@ export default function createAuthRouter(sessions) {
 
       const ageBracket = getAgeBracket(age);
       const needsConsent = requiresParentalConsent(ageBracket);
+      const isMinor = ageBracket === 'under13' || ageBracket === '13to17';
 
-      // COPPA: Under-13 users MUST provide a parent email
-      if (needsConsent && !parentEmail) {
+      // Under-18 users MUST provide a parent email
+      if (isMinor && !parentEmail) {
         return res.status(400).json({
           error: "We need a parent's email to keep you safe. Ask a grown-up to type theirs!",
           requiresParentEmail: true,
@@ -106,15 +173,22 @@ export default function createAuthRouter(sessions) {
       }
 
       // Validate parent email format
-      if (needsConsent && parentEmail) {
+      if (isMinor && parentEmail) {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(parentEmail)) {
           return res.status(400).json({ error: 'Please enter a valid parent email address' });
         }
       }
 
-      // Validate recovery email for 13+ (optional)
-      if (!needsConsent && recoveryEmail) {
+      // Rate limit signups per parent email (max 3 per 24h)
+      if (isMinor && parentEmail && !checkParentEmailRateLimit(parentEmail)) {
+        return res.status(429).json({
+          error: 'This parent email has been used for too many signups recently. Please try again later.',
+        });
+      }
+
+      // Validate recovery email for adults (optional)
+      if (!isMinor && recoveryEmail) {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(recoveryEmail)) {
           return res.status(400).json({ error: 'Please enter a valid recovery email address' });
@@ -156,8 +230,9 @@ export default function createAuthRouter(sessions) {
         lastLoginAt: null,
         // COPPA fields
         ageBracket,
-        parentEmail: needsConsent ? parentEmail.toLowerCase().trim() : null,
-        recoveryEmail: !needsConsent && recoveryEmail ? recoveryEmail.toLowerCase().trim() : null,
+        birthdate: birthdate || null,
+        parentEmail: isMinor ? parentEmail.toLowerCase().trim() : null,
+        recoveryEmail: !isMinor && recoveryEmail ? recoveryEmail.toLowerCase().trim() : null,
         parentalConsentStatus: needsConsent ? 'pending' : 'not_required',
         parentalConsentAt: null,
         approvedAt: needsConsent ? null : now.toISOString(),
@@ -166,14 +241,20 @@ export default function createAuthRouter(sessions) {
 
       await writeUser(userId, user);
 
-      // COPPA: Send parental consent email for under-13
       let responseMessage;
       if (needsConsent) {
+        // Under-13: consent required before account is active
         const token = await createConsentRequest(userId, parentEmail, 'consent');
         await sendConsentEmail(parentEmail, username, token, 'consent');
         responseMessage =
           "Account created! We've sent an email to your parent/guardian for approval. They need to approve before you can log in.";
         log.info({ username, event: 'register_under13' }, 'Under-13 registration — consent email sent');
+      } else if (isMinor) {
+        // 13-17: account active immediately, parent gets a notification with dashboard link
+        const dashToken = await createParentDashboardToken(userId);
+        await sendParentNotificationEmail(parentEmail, username, dashToken);
+        responseMessage = "Account created! You can log in now. We've notified your parent about your account.";
+        log.info({ username, event: 'register_teen' }, 'Teen registration — parent notification sent');
       } else {
         responseMessage = 'Account created! You can log in now.';
       }
