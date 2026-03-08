@@ -8,10 +8,13 @@
 
 import { Router } from 'express';
 import crypto from 'crypto';
+import Stripe from 'stripe';
 import { readUser, writeUser, listProjects } from '../services/storage.js';
 import { exportUserData, deleteUserData, getUserByParentToken } from '../services/consent.js';
 import { logAdminAction } from '../services/adminAuditLog.js';
-import { SITE_NAME, SUPPORT_EMAIL, BASE_URL } from '../config/index.js';
+import { SITE_NAME, SUPPORT_EMAIL, BASE_URL, STRIPE_SECRET_KEY, MEMBERSHIP_TIERS } from '../config/index.js';
+
+const stripe = STRIPE_SECRET_KEY ? new Stripe(STRIPE_SECRET_KEY) : null;
 
 const router = Router();
 
@@ -257,20 +260,28 @@ router.get('/children', requireParentAuth, async (req, res) => {
     const users = await listUsers();
     const children = findChildrenByParentEmail(users, req.parentEmail);
 
-    const childData = children.map((child) => ({
-      userId: child.id,
-      username: child.username,
-      displayName: child.displayName,
-      ageBracket: child.ageBracket,
-      createdAt: child.createdAt,
-      lastLoginAt: child.lastLoginAt,
-      tier: child.membershipTier || child.tier || 'free',
-      consentStatus: child.parentalConsentStatus || child.consentStatus,
-      consentDate: child.parentalConsentAt || null,
-      consentVersion: child.consentPolicyVersion || null,
-      publishingEnabled: !!child.publishingEnabled,
-      multiplayerEnabled: !!child.multiplayerEnabled,
-    }));
+    const childData = children.map((child) => {
+      const tier = child.membershipTier || child.tier || 'free';
+      const tierInfo = MEMBERSHIP_TIERS[tier] || MEMBERSHIP_TIERS.free;
+      return {
+        userId: child.id,
+        username: child.username,
+        displayName: child.displayName,
+        ageBracket: child.ageBracket,
+        createdAt: child.createdAt,
+        lastLoginAt: child.lastLoginAt,
+        tier,
+        tierName: tierInfo.name || tier,
+        tierPrice: tierInfo.price || 0,
+        membershipExpires: child.membershipExpires || null,
+        hasStripeSubscription: !!child.stripeCustomerId,
+        consentStatus: child.parentalConsentStatus || child.consentStatus,
+        consentDate: child.parentalConsentAt || null,
+        consentVersion: child.consentPolicyVersion || null,
+        publishingEnabled: !!child.publishingEnabled,
+        multiplayerEnabled: !!child.multiplayerEnabled,
+      };
+    });
 
     res.json({ children: childData });
   } catch (err) {
@@ -400,6 +411,46 @@ router.delete('/child/:userId', requireParentAuth, async (req, res) => {
     if (err.code === 'ENOENT') return res.status(404).json({ error: 'Child not found' });
     console.error('Parent dashboard - delete error:', err);
     res.status(500).json({ error: 'Failed to delete data' });
+  }
+});
+
+/**
+ * POST /api/parent-dashboard/child/:userId/manage-subscription
+ * Open Stripe Customer Portal for a child's subscription.
+ */
+router.post('/child/:userId/manage-subscription', requireParentAuth, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const user = await readUser(userId);
+
+    if (!user.parentEmail || user.parentEmail.toLowerCase() !== req.parentEmail.toLowerCase()) {
+      return res.status(403).json({ error: "You can only manage your own children's subscriptions" });
+    }
+
+    if (!stripe) {
+      return res.status(500).json({ error: 'Payment system not configured' });
+    }
+
+    if (!user.stripeCustomerId) {
+      return res.status(400).json({ error: 'No active subscription found for this account' });
+    }
+
+    const portalSession = await stripe.billingPortal.sessions.create({
+      customer: user.stripeCustomerId,
+      return_url: `${BASE_URL}/parent-dashboard?session=${req.parentToken}`,
+    });
+
+    logAdminAction({
+      action: 'parent_manage_subscription',
+      targetId: userId,
+      details: { parentEmail: req.parentEmail },
+    }).catch(() => {});
+
+    res.json({ ok: true, url: portalSession.url });
+  } catch (err) {
+    if (err.code === 'ENOENT') return res.status(404).json({ error: 'Child not found' });
+    console.error('Parent dashboard - manage subscription error:', err);
+    res.status(500).json({ error: 'Could not open subscription management' });
   }
 });
 

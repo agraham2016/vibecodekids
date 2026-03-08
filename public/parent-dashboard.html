@@ -76,6 +76,25 @@
     .toggle-switch .slider::before { content: ''; position: absolute; left: 2px; bottom: 2px; width: 20px; height: 20px; background: white; border-radius: 50%; transition: 0.2s; }
     .toggle-switch input:checked + .slider { background: #22c55e; }
     .toggle-switch input:checked + .slider::before { transform: translateX(20px); }
+    .sub-card {
+      background: rgba(139, 92, 246, 0.08);
+      border: 1px solid rgba(139, 92, 246, 0.2);
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin: 16px 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .sub-info { display: flex; flex-direction: column; gap: 2px; }
+    .sub-tier { font-weight: 800; font-size: 1.05rem; color: #e0e7ff; }
+    .sub-detail { font-size: 0.82rem; color: rgba(224, 231, 255, 0.55); }
+    .sub-free { color: rgba(224, 231, 255, 0.5); font-style: italic; font-size: 0.9rem; }
+    .btn-sub { padding: 10px 20px; border: none; border-radius: 10px; cursor: pointer; font-size: 14px; font-weight: 700; font-family: 'Nunito', sans-serif; transition: all 0.2s; background: linear-gradient(135deg, #8b5cf6, #6d28d9); color: white; }
+    .btn-sub:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4); }
+    .btn-sub:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
     .trust-badge {
       text-align: center;
       padding: 16px;
@@ -171,17 +190,33 @@
             <a href="/">&#8592; Back to Vibe Code Kids</a>
           </div>`;
         for (const child of children) {
+          var subSection = '';
+          if (child.hasStripeSubscription) {
+            var renewalText = child.membershipExpires ? 'Renews ' + new Date(child.membershipExpires).toLocaleDateString() : '';
+            var priceText = child.tierPrice > 0 ? '$' + child.tierPrice + '/mo' : '';
+            subSection = '<div class="sub-card">'
+              + '<div class="sub-info">'
+              + '<span class="sub-tier">' + escHtml(child.tierName) + ' Plan' + (priceText ? ' — ' + priceText : '') + '</span>'
+              + (renewalText ? '<span class="sub-detail">' + renewalText + '</span>' : '')
+              + '</div>'
+              + '<button class="btn-sub" id="sub-btn-' + child.userId + '" onclick="manageSubscription(\'' + child.userId + '\')">Manage Subscription</button>'
+              + '</div>';
+          } else {
+            subSection = '<div class="sub-card">'
+              + '<span class="sub-free">Free plan — no active subscription</span>'
+              + '</div>';
+          }
           html += `
             <div class="card" id="child-${child.userId}">
               <h3>${escHtml(child.displayName)} (@${escHtml(child.username)})</h3>
               <div class="child-info">
                 <div class="info-item"><div class="info-label">Age Bracket</div><div class="info-value">${child.ageBracket || 'N/A'}</div></div>
-                <div class="info-item"><div class="info-label">Tier</div><div class="info-value">${child.tier}</div></div>
+                <div class="info-item"><div class="info-label">Tier</div><div class="info-value">${escHtml(child.tierName)}</div></div>
                 <div class="info-item"><div class="info-label">Last Login</div><div class="info-value">${child.lastLoginAt ? new Date(child.lastLoginAt).toLocaleDateString() : 'Never'}</div></div>
                 <div class="info-item"><div class="info-label">Consent</div><div class="info-value">${child.consentStatus || 'N/A'}</div></div>
                 <div class="info-item"><div class="info-label">Consent Date</div><div class="info-value">${child.consentDate ? new Date(child.consentDate).toLocaleDateString() : '—'}</div></div>
                 <div class="info-item"><div class="info-label">Policy Version</div><div class="info-value">${child.consentVersion || '—'}</div></div>
-              </div>
+              </div>` + subSection + `
               <div class="toggles">
                 <div class="toggle-item">
                   <label class="toggle-switch">
@@ -278,6 +313,27 @@
       } catch {
         alert('Failed to update setting.');
         loadDashboard();
+      }
+    }
+
+    async function manageSubscription(userId) {
+      var btn = document.getElementById('sub-btn-' + userId);
+      if (btn) { btn.disabled = true; btn.textContent = 'Opening...'; }
+      try {
+        var res = await fetch('/api/parent-dashboard/child/' + userId + '/manage-subscription?session=' + sessionToken, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + sessionToken },
+        });
+        var data = await res.json();
+        if (res.ok && data.url) {
+          window.location.href = data.url;
+        } else {
+          alert(data.error || 'Could not open subscription management.');
+          if (btn) { btn.disabled = false; btn.textContent = 'Manage Subscription'; }
+        }
+      } catch {
+        alert('Something went wrong. Please try again.');
+        if (btn) { btn.disabled = false; btn.textContent = 'Manage Subscription'; }
       }
     }
 
