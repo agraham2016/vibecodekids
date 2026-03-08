@@ -465,10 +465,31 @@
   color: white;
 }
 
+.welcome-btn.tutorial {
+  background: linear-gradient(135deg, #6d28d9, #4c1d95);
+  color: white;
+}
+
 .welcome-btn.free {
   background: rgba(255, 255, 255, 0.1);
   color: #e0e7ff;
   border: 1px solid rgba(139, 92, 246, 0.4);
+}
+
+.welcome-skip-link {
+  display: block;
+  margin: 20px auto 0;
+  padding: 4px 0;
+  background: none;
+  border: none;
+  color: rgba(224, 231, 255, 0.4);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.welcome-skip-link:hover {
+  color: rgba(224, 231, 255, 0.7);
 }
 
 .welcome-close-btn {

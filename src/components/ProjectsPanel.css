@@ -292,6 +292,16 @@
   color: #fca5a5;
 }
 
+.pp-action-btn.learn {
+  border-color: rgba(139, 92, 246, 0.3);
+}
+
+.pp-action-btn.learn:hover {
+  background: rgba(139, 92, 246, 0.2);
+  border-color: rgba(139, 92, 246, 0.4);
+  color: #c4b5fd;
+}
+
 .pp-action-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;

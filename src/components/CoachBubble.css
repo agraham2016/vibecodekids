@@ -1,0 +1,175 @@
+/* ── Spotlight Overlay ── */
+.coach-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  background: rgba(0, 0, 0, 0);
+  box-shadow:
+    0 0 0 9999px rgba(0, 0, 0, 0.65),
+    inset var(--spot-w) 0 0 0 transparent;
+  pointer-events: auto;
+  animation: coachFadeIn 0.3s ease forwards;
+
+  /* Spotlight cutout via clip-path inset trick isn't great cross-browser,
+     so we use a pseudo-element approach instead */
+}
+
+.coach-overlay::before {
+  content: '';
+  position: fixed;
+  top: var(--spot-top);
+  left: var(--spot-left);
+  width: var(--spot-w);
+  height: var(--spot-h);
+  border-radius: 12px;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+  z-index: 1201;
+}
+
+@keyframes coachFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ── Coach Bubble ── */
+.coach-bubble {
+  position: fixed;
+  z-index: 1202;
+  background: linear-gradient(145deg, #1e1b4b, #312e81);
+  border: 2px solid rgba(139, 92, 246, 0.5);
+  border-radius: 16px;
+  padding: 20px 24px 16px;
+  width: 320px;
+  max-width: calc(100vw - 32px);
+  box-shadow:
+    0 12px 40px rgba(0, 0, 0, 0.5),
+    0 0 20px rgba(139, 92, 246, 0.15);
+  animation: coachPop 0.3s ease-out;
+}
+
+@keyframes coachPop {
+  from { opacity: 0; transform: translate(-50%, -100%) scale(0.92); }
+  to { opacity: 1; }
+}
+
+.coach-pos-bottom { animation-name: coachPopBottom; }
+.coach-pos-left { animation-name: coachPopLeft; }
+.coach-pos-right { animation-name: coachPopRight; }
+
+@keyframes coachPopBottom {
+  from { opacity: 0; transform: translate(-50%, 0) scale(0.92); }
+  to { opacity: 1; }
+}
+@keyframes coachPopLeft {
+  from { opacity: 0; transform: translate(-100%, -50%) scale(0.92); }
+  to { opacity: 1; }
+}
+@keyframes coachPopRight {
+  from { opacity: 0; transform: translate(0, -50%) scale(0.92); }
+  to { opacity: 1; }
+}
+
+/* Step indicator */
+.coach-step-indicator {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(167, 139, 250, 0.9);
+  margin-bottom: 6px;
+}
+
+.coach-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #e0e7ff;
+  margin: 0 0 8px;
+}
+
+.coach-body {
+  font-size: 0.9rem;
+  color: rgba(224, 231, 255, 0.85);
+  line-height: 1.55;
+  margin: 0 0 16px;
+}
+
+/* Actions row */
+.coach-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.coach-nav-btns {
+  display: flex;
+  gap: 8px;
+}
+
+.coach-next-btn {
+  padding: 8px 20px;
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  border: none;
+  border-radius: 10px;
+  color: white;
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.coach-next-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(139, 92, 246, 0.45);
+}
+
+.coach-back-btn {
+  padding: 8px 16px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  color: rgba(224, 231, 255, 0.8);
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.coach-back-btn:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.coach-skip-btn {
+  padding: 4px 0;
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.coach-skip-btn:hover {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* ── Mobile bottom sheet ── */
+.coach-bubble.coach-mobile {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  top: auto;
+  width: 100%;
+  max-width: none;
+  border-radius: 20px 20px 0 0;
+  transform: none !important;
+  animation: coachSlideUp 0.3s ease-out;
+  padding-bottom: max(16px, env(safe-area-inset-bottom));
+}
+
+@keyframes coachSlideUp {
+  from { opacity: 0; transform: translateY(100%); }
+  to { opacity: 1; transform: translateY(0); }
+}

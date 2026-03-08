@@ -63,6 +63,7 @@ interface ChatPanelProps {
   grokAvailable: boolean;
   lastModelUsed: AIModel | null;
   onUseAlternateCode?: (code: string) => void;
+  onReplayTutorial?: () => void;
 }
 
 /** Model badge info */
@@ -278,6 +279,7 @@ export default function ChatPanel({
   grokAvailable,
   lastModelUsed,
   onUseAlternateCode,
+  onReplayTutorial,
 }: ChatPanelProps) {
   const [input, setInput] = useState('');
   const [feedbackGiven, setFeedbackGiven] = useState<Record<string, 'thumbsUp' | 'thumbsDown'>>({});
@@ -537,7 +539,7 @@ export default function ChatPanel({
 
   return (
     <div className="panel chat-panel">
-      <TipsModal isOpen={showTipsModal} onClose={() => setShowTipsModal(false)} />
+      <TipsModal isOpen={showTipsModal} onClose={() => setShowTipsModal(false)} onReplayTutorial={onReplayTutorial} />
 
       {/* ===== PANEL HEADER WITH MODEL TOGGLE ===== */}
       <div className="panel-header chat-header">

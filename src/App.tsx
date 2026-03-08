@@ -14,6 +14,9 @@ import VersionHistoryModal from './components/VersionHistoryModal';
 import LandingPage from './components/LandingPage';
 import LandingPageB from './components/LandingPageB';
 import GameSurvey from './components/GameSurvey';
+import StudioTutorial from './components/StudioTutorial';
+import { getTutorialStatus } from './components/tutorialUtils';
+import TipsModal from './components/TipsModal';
 import { getVariant } from './lib/abVariant';
 import type { User, MembershipUsage, TierInfo, AIMode, GameConfig } from './types';
 import './App.css';
@@ -51,6 +54,9 @@ function App() {
   const [showVersionHistory, setShowVersionHistory] = useState(false);
   const [showWelcomeOverlay, setShowWelcomeOverlay] = useState(false);
   const [showGameSurvey, setShowGameSurvey] = useState(false);
+  const [tutorialActive, setTutorialActive] = useState(false);
+  const [tutorialStartStep, setTutorialStartStep] = useState(1);
+  const [showLearnModal, setShowLearnModal] = useState(false);
 
   // Mobile/tablet navigation
   const [mobileTab, setMobileTab] = useState<'chat' | 'game' | 'projects'>('chat');
@@ -77,12 +83,18 @@ function App() {
     onUpgradeNeeded: () => setShowUpgradeModal(true),
   });
 
-  // Fetch projects when user logs in; show welcome overlay for new users only
+  // Fetch projects when user logs in; show welcome overlay or resume tutorial
   useEffect(() => {
     if (token && user?.id) {
       fetchUserProjects(user.id).then((projects) => {
         if (projects.length === 0 && messages.length === 0 && !localStorage.getItem('vck_welcomed')) {
-          setShowWelcomeOverlay(true);
+          const { status, step } = getTutorialStatus();
+          if (status === 'in_progress') {
+            setTutorialStartStep(step);
+            setTutorialActive(true);
+          } else {
+            setShowWelcomeOverlay(true);
+          }
         }
       });
     }
@@ -168,6 +180,8 @@ function App() {
       setShowGameSurvey(false);
       localStorage.setItem('vck_welcomed', '1');
       handleSendMessage(prompt, undefined, undefined, config);
+      setTutorialStartStep(4);
+      setTutorialActive(true);
     },
     [handleSendMessage],
   );
@@ -176,6 +190,22 @@ function App() {
     setShowWelcomeOverlay(false);
     setShowGameSurvey(false);
     localStorage.setItem('vck_welcomed', '1');
+    setTutorialActive(false);
+  }, []);
+
+  const handleStartTutorial = useCallback(() => {
+    setShowWelcomeOverlay(false);
+    localStorage.setItem('vck_welcomed', '1');
+    setTutorialStartStep(1);
+    setTutorialActive(true);
+  }, []);
+
+  const handleTutorialComplete = useCallback(() => {
+    setTutorialActive(false);
+  }, []);
+
+  const handleTutorialSkip = useCallback(() => {
+    setTutorialActive(false);
   }, []);
 
   const handleWelcomeGuided = useCallback(() => {
@@ -307,13 +337,27 @@ function App() {
               <button className="welcome-btn guided" onClick={handleWelcomeGuided} type="button">
                 🧙 Help Me Pick!
               </button>
-              <button className="welcome-btn free" onClick={handleWelcomeFreeChat} type="button">
-                💬 I Know What I Want!
+              <button className="welcome-btn tutorial" onClick={handleStartTutorial} type="button">
+                📖 Show Me How!
               </button>
             </div>
+            <button className="welcome-skip-link" onClick={handleWelcomeFreeChat} type="button">
+              Skip, I've got this
+            </button>
           </div>
         </div>
       )}
+
+      {/* Coach-bubble tutorial */}
+      <StudioTutorial
+        active={tutorialActive}
+        messageCount={messages.length}
+        isLoading={isLoading}
+        startAtStep={tutorialStartStep}
+        onComplete={handleTutorialComplete}
+        onSkip={handleTutorialSkip}
+        onSwitchMobileTab={setMobileTab}
+      />
 
       {/* Guided game builder survey */}
       {showGameSurvey && (
@@ -325,6 +369,19 @@ function App() {
             <GameSurvey onComplete={handleGameSurveyComplete} />
           </div>
         </div>
+      )}
+
+      {/* Learn modal (opened from sidebar Learn button) */}
+      {showLearnModal && (
+        <TipsModal
+          isOpen={showLearnModal}
+          onClose={() => setShowLearnModal(false)}
+          onReplayTutorial={() => {
+            setShowLearnModal(false);
+            setTutorialStartStep(1);
+            setTutorialActive(true);
+          }}
+        />
       )}
 
       <Header
@@ -363,6 +420,7 @@ function App() {
             isLoggedIn={!!user}
             lastAutoSavedAt={lastAutoSavedAt}
             username={user?.username}
+            onOpenLearn={() => setShowLearnModal(true)}
           />
         </div>
 
@@ -377,6 +435,10 @@ function App() {
             grokAvailable={grokAvailable}
             lastModelUsed={lastModelUsed}
             onUseAlternateCode={handleUseAlternateCode}
+            onReplayTutorial={() => {
+              setTutorialStartStep(1);
+              setTutorialActive(true);
+            }}
           />
         </div>
 

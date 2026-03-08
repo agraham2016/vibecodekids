@@ -18,6 +18,7 @@ interface ProjectsPanelProps {
   isLoggedIn: boolean;
   lastAutoSavedAt: Date | null;
   username?: string;
+  onOpenLearn?: () => void;
 }
 
 function formatAutoSaveTime(date: Date): string {
@@ -59,6 +60,7 @@ export default function ProjectsPanel({
   isLoggedIn,
   lastAutoSavedAt,
   username,
+  onOpenLearn,
 }: ProjectsPanelProps) {
   return (
     <div className="projects-panel">
@@ -163,6 +165,12 @@ export default function ProjectsPanel({
           <span>🕹️</span>
           <span>Arcade</span>
         </a>
+        {onOpenLearn && (
+          <button className="pp-action-btn learn" onClick={onOpenLearn} title="Tips & Tutorial">
+            <span>📖</span>
+            <span>Learn</span>
+          </button>
+        )}
       </div>
     </div>
   );
