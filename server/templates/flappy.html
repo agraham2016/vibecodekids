@@ -3,368 +3,652 @@
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <style>
+    :root {
+      --game-primary: #ffeaa7;
+      --game-secondary: #e17055;
+      --game-bg: #1a0533;
+      --game-text: #fff;
+      --game-accent: #f39c12;
+    }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: 'Segoe UI', sans-serif;
-      background: linear-gradient(135deg, #1a0533 0%, #c0392b 50%, #f39c12 100%);
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      overflow: hidden;
-      touch-action: none;
+      background: linear-gradient(135deg, #1a0533 0%, #6c2c91 30%, #c0392b 60%, #f39c12 100%);
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      overflow: hidden; touch-action: none;
     }
-    #game {
-      border-radius: 12px;
-      overflow: hidden;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    #game-container {
+      border-radius: 12px; overflow: hidden;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.35), 0 0 60px rgba(243,156,18,0.1);
+    }
+    .hint {
+      position: fixed; bottom: 12px; left: 50%; transform: translateX(-50%);
+      color: rgba(255,255,255,0.35); font-size: 13px; pointer-events: none;
     }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.86.0/dist/phaser.min.js" crossorigin="anonymous"></script>
 </head>
 <body>
-  <div id="game"></div>
+  <!-- GAME_TITLE -->Sunset Flap<!-- /GAME_TITLE -->
+  <!-- PLAYER_CHARACTER -->Bird<!-- /PLAYER_CHARACTER -->
+  <!-- OBSTACLES -->Pipes<!-- /OBSTACLES -->
+  <div id="game-container"></div>
+  <div class="hint">SPACE or Tap to Flap</div>
   <script>
-  class FlappyScene extends Phaser.Scene {
-    constructor() { super('FlappyScene'); }
+  (function() {
+    var W = 400, H = 600;
+    var GROUND_H = 50;
+    var GROUND_Y = H - GROUND_H;
+    var CEIL_Y = 0;
 
-    preload() {
-      const g = this.make.graphics({ add: false });
+    var MEDAL_THRESHOLDS = { bronze: 5, silver: 15, gold: 30 };
 
-      g.fillStyle(0xffeaa7);
-      g.fillCircle(16, 16, 14);
-      g.fillStyle(0xfdcb6e);
-      g.fillCircle(16, 16, 11);
-      g.fillStyle(0xffffff);
-      g.fillCircle(20, 12, 5);
-      g.fillStyle(0x2d3436);
-      g.fillCircle(21, 12, 2.5);
-      g.fillStyle(0xe17055);
-      g.fillTriangle(28, 16, 36, 14, 28, 20);
-      g.fillStyle(0xf0b232);
-      g.fillEllipse(8, 18, 12, 7);
-      g.generateTexture('bird', 38, 32);
-      g.clear();
+    var STATE_IDLE = 0;
+    var STATE_READY = 1;
+    var STATE_PLAYING = 2;
+    var STATE_DEAD = 3;
 
-      g.fillStyle(0x2ecc71);
-      g.fillRect(0, 0, 46, 16);
-      g.fillStyle(0x58d68d);
-      g.fillRect(2, 2, 8, 12);
-      g.fillStyle(0x239b56);
-      g.fillRect(44, 0, 2, 16);
-      g.generateTexture('pipe-body', 46, 16);
-      g.clear();
+    class FlappyScene extends Phaser.Scene {
+      constructor() { super('FlappyScene'); }
 
-      g.fillStyle(0x1e8449);
-      g.fillRect(0, 0, 52, 24);
-      g.fillStyle(0x27ae60);
-      g.fillRect(2, 2, 48, 20);
-      g.fillStyle(0x58d68d);
-      g.fillRect(4, 4, 10, 16);
-      g.generateTexture('pipe-cap', 52, 24);
-      g.clear();
+      preload() {
+        var g = this.make.graphics({ add: false });
 
-      g.fillStyle(0xffeaa7);
-      g.fillCircle(4, 4, 4);
-      g.generateTexture('particle', 8, 8);
-      g.clear();
+        // --- Bird (44x36) ---
+        // Body
+        g.fillStyle(0xffeaa7); g.fillCircle(20, 18, 16);
+        g.fillStyle(0xfdcb6e); g.fillCircle(20, 18, 13);
+        // Belly highlight
+        g.fillStyle(0xfff3c4, 0.6); g.fillEllipse(18, 22, 16, 10);
+        // Eye white
+        g.fillStyle(0xffffff); g.fillCircle(26, 13, 6);
+        // Pupil
+        g.fillStyle(0x2d3436); g.fillCircle(28, 13, 3);
+        // Eye shine
+        g.fillStyle(0xffffff, 0.9); g.fillCircle(29, 11, 1.5);
+        // Beak
+        g.fillStyle(0xe17055); g.fillTriangle(34, 16, 44, 18, 34, 22);
+        g.fillStyle(0xd63031); g.fillTriangle(34, 19, 42, 20, 34, 22);
+        // Wing
+        g.fillStyle(0xf0b232); g.fillEllipse(12, 20, 16, 10);
+        g.fillStyle(0xfdcb6e, 0.5); g.fillEllipse(12, 19, 12, 7);
+        // Tail feathers
+        g.fillStyle(0xe17055); g.fillTriangle(2, 14, 0, 10, 8, 16);
+        g.fillStyle(0xf0b232); g.fillTriangle(3, 16, 0, 20, 9, 18);
+        g.generateTexture('bird', 44, 36); g.clear();
 
-      g.fillStyle(0xffffff);
-      g.fillCircle(20, 16, 12);
-      g.fillCircle(36, 14, 14);
-      g.fillCircle(50, 16, 10);
-      g.fillCircle(28, 10, 10);
-      g.generateTexture('cloud', 64, 28);
-      g.clear();
+        // --- Pipe body tile (52x16) ---
+        g.fillStyle(0x27ae60); g.fillRect(0, 0, 52, 16);
+        g.fillStyle(0x2ecc71); g.fillRect(2, 0, 8, 16);
+        g.fillStyle(0x1e8449); g.fillRect(48, 0, 4, 16);
+        g.fillStyle(0x239b56, 0.3); g.fillRect(12, 0, 2, 16);
+        g.fillStyle(0x239b56, 0.3); g.fillRect(26, 0, 2, 16);
+        g.fillStyle(0x239b56, 0.3); g.fillRect(40, 0, 2, 16);
+        g.generateTexture('pipe-body', 52, 16); g.clear();
 
-      g.destroy();
-    }
+        // --- Pipe cap (60x26) ---
+        g.fillStyle(0x1e8449); g.fillRoundedRect(0, 0, 60, 26, 4);
+        g.fillStyle(0x27ae60); g.fillRoundedRect(2, 2, 56, 22, 3);
+        g.fillStyle(0x2ecc71); g.fillRoundedRect(4, 4, 12, 18, 2);
+        g.fillStyle(0x58d68d, 0.4); g.fillRect(4, 4, 52, 6);
+        g.generateTexture('pipe-cap', 60, 26); g.clear();
 
-    create() {
-      const W = 400, H = 600;
-      this.W = W;
-      this.H = H;
+        // --- Ground tile (400x50) ---
+        g.fillStyle(0x1a0a2e); g.fillRect(0, 0, 400, 50);
+        g.fillStyle(0x2c1654); g.fillRect(0, 0, 400, 5);
+        g.fillStyle(0x3d1f6d); g.fillRect(0, 0, 400, 2);
+        for (var gx = 0; gx < 400; gx += 20) {
+          g.fillStyle(0x2c1654);
+          g.fillTriangle(gx, 0, gx + 10, -10, gx + 20, 0);
+        }
+        g.fillStyle(0x241248, 0.4);
+        for (var gy = 12; gy < 50; gy += 10) g.fillRect(0, gy, 400, 1);
+        g.generateTexture('ground-tile', 400, 50); g.clear();
 
-      this.drawBackground();
+        // --- Cloud tile (800x100) ---
+        var cg = function(cx, cy, r) {
+          g.fillStyle(0xffffff, 0.15); g.fillCircle(cx, cy, r);
+        };
+        cg(50, 60, 20); cg(70, 55, 25); cg(95, 58, 18); cg(80, 48, 15);
+        cg(200, 70, 22); cg(225, 65, 28); cg(250, 68, 20); cg(235, 56, 16);
+        cg(380, 55, 18); cg(400, 50, 24); cg(420, 53, 16);
+        cg(550, 65, 20); cg(575, 58, 26); cg(595, 62, 18); cg(580, 50, 14);
+        cg(720, 70, 16); cg(740, 64, 22); cg(760, 68, 14);
+        g.generateTexture('cloud-layer', 800, 100); g.clear();
 
-      this.pipeW = 52;
-      this.gapSize = 140;
-      this.pipeSpeed = 160;
-      this.spawnInterval = 1800;
-      this.score = 0;
-      this.started = false;
-      this.isDead = false;
-      this.flapStrength = -280;
-      this.birdRotMin = -30;
-      this.birdRotMax = 70;
+        // --- Hills silhouette (800x80) ---
+        g.fillStyle(0x2c1654, 0.6);
+        g.beginPath(); g.moveTo(0, 80);
+        for (var hx = 0; hx <= 800; hx += 40) {
+          var hh = 30 + Math.sin(hx * 0.008) * 25 + Math.sin(hx * 0.02) * 12;
+          g.lineTo(hx, 80 - hh);
+        }
+        g.lineTo(800, 80); g.closePath(); g.fillPath();
+        g.fillStyle(0x3d1f6d, 0.3);
+        g.beginPath(); g.moveTo(0, 80);
+        for (var hx2 = 0; hx2 <= 800; hx2 += 40) {
+          var hh2 = 20 + Math.sin(hx2 * 0.012 + 2) * 18 + Math.sin(hx2 * 0.025) * 8;
+          g.lineTo(hx2, 80 - hh2);
+        }
+        g.lineTo(800, 80); g.closePath(); g.fillPath();
+        g.generateTexture('hills', 800, 80); g.clear();
 
-      this.bird = this.physics.add.sprite(80, H / 2, 'bird');
-      this.bird.setDepth(10);
-      this.bird.body.setSize(24, 22);
-      this.bird.body.setOffset(6, 5);
-      this.bird.body.allowGravity = false;
-      this.bird.setVelocity(0, 0);
+        // --- Particle ---
+        g.fillStyle(0xffffff); g.fillCircle(4, 4, 4);
+        g.generateTexture('spark', 8, 8); g.clear();
 
-      this.tweens.add({
-        targets: this.bird, y: H / 2 + 12, duration: 600,
-        yoyo: true, repeat: -1, ease: 'Sine.easeInOut'
-      });
+        // --- Star collectible ---
+        g.fillStyle(0xffd700, 0.3); g.fillCircle(10, 10, 10);
+        g.fillStyle(0xffd700); g.fillCircle(10, 10, 6);
+        g.fillStyle(0xffffff, 0.7); g.fillCircle(8, 8, 2.5);
+        g.generateTexture('star', 20, 20); g.clear();
 
-      this.pipes = this.physics.add.group();
-      this.scoreZones = this.physics.add.group();
+        // --- Medal: bronze ---
+        g.fillStyle(0xcd7f32); g.fillCircle(16, 16, 14);
+        g.fillStyle(0xd4944c); g.fillCircle(16, 16, 11);
+        g.fillStyle(0xe8b87a, 0.5); g.fillCircle(13, 13, 5);
+        g.generateTexture('medal-bronze', 32, 32); g.clear();
 
-      this.ground = this.add.rectangle(W / 2, H - 5, W, 10, 0x1a0a2e).setDepth(15);
-      this.physics.add.existing(this.ground, true);
+        // --- Medal: silver ---
+        g.fillStyle(0xc0c0c0); g.fillCircle(16, 16, 14);
+        g.fillStyle(0xd4d4d4); g.fillCircle(16, 16, 11);
+        g.fillStyle(0xf0f0f0, 0.5); g.fillCircle(13, 13, 5);
+        g.generateTexture('medal-silver', 32, 32); g.clear();
 
-      this.ceiling = this.add.rectangle(W / 2, -5, W, 10, 0x1a0533);
-      this.physics.add.existing(this.ceiling, true);
+        // --- Medal: gold ---
+        g.fillStyle(0xffd700); g.fillCircle(16, 16, 14);
+        g.fillStyle(0xffe44d); g.fillCircle(16, 16, 11);
+        g.fillStyle(0xffffff, 0.5); g.fillCircle(13, 13, 5);
+        g.generateTexture('medal-gold', 32, 32); g.clear();
 
-      this.physics.add.overlap(this.bird, this.pipes, this.hitPipe, null, this);
-      this.physics.add.overlap(this.bird, this.ground, this.hitPipe, null, this);
-      this.physics.add.overlap(this.bird, this.scoreZones, this.addScore, null, this);
-
-      this.particles = this.add.particles(0, 0, 'particle', {
-        speed: { min: 30, max: 100 }, lifespan: 300, scale: { start: 0.8, end: 0 },
-        emitting: false, quantity: 5, tint: [0xffeaa7, 0xfdcb6e, 0xf39c12]
-      });
-
-      const ts = { fontFamily: 'Segoe UI', fontSize: '36px', fill: '#fff', stroke: '#2d3436', strokeThickness: 5 };
-      this.scoreText = this.add.text(W / 2, 50, '0', ts).setOrigin(0.5).setDepth(20);
-
-      this.msgText = this.add.text(W / 2, H / 2 - 50, 'Tap or SPACE to Start', {
-        fontFamily: 'Segoe UI', fontSize: '22px', fill: '#fff',
-        stroke: '#2d3436', strokeThickness: 4, align: 'center'
-      }).setOrigin(0.5).setDepth(20);
-
-      this.input.on('pointerdown', () => this.handleInput());
-      this.input.keyboard.on('keydown-SPACE', () => this.handleInput());
-    }
-
-    drawBackground() {
-      const W = this.W, H = this.H;
-      const bg = this.add.graphics();
-
-      bg.fillGradientStyle(0x1a0533, 0x1a0533, 0x6c2c91, 0x6c2c91);
-      bg.fillRect(0, 0, W, H * 0.3);
-      bg.fillGradientStyle(0x6c2c91, 0x6c2c91, 0xc0392b, 0xc0392b);
-      bg.fillRect(0, H * 0.3, W, H * 0.25);
-      bg.fillGradientStyle(0xc0392b, 0xc0392b, 0xe67e22, 0xe67e22);
-      bg.fillRect(0, H * 0.55, W, H * 0.2);
-      bg.fillGradientStyle(0xe67e22, 0xe67e22, 0xf1c40f, 0xf1c40f);
-      bg.fillRect(0, H * 0.75, W, H * 0.25);
-
-      for (let i = 0; i < 6; i++) {
-        const cx = Phaser.Math.Between(30, W - 30);
-        const cy = Phaser.Math.Between(40, 180);
-        const cloud = this.add.image(cx, cy, 'cloud');
-        cloud.setAlpha(0.3 + Math.random() * 0.25);
-        cloud.setScale(0.8 + Math.random() * 1.0);
-        cloud.setDepth(0);
+        g.destroy();
       }
 
-      bg.fillStyle(0x1a0a2e);
-      bg.fillRect(0, H - 40, W, 40);
-      bg.fillStyle(0x2c1654);
-      bg.fillRect(0, H - 40, W, 4);
+      create() {
+        this.score = 0;
+        this.state = STATE_IDLE;
+        this.pipeSpeed = 155;
+        this.gapSize = 145;
+        this.spawnInterval = 1800;
 
-      for (let x = 0; x < W; x += 20) {
-        bg.fillStyle(0x2c1654);
-        bg.fillTriangle(x, H - 40, x + 10, H - 48, x + 20, H - 40);
-      }
-    }
+        var savedBest = this.registry.get('flappyBest');
+        this.bestScore = savedBest || 0;
 
-    handleInput() {
-      if (this.isDead) {
-        this.scene.restart();
-        return;
-      }
+        // --- Background gradient (static) ---
+        var bg = this.add.graphics();
+        bg.fillGradientStyle(0x1a0533, 0x1a0533, 0x4a1a6b, 0x4a1a6b);
+        bg.fillRect(0, 0, W, H * 0.25);
+        bg.fillGradientStyle(0x4a1a6b, 0x4a1a6b, 0x8e2d50, 0x8e2d50);
+        bg.fillRect(0, H * 0.25, W, H * 0.2);
+        bg.fillGradientStyle(0x8e2d50, 0x8e2d50, 0xc0392b, 0xc0392b);
+        bg.fillRect(0, H * 0.45, W, H * 0.15);
+        bg.fillGradientStyle(0xc0392b, 0xc0392b, 0xe67e22, 0xe67e22);
+        bg.fillRect(0, H * 0.6, W, H * 0.15);
+        bg.fillGradientStyle(0xe67e22, 0xe67e22, 0xf1c40f, 0xf1c40f);
+        bg.fillRect(0, H * 0.75, W, H * 0.25);
+        bg.setDepth(0);
 
-      if (!this.started) {
-        this.started = true;
-        this.msgText.setVisible(false);
-        this.tweens.killTweensOf(this.bird);
-        this.bird.body.allowGravity = true;
-        this.spawnTimer = this.time.addEvent({
-          delay: this.spawnInterval, callback: this.spawnPipePair, callbackScope: this, loop: true
+        // --- Stars in the sky ---
+        for (var si = 0; si < 30; si++) {
+          var sx = Phaser.Math.Between(0, W);
+          var sy = Phaser.Math.Between(10, H * 0.35);
+          var sa = Phaser.Math.FloatBetween(0.1, 0.4);
+          var sr = Phaser.Math.FloatBetween(0.5, 1.5);
+          this.add.circle(sx, sy, sr, 0xffffff, sa).setDepth(0);
+        }
+
+        // --- Parallax layers ---
+        this.cloudLayer = this.add.tileSprite(W / 2, H * 0.25, W, 100, 'cloud-layer').setDepth(1);
+        this.hillLayer = this.add.tileSprite(W / 2, GROUND_Y - 30, W, 80, 'hills').setDepth(2);
+        this.groundTile = this.add.tileSprite(W / 2, GROUND_Y + GROUND_H / 2, W, GROUND_H, 'ground-tile').setDepth(10);
+
+        // --- Ground physics body ---
+        this.groundBody = this.add.rectangle(W / 2, GROUND_Y + 2, W, 4, 0x000000, 0).setDepth(10);
+        this.physics.add.existing(this.groundBody, true);
+
+        // --- Ceiling ---
+        this.ceilBody = this.add.rectangle(W / 2, -10, W, 20, 0x000000, 0);
+        this.physics.add.existing(this.ceilBody, true);
+
+        // --- Bird ---
+        this.bird = this.physics.add.sprite(80, H / 2, 'bird');
+        this.bird.setDepth(8);
+        this.bird.body.setSize(26, 24);
+        this.bird.body.setOffset(8, 6);
+        this.bird.body.allowGravity = false;
+        this.bird.setVelocity(0, 0);
+
+        this.idleTween = this.tweens.add({
+          targets: this.bird, y: H / 2 + 14, duration: 650,
+          yoyo: true, repeat: -1, ease: 'Sine.easeInOut'
         });
-        this.spawnPipePair();
-      }
 
-      this.flap();
-    }
+        // --- Groups ---
+        this.pipes = this.physics.add.group();
+        this.scoreZones = this.physics.add.group();
+        this.stars = this.physics.add.group();
 
-    flap() {
-      if (this.isDead) return;
-      this.bird.setVelocityY(this.flapStrength);
-      if (this.cache.audio.exists('jumpSfx')) this.sound.play('jumpSfx', { volume: 0.5 });
+        // --- Collisions ---
+        this.physics.add.overlap(this.bird, this.pipes, this.die, null, this);
+        this.physics.add.overlap(this.bird, this.groundBody, this.die, null, this);
+        this.physics.add.overlap(this.bird, this.ceilBody, this.die, null, this);
+        this.physics.add.overlap(this.bird, this.scoreZones, this.addScore, null, this);
+        this.physics.add.overlap(this.bird, this.stars, this.collectStar, null, this);
 
-      this.particles.emitParticleAt(this.bird.x - 10, this.bird.y + 5);
+        // --- Particles ---
+        this.flapEmitter = this.add.particles(0, 0, 'spark', {
+          speed: { min: 30, max: 100 }, lifespan: 300,
+          scale: { start: 0.8, end: 0 }, emitting: false, quantity: 5,
+          tint: [0xffeaa7, 0xfdcb6e, 0xf39c12]
+        }).setDepth(7);
 
-      this.tweens.add({
-        targets: this.bird, scaleX: 1.15, scaleY: 0.85, duration: 80,
-        yoyo: true, ease: 'Quad.easeOut'
-      });
-    }
+        this.deathEmitter = this.add.particles(0, 0, 'spark', {
+          speed: { min: 60, max: 200 }, lifespan: 500,
+          scale: { start: 1.2, end: 0 }, emitting: false, quantity: 15,
+          tint: [0xff6b6b, 0xff0000, 0xffeaa7]
+        }).setDepth(12);
 
-    spawnPipePair() {
-      if (this.isDead) return;
+        this.starEmitter = this.add.particles(0, 0, 'spark', {
+          speed: { min: 40, max: 120 }, lifespan: 400,
+          scale: { start: 1, end: 0 }, emitting: false, quantity: 8,
+          tint: [0xffd700, 0xffaa00, 0xffffff]
+        }).setDepth(12);
 
-      const W = this.W, H = this.H;
-      const minTop = 60;
-      const maxTop = H - this.gapSize - 80;
-      const topEnd = Phaser.Math.Between(minTop, maxTop);
-      const botStart = topEnd + this.gapSize;
+        // --- HUD ---
+        this.scoreText = this.add.text(W / 2, 45, '0', {
+          fontFamily: 'Segoe UI', fontSize: '42px', fontStyle: 'bold',
+          fill: '#fff', stroke: '#2d3436', strokeThickness: 6,
+          shadow: { offsetX: 2, offsetY: 2, color: '#000', blur: 4, fill: true }
+        }).setOrigin(0.5).setDepth(20).setVisible(false);
 
-      const topPipe = this.createPipeColumn(W + 30, 0, topEnd, false);
-      const botPipe = this.createPipeColumn(W + 30, botStart, H - botStart, true);
+        this.msgText = this.add.text(W / 2, H / 2 - 40, 'Tap or SPACE to Start', {
+          fontFamily: 'Segoe UI', fontSize: '24px', fontStyle: 'bold',
+          fill: '#fff', stroke: '#2d3436', strokeThickness: 4, align: 'center'
+        }).setOrigin(0.5).setDepth(20);
 
-      this.pipes.add(topPipe);
-      this.pipes.add(botPipe);
-      topPipe.setVelocityX(-this.pipeSpeed);
-      botPipe.setVelocityX(-this.pipeSpeed);
-      topPipe.body.allowGravity = false;
-      botPipe.body.allowGravity = false;
+        this.readyText = this.add.text(W / 2, H / 2 - 60, 'Get Ready!', {
+          fontFamily: 'Segoe UI', fontSize: '32px', fontStyle: 'bold',
+          fill: '#ffd700', stroke: '#2d3436', strokeThickness: 5, align: 'center'
+        }).setOrigin(0.5).setDepth(20).setVisible(false);
 
-      const zone = this.add.rectangle(W + 30 + this.pipeW / 2 + 12, topEnd + this.gapSize / 2, 6, this.gapSize, 0x000000, 0);
-      this.physics.add.existing(zone);
-      zone.body.setVelocityX(-this.pipeSpeed);
-      zone.body.allowGravity = false;
-      zone.scored = false;
-      this.scoreZones.add(zone);
-    }
-
-    createPipeColumn(x, y, height, flipped) {
-      const pw = this.pipeW;
-      const capH = 24;
-      const bodyH = Math.max(height - capH, 1);
-      const sprites = [];
-
-      let bodyY, capY;
-      if (flipped) {
-        capY = y + capH / 2;
-        bodyY = y + capH + bodyH / 2;
-      } else {
-        bodyY = y + bodyH / 2;
-        capY = y + height - capH / 2;
-      }
-
-      const body = this.add.tileSprite(x, bodyY, pw - 6, bodyH, 'pipe-body');
-      body.setDepth(5);
-      body.initX = x;
-      sprites.push(body);
-
-      const cap = this.add.image(x, capY, 'pipe-cap');
-      cap.setDepth(5);
-      cap.initX = x;
-      sprites.push(cap);
-
-      const hitbox = this.add.rectangle(x, y + height / 2, pw, height, 0x000000, 0);
-      this.physics.add.existing(hitbox);
-      hitbox.body.setImmovable(true);
-      hitbox.pipeSprites = sprites;
-      hitbox.startX = x;
-      hitbox.setDepth(5);
-
-      return hitbox;
-    }
-
-    addScore(bird, zone) {
-      if (zone.scored || this.isDead) return;
-      zone.scored = true;
-      this.score++;
-      this.scoreText.setText('' + this.score);
-      if (this.cache.audio.exists('coinSfx')) this.sound.play('coinSfx', { volume: 0.5 });
-
-      this.tweens.add({
-        targets: this.scoreText, scale: 1.3, duration: 100, yoyo: true, ease: 'Back.easeOut'
-      });
-
-      if (this.score % 5 === 0 && this.pipeSpeed < 260) {
-        this.pipeSpeed += 10;
-        if (this.gapSize > 110) this.gapSize -= 3;
-      }
-    }
-
-    hitPipe() {
-      if (this.isDead) return;
-      this.isDead = true;
-
-      if (this.cache.audio.exists('hitSfx')) this.sound.play('hitSfx', { volume: 0.6 });
-
-      this.bird.setTint(0xff6b6b);
-      this.bird.body.allowGravity = true;
-      this.bird.setVelocity(0, -150);
-
-      this.pipes.setVelocityX(0);
-      this.scoreZones.setVelocityX(0);
-
-      if (this.spawnTimer) this.spawnTimer.remove();
-
-      this.cameras.main.shake(200, 0.012);
-
-      this.time.delayedCall(600, () => {
-        this.add.rectangle(this.W / 2, this.H / 2, this.W, this.H, 0x000000, 0.65).setDepth(25);
-
-        this.add.text(this.W / 2, this.H / 2 - 60, 'GAME OVER', {
-          fontFamily: 'Segoe UI', fontSize: '40px', fontStyle: 'bold',
+        // --- Game over panel elements (created hidden) ---
+        this.goPanel = this.add.graphics().setDepth(25).setVisible(false);
+        this.goTitle = this.add.text(W / 2, 0, 'GAME OVER', {
+          fontFamily: 'Segoe UI', fontSize: '38px', fontStyle: 'bold',
           fill: '#ff6b6b', stroke: '#000', strokeThickness: 5
-        }).setOrigin(0.5).setDepth(26);
+        }).setOrigin(0.5).setDepth(26).setVisible(false);
 
-        this.add.text(this.W / 2, this.H / 2, 'Score: ' + this.score, {
-          fontFamily: 'Segoe UI', fontSize: '28px', fill: '#fff',
+        this.goScoreLabel = this.add.text(0, 0, '', {
+          fontFamily: 'Segoe UI', fontSize: '22px', fill: '#fff',
           stroke: '#000', strokeThickness: 4
-        }).setOrigin(0.5).setDepth(26);
+        }).setOrigin(0.5).setDepth(26).setVisible(false);
 
-        this.add.text(this.W / 2, this.H / 2 + 60, 'Tap or SPACE to Restart', {
-          fontFamily: 'Segoe UI', fontSize: '20px', fill: '#f39c12',
+        this.goBestLabel = this.add.text(0, 0, '', {
+          fontFamily: 'Segoe UI', fontSize: '18px', fill: '#a29bfe',
           stroke: '#000', strokeThickness: 3
-        }).setOrigin(0.5).setDepth(26);
-      });
-    }
+        }).setOrigin(0.5).setDepth(26).setVisible(false);
 
-    update() {
-      if (!this.started || this.isDead) return;
+        this.goNewBest = this.add.text(0, 0, 'NEW BEST!', {
+          fontFamily: 'Segoe UI', fontSize: '16px', fontStyle: 'bold',
+          fill: '#ffd700', stroke: '#000', strokeThickness: 3
+        }).setOrigin(0.5).setDepth(26).setVisible(false);
 
-      if (this.bird.y < -20 || this.bird.y > this.H + 20) {
-        this.hitPipe();
-        return;
+        this.goMedal = this.add.image(0, 0, 'medal-bronze').setDepth(26).setVisible(false);
+        this.goMedalLabel = this.add.text(0, 0, '', {
+          fontFamily: 'Segoe UI', fontSize: '14px', fontStyle: 'bold',
+          fill: '#fff', stroke: '#000', strokeThickness: 3
+        }).setOrigin(0.5).setDepth(26).setVisible(false);
+
+        this.goRestart = this.add.text(W / 2, 0, 'Tap or SPACE to Retry', {
+          fontFamily: 'Segoe UI', fontSize: '18px', fill: '#f39c12',
+          stroke: '#000', strokeThickness: 3
+        }).setOrigin(0.5).setDepth(26).setVisible(false);
+
+        // --- Input ---
+        this.input.on('pointerdown', this.handleInput, this);
+        this.input.keyboard.on('keydown-SPACE', this.handleInput, this);
+        this.input.keyboard.on('keydown-UP', this.handleInput, this);
       }
 
-      const vy = this.bird.body.velocity.y;
-      const targetAngle = Phaser.Math.Clamp(vy * 0.15, this.birdRotMin, this.birdRotMax);
-      this.bird.angle = Phaser.Math.Linear(this.bird.angle, targetAngle, 0.15);
+      handleInput() {
+        if (this.state === STATE_DEAD) return;
 
-      this.pipes.getChildren().forEach(pipe => {
-        if (pipe.pipeSprites) {
-          const dx = pipe.x - pipe.startX;
-          pipe.pipeSprites.forEach(s => { s.x = s.initX + dx; });
+        if (this.state === STATE_IDLE) {
+          this.startGetReady();
+          return;
         }
-        if (pipe.x < -80) {
-          if (pipe.pipeSprites) pipe.pipeSprites.forEach(s => s.destroy());
-          pipe.destroy();
-        }
-      });
 
-      this.scoreZones.getChildren().forEach(zone => {
-        if (zone.x < -80) zone.destroy();
-      });
+        this.flap();
+      }
+
+      startGetReady() {
+        this.state = STATE_READY;
+        this.msgText.setVisible(false);
+        this.readyText.setVisible(true).setAlpha(1).setScale(0.5);
+        this.scoreText.setVisible(true).setText('0');
+
+        this.tweens.add({
+          targets: this.readyText, scale: 1, duration: 300, ease: 'Back.easeOut'
+        });
+
+        if (this.idleTween) { this.idleTween.stop(); this.idleTween = null; }
+        this.bird.body.allowGravity = true;
+        this.bird.setVelocityY(-290);
+
+        this.time.delayedCall(1200, function() {
+          if (this.state !== STATE_READY) return;
+          this.state = STATE_PLAYING;
+          this.readyText.setVisible(false);
+          this.spawnTimer = this.time.addEvent({
+            delay: this.spawnInterval, callback: this.spawnPipePair, callbackScope: this, loop: true
+          });
+          this.time.delayedCall(400, this.spawnPipePair, [], this);
+        }, [], this);
+      }
+
+      flap() {
+        if (this.state !== STATE_PLAYING && this.state !== STATE_READY) return;
+        this.bird.setVelocityY(-290);
+        this.flapEmitter.emitParticleAt(this.bird.x - 12, this.bird.y + 8);
+
+        this.tweens.add({
+          targets: this.bird, scaleX: 1.15, scaleY: 0.85, duration: 80,
+          yoyo: true, ease: 'Quad.easeOut'
+        });
+      }
+
+      spawnPipePair() {
+        if (this.state !== STATE_PLAYING) return;
+
+        var minTop = 55;
+        var maxTop = GROUND_Y - this.gapSize - 55;
+        var topEnd = Phaser.Math.Between(minTop, maxTop);
+        var botStart = topEnd + this.gapSize;
+
+        var topPipe = this.buildPipe(W + 30, topEnd, true);
+        var botPipe = this.buildPipe(W + 30, botStart, false);
+
+        topPipe.body.velocity.x = -this.pipeSpeed; topPipe.body.allowGravity = false;
+        botPipe.body.velocity.x = -this.pipeSpeed; botPipe.body.allowGravity = false;
+        this.pipes.add(topPipe);
+        this.pipes.add(botPipe);
+
+        // Score zone
+        var zone = this.add.rectangle(W + 30, topEnd + this.gapSize / 2, 6, this.gapSize, 0x000000, 0);
+        this.physics.add.existing(zone);
+        zone.body.setVelocityX(-this.pipeSpeed);
+        zone.body.allowGravity = false;
+        zone.scored = false;
+        this.scoreZones.add(zone);
+
+        // Star collectible (30% chance)
+        if (Math.random() < 0.3) {
+          var starY = topEnd + this.gapSize / 2;
+          var s = this.stars.create(W + 30, starY, 'star');
+          s.body.allowGravity = false;
+          s.setVelocityX(-this.pipeSpeed);
+          s.setDepth(5);
+          this.tweens.add({
+            targets: s, y: starY - 8, duration: 500,
+            yoyo: true, repeat: -1, ease: 'Sine.easeInOut'
+          });
+          this.tweens.add({
+            targets: s, angle: 360, duration: 2500, repeat: -1
+          });
+        }
+      }
+
+      buildPipe(x, edgeY, isTop) {
+        var capH = 26;
+        var pipeW = 52;
+        var capW = 60;
+
+        var pipeH = isTop ? edgeY : (GROUND_Y - edgeY);
+        var totalH = Math.max(pipeH, capH + 4);
+        var bodyH = Math.max(totalH - capH, 2);
+
+        var bodyY, capY;
+        if (isTop) {
+          bodyY = edgeY - capH - bodyH / 2;
+          capY = edgeY - capH / 2;
+        } else {
+          capY = edgeY + capH / 2;
+          bodyY = edgeY + capH + bodyH / 2;
+        }
+
+        var body = this.add.tileSprite(x, bodyY, pipeW, bodyH, 'pipe-body').setDepth(5);
+        var cap = this.add.image(x, capY, 'pipe-cap').setDisplaySize(capW, capH).setDepth(5);
+
+        var hitY = isTop ? (edgeY / 2) : (edgeY + (GROUND_Y - edgeY) / 2);
+        var hitbox = this.add.rectangle(x, hitY, pipeW, totalH, 0x000000, 0);
+        this.physics.add.existing(hitbox);
+        hitbox.body.setImmovable(true);
+        hitbox.setDepth(5);
+
+        hitbox.pipeVisuals = [body, cap];
+
+        return hitbox;
+      }
+
+      addScore(bird, zone) {
+        if (zone.scored || this.state !== STATE_PLAYING) return;
+        zone.scored = true;
+        this.score++;
+        this.scoreText.setText('' + this.score);
+
+        this.tweens.add({
+          targets: this.scoreText, scale: 1.3, duration: 100,
+          yoyo: true, ease: 'Back.easeOut'
+        });
+
+        // Difficulty increase every 5 points
+        if (this.score % 5 === 0) {
+          if (this.pipeSpeed < 260) this.pipeSpeed += 8;
+          if (this.gapSize > 105) this.gapSize -= 3;
+          this.spawnInterval = Math.max(1100, this.spawnInterval - 40);
+          if (this.spawnTimer) this.spawnTimer.delay = this.spawnInterval;
+        }
+
+        // Medal flash at thresholds
+        if (this.score === MEDAL_THRESHOLDS.bronze || this.score === MEDAL_THRESHOLDS.silver || this.score === MEDAL_THRESHOLDS.gold) {
+          this.cameras.main.flash(200, 255, 215, 0, true);
+        }
+      }
+
+      collectStar(bird, star) {
+        this.starEmitter.emitParticleAt(star.x, star.y);
+        star.destroy();
+        this.score += 3;
+        this.scoreText.setText('' + this.score);
+        this.tweens.add({
+          targets: this.scoreText, scale: 1.4, duration: 80,
+          yoyo: true, ease: 'Back.easeOut'
+        });
+      }
+
+      die() {
+        if (this.state === STATE_DEAD || this.state === STATE_READY) return;
+        this.state = STATE_DEAD;
+
+        this.deathEmitter.emitParticleAt(this.bird.x, this.bird.y);
+        this.bird.setTint(0xff6b6b);
+        this.bird.setVelocity(30, -180);
+        this.bird.body.allowGravity = true;
+
+        // Stop all pipes, zones, stars
+        this.pipes.setVelocityX(0);
+        this.scoreZones.setVelocityX(0);
+        this.stars.setVelocityX(0);
+
+        // Final visual sync so pipes freeze in place
+        this.pipes.getChildren().forEach(function(pipe) {
+          if (pipe && pipe.active && pipe.pipeVisuals) {
+            for (var i = 0; i < pipe.pipeVisuals.length; i++) {
+              pipe.pipeVisuals[i].x = pipe.x;
+            }
+          }
+        });
+
+        if (this.spawnTimer) this.spawnTimer.remove();
+
+        this.cameras.main.shake(250, 0.015);
+
+        this.time.delayedCall(700, this.showGameOver, [], this);
+      }
+
+      showGameOver() {
+        var isNewBest = this.score > this.bestScore;
+        if (isNewBest) {
+          this.bestScore = this.score;
+          this.registry.set('flappyBest', this.bestScore);
+        }
+
+        // Determine medal
+        var medalKey = null;
+        var medalName = '';
+        if (this.score >= MEDAL_THRESHOLDS.gold) { medalKey = 'medal-gold'; medalName = 'GOLD'; }
+        else if (this.score >= MEDAL_THRESHOLDS.silver) { medalKey = 'medal-silver'; medalName = 'SILVER'; }
+        else if (this.score >= MEDAL_THRESHOLDS.bronze) { medalKey = 'medal-bronze'; medalName = 'BRONZE'; }
+
+        // Panel background
+        var panelX = 40, panelY = H / 2 - 110, panelW = W - 80, panelH = 220;
+        this.goPanel.clear();
+        this.goPanel.fillStyle(0x000000, 0.7);
+        this.goPanel.fillRoundedRect(panelX, panelY, panelW, panelH, 12);
+        this.goPanel.lineStyle(2, 0xf39c12, 0.5);
+        this.goPanel.strokeRoundedRect(panelX, panelY, panelW, panelH, 12);
+        this.goPanel.setVisible(true);
+
+        // Title
+        this.goTitle.setPosition(W / 2, panelY + 35).setVisible(true).setAlpha(0);
+        this.tweens.add({ targets: this.goTitle, alpha: 1, duration: 300 });
+
+        // Score
+        this.goScoreLabel.setText('Score: ' + this.score).setPosition(W / 2, panelY + 80).setVisible(true);
+
+        // Best
+        this.goBestLabel.setText('Best: ' + this.bestScore).setPosition(W / 2, panelY + 110).setVisible(true);
+
+        // New best flash
+        if (isNewBest) {
+          this.goNewBest.setPosition(W / 2, panelY + 138).setVisible(true).setAlpha(0);
+          this.tweens.add({
+            targets: this.goNewBest, alpha: 1, duration: 200, yoyo: true,
+            repeat: 3, hold: 200
+          });
+        } else {
+          this.goNewBest.setVisible(false);
+        }
+
+        // Medal
+        if (medalKey) {
+          var medalX = W / 2 - 20;
+          var medalY = panelY + (isNewBest ? 170 : 155);
+          this.goMedal.setTexture(medalKey).setPosition(medalX, medalY).setVisible(true).setScale(0);
+          this.tweens.add({ targets: this.goMedal, scale: 1.2, duration: 300, ease: 'Back.easeOut', onComplete: function() {
+            this.tweens.add({ targets: this.goMedal, scale: 1, duration: 150 });
+          }.bind(this) });
+          this.goMedalLabel.setText(medalName).setPosition(medalX + 30, medalY).setVisible(true);
+        } else {
+          this.goMedal.setVisible(false);
+          this.goMedalLabel.setVisible(false);
+        }
+
+        // Restart prompt
+        this.goRestart.setPosition(W / 2, panelY + panelH + 30).setVisible(true).setAlpha(0);
+        this.tweens.add({ targets: this.goRestart, alpha: 1, duration: 400, delay: 400 });
+
+        // Enable restart after a brief delay to prevent accidental instant restart
+        this.time.delayedCall(600, function() {
+          this.input.once('pointerdown', function() { this.scene.restart(); }, this);
+          this.input.keyboard.once('keydown-SPACE', function() { this.scene.restart(); }, this);
+          this.input.keyboard.once('keydown-UP', function() { this.scene.restart(); }, this);
+        }, [], this);
+      }
+
+      update(time, delta) {
+        // --- Parallax scrolling (always, unless dead and after a delay) ---
+        var scrolling = this.state === STATE_PLAYING || this.state === STATE_READY;
+        if (scrolling) {
+          this.groundTile.tilePositionX += this.pipeSpeed * delta / 1000;
+          this.hillLayer.tilePositionX += this.pipeSpeed * delta / 2500;
+          this.cloudLayer.tilePositionX += this.pipeSpeed * delta / 5000;
+        }
+
+        // Nothing else to do in idle or get-ready
+        if (this.state === STATE_IDLE || this.state === STATE_READY) {
+          // In ready state, still handle bird rotation
+          if (this.state === STATE_READY) {
+            var rvy = this.bird.body.velocity.y;
+            var rtarget = Phaser.Math.Clamp(rvy * 0.15, -30, 70);
+            this.bird.angle = Phaser.Math.Linear(this.bird.angle, rtarget, 0.12);
+          }
+          return;
+        }
+
+        if (this.state === STATE_DEAD) return;
+
+        // --- Bird rotation ---
+        var vy = this.bird.body.velocity.y;
+        var targetAngle = Phaser.Math.Clamp(vy * 0.15, -30, 70);
+        this.bird.angle = Phaser.Math.Linear(this.bird.angle, targetAngle, 0.12);
+
+        // --- Bird bounds check ---
+        if (this.bird.y < -30 || this.bird.y > H + 30) {
+          this.die();
+          return;
+        }
+
+        // --- Sync pipe visuals to hitbox X and clean up off-screen ---
+        var pipesToDestroy = [];
+        this.pipes.getChildren().forEach(function(pipe) {
+          if (!pipe || !pipe.active) return;
+          if (pipe.pipeVisuals) {
+            for (var i = 0; i < pipe.pipeVisuals.length; i++) {
+              pipe.pipeVisuals[i].x = pipe.x;
+            }
+          }
+          if (pipe.x < -70) pipesToDestroy.push(pipe);
+        });
+        for (var di = 0; di < pipesToDestroy.length; di++) {
+          var dp = pipesToDestroy[di];
+          if (dp.pipeVisuals) {
+            for (var vi = 0; vi < dp.pipeVisuals.length; vi++) dp.pipeVisuals[vi].destroy();
+          }
+          dp.destroy();
+        }
+
+        // --- Cleanup score zones ---
+        var zonesToDestroy = [];
+        this.scoreZones.getChildren().forEach(function(zone) {
+          if (!zone || !zone.active) return;
+          if (zone.x < -70) zonesToDestroy.push(zone);
+        });
+        for (var zi = 0; zi < zonesToDestroy.length; zi++) zonesToDestroy[zi].destroy();
+
+        // --- Cleanup stars ---
+        var starsToDestroy = [];
+        this.stars.getChildren().forEach(function(s) {
+          if (!s || !s.active) return;
+          if (s.x < -30) starsToDestroy.push(s);
+        });
+        for (var sti = 0; sti < starsToDestroy.length; sti++) starsToDestroy[sti].destroy();
+
+        // --- Update pipe and star speeds to match current pipeSpeed ---
+        this.pipes.setVelocityX(-this.pipeSpeed);
+        this.scoreZones.setVelocityX(-this.pipeSpeed);
+        this.stars.setVelocityX(-this.pipeSpeed);
+      }
     }
-  }
 
-  new Phaser.Game({
-    type: Phaser.AUTO,
-    width: 400,
-    height: 600,
-    parent: 'game',
-    backgroundColor: '#1a0533',
-    physics: {
-      default: 'arcade',
-      arcade: { gravity: { y: 700 }, debug: false }
-    },
-    scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
-    scene: FlappyScene
-  });
+    new Phaser.Game({
+      type: Phaser.AUTO, width: W, height: H,
+      parent: 'game-container', backgroundColor: '#1a0533',
+      physics: { default: 'arcade', arcade: { gravity: { y: 750 }, debug: false } },
+      scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
+      scene: FlappyScene
+    });
+  })();
   </script>
 </body>
 </html>

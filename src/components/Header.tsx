@@ -29,7 +29,7 @@ export default function Header({
           </button>
         )}
         <a href="/gallery" className="logo">
-          <img src="/images/logo.png" alt="VibeCode Kidz" className="logo-img" />
+          <img src="/images/logo.png?v=2" alt="VibeCode Kidz" className="logo-img" />
         </a>
       </div>
 
