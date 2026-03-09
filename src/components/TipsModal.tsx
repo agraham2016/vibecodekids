@@ -22,7 +22,7 @@ const TUTORIAL_STEPS = [
     num: 2,
     icon: '💬',
     title: 'Tell the AI What You Want',
-    desc: "Type what you want in the chat. Be specific! 'Space racing game with asteroids' beats 'make me a game'.",
+    desc: "Start simple! Say something like 'make me a space racing game'. Then add features one at a time in follow-up messages.",
   },
   {
     num: 3,
@@ -46,9 +46,9 @@ const TUTORIAL_STEPS = [
 
 const PROMPT_TIPS = [
   {
-    bad: 'Make me a game',
-    good: 'Make me a space racing game with asteroids and a boost button',
-    why: 'More detail = cooler results',
+    bad: 'Make me a space game with asteroids, a boost, 3 levels, a boss, and a leaderboard',
+    good: 'Make me a space racing game',
+    why: 'Start simple, then add features one at a time',
   },
   {
     bad: 'Make it look better',
@@ -56,9 +56,9 @@ const PROMPT_TIPS = [
     why: 'Tell the AI exactly what you see in your head',
   },
   {
-    bad: 'Add everything: powerups, enemies, score, levels, and sound',
+    bad: 'Add powerups, enemies, score, levels, and sound',
     good: 'Add a powerup that makes me go faster for 3 seconds',
-    why: 'One change at a time works way better',
+    why: 'Ask for one thing, see it work, then ask for the next',
   },
   {
     bad: "It's broken",

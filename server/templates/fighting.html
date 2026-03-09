@@ -6,470 +6,800 @@
     :root {
       --game-primary: #d63031;
       --game-secondary: #e17055;
-      --game-bg: #2d3436;
+      --game-bg: #1a1a2e;
       --game-text: #ffffff;
       --game-accent: #fdcb6e;
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: 'Segoe UI', sans-serif;
-      background: linear-gradient(135deg, #d63031 0%, #e17055 50%, #2d3436 100%);
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      overflow: hidden;
-     touch-action: none; }
-    #game-container {
-      border-radius: 12px;
-      overflow: hidden;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      overflow: hidden; touch-action: none;
     }
-    .hint { margin-top: 14px; color: rgba(255,255,255,0.55); font-size: 14px; }
+    #game-container { border-radius: 12px; overflow: hidden; box-shadow: 0 8px 40px rgba(0,0,0,0.5); }
+    .hint {
+      position: fixed; bottom: 10px; left: 50%; transform: translateX(-50%);
+      color: rgba(255,255,255,0.35); font-size: 13px; pointer-events: none;
+    }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.86.0/dist/phaser.min.js" crossorigin="anonymous"></script>
 </head>
 <body>
-  <!-- GAME_TITLE -->Beat 'Em Up<!-- /GAME_TITLE -->
+  <!-- GAME_TITLE -->Street Brawl<!-- /GAME_TITLE -->
   <!-- PLAYER_CHARACTER -->fighter<!-- /PLAYER_CHARACTER -->
   <!-- OBSTACLES -->enemies<!-- /OBSTACLES -->
   <div id="game-container"></div>
-  <div class="hint">Arrow keys to move &bull; SPACE punch &bull; SHIFT kick</div>
+  <div class="hint">Arrows = Move &bull; SPACE = Punch &bull; SHIFT = Kick &bull; DOWN = Block</div>
   <script>
-  class FightScene extends Phaser.Scene {
-    preload() {
-      const g = this.make.graphics({ add: false });
+  (function() {
+    var W = 800, H = 500;
+    var ARENA_W = 2400;
+    var GROUND_Y = 430;
+    var PLAYER_SPEED = 250;
 
-      // --- Fighter (player): blue gi, skin tone head, red headband ---
-      g.fillStyle(0x2d3436); g.fillRect(0, 0, 32, 40);
-      // Headband
-      g.fillStyle(0xe74c3c); g.fillRect(6, 0, 20, 4);
-      g.fillStyle(0xc0392b); g.fillRect(26, 1, 6, 3);
-      // Head (skin)
-      g.fillStyle(0xf5cba7); g.fillRect(8, 4, 16, 14);
-      // Eyes (determined look)
-      g.fillStyle(0x2c3e50); g.fillRect(11, 9, 4, 3); g.fillRect(19, 9, 4, 3);
-      g.fillStyle(0xffffff); g.fillRect(12, 9, 2, 2); g.fillRect(20, 9, 2, 2);
-      // Mouth
-      g.fillStyle(0xd35400); g.fillRect(13, 15, 6, 2);
-      // Body (blue gi)
-      g.fillStyle(0x2980b9); g.fillRect(6, 18, 20, 14);
-      // Belt
-      g.fillStyle(0x1a1a2e); g.fillRect(6, 26, 20, 3);
-      // Arms (skin)
-      g.fillStyle(0xf5cba7); g.fillRect(0, 20, 6, 5); g.fillRect(26, 20, 6, 5);
-      // Fists
-      g.fillStyle(0xfdebd0); g.fillRect(0, 25, 6, 3); g.fillRect(26, 25, 6, 3);
-      // Legs (blue)
-      g.fillStyle(0x2471a3); g.fillRect(8, 32, 7, 8); g.fillRect(17, 32, 7, 8);
-      g.generateTexture('fighter', 32, 40);
-      g.clear();
+    class FightScene extends Phaser.Scene {
+      constructor() { super('FightScene'); }
 
-      // --- Enemy: red outfit, pale skin, angry eyes ---
-      g.fillStyle(0x2d3436); g.fillRect(0, 0, 32, 40);
-      // Spiky hair
-      g.fillStyle(0x1a1a2e);
-      g.fillRect(8, 0, 16, 4);
-      g.fillRect(6, 1, 4, 5); g.fillRect(22, 1, 4, 5);
-      g.fillRect(10, 0, 3, 2); g.fillRect(19, 0, 3, 2);
-      // Head (pale)
-      g.fillStyle(0xdfe6e9); g.fillRect(8, 4, 16, 14);
-      // Angry eyes (red pupils, angled brows)
-      g.fillStyle(0xc0392b); g.fillRect(11, 9, 4, 3); g.fillRect(19, 9, 4, 3);
-      g.fillStyle(0xff6b6b); g.fillRect(12, 10, 2, 2); g.fillRect(20, 10, 2, 2);
-      // Angry brows
-      g.fillStyle(0x1a1a2e); g.fillRect(10, 7, 6, 2); g.fillRect(18, 7, 6, 2);
-      // Snarl mouth
-      g.fillStyle(0xe74c3c); g.fillRect(12, 15, 8, 2);
-      g.fillStyle(0xffffff); g.fillRect(14, 15, 2, 1); g.fillRect(18, 15, 2, 1);
-      // Body (red outfit)
-      g.fillStyle(0xc0392b); g.fillRect(6, 18, 20, 14);
-      // Belt (dark)
-      g.fillStyle(0x2d3436); g.fillRect(6, 26, 20, 3);
-      g.fillStyle(0xf1c40f); g.fillRect(13, 26, 6, 3);
-      // Arms (pale)
-      g.fillStyle(0xdfe6e9); g.fillRect(0, 20, 6, 5); g.fillRect(26, 20, 6, 5);
-      // Fists
-      g.fillStyle(0xbdc3c7); g.fillRect(0, 25, 6, 3); g.fillRect(26, 25, 6, 3);
-      // Legs (dark red)
-      g.fillStyle(0x922b21); g.fillRect(8, 32, 7, 8); g.fillRect(17, 32, 7, 8);
-      g.generateTexture('enemy', 32, 40);
-      g.clear();
+      preload() {
+        var g = this.make.graphics({ add: false });
 
-      // --- Punch/kick effect: yellow starburst ---
-      g.fillStyle(0xf1c40f);
-      g.fillCircle(10, 10, 10);
-      g.fillStyle(0xfdcb6e);
-      g.fillCircle(10, 10, 6);
-      g.fillStyle(0xffeaa7);
-      g.fillCircle(8, 8, 3);
-      // Spikes for impact feel
-      g.fillStyle(0xf39c12);
-      g.fillTriangle(10, 0, 8, 5, 12, 5);
-      g.fillTriangle(20, 10, 15, 8, 15, 12);
-      g.fillTriangle(10, 20, 8, 15, 12, 15);
-      g.fillTriangle(0, 10, 5, 8, 5, 12);
-      g.generateTexture('punch', 20, 20);
-      g.clear();
+        // --- Player: blue gi, red headband (36x44) ---
+        g.fillStyle(0xe74c3c); g.fillRect(8, 0, 20, 5);
+        g.fillStyle(0xc0392b); g.fillRect(28, 1, 6, 4);
+        g.fillStyle(0xf5cba7); g.fillRect(10, 5, 16, 14);
+        g.fillStyle(0x2c3e50); g.fillRect(13, 10, 4, 3); g.fillRect(21, 10, 4, 3);
+        g.fillStyle(0xffffff); g.fillRect(14, 10, 2, 2); g.fillRect(22, 10, 2, 2);
+        g.fillStyle(0xd35400); g.fillRect(15, 16, 6, 2);
+        g.fillStyle(0x2980b9); g.fillRect(7, 19, 22, 16);
+        g.fillStyle(0x1a6fa0); g.fillRect(7, 19, 22, 3);
+        g.fillStyle(0x1a1a2e); g.fillRect(7, 28, 22, 3);
+        g.fillStyle(0xf5cba7); g.fillRect(1, 21, 6, 6); g.fillRect(29, 21, 6, 6);
+        g.fillStyle(0xfdebd0); g.fillRect(0, 27, 7, 4); g.fillRect(29, 27, 7, 4);
+        g.fillStyle(0x2471a3); g.fillRect(10, 35, 7, 9); g.fillRect(19, 35, 7, 9);
+        g.generateTexture('fighter', 36, 44); g.clear();
 
-      // --- Particle: small white glow ---
-      g.fillStyle(0xffffff, 0.9);
-      g.fillCircle(4, 4, 4);
-      g.fillStyle(0xffeaa7, 0.6);
-      g.fillCircle(4, 4, 2);
-      g.generateTexture('particle', 8, 8);
-      g.clear();
+        // --- Player punch pose (36x44) ---
+        g.fillStyle(0xe74c3c); g.fillRect(8, 0, 20, 5);
+        g.fillStyle(0xc0392b); g.fillRect(28, 1, 6, 4);
+        g.fillStyle(0xf5cba7); g.fillRect(10, 5, 16, 14);
+        g.fillStyle(0x2c3e50); g.fillRect(13, 10, 4, 3); g.fillRect(21, 10, 4, 3);
+        g.fillStyle(0xffffff); g.fillRect(14, 10, 2, 2); g.fillRect(22, 10, 2, 2);
+        g.fillStyle(0xd35400); g.fillRect(15, 16, 6, 2);
+        g.fillStyle(0x2980b9); g.fillRect(7, 19, 22, 16);
+        g.fillStyle(0x1a1a2e); g.fillRect(7, 28, 22, 3);
+        g.fillStyle(0xf5cba7); g.fillRect(1, 21, 6, 6);
+        g.fillStyle(0xf5cba7); g.fillRect(29, 19, 7, 4);
+        g.fillStyle(0xfdebd0); g.fillRect(0, 27, 7, 4);
+        g.fillStyle(0xfdebd0); g.fillRect(29, 23, 7, 5);
+        g.fillStyle(0x2471a3); g.fillRect(10, 35, 7, 9); g.fillRect(19, 35, 7, 9);
+        g.generateTexture('fighter-punch', 36, 44); g.clear();
 
-      g.destroy();
-    }
+        // --- Enemy: Brawler (32x40) ---
+        g.fillStyle(0x1a1a2e); g.fillRect(8, 0, 16, 5);
+        g.fillStyle(0x1a1a2e); g.fillRect(6, 1, 4, 5); g.fillRect(22, 1, 4, 5);
+        g.fillStyle(0xdfe6e9); g.fillRect(8, 5, 16, 14);
+        g.fillStyle(0xc0392b); g.fillRect(11, 10, 4, 3); g.fillRect(19, 10, 4, 3);
+        g.fillStyle(0xff6b6b); g.fillRect(12, 11, 2, 2); g.fillRect(20, 11, 2, 2);
+        g.fillStyle(0x1a1a2e); g.fillRect(10, 8, 6, 2); g.fillRect(18, 8, 6, 2);
+        g.fillStyle(0xe74c3c); g.fillRect(12, 16, 8, 2);
+        g.fillStyle(0xc0392b); g.fillRect(6, 19, 20, 14);
+        g.fillStyle(0x2d3436); g.fillRect(6, 27, 20, 3);
+        g.fillStyle(0xf1c40f); g.fillRect(13, 27, 6, 3);
+        g.fillStyle(0xdfe6e9); g.fillRect(0, 21, 6, 5); g.fillRect(26, 21, 6, 5);
+        g.fillStyle(0xbdc3c7); g.fillRect(0, 26, 6, 3); g.fillRect(26, 26, 6, 3);
+        g.fillStyle(0x922b21); g.fillRect(8, 33, 7, 7); g.fillRect(17, 33, 7, 7);
+        g.generateTexture('brawler', 32, 40); g.clear();
 
-    create() {
-      this.touchLeft = false;
-      this.touchRight = false;
-      this.touchJump = false;
-      this.touchPunch = false;
-      this.touchKick = false;
+        // --- Enemy: Heavy (44x48) ---
+        g.fillStyle(0x2d3436); g.fillRect(12, 0, 20, 6);
+        g.fillStyle(0xdfe6e9); g.fillRect(12, 6, 20, 16);
+        g.fillStyle(0x6c5ce7); g.fillRect(14, 11, 5, 4); g.fillRect(25, 11, 5, 4);
+        g.fillStyle(0xa29bfe); g.fillRect(15, 12, 3, 2); g.fillRect(26, 12, 3, 2);
+        g.fillStyle(0x2d3436); g.fillRect(14, 9, 6, 2); g.fillRect(24, 9, 6, 2);
+        g.fillStyle(0x636e72); g.fillRect(17, 18, 10, 3);
+        g.fillStyle(0x6c5ce7); g.fillRect(4, 22, 36, 18);
+        g.fillStyle(0x5f50c7); g.fillRect(4, 22, 36, 4);
+        g.fillStyle(0x2d3436); g.fillRect(4, 33, 36, 3);
+        g.fillStyle(0xdfe6e9); g.fillRect(0, 24, 6, 8); g.fillRect(38, 24, 6, 8);
+        g.fillStyle(0xbdc3c7); g.fillRect(0, 32, 8, 6); g.fillRect(36, 32, 8, 6);
+        g.fillStyle(0x4a3dbd); g.fillRect(10, 40, 10, 8); g.fillRect(24, 40, 10, 8);
+        g.generateTexture('heavy', 44, 48); g.clear();
 
-      this.score = 0;
-      this.combo = 0;
-      this.comboTimer = 0;
-      this.maxHealth = 100;
-      this.playerHealth = this.maxHealth;
-      this.gameOver = false;
-      this.wave = 1;
-      this.enemiesPerWave = 3;
-      this.enemiesSpawned = 0;
-      this.enemiesDefeated = 0;
-      this.attacking = false;
-      this.attackCooldown = 0;
-      this.facingRight = true;
+        // --- Enemy: Ninja (28x40) ---
+        g.fillStyle(0x2d3436); g.fillRect(6, 0, 16, 4);
+        g.fillStyle(0x2d3436); g.fillRect(4, 4, 20, 12);
+        g.fillStyle(0xff0000); g.fillRect(7, 7, 5, 3); g.fillRect(16, 7, 5, 3);
+        g.fillStyle(0xff6666); g.fillRect(8, 8, 3, 1); g.fillRect(17, 8, 3, 1);
+        g.fillStyle(0x636e72); g.fillRect(12, 13, 4, 2);
+        g.fillStyle(0x2d3436); g.fillRect(5, 16, 18, 14);
+        g.fillStyle(0x636e72); g.fillRect(5, 16, 18, 2);
+        g.fillStyle(0x636e72); g.fillRect(12, 16, 4, 14);
+        g.fillStyle(0x2d3436); g.fillRect(0, 18, 5, 5); g.fillRect(23, 18, 5, 5);
+        g.fillStyle(0x636e72); g.fillRect(0, 23, 5, 4); g.fillRect(23, 23, 5, 4);
+        g.fillStyle(0x1a1a2e); g.fillRect(7, 30, 6, 10); g.fillRect(15, 30, 6, 10);
+        g.generateTexture('ninja', 28, 40); g.clear();
 
-      // Dark urban backdrop
-      const bg = this.add.graphics();
-      bg.fillGradientStyle(0x1a1a2e, 0x1a1a2e, 0x16213e, 0x16213e);
-      bg.fillRect(0, 0, 800, 500);
-      // Distant city silhouettes
-      bg.fillStyle(0x0f3460);
-      bg.fillRect(20, 300, 60, 130); bg.fillRect(100, 280, 40, 150);
-      bg.fillRect(160, 320, 70, 110); bg.fillRect(260, 260, 50, 170);
-      bg.fillRect(340, 300, 80, 130); bg.fillRect(460, 270, 45, 160);
-      bg.fillRect(540, 310, 65, 120); bg.fillRect(640, 280, 55, 150);
-      bg.fillRect(720, 300, 80, 130);
-      // Building windows (dim yellow)
-      bg.fillStyle(0x534b2e, 0.4);
-      for (let bx = 20; bx < 780; bx += 120) {
-        for (let wy = 290; wy < 420; wy += 20) {
-          if (Math.random() > 0.4) {
-            bg.fillRect(bx + 8, wy, 6, 8);
-            bg.fillRect(bx + 22, wy, 6, 8);
+        // --- Punch effect ---
+        g.fillStyle(0xf1c40f); g.fillCircle(12, 12, 12);
+        g.fillStyle(0xfdcb6e); g.fillCircle(12, 12, 8);
+        g.fillStyle(0xffeaa7); g.fillCircle(10, 10, 4);
+        g.fillStyle(0xf39c12);
+        g.fillTriangle(12, 0, 10, 6, 14, 6);
+        g.fillTriangle(24, 12, 18, 10, 18, 14);
+        g.fillTriangle(12, 24, 10, 18, 14, 18);
+        g.fillTriangle(0, 12, 6, 10, 6, 14);
+        g.generateTexture('fx-punch', 24, 24); g.clear();
+
+        // --- Kick effect ---
+        g.fillStyle(0xe74c3c); g.fillCircle(12, 12, 12);
+        g.fillStyle(0xff7675); g.fillCircle(12, 12, 8);
+        g.fillStyle(0xfab1a0); g.fillCircle(10, 10, 4);
+        g.fillStyle(0xd63031);
+        g.fillTriangle(12, 0, 10, 6, 14, 6);
+        g.fillTriangle(24, 12, 18, 10, 18, 14);
+        g.fillTriangle(12, 24, 10, 18, 14, 18);
+        g.fillTriangle(0, 12, 6, 10, 6, 14);
+        g.generateTexture('fx-kick', 24, 24); g.clear();
+
+        // --- Health pickup ---
+        g.fillStyle(0xffffff, 0.8); g.fillCircle(10, 10, 10);
+        g.fillStyle(0x00b894); g.fillRect(7, 4, 6, 12);
+        g.fillStyle(0x00b894); g.fillRect(4, 7, 12, 6);
+        g.generateTexture('health-pickup', 20, 20); g.clear();
+
+        // --- Particle ---
+        g.fillStyle(0xffffff); g.fillCircle(4, 4, 4);
+        g.generateTexture('spark', 8, 8); g.clear();
+
+        // --- Ground tile (800x70) ---
+        g.fillStyle(0x2d3436); g.fillRect(0, 0, 800, 70);
+        g.fillStyle(0x485460, 0.3);
+        for (var gx = 0; gx < 800; gx += 80) g.fillRect(gx, 0, 40, 70);
+        g.fillStyle(0xf1c40f, 0.12); g.fillRect(0, 0, 800, 2);
+        g.fillStyle(0x636e72, 0.15);
+        for (var gy = 15; gy < 70; gy += 18) g.fillRect(0, gy, 800, 1);
+        g.generateTexture('ground-tile', 800, 70); g.clear();
+
+        // --- City backdrop (800x200) ---
+        g.fillStyle(0x0f3460, 0.8);
+        var bx = 0;
+        while (bx < 800) {
+          var bw = Phaser.Math.Between(30, 65);
+          var bh = Phaser.Math.Between(50, 170);
+          g.fillRect(bx, 200 - bh, bw, bh);
+          g.fillStyle(0x534b2e, 0.35);
+          for (var wy = 200 - bh + 6; wy < 194; wy += 14) {
+            for (var wx = bx + 4; wx < bx + bw - 4; wx += 10) {
+              if (Math.random() < 0.5) g.fillRect(wx, wy, 5, 7);
+            }
+          }
+          g.fillStyle(0x0f3460, 0.8);
+          bx += bw + Phaser.Math.Between(8, 30);
+        }
+        g.generateTexture('city-bg', 800, 200); g.clear();
+
+        // --- Near buildings (800x140) ---
+        g.fillStyle(0x16213e, 0.7);
+        var nx = 0;
+        while (nx < 800) {
+          var nw = Phaser.Math.Between(40, 80);
+          var nh = Phaser.Math.Between(40, 130);
+          g.fillRect(nx, 140 - nh, nw, nh);
+          g.fillStyle(0x534b2e, 0.2);
+          for (var nwy = 140 - nh + 5; nwy < 134; nwy += 12) {
+            for (var nwx = nx + 3; nwx < nx + nw - 3; nwx += 8) {
+              if (Math.random() < 0.4) g.fillRect(nwx, nwy, 4, 6);
+            }
+          }
+          g.fillStyle(0x16213e, 0.7);
+          nx += nw + Phaser.Math.Between(10, 40);
+        }
+        g.generateTexture('near-bg', 800, 140); g.clear();
+
+        g.destroy();
+      }
+
+      create() {
+        this.score = 0;
+        this.combo = 0;
+        this.maxCombo = 0;
+        this.comboTimer = 0;
+        this.wave = 1;
+        this.enemiesPerWave = 3;
+        this.enemiesSpawned = 0;
+        this.enemiesDefeated = 0;
+        this.gameOver = false;
+        this.playerHealth = 100;
+        this.maxHealth = 100;
+        this.attacking = false;
+        this.attackCooldown = 0;
+        this.blocking = false;
+        this.facingRight = true;
+        this.iFrames = 0;
+        this.iFlashTimer = 0;
+
+        var savedBest = this.registry.get('fightBest');
+        this.bestScore = savedBest || 0;
+
+        // --- World bounds ---
+        this.physics.world.setBounds(0, 0, ARENA_W, H);
+
+        // --- Background ---
+        var bg = this.add.graphics();
+        bg.fillGradientStyle(0x1a1a2e, 0x1a1a2e, 0x16213e, 0x0f3460);
+        bg.fillRect(0, 0, ARENA_W, H);
+
+        this.cityBg = this.add.tileSprite(ARENA_W / 2, 320, ARENA_W, 200, 'city-bg').setScrollFactor(0.2).setDepth(1);
+        this.nearBg = this.add.tileSprite(ARENA_W / 2, 370, ARENA_W, 140, 'near-bg').setScrollFactor(0.5).setDepth(2);
+        this.groundTile = this.add.tileSprite(ARENA_W / 2, GROUND_Y + 35, ARENA_W, 70, 'ground-tile').setDepth(3);
+
+        // --- Ground physics ---
+        this.groundBody = this.add.rectangle(ARENA_W / 2, GROUND_Y + 4, ARENA_W, 8, 0x000000, 0);
+        this.physics.add.existing(this.groundBody, true);
+
+        // --- Player ---
+        this.player = this.physics.add.sprite(200, GROUND_Y - 30, 'fighter');
+        this.player.setScale(2).setDepth(6);
+        this.player.body.setSize(22, 38);
+        this.player.body.setOffset(7, 5);
+        this.player.setCollideWorldBounds(true);
+        this.physics.add.collider(this.player, this.groundBody);
+
+        // --- Attack hitbox ---
+        this.atkSprite = this.add.sprite(0, 0, 'fx-punch').setVisible(false).setDepth(8).setScale(1.5);
+        this.atkHitbox = this.add.rectangle(0, 0, 40, 40, 0x000000, 0);
+        this.physics.add.existing(this.atkHitbox);
+        this.atkHitbox.body.enable = false;
+        this.atkHitbox.body.allowGravity = false;
+
+        // --- Groups ---
+        this.enemies = this.physics.add.group();
+        this.pickups = this.physics.add.group();
+
+        this.physics.add.collider(this.enemies, this.groundBody);
+        this.physics.add.overlap(this.atkHitbox, this.enemies, this.onHitEnemy, null, this);
+        this.physics.add.overlap(this.player, this.pickups, this.collectPickup, null, this);
+
+        // --- Particles ---
+        this.hitEmitter = this.add.particles(0, 0, 'spark', {
+          speed: { min: 80, max: 220 }, lifespan: 350,
+          scale: { start: 1.5, end: 0 }, emitting: false, quantity: 10,
+          tint: [0xd63031, 0xe17055, 0xfdcb6e]
+        }).setDepth(9);
+
+        this.healEmitter = this.add.particles(0, 0, 'spark', {
+          speed: { min: 40, max: 120 }, lifespan: 400,
+          scale: { start: 1.2, end: 0 }, emitting: false, quantity: 8,
+          tint: [0x00b894, 0x55efc4, 0xffffff]
+        }).setDepth(9);
+
+        this.blockEmitter = this.add.particles(0, 0, 'spark', {
+          speed: { min: 30, max: 80 }, lifespan: 250,
+          scale: { start: 0.8, end: 0 }, emitting: false, quantity: 5,
+          tint: [0x74b9ff, 0x0984e3, 0xffffff]
+        }).setDepth(9);
+
+        // --- HUD (fixed to camera) ---
+        this.healthBarGfx = this.add.graphics().setDepth(20).setScrollFactor(0);
+        this.drawPlayerHealth();
+
+        this.scoreText = this.add.text(14, 50, 'Score: 0', {
+          fontFamily: 'Segoe UI', fontSize: '18px', fill: '#fff',
+          stroke: '#000', strokeThickness: 3
+        }).setDepth(20).setScrollFactor(0);
+
+        this.waveText = this.add.text(W / 2, 10, 'Wave 1', {
+          fontFamily: 'Segoe UI', fontSize: '18px', fontStyle: 'bold', fill: '#fdcb6e',
+          stroke: '#000', strokeThickness: 3
+        }).setOrigin(0.5, 0).setDepth(20).setScrollFactor(0);
+
+        this.comboText = this.add.text(0, 0, '', {
+          fontFamily: 'Segoe UI', fontSize: '28px', fontStyle: 'bold', fill: '#fdcb6e',
+          stroke: '#000', strokeThickness: 4
+        }).setOrigin(0.5).setDepth(15).setAlpha(0);
+
+        this.waveBanner = this.add.text(W / 2, H / 2 - 40, '', {
+          fontFamily: 'Segoe UI', fontSize: '48px', fontStyle: 'bold', fill: '#fdcb6e',
+          stroke: '#000', strokeThickness: 5
+        }).setOrigin(0.5).setDepth(25).setScrollFactor(0).setAlpha(0);
+
+        this.puText = this.add.text(W / 2, 80, '', {
+          fontFamily: 'Segoe UI', fontSize: '16px', fontStyle: 'bold', fill: '#55efc4',
+          stroke: '#000', strokeThickness: 3
+        }).setOrigin(0.5).setDepth(20).setScrollFactor(0).setAlpha(0);
+
+        // --- Game over elements (hidden) ---
+        this.goOverlay = this.add.graphics().setDepth(30).setScrollFactor(0).setVisible(false);
+        this.goTitle = this.add.text(W / 2, 0, 'GAME OVER', {
+          fontFamily: 'Segoe UI', fontSize: '48px', fontStyle: 'bold',
+          fill: '#d63031', stroke: '#000', strokeThickness: 5
+        }).setOrigin(0.5).setDepth(31).setScrollFactor(0).setVisible(false);
+        this.goScore = this.add.text(W / 2, 0, '', {
+          fontFamily: 'Segoe UI', fontSize: '24px', fill: '#fff', stroke: '#000', strokeThickness: 4
+        }).setOrigin(0.5).setDepth(31).setScrollFactor(0).setVisible(false);
+        this.goBest = this.add.text(W / 2, 0, '', {
+          fontFamily: 'Segoe UI', fontSize: '18px', fill: '#a29bfe', stroke: '#000', strokeThickness: 3
+        }).setOrigin(0.5).setDepth(31).setScrollFactor(0).setVisible(false);
+        this.goWave = this.add.text(W / 2, 0, '', {
+          fontFamily: 'Segoe UI', fontSize: '16px', fill: '#fdcb6e', stroke: '#000', strokeThickness: 3
+        }).setOrigin(0.5).setDepth(31).setScrollFactor(0).setVisible(false);
+        this.goRestart = this.add.text(W / 2, 0, 'Tap or SPACE to Retry', {
+          fontFamily: 'Segoe UI', fontSize: '18px', fill: '#e17055', stroke: '#000', strokeThickness: 3
+        }).setOrigin(0.5).setDepth(31).setScrollFactor(0).setVisible(false);
+
+        // --- Camera ---
+        this.cameras.main.setBounds(0, 0, ARENA_W, H);
+        this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
+
+        // --- Input ---
+        this.cursors = this.input.keyboard.createCursorKeys();
+        this.shiftKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
+
+        // --- Touch controls ---
+        this.touchState = { left: false, right: false, jump: false, punch: false, kick: false, block: false };
+        if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+          this.createTouchControls();
+        }
+
+        // --- Enemy health bars ---
+        this.enemyBars = new Map();
+
+        // --- Spawn timer ---
+        this.spawnTimer = this.time.addEvent({
+          delay: 1800, callback: this.spawnEnemy, callbackScope: this, loop: true
+        });
+        this.spawnEnemy();
+      }
+
+      createTouchControls() {
+        var a = 0.25, d = 100;
+        var bL = this.add.rectangle(55, 455, 60, 60, 0xffffff, a).setScrollFactor(0).setDepth(d).setInteractive();
+        var bR = this.add.rectangle(135, 455, 60, 60, 0xffffff, a).setScrollFactor(0).setDepth(d).setInteractive();
+        var bJ = this.add.rectangle(135, 385, 60, 60, 0xffffff, a).setScrollFactor(0).setDepth(d).setInteractive();
+        var bB = this.add.rectangle(55, 385, 60, 60, 0x74b9ff, a).setScrollFactor(0).setDepth(d).setInteractive();
+        var bP = this.add.rectangle(640, 455, 60, 60, 0xfdcb6e, a).setScrollFactor(0).setDepth(d).setInteractive();
+        var bK = this.add.rectangle(720, 455, 60, 60, 0xff7675, a).setScrollFactor(0).setDepth(d).setInteractive();
+
+        var ts = { fontSize: '20px', fill: '#fff' };
+        this.add.text(55, 455, '\u25C0', ts).setOrigin(0.5).setScrollFactor(0).setDepth(d + 1);
+        this.add.text(135, 455, '\u25B6', ts).setOrigin(0.5).setScrollFactor(0).setDepth(d + 1);
+        this.add.text(135, 385, '\u25B2', ts).setOrigin(0.5).setScrollFactor(0).setDepth(d + 1);
+        this.add.text(55, 385, '\u25BC', ts).setOrigin(0.5).setScrollFactor(0).setDepth(d + 1);
+        this.add.text(640, 455, 'P', { fontSize: '22px', fontStyle: 'bold', fill: '#fff' }).setOrigin(0.5).setScrollFactor(0).setDepth(d + 1);
+        this.add.text(720, 455, 'K', { fontSize: '22px', fontStyle: 'bold', fill: '#fff' }).setOrigin(0.5).setScrollFactor(0).setDepth(d + 1);
+
+        var self = this;
+        var bind = function(btn, prop) {
+          btn.on('pointerdown', function() { self.touchState[prop] = true; });
+          btn.on('pointerup', function() { self.touchState[prop] = false; });
+          btn.on('pointerout', function() { self.touchState[prop] = false; });
+        };
+        bind(bL, 'left'); bind(bR, 'right'); bind(bJ, 'jump');
+        bind(bP, 'punch'); bind(bK, 'kick'); bind(bB, 'block');
+      }
+
+      drawPlayerHealth() {
+        this.healthBarGfx.clear();
+        this.healthBarGfx.fillStyle(0x2d3436); this.healthBarGfx.fillRoundedRect(12, 12, 184, 18, 4);
+        this.healthBarGfx.fillStyle(0x636e72); this.healthBarGfx.fillRoundedRect(14, 14, 180, 14, 3);
+        var pct = Phaser.Math.Clamp(this.playerHealth / this.maxHealth, 0, 1);
+        var color = pct > 0.5 ? 0x00b894 : (pct > 0.25 ? 0xfdcb6e : 0xd63031);
+        this.healthBarGfx.fillStyle(color); this.healthBarGfx.fillRoundedRect(14, 14, 180 * pct, 14, 3);
+      }
+
+      drawEnemyBar(enemy) {
+        if (this.enemyBars.has(enemy)) {
+          var bar = this.enemyBars.get(enemy);
+          bar.clear();
+        } else {
+          var bar = this.add.graphics().setDepth(10);
+          this.enemyBars.set(enemy, bar);
+        }
+        bar.fillStyle(0x2d3436); bar.fillRect(-22, -32, 44, 8);
+        var pct = Phaser.Math.Clamp(enemy.hp / enemy.maxHp, 0, 1);
+        bar.fillStyle(0xd63031); bar.fillRect(-21, -31, 42 * pct, 6);
+        bar.x = enemy.x; bar.y = enemy.y;
+      }
+
+      update(time, delta) {
+        if (this.gameOver) return;
+
+        // --- I-frames ---
+        if (this.iFrames > 0) {
+          this.iFrames -= delta;
+          this.iFlashTimer -= delta;
+          if (this.iFlashTimer <= 0) {
+            this.player.setAlpha(this.player.alpha < 1 ? 1 : 0.3);
+            this.iFlashTimer = 80;
+          }
+          if (this.iFrames <= 0) {
+            this.player.setAlpha(1);
           }
         }
-      }
-      // Street / ground
-      bg.fillStyle(0x2d3436); bg.fillRect(0, 430, 800, 70);
-      // Sidewalk lines
-      bg.fillStyle(0x485460, 0.3);
-      for (let x = 0; x < 800; x += 80) bg.fillRect(x, 430, 40, 70);
-      // Lane marking
-      bg.fillStyle(0xf1c40f, 0.15);
-      bg.fillRect(0, 428, 800, 2);
 
-      this.player = this.physics.add.sprite(120, 390, 'fighter')
-        .setCollideWorldBounds(true).setScale(2).setDepth(5);
-      this.player.body.setSize(20, 36); this.player.body.setOffset(6, 4);
-
-      this.enemies = this.physics.add.group();
-      this.attackHitbox = this.physics.add.sprite(0, 0, 'punch')
-        .setVisible(false).setActive(false).setScale(1.5);
-      this.attackHitbox.body.enable = false;
-
-      this.particles = this.add.particles(0, 0, 'particle', {
-        speed: { min: 60, max: 180 }, lifespan: 300, scale: { start: 1.5, end: 0 },
-        emitting: false, quantity: 8, tint: [0xd63031, 0xe17055, 0xfdcb6e]
-      });
-
-      this.physics.add.overlap(this.attackHitbox, this.enemies, this.onHitEnemy, null, this);
-
-      this.drawHealthBar = (x, y, w, current, max, color) => {
-        const bar = this.add.graphics().setDepth(10).setScrollFactor(0);
-        bar.fillStyle(0x2d3436); bar.fillRect(x - 1, y - 1, w + 2, 14);
-        bar.fillStyle(0x636e72); bar.fillRect(x, y, w, 12);
-        const pct = Phaser.Math.Clamp(current / max, 0, 1);
-        bar.fillStyle(color); bar.fillRect(x, y, w * pct, 12);
-        return bar;
-      };
-
-      this.playerHealthBar = null;
-      this.refreshPlayerHealth();
-
-      const ts = { fontFamily: 'Segoe UI', fontSize: '18px', fill: '#fff', stroke: '#000', strokeThickness: 2 };
-      this.scoreText = this.add.text(12, 8, 'Score: 0', ts).setDepth(10).setScrollFactor(0);
-      this.waveText = this.add.text(400, 8, 'Wave 1', { ...ts, fontSize: '16px', fill: '#fdcb6e' })
-        .setOrigin(0.5, 0).setDepth(10).setScrollFactor(0);
-      this.comboText = this.add.text(400, 250, '', {
-        fontFamily: 'Segoe UI', fontSize: '32px', fill: '#fdcb6e', fontStyle: 'bold',
-        stroke: '#000', strokeThickness: 4
-      }).setOrigin(0.5).setDepth(15).setScrollFactor(0).setAlpha(0);
-
-      this.cursors = this.input.keyboard.createCursorKeys();
-      this.shiftKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
-
-      if ('ontouchstart' in window) {
-        const ba = 0.3, bd = 1000;
-        const bL = this.add.rectangle(50, 460, 70, 70, 0xffffff, ba).setScrollFactor(0).setDepth(bd).setInteractive();
-        const bR = this.add.rectangle(140, 460, 70, 70, 0xffffff, ba).setScrollFactor(0).setDepth(bd).setInteractive();
-        const bJ = this.add.rectangle(140, 380, 70, 70, 0xffffff, ba).setScrollFactor(0).setDepth(bd).setInteractive();
-        const bP = this.add.rectangle(660, 460, 70, 70, 0xfdcb6e, ba).setScrollFactor(0).setDepth(bd).setInteractive();
-        const bK = this.add.rectangle(750, 460, 70, 70, 0xff7675, ba).setScrollFactor(0).setDepth(bd).setInteractive();
-        this.add.text(50, 460, '\u25C0', { fontSize: '24px', fill: '#fff' }).setOrigin(0.5).setScrollFactor(0).setDepth(bd + 1);
-        this.add.text(140, 460, '\u25B6', { fontSize: '24px', fill: '#fff' }).setOrigin(0.5).setScrollFactor(0).setDepth(bd + 1);
-        this.add.text(140, 380, '\u25B2', { fontSize: '24px', fill: '#fff' }).setOrigin(0.5).setScrollFactor(0).setDepth(bd + 1);
-        this.add.text(660, 460, '\uD83E\uDD4A', { fontSize: '24px' }).setOrigin(0.5).setScrollFactor(0).setDepth(bd + 1);
-        this.add.text(750, 460, '\uD83E\uDDB6', { fontSize: '24px' }).setOrigin(0.5).setScrollFactor(0).setDepth(bd + 1);
-        const bind = (btn, prop) => {
-          btn.on('pointerdown', () => { this[prop] = true; });
-          btn.on('pointerup', () => { this[prop] = false; });
-          btn.on('pointerout', () => { this[prop] = false; });
-        };
-        bind(bL, 'touchLeft'); bind(bR, 'touchRight'); bind(bJ, 'touchJump');
-        bind(bP, 'touchPunch'); bind(bK, 'touchKick');
-      }
-
-      this.spawnTimer = this.time.addEvent({
-        delay: 1800, callback: this.spawnEnemy, callbackScope: this, loop: true
-      });
-      this.spawnEnemy();
-
-      this.enemyHealthBars = new Map();
-    }
-
-    refreshPlayerHealth() {
-      if (this.playerHealthBar) this.playerHealthBar.destroy();
-      this.playerHealthBar = this.drawHealthBar(12, 30, 160, this.playerHealth, this.maxHealth, 0x00b894);
-    }
-
-    refreshEnemyHealthBar(enemy) {
-      if (this.enemyHealthBars.has(enemy)) this.enemyHealthBars.get(enemy).destroy();
-      const bar = this.add.graphics().setDepth(10);
-      bar.fillStyle(0x2d3436); bar.fillRect(-20, -30, 40, 6);
-      const pct = Phaser.Math.Clamp(enemy.hp / enemy.maxHp, 0, 1);
-      bar.fillStyle(0xd63031); bar.fillRect(-20, -30, 40 * pct, 6);
-      bar.x = enemy.x; bar.y = enemy.y;
-      this.enemyHealthBars.set(enemy, bar);
-    }
-
-    update(time, delta) {
-      if (this.gameOver) return;
-
-      const speed = 220;
-      if (this.cursors.left.isDown || this.touchLeft) {
-        this.player.setVelocityX(-speed); this.facingRight = false; this.player.setFlipX(true);
-      } else if (this.cursors.right.isDown || this.touchRight) {
-        this.player.setVelocityX(speed); this.facingRight = true; this.player.setFlipX(false);
-      } else {
-        this.player.setVelocityX(0);
-      }
-      if ((this.cursors.up.isDown || this.touchJump) && this.player.body.touching.down) {
-        this.player.setVelocityY(-380);
-        this.touchJump = false;
-      }
-
-      if (this.attackCooldown > 0) this.attackCooldown -= delta;
-
-      if ((this.cursors.space.isDown || this.touchPunch) && this.attackCooldown <= 0 && !this.attacking) {
-        this.performAttack('punch', 15, 250);
-        this.touchPunch = false;
-      } else if ((this.shiftKey.isDown || this.touchKick) && this.attackCooldown <= 0 && !this.attacking) {
-        this.performAttack('kick', 25, 400);
-        this.touchKick = false;
-      }
-
-      if (this.comboTimer > 0) {
-        this.comboTimer -= delta;
-        if (this.comboTimer <= 0) this.combo = 0;
-      }
-
-      this.enemies.children.iterate(e => {
-        if (!e || !e.active) return;
-        const bar = this.enemyHealthBars.get(e);
-        if (bar) { bar.x = e.x; bar.y = e.y; }
-
-        const dist = Phaser.Math.Distance.Between(e.x, e.y, this.player.x, this.player.y);
-        if (dist < 50 && e.attackCooldown <= 0 && !e.stunned) {
-          this.playerTakeDamage(8 + this.wave * 2);
-          e.attackCooldown = 1200;
-        }
-        if (e.attackCooldown > 0) e.attackCooldown -= delta;
-        if (e.stunned) {
-          e.stunTimer -= delta;
-          if (e.stunTimer <= 0) { e.stunned = false; e.setTint(0xffffff); }
-          return;
+        // --- Blocking ---
+        this.blocking = (this.cursors.down.isDown || this.touchState.block) && this.player.body.touching.down && !this.attacking;
+        if (this.blocking) {
+          this.player.setVelocityX(0);
+          this.player.setTint(0x74b9ff);
+        } else if (this.iFrames <= 0) {
+          this.player.clearTint();
         }
 
-        if (dist > 45) {
-          const dir = this.player.x < e.x ? -1 : 1;
-          e.setVelocityX(dir * (60 + this.wave * 8));
+        // --- Movement ---
+        if (!this.blocking && !this.attacking) {
+          if (this.cursors.left.isDown || this.touchState.left) {
+            this.player.setVelocityX(-PLAYER_SPEED);
+            this.facingRight = false;
+            this.player.setFlipX(true);
+          } else if (this.cursors.right.isDown || this.touchState.right) {
+            this.player.setVelocityX(PLAYER_SPEED);
+            this.facingRight = true;
+            this.player.setFlipX(false);
+          } else {
+            this.player.setVelocityX(0);
+          }
+        }
+
+        // --- Jump ---
+        if ((this.cursors.up.isDown || this.touchState.jump) && this.player.body.touching.down && !this.blocking) {
+          this.player.setVelocityY(-420);
+          this.touchState.jump = false;
+        }
+
+        // --- Attack cooldown ---
+        if (this.attackCooldown > 0) this.attackCooldown -= delta;
+
+        // --- Punch ---
+        if ((this.cursors.space.isDown || this.touchState.punch) && this.attackCooldown <= 0 && !this.attacking && !this.blocking) {
+          this.performAttack('punch', 15, 280);
+          this.touchState.punch = false;
+        }
+        // --- Kick ---
+        if ((this.shiftKey.isDown || this.touchState.kick) && this.attackCooldown <= 0 && !this.attacking && !this.blocking) {
+          this.performAttack('kick', 25, 480);
+          this.touchState.kick = false;
+        }
+
+        // --- Combo decay ---
+        if (this.comboTimer > 0) {
+          this.comboTimer -= delta;
+          if (this.comboTimer <= 0) this.combo = 0;
+        }
+
+        // --- Enemy AI ---
+        var self = this;
+        this.enemies.children.iterate(function(e) {
+          if (!e || !e.active) return;
+
+          // Update health bar position
+          var bar = self.enemyBars.get(e);
+          if (bar) { bar.x = e.x; bar.y = e.y; }
+
+          if (e.stunned) {
+            e.stunTimer -= delta;
+            if (e.stunTimer <= 0) { e.stunned = false; e.clearTint(); }
+            return;
+          }
+
+          // Wind-up telegraph for heavy
+          if (e.windingUp) {
+            e.windupTimer -= delta;
+            e.setTint(e.windupTimer % 200 < 100 ? 0xf1c40f : 0xffffff);
+            e.setVelocityX(0);
+            if (e.windupTimer <= 0) {
+              e.windingUp = false;
+              e.clearTint();
+              self.enemyAttack(e);
+            }
+            return;
+          }
+
+          if (e.attackCooldown > 0) e.attackCooldown -= delta;
+
+          var dist = Phaser.Math.Distance.Between(e.x, e.y, self.player.x, self.player.y);
+          var dir = self.player.x < e.x ? -1 : 1;
+
+          if (e.enemyType === 'ninja') {
+            if (dist > 200 && dist < 400 && e.attackCooldown <= 0) {
+              e.setVelocityX(dir * (e.speed * 2.5));
+              e.attackCooldown = 1500;
+            } else if (dist > 60) {
+              e.setVelocityX(dir * e.speed);
+            } else if (e.attackCooldown <= 0) {
+              self.enemyAttack(e);
+            } else {
+              e.setVelocityX(0);
+            }
+          } else if (e.enemyType === 'heavy') {
+            if (dist > 55) {
+              e.setVelocityX(dir * e.speed);
+            } else if (e.attackCooldown <= 0) {
+              e.windingUp = true;
+              e.windupTimer = 800;
+            } else {
+              e.setVelocityX(0);
+            }
+          } else {
+            if (dist > 50) {
+              e.setVelocityX(dir * e.speed);
+            } else if (e.attackCooldown <= 0) {
+              self.enemyAttack(e);
+            } else {
+              e.setVelocityX(0);
+            }
+          }
           e.setFlipX(dir > 0);
-        } else {
-          e.setVelocityX(0);
-        }
-      });
-    }
-
-    performAttack(type, damage, cooldown) {
-      this.attacking = true;
-      this.attackCooldown = cooldown;
-      const ox = this.facingRight ? 40 : -40;
-      this.attackHitbox.setPosition(this.player.x + ox, this.player.y);
-      this.attackHitbox.body.enable = true;
-      this.attackHitbox.setActive(true).setVisible(true);
-      this.attackHitbox.attackDamage = damage;
-      this.attackHitbox.attackType = type;
-
-      if (type === 'kick') this.attackHitbox.setTint(0xff7675);
-      else this.attackHitbox.setTint(0xfdcb6e);
-
-      this.time.delayedCall(100, () => {
-        this.attackHitbox.body.enable = false;
-        this.attackHitbox.setActive(false).setVisible(false);
-        this.attacking = false;
-      });
-    }
-
-    onHitEnemy(hitbox, enemy) {
-      if (!hitbox.active || enemy.stunned) return;
-
-      const dmg = hitbox.attackDamage + Math.floor(this.combo * 2);
-      enemy.hp -= dmg;
-      enemy.stunned = true;
-      enemy.stunTimer = 300;
-      enemy.setTint(0xff0000);
-
-      const kb = this.facingRight ? 300 : -300;
-      enemy.setVelocityX(kb);
-      enemy.setVelocityY(-120);
-
-      if (this.cache.audio.exists('hitSfx')) this.sound.play('hitSfx');
-      this.particles.emitParticleAt(enemy.x, enemy.y);
-
-      this.combo++;
-      this.comboTimer = 1500;
-      if (this.combo >= 2) {
-        this.comboText.setText(this.combo + 'x COMBO!');
-        this.comboText.setAlpha(1).setScale(0.5);
-        this.tweens.add({
-          targets: this.comboText, scale: 1.2, alpha: 0, duration: 800,
-          ease: 'Power2'
         });
       }
 
-      this.refreshEnemyHealthBar(enemy);
+      performAttack(type, damage, cooldown) {
+        this.attacking = true;
+        this.attackCooldown = cooldown;
+        var ox = this.facingRight ? 50 : -50;
+        var range = type === 'kick' ? 55 : 40;
 
-      if (enemy.hp <= 0) {
-        this.defeatEnemy(enemy);
+        this.atkHitbox.setPosition(this.player.x + ox, this.player.y);
+        this.atkHitbox.body.enable = true;
+        this.atkHitbox.body.setSize(range, 40);
+        this.atkHitbox.attackDamage = damage;
+        this.atkHitbox.attackType = type;
+
+        this.atkSprite.setPosition(this.player.x + ox, this.player.y);
+        this.atkSprite.setTexture(type === 'kick' ? 'fx-kick' : 'fx-punch');
+        this.atkSprite.setVisible(true).setAlpha(1).setScale(0);
+
+        this.player.setTexture('fighter-punch');
+
+        this.tweens.add({
+          targets: this.atkSprite, scale: 1.8, alpha: 0, duration: 200,
+          ease: 'Quad.easeOut'
+        });
+
+        var self = this;
+        this.time.delayedCall(120, function() {
+          self.atkHitbox.body.enable = false;
+          self.atkSprite.setVisible(false);
+          self.attacking = false;
+          self.player.setTexture('fighter');
+        });
       }
-    }
 
-    defeatEnemy(enemy) {
-      if (this.cache.audio.exists('explosionSfx')) this.sound.play('explosionSfx');
-      this.particles.emitParticleAt(enemy.x, enemy.y);
-      if (this.enemyHealthBars.has(enemy)) {
-        this.enemyHealthBars.get(enemy).destroy();
-        this.enemyHealthBars.delete(enemy);
+      onHitEnemy(hitbox, enemy) {
+        if (!hitbox.body.enable || enemy.stunned) return;
+
+        var dmg = hitbox.attackDamage + Math.floor(this.combo * 2);
+        enemy.hp -= dmg;
+
+        var stunTime = enemy.enemyType === 'heavy' ? 500 : (enemy.enemyType === 'ninja' ? 200 : 350);
+        enemy.stunned = true;
+        enemy.stunTimer = stunTime;
+        enemy.setTint(0xff0000);
+
+        var kbForce = enemy.enemyType === 'heavy' ? 150 : (enemy.enemyType === 'ninja' ? 350 : 280);
+        var kbDir = this.facingRight ? kbForce : -kbForce;
+        enemy.setVelocityX(kbDir);
+        enemy.setVelocityY(-100);
+
+        this.hitEmitter.emitParticleAt(enemy.x, enemy.y);
+
+        // Hit-freeze
+        this.physics.pause();
+        var self = this;
+        this.time.delayedCall(50, function() { if (!self.gameOver) self.physics.resume(); });
+
+        var shakeAmt = hitbox.attackType === 'kick' ? 0.012 : 0.006;
+        this.cameras.main.shake(120, shakeAmt);
+
+        this.combo++;
+        if (this.combo > this.maxCombo) this.maxCombo = this.combo;
+        this.comboTimer = 1500;
+
+        if (this.combo >= 2) {
+          this.comboText.setPosition(this.player.x, this.player.y - 60);
+          this.comboText.setText(this.combo + 'x COMBO!');
+          this.comboText.setAlpha(1).setScale(0.5);
+          this.tweens.add({
+            targets: this.comboText, scale: 1.3, alpha: 0, duration: 700, ease: 'Power2'
+          });
+        }
+
+        this.drawEnemyBar(enemy);
+
+        if (enemy.hp <= 0) {
+          this.defeatEnemy(enemy);
+        }
       }
-      enemy.destroy();
 
-      const waveBonus = this.wave * 5;
-      const comboBonus = this.combo * 10;
-      this.score += 50 + waveBonus + comboBonus;
-      this.scoreText.setText('Score: ' + this.score);
-      this.enemiesDefeated++;
+      enemyAttack(enemy) {
+        if (this.gameOver) return;
+        enemy.attackCooldown = enemy.enemyType === 'ninja' ? 1000 : (enemy.enemyType === 'heavy' ? 2000 : 1200);
 
-      if (this.enemiesDefeated >= this.enemiesPerWave) {
+        if (this.iFrames > 0) return;
+
+        var rawDmg = enemy.dmg;
+        if (this.blocking) {
+          rawDmg = Math.floor(rawDmg * 0.25);
+          this.blockEmitter.emitParticleAt(this.player.x, this.player.y);
+          this.cameras.main.shake(80, 0.004);
+        } else {
+          this.cameras.main.shake(150, enemy.enemyType === 'heavy' ? 0.02 : 0.01);
+          var kbDir = enemy.x < this.player.x ? 200 : -200;
+          this.player.setVelocityX(kbDir);
+          this.player.setVelocityY(-80);
+        }
+
+        this.playerHealth -= rawDmg;
+        if (this.playerHealth < 0) this.playerHealth = 0;
+        this.drawPlayerHealth();
+
+        if (!this.blocking) {
+          this.iFrames = 600;
+          this.iFlashTimer = 80;
+          this.player.setTint(0xff0000);
+          var self = this;
+          this.time.delayedCall(150, function() {
+            if (!self.gameOver && self.iFrames > 0) self.player.clearTint();
+          });
+        }
+
+        if (this.playerHealth <= 0) {
+          this.showGameOver();
+        }
+      }
+
+      defeatEnemy(enemy) {
+        this.hitEmitter.emitParticleAt(enemy.x, enemy.y);
+        if (this.enemyBars.has(enemy)) {
+          this.enemyBars.get(enemy).destroy();
+          this.enemyBars.delete(enemy);
+        }
+
+        this.tweens.add({
+          targets: enemy, scaleX: 0, scaleY: 0, alpha: 0, duration: 200,
+          onComplete: function() { enemy.destroy(); }
+        });
+
+        var waveBonus = this.wave * 5;
+        var comboBonus = this.combo * 10;
+        this.score += 50 + waveBonus + comboBonus;
+        this.scoreText.setText('Score: ' + this.score);
+        this.tweens.add({ targets: this.scoreText, scaleX: 1.15, scaleY: 1.15, duration: 80, yoyo: true });
+        this.enemiesDefeated++;
+
+        if (this.enemiesDefeated >= this.enemiesPerWave) {
+          this.advanceWave();
+        }
+      }
+
+      advanceWave() {
         this.wave++;
-        this.enemiesPerWave = 3 + this.wave;
+        this.enemiesPerWave = Math.min(3 + this.wave, 12);
         this.enemiesDefeated = 0;
         this.enemiesSpawned = 0;
         this.waveText.setText('Wave ' + this.wave);
 
-        const wt = this.add.text(400, 150, 'WAVE ' + this.wave, {
-          fontFamily: 'Segoe UI', fontSize: '48px', fill: '#fdcb6e', fontStyle: 'bold',
-          stroke: '#000', strokeThickness: 5
-        }).setOrigin(0.5).setDepth(20).setAlpha(0);
+        this.waveBanner.setText('WAVE ' + this.wave).setAlpha(0).setScale(0.5);
         this.tweens.add({
-          targets: wt, alpha: 1, y: 130, duration: 500, yoyo: true, hold: 600,
-          onComplete: () => wt.destroy()
+          targets: this.waveBanner, alpha: 1, scale: 1, duration: 400,
+          yoyo: true, hold: 700, ease: 'Back.easeOut'
         });
 
-        const newDelay = Math.max(600, 1800 - this.wave * 150);
+        // Drop health pickup near player
+        var hx = this.player.x + Phaser.Math.Between(-60, 60);
+        hx = Phaser.Math.Clamp(hx, 40, ARENA_W - 40);
+        var hp = this.pickups.create(hx, GROUND_Y - 60, 'health-pickup');
+        hp.body.allowGravity = false;
+        hp.setDepth(5);
+        this.tweens.add({
+          targets: hp, y: GROUND_Y - 70, duration: 600,
+          yoyo: true, repeat: -1, ease: 'Sine.easeInOut'
+        });
+
+        var newDelay = Math.max(800, 1800 - this.wave * 120);
         this.spawnTimer.remove();
         this.spawnTimer = this.time.addEvent({
           delay: newDelay, callback: this.spawnEnemy, callbackScope: this, loop: true
         });
       }
-    }
 
-    playerTakeDamage(amount) {
-      this.playerHealth -= amount;
-      this.refreshPlayerHealth();
-      this.player.setTint(0xff0000);
-      this.time.delayedCall(150, () => { if (!this.gameOver) this.player.setTint(0xffffff); });
+      collectPickup(player, pickup) {
+        this.healEmitter.emitParticleAt(pickup.x, pickup.y);
+        pickup.destroy();
+        this.playerHealth = Math.min(this.playerHealth + 30, this.maxHealth);
+        this.drawPlayerHealth();
+        this.puText.setText('+30 HP').setAlpha(1);
+        this.tweens.add({ targets: this.puText, alpha: 0, duration: 1200 });
+      }
 
-      if (this.playerHealth <= 0) {
-        this.playerHealth = 0;
-        this.refreshPlayerHealth();
-        this.showGameOver();
+      spawnEnemy() {
+        if (this.gameOver) return;
+        if (this.enemiesSpawned >= this.enemiesPerWave) return;
+
+        var type = 'brawler';
+        if (this.wave >= 3 && Math.random() < 0.2) {
+          type = 'heavy';
+        } else if (this.wave >= 2 && Math.random() < 0.3) {
+          type = 'ninja';
+        }
+
+        var camLeft = this.cameras.main.scrollX;
+        var side = Math.random() < 0.5 ? camLeft - 40 : camLeft + W + 40;
+        side = Phaser.Math.Clamp(side, 10, ARENA_W - 10);
+
+        var tex = type === 'heavy' ? 'heavy' : (type === 'ninja' ? 'ninja' : 'brawler');
+        var e = this.enemies.create(side, GROUND_Y - 30, tex);
+        e.setScale(2).setDepth(4).setCollideWorldBounds(true);
+
+        if (type === 'heavy') {
+          e.body.setSize(32, 42); e.body.setOffset(6, 5);
+          e.maxHp = 80 + this.wave * 15;
+          e.speed = 40 + this.wave * 3;
+          e.dmg = 20 + this.wave * 3;
+        } else if (type === 'ninja') {
+          e.body.setSize(18, 34); e.body.setOffset(5, 5);
+          e.maxHp = 25 + this.wave * 8;
+          e.speed = 120 + this.wave * 6;
+          e.dmg = 12 + this.wave * 2;
+        } else {
+          e.body.setSize(20, 36); e.body.setOffset(6, 4);
+          e.maxHp = 40 + this.wave * 10;
+          e.speed = 70 + this.wave * 5;
+          e.dmg = 10 + this.wave * 2;
+        }
+
+        e.hp = e.maxHp;
+        e.enemyType = type;
+        e.attackCooldown = 800;
+        e.stunned = false;
+        e.stunTimer = 0;
+        e.windingUp = false;
+        e.windupTimer = 0;
+
+        this.drawEnemyBar(e);
+        this.enemiesSpawned++;
+      }
+
+      showGameOver() {
+        this.gameOver = true;
+        this.physics.pause();
+        this.player.setTint(0x880000);
+
+        var isNewBest = this.score > this.bestScore;
+        if (isNewBest) {
+          this.bestScore = this.score;
+          this.registry.set('fightBest', this.bestScore);
+        }
+
+        this.goOverlay.clear();
+        this.goOverlay.fillStyle(0x000000, 0.75);
+        this.goOverlay.fillRoundedRect(W / 2 - 180, H / 2 - 120, 360, 260, 12);
+        this.goOverlay.setVisible(true);
+
+        this.goTitle.setPosition(W / 2, H / 2 - 85).setVisible(true);
+        this.goScore.setText('Score: ' + this.score + (isNewBest ? '  NEW BEST!' : '')).setPosition(W / 2, H / 2 - 35).setVisible(true);
+        this.goBest.setText('Best: ' + this.bestScore).setPosition(W / 2, H / 2 - 5).setVisible(true);
+        this.goWave.setText('Wave ' + this.wave + '  |  Max Combo: ' + this.maxCombo + 'x').setPosition(W / 2, H / 2 + 25).setVisible(true);
+        this.goRestart.setPosition(W / 2, H / 2 + 70).setVisible(true).setAlpha(0);
+        this.tweens.add({ targets: this.goRestart, alpha: 1, duration: 400, delay: 400 });
+
+        var self = this;
+        this.time.delayedCall(600, function() {
+          self.input.once('pointerdown', function() { self.scene.restart(); });
+          self.input.keyboard.once('keydown-SPACE', function() { self.scene.restart(); });
+        });
       }
     }
 
-    spawnEnemy() {
-      if (this.gameOver) return;
-      if (this.enemiesSpawned >= this.enemiesPerWave) return;
-
-      const side = Math.random() < 0.8 ? 820 : -20;
-      const e = this.enemies.create(side, 390, 'enemy').setScale(2).setCollideWorldBounds(true).setDepth(4);
-      e.body.setSize(20, 36); e.body.setOffset(6, 4);
-      e.maxHp = 30 + this.wave * 15;
-      e.hp = e.maxHp;
-      e.attackCooldown = 800;
-      e.stunned = false;
-      e.stunTimer = 0;
-      this.refreshEnemyHealthBar(e);
-      this.enemiesSpawned++;
-    }
-
-    showGameOver() {
-      this.gameOver = true;
-      this.physics.pause();
-      this.player.setTint(0x880000);
-
-      this.add.rectangle(400, 250, 800, 500, 0x000000, 0.75).setDepth(20);
-      this.add.text(400, 170, 'GAME OVER', {
-        fontSize: '52px', fill: '#d63031', fontFamily: 'Segoe UI', fontStyle: 'bold',
-        stroke: '#000', strokeThickness: 5
-      }).setOrigin(0.5).setDepth(21);
-      this.add.text(400, 240, 'Score: ' + this.score, {
-        fontSize: '28px', fill: '#fff', fontFamily: 'Segoe UI'
-      }).setOrigin(0.5).setDepth(21);
-      this.add.text(400, 280, 'Wave: ' + this.wave + '  |  Combo Record: ' + this.combo, {
-        fontSize: '18px', fill: '#fdcb6e', fontFamily: 'Segoe UI'
-      }).setOrigin(0.5).setDepth(21);
-      this.add.text(400, 340, 'Click to Restart', {
-        fontSize: '20px', fill: '#e17055', fontFamily: 'Segoe UI'
-      }).setOrigin(0.5).setDepth(21);
-
-      this.input.once('pointerdown', () => this.scene.restart());
-    }
-  }
-
-  new Phaser.Game({
-    type: Phaser.AUTO, width: 800, height: 500, parent: 'game-container',
-    backgroundColor: '#2d3436',
-    physics: { default: 'arcade', arcade: { gravity: { y: 600 }, debug: false } },
-    scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
-    scene: FightScene
-  });
+    new Phaser.Game({
+      type: Phaser.AUTO, width: W, height: H,
+      parent: 'game-container', backgroundColor: '#1a1a2e',
+      physics: { default: 'arcade', arcade: { gravity: { y: 800 }, debug: false } },
+      scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
+      scene: FightScene
+    });
+  })();
   </script>
 </body>
 </html>
