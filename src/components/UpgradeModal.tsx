@@ -86,7 +86,7 @@ export default function UpgradeModal({
         {/* Header */}
         <div className="upgrade-header">
           <img
-            src="/images/logo.png?v=2"
+            src="/images/logo.png?v=3"
             alt="VibeCode Kidz"
             style={{
               width: '120px',

@@ -53,7 +53,7 @@ const DEFAULT_HTML = `<!DOCTYPE html>
 </head>
 <body>
   <div class="welcome">
-    <img src="/images/logo.png?v=2" alt="VibeCode Kidz" class="welcome-logo" />
+    <img src="/images/logo.png?v=3" alt="VibeCode Kidz" class="welcome-logo" />
     <h1>Vibe Code Studio</h1>
     <p>Your game will appear here! Tell the AI what to make.</p>
   </div>

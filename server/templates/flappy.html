@@ -77,21 +77,6 @@
         g.fillStyle(0xf0b232); g.fillTriangle(3, 16, 0, 20, 9, 18);
         g.generateTexture('bird', 44, 36); g.clear();
 
-        // --- Pipe body tile (52x16) ---
-        g.fillStyle(0x27ae60); g.fillRect(0, 0, 52, 16);
-        g.fillStyle(0x2ecc71); g.fillRect(2, 0, 8, 16);
-        g.fillStyle(0x1e8449); g.fillRect(48, 0, 4, 16);
-        g.fillStyle(0x239b56, 0.3); g.fillRect(12, 0, 2, 16);
-        g.fillStyle(0x239b56, 0.3); g.fillRect(26, 0, 2, 16);
-        g.fillStyle(0x239b56, 0.3); g.fillRect(40, 0, 2, 16);
-        g.generateTexture('pipe-body', 52, 16); g.clear();
-
-        // --- Pipe cap (60x26) ---
-        g.fillStyle(0x1e8449); g.fillRoundedRect(0, 0, 60, 26, 4);
-        g.fillStyle(0x27ae60); g.fillRoundedRect(2, 2, 56, 22, 3);
-        g.fillStyle(0x2ecc71); g.fillRoundedRect(4, 4, 12, 18, 2);
-        g.fillStyle(0x58d68d, 0.4); g.fillRect(4, 4, 52, 6);
-        g.generateTexture('pipe-cap', 60, 26); g.clear();
 
         // --- Ground tile (400x50) ---
         g.fillStyle(0x1a0a2e); g.fillRect(0, 0, 400, 50);
@@ -368,18 +353,22 @@
         var topPipe = this.buildPipe(W + 30, topEnd, true);
         var botPipe = this.buildPipe(W + 30, botStart, false);
 
-        topPipe.body.velocity.x = -this.pipeSpeed; topPipe.body.allowGravity = false;
-        botPipe.body.velocity.x = -this.pipeSpeed; botPipe.body.allowGravity = false;
-        this.pipes.add(topPipe);
-        this.pipes.add(botPipe);
+        topPipe.setVelocityX(-this.pipeSpeed);
+        botPipe.setVelocityX(-this.pipeSpeed);
 
         // Score zone
-        var zone = this.add.rectangle(W + 30, topEnd + this.gapSize / 2, 6, this.gapSize, 0x000000, 0);
-        this.physics.add.existing(zone);
-        zone.body.setVelocityX(-this.pipeSpeed);
+        var zoneKey = 'zone' + this._pipeCount;
+        var zg = this.make.graphics({ add: false });
+        zg.fillStyle(0xffffff, 0.0); zg.fillRect(0, 0, 6, Math.floor(this.gapSize));
+        zg.generateTexture(zoneKey, 6, Math.floor(this.gapSize));
+        zg.destroy();
+
+        var zone = this.scoreZones.create(W + 30, topEnd + this.gapSize / 2, zoneKey);
+        zone.setAlpha(0);
         zone.body.allowGravity = false;
+        zone.setVelocityX(-this.pipeSpeed);
         zone.scored = false;
-        this.scoreZones.add(zone);
+        zone.texKey = zoneKey;
 
         // Star collectible (30% chance)
         if (Math.random() < 0.3) {
@@ -404,30 +393,41 @@
         var capW = 60;
 
         var pipeH = isTop ? edgeY : (GROUND_Y - edgeY);
-        var totalH = Math.max(pipeH, capH + 4);
-        var bodyH = Math.max(totalH - capH, 2);
+        if (pipeH < capH + 4) pipeH = capH + 4;
 
-        var bodyY, capY;
+        if (!this._pipeCount) this._pipeCount = 0;
+        var texKey = 'dynpipe' + (this._pipeCount++);
+
+        var pg = this.make.graphics({ add: false });
+        var xOff = (capW - pipeW) / 2;
+
         if (isTop) {
-          bodyY = edgeY - capH - bodyH / 2;
-          capY = edgeY - capH / 2;
+          pg.fillStyle(0x27ae60); pg.fillRect(xOff, 0, pipeW, pipeH - capH);
+          pg.fillStyle(0x2ecc71); pg.fillRect(xOff + 2, 0, 8, pipeH - capH);
+          pg.fillStyle(0x1e8449); pg.fillRect(xOff + pipeW - 4, 0, 4, pipeH - capH);
+          pg.fillStyle(0x1e8449); pg.fillRoundedRect(0, pipeH - capH, capW, capH, 4);
+          pg.fillStyle(0x27ae60); pg.fillRoundedRect(2, pipeH - capH + 2, capW - 4, capH - 4, 3);
+          pg.fillStyle(0x58d68d, 0.4); pg.fillRect(2, pipeH - capH + 2, capW - 4, 6);
         } else {
-          capY = edgeY + capH / 2;
-          bodyY = edgeY + capH + bodyH / 2;
+          pg.fillStyle(0x1e8449); pg.fillRoundedRect(0, 0, capW, capH, 4);
+          pg.fillStyle(0x27ae60); pg.fillRoundedRect(2, 2, capW - 4, capH - 4, 3);
+          pg.fillStyle(0x58d68d, 0.4); pg.fillRect(2, 2, capW - 4, 6);
+          pg.fillStyle(0x27ae60); pg.fillRect(xOff, capH, pipeW, pipeH - capH);
+          pg.fillStyle(0x2ecc71); pg.fillRect(xOff + 2, capH, 8, pipeH - capH);
+          pg.fillStyle(0x1e8449); pg.fillRect(xOff + pipeW - 4, capH, 4, pipeH - capH);
         }
 
-        var body = this.add.tileSprite(x, bodyY, pipeW, bodyH, 'pipe-body').setDepth(5);
-        var cap = this.add.image(x, capY, 'pipe-cap').setDisplaySize(capW, capH).setDepth(5);
+        pg.generateTexture(texKey, capW, pipeH);
+        pg.destroy();
 
-        var hitY = isTop ? (edgeY / 2) : (edgeY + (GROUND_Y - edgeY) / 2);
-        var hitbox = this.add.rectangle(x, hitY, pipeW, totalH, 0x000000, 0);
-        this.physics.add.existing(hitbox);
-        hitbox.body.setImmovable(true);
-        hitbox.setDepth(5);
+        var pipeY = isTop ? (pipeH / 2) : (edgeY + pipeH / 2);
+        var pipe = this.pipes.create(x, pipeY, texKey);
+        pipe.body.allowGravity = false;
+        pipe.body.setImmovable(true);
+        pipe.setDepth(5);
+        pipe.texKey = texKey;
 
-        hitbox.pipeVisuals = [body, cap];
-
-        return hitbox;
+        return pipe;
       }
 
       addScore(bird, zone) {
@@ -479,15 +479,6 @@
         this.pipes.setVelocityX(0);
         this.scoreZones.setVelocityX(0);
         this.stars.setVelocityX(0);
-
-        // Final visual sync so pipes freeze in place
-        this.pipes.getChildren().forEach(function(pipe) {
-          if (pipe && pipe.active && pipe.pipeVisuals) {
-            for (var i = 0; i < pipe.pipeVisuals.length; i++) {
-              pipe.pipeVisuals[i].x = pipe.x;
-            }
-          }
-        });
 
         if (this.spawnTimer) this.spawnTimer.remove();
 
@@ -599,22 +590,15 @@
           return;
         }
 
-        // --- Sync pipe visuals to hitbox X and clean up off-screen ---
+        // --- Clean up off-screen pipes ---
         var pipesToDestroy = [];
         this.pipes.getChildren().forEach(function(pipe) {
           if (!pipe || !pipe.active) return;
-          if (pipe.pipeVisuals) {
-            for (var i = 0; i < pipe.pipeVisuals.length; i++) {
-              pipe.pipeVisuals[i].x = pipe.x;
-            }
-          }
           if (pipe.x < -70) pipesToDestroy.push(pipe);
         });
         for (var di = 0; di < pipesToDestroy.length; di++) {
           var dp = pipesToDestroy[di];
-          if (dp.pipeVisuals) {
-            for (var vi = 0; vi < dp.pipeVisuals.length; vi++) dp.pipeVisuals[vi].destroy();
-          }
+          if (dp.texKey) this.textures.remove(dp.texKey);
           dp.destroy();
         }
 
@@ -624,7 +608,10 @@
           if (!zone || !zone.active) return;
           if (zone.x < -70) zonesToDestroy.push(zone);
         });
-        for (var zi = 0; zi < zonesToDestroy.length; zi++) zonesToDestroy[zi].destroy();
+        for (var zi = 0; zi < zonesToDestroy.length; zi++) {
+          if (zonesToDestroy[zi].texKey) this.textures.remove(zonesToDestroy[zi].texKey);
+          zonesToDestroy[zi].destroy();
+        }
 
         // --- Cleanup stars ---
         var starsToDestroy = [];

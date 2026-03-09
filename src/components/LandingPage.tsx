@@ -575,7 +575,7 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
       <nav ref={navRef} className="landing-nav" aria-label="Main navigation">
         <div className="nav-inner">
           <a href="/" className="nav-logo-link">
-            <img src="/images/logo.png?v=2" alt="VibeCode Kidz" className="nav-logo-img" />
+            <img src="/images/logo.png?v=3" alt="VibeCode Kidz" className="nav-logo-img" />
           </a>
           <div className="nav-links">
             <a href="#how-it-works">How It Works</a>
@@ -599,7 +599,7 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
         {/* ── 2. Hero ── */}
         <section className="landing-hero">
           <div className="hero-logo">
-            <img src="/images/logo.png?v=2" alt="VibeCode Kidz" className="hero-logo-img" />
+            <img src="/images/logo.png?v=3" alt="VibeCode Kidz" className="hero-logo-img" />
           </div>
           <h1 className="hero-headline">Your kid describes a game. AI builds it.</h1>
           <p className="hero-subtitle">No coding needed. Just imagination.</p>
@@ -1002,7 +1002,7 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
       <footer className="landing-footer-full">
         <div className="footer-inner">
           <div className="footer-col">
-            <img src="/images/logo.png?v=2" alt="VibeCode Kidz" className="footer-logo" />
+            <img src="/images/logo.png?v=3" alt="VibeCode Kidz" className="footer-logo" />
             <p className="footer-tagline">AI-powered game creation for kids ages 7-18</p>
           </div>
           <div className="footer-col">
