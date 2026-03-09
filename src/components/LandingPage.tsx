@@ -373,11 +373,11 @@ const FAQ_ITEMS = [
   },
   {
     q: 'Is this safe for my child?',
-    a: 'Absolutely. VibeCode Kids is fully COPPA compliant. We use AI content moderation to filter inappropriate requests, require parental consent for users under 13, and never collect more data than necessary. All games are limited to E-rated (Everyone) content — think Minecraft and Pokemon, not anything violent or scary.',
+    a: 'Absolutely. VibeCode Kidz is fully COPPA compliant. We use AI content moderation to filter inappropriate requests, require parental consent for users under 13, and never collect more data than necessary. All games are limited to E-rated (Everyone) content — think Minecraft and Pokemon, not anything violent or scary.',
   },
   {
     q: 'What ages is this for?',
-    a: 'VibeCode Kids is designed for ages 7 to 18. Younger kids (7-10) can describe simple games and learn the basics, while older kids and teens can create increasingly complex projects. The AI adapts to their skill level.',
+    a: 'VibeCode Kidz is designed for ages 7 to 18. Younger kids (7-10) can describe simple games and learn the basics, while older kids and teens can create increasingly complex projects. The AI adapts to their skill level.',
   },
   {
     q: 'Do kids actually learn to code?',
@@ -389,7 +389,7 @@ const FAQ_ITEMS = [
   },
   {
     q: 'Do you accept Arizona ESA funds?',
-    a: 'Yes! VibeCode Kids qualifies as an approved ESA educational technology expense. Arizona ESA families can pay with their ClassWallet funds. Visit our ESA page for details on quarterly and annual billing options.',
+    a: 'Yes! VibeCode Kidz qualifies as an approved ESA educational technology expense. Arizona ESA families can pay with their ClassWallet funds. Visit our ESA page for details on quarterly and annual billing options.',
   },
 ];
 
@@ -575,7 +575,7 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
       <nav ref={navRef} className="landing-nav" aria-label="Main navigation">
         <div className="nav-inner">
           <a href="/" className="nav-logo-link">
-            <img src="/images/logo.png" alt="VibeCode Kids" className="nav-logo-img" />
+            <img src="/images/logo.png" alt="VibeCode Kidz" className="nav-logo-img" />
           </a>
           <div className="nav-links">
             <a href="#how-it-works">How It Works</a>
@@ -599,7 +599,7 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
         {/* ── 2. Hero ── */}
         <section className="landing-hero">
           <div className="hero-logo">
-            <img src="/images/logo.png" alt="VibeCode Kids" className="hero-logo-img" />
+            <img src="/images/logo.png" alt="VibeCode Kidz" className="hero-logo-img" />
           </div>
           <h1 className="hero-headline">Your kid describes a game. AI builds it.</h1>
           <p className="hero-subtitle">No coding needed. Just imagination.</p>
@@ -746,7 +746,7 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
         {featuredGames.length > 0 && (
           <section className="games-showcase">
             <h2 className="section-heading">Games Built by Kids Like You</h2>
-            <p className="section-subheading">Real games created on VibeCode Kids — playable right now</p>
+            <p className="section-subheading">Real games created on VibeCode Kidz — playable right now</p>
             <div className="showcase-game-grid">
               {featuredGames.map((game, i) => (
                 <a
@@ -1002,7 +1002,7 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
       <footer className="landing-footer-full">
         <div className="footer-inner">
           <div className="footer-col">
-            <img src="/images/logo.png" alt="VibeCode Kids" className="footer-logo" />
+            <img src="/images/logo.png" alt="VibeCode Kidz" className="footer-logo" />
             <p className="footer-tagline">AI-powered game creation for kids ages 7-18</p>
           </div>
           <div className="footer-col">
@@ -1045,7 +1045,7 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
             </a>
           </div>
         </div>
-        <div className="footer-bottom">&copy; 2026 VibeCode Kids. All rights reserved.</div>
+        <div className="footer-bottom">&copy; 2026 VibeCode Kidz. All rights reserved.</div>
       </footer>
     </div>
   );

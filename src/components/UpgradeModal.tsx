@@ -87,7 +87,7 @@ export default function UpgradeModal({
         <div className="upgrade-header">
           <img
             src="/images/logo.png"
-            alt="VibeCode Kids"
+            alt="VibeCode Kidz"
             style={{
               width: '120px',
               height: 'auto',
@@ -98,7 +98,7 @@ export default function UpgradeModal({
           {isWelcomePrompt ? (
             <>
               <div className="welcome-badge">🎉 SPECIAL OFFER</div>
-              <h2>Welcome to VibeCode Kids!</h2>
+              <h2>Welcome to VibeCode Kidz!</h2>
               <p>Unlock your full creative potential with a membership</p>
             </>
           ) : (

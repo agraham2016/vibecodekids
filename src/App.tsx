@@ -251,7 +251,7 @@ function App() {
     return (
       <div className="app loading-screen">
         <div className="loading-content">
-          <img src="/images/logo.png" alt="VibeCode Kids" className="loading-logo" />
+          <img src="/images/logo.png" alt="VibeCode Kidz" className="loading-logo" />
           <p>Loading...</p>
         </div>
       </div>

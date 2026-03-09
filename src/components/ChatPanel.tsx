@@ -580,7 +580,7 @@ export default function ChatPanel({
         {messages.length === 0 ? (
           <div className="chat-welcome">
             <div className="welcome-icon">
-              <img src="/images/logo.png" alt="VibeCode Kids" className="welcome-logo" />
+              <img src="/images/logo.png" alt="VibeCode Kidz" className="welcome-logo" />
             </div>
             <h3>Let's build something awesome!</h3>
             <p>

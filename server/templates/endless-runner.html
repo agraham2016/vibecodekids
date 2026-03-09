@@ -3,398 +3,763 @@
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <style>
+    :root {
+      --game-primary: #00ffff;
+      --game-secondary: #ff00ff;
+      --game-bg: #0a0a20;
+      --game-text: #fff;
+      --game-accent: #ffd700;
+    }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: 'Segoe UI', sans-serif;
-      background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+      background: linear-gradient(135deg, #0a0a20 0%, #1a0a30 50%, #0a1428 100%);
       min-height: 100vh; display: flex; align-items: center; justify-content: center;
       overflow: hidden; touch-action: none;
     }
-    #game-container { border-radius: 12px; overflow: hidden; box-shadow: 0 0 40px rgba(0,255,255,0.15); }
+    #game-container { border-radius: 12px; overflow: hidden; box-shadow: 0 0 50px rgba(0,255,255,0.12), 0 0 100px rgba(255,0,255,0.06); }
+    .hint {
+      position: fixed; bottom: 12px; left: 50%; transform: translateX(-50%);
+      color: rgba(255,255,255,0.35); font-size: 13px; pointer-events: none;
+    }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.86.0/dist/phaser.min.js" crossorigin="anonymous"></script>
 </head>
 <body>
+  <!-- GAME_TITLE -->Neon Dash<!-- /GAME_TITLE -->
+  <!-- PLAYER_CHARACTER -->Robot Runner<!-- /PLAYER_CHARACTER -->
+  <!-- OBSTACLES -->Lasers, Drones, Barriers, Saw Blades<!-- /OBSTACLES -->
   <div id="game-container"></div>
+  <div class="hint">SPACE / UP = Jump &bull; DOWN = Slide &bull; Tap top/bottom on mobile</div>
   <script>
-  var W = 800, H = 500;
-  var GROUND_Y = 420;
+  (function() {
+    var W = 800, H = 500;
+    var GROUND_Y = 410;
+    var LANE_FLOOR = GROUND_Y - 2;
+    var SLIDE_HITBOX_H = 18;
+    var PLAYER_X = 120;
 
-  class RunnerScene extends Phaser.Scene {
-    preload() {
-      var g = this.make.graphics({ add: false });
+    var ZONES = [
+      { name: 'NEON CITY',    bg1: 0x0a0a20, bg2: 0x1a0a30, ground: 0x00ffff, accent: 0x00ffff, particle: 0x00fff5 },
+      { name: 'MAGENTA GRID', bg1: 0x1a0020, bg2: 0x2a0040, ground: 0xff00ff, accent: 0xff69b4, particle: 0xff00ff },
+      { name: 'SOLAR FLARE',  bg1: 0x1a1000, bg2: 0x2a1800, ground: 0xffa500, accent: 0xffd700, particle: 0xff6b35 },
+      { name: 'DEEP SPACE',   bg1: 0x020210, bg2: 0x0a0a1e, ground: 0x6c5ce7, accent: 0xa29bfe, particle: 0x6c5ce7 },
+      { name: 'EMERALD RUSH', bg1: 0x001a0a, bg2: 0x002a14, ground: 0x00ff88, accent: 0x55efc4, particle: 0x00ff88 }
+    ];
 
-      // Robot character — big glowing visor head, chunky metal body, jet boots
-      // Head (dark helmet with wide cyan visor)
-      g.fillStyle(0x1a1a2e); g.fillRoundedRect(4, 0, 24, 16, 6);
-      g.fillStyle(0x00fff5); g.fillRoundedRect(6, 4, 20, 8, 3);
-      g.fillStyle(0xffffff, 0.5); g.fillRect(8, 5, 6, 4);
-      g.fillStyle(0xff00ff); g.fillCircle(24, 2, 3);
-      // Body (purple chest plate with cyan energy core)
-      g.fillStyle(0x6c5ce7); g.fillRoundedRect(6, 16, 20, 14, 3);
-      g.fillStyle(0x00fff5); g.fillCircle(16, 22, 4);
-      g.fillStyle(0xffffff, 0.4); g.fillCircle(15, 21, 2);
-      // Arms
-      g.fillStyle(0xa29bfe); g.fillRoundedRect(0, 18, 6, 10, 2);
-      g.fillRoundedRect(26, 18, 6, 10, 2);
-      g.fillStyle(0x00fff5, 0.5); g.fillRect(1, 26, 4, 2);
-      g.fillRect(27, 26, 4, 2);
-      // Legs with jet boots
-      g.fillStyle(0x636e72); g.fillRect(8, 30, 6, 6);
-      g.fillRect(18, 30, 6, 6);
-      g.fillStyle(0xff6b35); g.fillRect(8, 35, 6, 4);
-      g.fillRect(18, 35, 6, 4);
-      g.fillStyle(0xffd700, 0.5); g.fillRect(9, 37, 4, 3);
-      g.fillRect(19, 37, 4, 3);
-      g.generateTexture('robot', 32, 40); g.clear();
+    var PATTERNS = [
+      [{ t: 'laser', d: 0 }],
+      [{ t: 'drone', d: 0 }],
+      [{ t: 'barrier', d: 0 }],
+      [{ t: 'saw', d: 0 }],
+      [{ t: 'laser', d: 0 }, { t: 'laser', d: 280 }],
+      [{ t: 'laser', d: 0 }, { t: 'drone', d: 200 }],
+      [{ t: 'drone', d: 0 }, { t: 'laser', d: 260 }],
+      [{ t: 'barrier', d: 0 }, { t: 'laser', d: 300 }],
+      [{ t: 'laser', d: 0 }, { t: 'barrier', d: 220 }, { t: 'laser', d: 440 }],
+      [{ t: 'drone', d: 0 }, { t: 'drone', d: 200 }, { t: 'laser', d: 400 }],
+      [{ t: 'saw', d: 0 }, { t: 'drone', d: 300 }],
+      [{ t: 'laser', d: 0 }, { t: 'saw', d: 250 }, { t: 'barrier', d: 500 }]
+    ];
 
-      // Laser barrier — magenta vertical beam with posts
-      g.fillStyle(0x636e72); g.fillRect(0, 0, 6, 40);
-      g.fillStyle(0xff00ff, 0.7); g.fillRect(6, 4, 4, 32);
-      g.fillStyle(0xff69b4, 0.4); g.fillRect(5, 2, 6, 36);
-      g.fillStyle(0xff00ff); g.fillCircle(3, 3, 4); g.fillCircle(3, 37, 4);
-      g.generateTexture('laser', 14, 40); g.clear();
+    class RunnerScene extends Phaser.Scene {
+      preload() {
+        var g = this.make.graphics({ add: false });
 
-      // Drone — flying obstacle, wider
-      g.fillStyle(0x6c5ce7); g.fillEllipse(20, 12, 36, 16);
-      g.fillStyle(0xa29bfe); g.fillEllipse(20, 10, 28, 10);
-      g.fillStyle(0xff0000); g.fillCircle(12, 10, 3);
-      g.fillStyle(0xff6b6b); g.fillCircle(12, 10, 2);
-      g.fillStyle(0x636e72); g.fillRect(2, 18, 8, 3);
-      g.fillRect(30, 18, 8, 3);
-      g.generateTexture('drone', 40, 24); g.clear();
+        // --- Robot (standing: 36x48) ---
+        // Head
+        g.fillStyle(0x1e1e3a); g.fillRoundedRect(6, 0, 24, 18, 6);
+        g.fillStyle(0x00fff5); g.fillRoundedRect(9, 4, 18, 10, 4);
+        g.fillStyle(0xffffff, 0.55); g.fillRoundedRect(11, 5, 7, 6, 2);
+        g.fillStyle(0xff00ff); g.fillCircle(28, 3, 3);
+        g.fillStyle(0xff69b4); g.fillCircle(28, 3, 1.5);
+        // Body
+        g.fillStyle(0x6c5ce7); g.fillRoundedRect(8, 18, 20, 16, 4);
+        g.fillStyle(0x00fff5); g.fillCircle(18, 25, 5);
+        g.fillStyle(0xffffff, 0.45); g.fillCircle(17, 24, 2.5);
+        g.lineStyle(1, 0xa29bfe, 0.4);
+        g.lineBetween(10, 20, 26, 20); g.lineBetween(10, 28, 26, 28);
+        // Arms
+        g.fillStyle(0xa29bfe); g.fillRoundedRect(1, 20, 7, 12, 3);
+        g.fillRoundedRect(28, 20, 7, 12, 3);
+        g.fillStyle(0x00fff5, 0.6); g.fillRect(2, 30, 5, 2);
+        g.fillRect(29, 30, 5, 2);
+        // Legs
+        g.fillStyle(0x4a4a6a); g.fillRect(10, 34, 7, 8);
+        g.fillRect(19, 34, 7, 8);
+        // Boots with glow
+        g.fillStyle(0xff6b35); g.fillRoundedRect(9, 41, 9, 7, 2);
+        g.fillRoundedRect(18, 41, 9, 7, 2);
+        g.fillStyle(0xffd700, 0.5); g.fillRect(11, 45, 5, 3);
+        g.fillRect(20, 45, 5, 3);
+        g.generateTexture('robot', 36, 48); g.clear();
 
-      // Energy orb — collectible (cyan/electric)
-      g.fillStyle(0x00fff5, 0.3); g.fillCircle(12, 12, 12);
-      g.fillStyle(0x00cec9); g.fillCircle(12, 12, 8);
-      g.fillStyle(0x00fff5); g.fillCircle(12, 12, 5);
-      g.fillStyle(0xffffff, 0.7); g.fillCircle(10, 9, 3);
-      g.generateTexture('orb', 24, 24); g.clear();
+        // --- Robot slide (wide + flat: 48x22) ---
+        g.fillStyle(0x6c5ce7); g.fillRoundedRect(0, 6, 40, 14, 5);
+        g.fillStyle(0x1e1e3a); g.fillRoundedRect(30, 2, 18, 14, 5);
+        g.fillStyle(0x00fff5); g.fillRoundedRect(33, 5, 12, 8, 3);
+        g.fillStyle(0xffffff, 0.5); g.fillRect(35, 6, 5, 4);
+        g.fillStyle(0xff00ff); g.fillCircle(46, 3, 2);
+        g.fillStyle(0x00fff5); g.fillCircle(20, 12, 4);
+        g.fillStyle(0xff6b35); g.fillRect(0, 16, 8, 5);
+        g.fillRect(10, 18, 8, 4);
+        g.generateTexture('robot-slide', 48, 22); g.clear();
 
-      // Bolt — second collectible (magenta)
-      g.fillStyle(0xff00ff, 0.3); g.fillCircle(10, 10, 10);
-      g.fillStyle(0xe84393); g.fillCircle(10, 10, 7);
-      g.lineStyle(2, 0xffffff);
-      g.lineBetween(8, 4, 12, 10);
-      g.lineBetween(12, 10, 8, 16);
-      g.generateTexture('bolt', 20, 20); g.clear();
+        // --- Ground laser (jump over) ---
+        g.fillStyle(0x4a4a5e); g.fillRect(0, 0, 8, 44);
+        g.fillStyle(0xff0040, 0.85); g.fillRect(8, 6, 5, 32);
+        g.fillStyle(0xff4070, 0.35); g.fillRect(6, 4, 9, 36);
+        g.fillStyle(0xff0040); g.fillCircle(4, 4, 5); g.fillCircle(4, 40, 5);
+        g.fillStyle(0xff6090, 0.5); g.fillCircle(4, 4, 3); g.fillCircle(4, 40, 3);
+        g.generateTexture('laser', 16, 44); g.clear();
 
-      // Ground tile — dark metallic platform with neon cyan strip and grid lines
-      g.fillStyle(0x1a1a2e); g.fillRect(0, 0, 64, 80);
-      g.fillStyle(0x2d3436); g.fillRect(0, 0, 64, 8);
-      g.fillStyle(0x00fff5); g.fillRect(0, 0, 64, 3);
-      g.fillStyle(0x00cec9, 0.3); g.fillRect(0, 3, 64, 5);
-      g.fillStyle(0x6c5ce7, 0.08);
-      g.fillRect(0, 16, 64, 2); g.fillRect(0, 32, 64, 2);
-      g.fillRect(0, 48, 64, 2); g.fillRect(0, 64, 64, 2);
-      g.fillRect(16, 8, 2, 72); g.fillRect(32, 8, 2, 72); g.fillRect(48, 8, 2, 72);
-      g.generateTexture('ground-tile', 64, 80); g.clear();
+        // --- Flying drone (jump or slide timing) ---
+        g.fillStyle(0x6c5ce7); g.fillEllipse(22, 14, 40, 18);
+        g.fillStyle(0xa29bfe); g.fillEllipse(22, 12, 32, 12);
+        g.fillStyle(0xff0000); g.fillCircle(14, 12, 3.5);
+        g.fillStyle(0xff6b6b); g.fillCircle(14, 12, 2);
+        g.fillStyle(0xff0000); g.fillCircle(30, 12, 3.5);
+        g.fillStyle(0xff6b6b); g.fillCircle(30, 12, 2);
+        g.fillStyle(0x4a4a6a); g.fillRect(2, 20, 10, 4); g.fillRect(32, 20, 10, 4);
+        g.fillStyle(0xff0040, 0.4); g.fillRect(16, 24, 12, 3);
+        g.generateTexture('drone', 44, 28); g.clear();
 
-      // Solid ground collision bar (invisible but real physics body)
-      g.fillStyle(0x00fff5); g.fillRect(0, 0, W, 8);
-      g.generateTexture('ground-bar', W, 8); g.clear();
+        // --- Overhead barrier (must slide under) ---
+        g.fillStyle(0x4a4a5e); g.fillRect(0, 0, 60, 8);
+        g.fillStyle(0x4a4a5e); g.fillRect(0, 0, 8, 36); g.fillRect(52, 0, 8, 36);
+        g.fillStyle(0xff6b35, 0.7); g.fillRect(8, 4, 44, 4);
+        g.fillStyle(0xffa500, 0.3); g.fillRect(6, 2, 48, 8);
+        g.fillStyle(0xff6b35); g.fillCircle(4, 36, 4); g.fillCircle(56, 36, 4);
+        g.generateTexture('barrier', 60, 40); g.clear();
 
-      // Particle
-      g.fillStyle(0xffffff); g.fillCircle(4, 4, 4);
-      g.generateTexture('spark', 8, 8);
-
-      g.destroy();
-    }
-
-    create() {
-      this.score = 0;
-      this.gameOver = false;
-      this.baseSpeed = 240;
-      this.gameSpeed = this.baseSpeed;
-      this.jumpCount = 0;
-      this.maxJumps = 2;
-      this.dist = 0;
-
-      // Deep purple gradient background
-      var bg = this.add.graphics();
-      bg.fillGradientStyle(0x0f0c29, 0x0f0c29, 0x302b63, 0x302b63);
-      bg.fillRect(0, 0, W, H);
-
-      // Stars
-      this.stars = [];
-      for (var i = 0; i < 60; i++) {
-        var c = Math.random() < 0.3 ? 0x00fff5 : (Math.random() < 0.5 ? 0xff69b4 : 0xffffff);
-        var s = this.add.circle(
-          Phaser.Math.Between(0, W), Phaser.Math.Between(0, GROUND_Y - 80),
-          Phaser.Math.Between(1, 2), c, Phaser.Math.FloatBetween(0.15, 0.6)
-        );
-        this.stars.push(s);
-      }
-
-      // Neon city silhouette
-      this.cityGfx = this.add.graphics().setDepth(1);
-      this.buildings = [];
-      for (var x = 0; x < W + 200; x += Phaser.Math.Between(40, 100)) {
-        this.buildings.push({
-          x: x,
-          w: Phaser.Math.Between(30, 70),
-          h: Phaser.Math.Between(40, 180),
-          hue: Phaser.Math.Between(0, 2)
-        });
-      }
-      this.drawCity();
-
-      // Ground visual (tileSprite — scrolls smoothly)
-      this.groundSprite = this.add.tileSprite(W / 2, GROUND_Y + 40, W, 80, 'ground-tile').setDepth(2);
-
-      // Ground physics — real static sprite (never use zone for collision, it's unreliable)
-      this.groundBody = this.physics.add.staticSprite(W / 2, GROUND_Y + 4, 'ground-bar');
-      this.groundBody.setAlpha(0).refreshBody();
-
-      // Player
-      this.player = this.physics.add.sprite(110, GROUND_Y - 30, 'robot');
-      this.player.setBounce(0);
-      this.player.setGravityY(200);
-      this.player.body.setSize(20, 34);
-      this.player.body.setOffset(6, 4);
-      this.player.setDepth(5);
-
-      // Groups
-      this.obstacles = this.physics.add.group();
-      this.pickups = this.physics.add.group();
-
-      // Collisions
-      this.physics.add.collider(this.player, this.groundBody, function() {
-        this.jumpCount = 0;
-      }.bind(this));
-      this.physics.add.overlap(this.player, this.pickups, this.collectOrb, null, this);
-      this.physics.add.overlap(this.player, this.obstacles, this.hitObstacle, null, this);
-
-      // Particles
-      this.sparkEmitter = this.add.particles(0, 0, 'spark', {
-        speed: { min: 60, max: 180 }, lifespan: 350,
-        scale: { start: 1, end: 0 }, emitting: false, quantity: 10,
-        tint: [0x00fff5, 0x00cec9, 0xffffff]
-      });
-      this.trailEmitter = this.add.particles(0, 0, 'spark', {
-        speed: { min: 10, max: 40 }, angle: { min: 160, max: 200 },
-        lifespan: 300, scale: { start: 0.5, end: 0 },
-        emitting: false, quantity: 2, tint: [0x00fff5, 0x6c5ce7]
-      });
-
-      // HUD
-      this.scoreText = this.add.text(16, 14, 'ENERGY: 0', {
-        fontSize: '20px', fill: '#00fff5', stroke: '#0f0c29', strokeThickness: 3
-      }).setDepth(10);
-      this.speedText = this.add.text(W - 16, 14, '1.0x', {
-        fontSize: '15px', fill: '#ff69b4', stroke: '#0f0c29', strokeThickness: 3
-      }).setOrigin(1, 0).setDepth(10);
-      this.distText = this.add.text(W / 2, 14, '0m', {
-        fontSize: '15px', fill: '#a29bfe', stroke: '#0f0c29', strokeThickness: 3
-      }).setOrigin(0.5, 0).setDepth(10);
-      this.msgText = this.add.text(W / 2, H / 2, '', {
-        fontSize: '28px', fill: '#fff', stroke: '#0f0c29', strokeThickness: 4, align: 'center'
-      }).setOrigin(0.5).setDepth(30).setVisible(false);
-
-      // Input
-      this.jumpKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
-      this.upKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.UP);
-      this.input.on('pointerdown', function() {
-        if (this.gameOver) { this.scene.restart(); return; }
-        this.tryJump();
-      }.bind(this));
-
-      // Spawn timers
-      this.obsTimer = this.time.addEvent({
-        delay: 1400, callback: this.spawnObstacle, callbackScope: this, loop: true
-      });
-      this.orbTimer = this.time.addEvent({
-        delay: 900, callback: this.spawnPickups, callbackScope: this, loop: true
-      });
-    }
-
-    tryJump() {
-      if (this.gameOver) return;
-      if (this.jumpCount < this.maxJumps) {
-        this.player.setVelocityY(-430);
-        this.jumpCount++;
-        this.trailEmitter.emitParticleAt(this.player.x, this.player.y + 18);
-      }
-    }
-
-    spawnObstacle() {
-      if (this.gameOver) return;
-      var type = Phaser.Math.Between(0, 2);
-      var obs;
-      if (type <= 1) {
-        // Ground laser
-        obs = this.obstacles.create(W + 20, GROUND_Y - 20, 'laser');
-        obs.setDisplaySize(14, 40);
-        obs.body.setSize(8, 36);
-      } else {
-        // Flying drone
-        var flyY = Phaser.Math.Between(GROUND_Y - 100, GROUND_Y - 60);
-        obs = this.obstacles.create(W + 30, flyY, 'drone');
-        obs.setDisplaySize(40, 24);
-        obs.body.setSize(32, 18);
-        this.tweens.add({
-          targets: obs, y: flyY - 15, duration: 600,
-          yoyo: true, repeat: -1, ease: 'Sine.easeInOut'
-        });
-      }
-      obs.body.allowGravity = false;
-      obs.body.immovable = true;
-      obs.setVelocityX(-this.gameSpeed);
-      obs.setDepth(4);
-    }
-
-    spawnPickups() {
-      if (this.gameOver) return;
-      var pattern = Phaser.Math.Between(0, 3);
-      var baseX = W + 40;
-      var isBolt = Math.random() < 0.25;
-      var tex = isBolt ? 'bolt' : 'orb';
-      var pts = isBolt ? 25 : 10;
-
-      if (pattern === 0) {
-        for (var i = 0; i < 4; i++) this.spawnOrb(baseX + i * 34, GROUND_Y - 50, tex, pts);
-      } else if (pattern === 1) {
-        for (var i = 0; i < 4; i++) this.spawnOrb(baseX + i * 30, GROUND_Y - 45 - i * 25, tex, pts);
-      } else if (pattern === 2) {
-        for (var i = 0; i < 5; i++) {
-          var y = GROUND_Y - 65 - Math.abs(i - 2) * 22;
-          this.spawnOrb(baseX + i * 28, y, tex, pts);
+        // --- Floor saw blade (jump over, tighter timing) ---
+        g.fillStyle(0xff0040, 0.2); g.fillCircle(16, 16, 16);
+        g.fillStyle(0xcccccc); g.fillCircle(16, 16, 12);
+        g.fillStyle(0x999999); g.fillCircle(16, 16, 8);
+        g.fillStyle(0xff0040); g.fillCircle(16, 16, 4);
+        for (var a = 0; a < 8; a++) {
+          var angle = (a / 8) * Math.PI * 2;
+          var tx = 16 + Math.cos(angle) * 14;
+          var ty = 16 + Math.sin(angle) * 14;
+          g.fillStyle(0xdddddd); g.fillTriangle(tx, ty, tx + 3, ty + 3, tx - 3, ty + 3);
         }
-      } else {
-        this.spawnOrb(baseX, GROUND_Y - 110, 'bolt', 50);
+        g.generateTexture('saw', 32, 32); g.clear();
+
+        // --- Energy orb ---
+        g.fillStyle(0x00fff5, 0.25); g.fillCircle(12, 12, 12);
+        g.fillStyle(0x00cec9); g.fillCircle(12, 12, 8);
+        g.fillStyle(0x00fff5); g.fillCircle(12, 12, 5);
+        g.fillStyle(0xffffff, 0.7); g.fillCircle(10, 9, 3);
+        g.generateTexture('orb', 24, 24); g.clear();
+
+        // --- Bolt collectible (rare, high value) ---
+        g.fillStyle(0xffd700, 0.3); g.fillCircle(12, 12, 12);
+        g.fillStyle(0xffb700); g.fillCircle(12, 12, 8);
+        g.lineStyle(3, 0xffffff);
+        g.beginPath(); g.moveTo(14, 3); g.lineTo(9, 12); g.lineTo(14, 12);
+        g.lineTo(10, 21); g.lineTo(16, 11); g.lineTo(12, 11); g.closePath();
+        g.strokePath();
+        g.generateTexture('bolt', 24, 24); g.clear();
+
+        // --- Shield power-up ---
+        g.fillStyle(0x00fff5, 0.2); g.fillCircle(14, 14, 14);
+        g.lineStyle(3, 0x00fff5);
+        g.beginPath(); g.moveTo(14, 2); g.lineTo(4, 8); g.lineTo(4, 16);
+        g.lineTo(14, 26); g.lineTo(24, 16); g.lineTo(24, 8); g.closePath();
+        g.strokePath();
+        g.fillStyle(0x00fff5, 0.4);
+        g.fillTriangle(14, 8, 10, 16, 18, 16);
+        g.generateTexture('shield-pu', 28, 28); g.clear();
+
+        // --- Magnet power-up ---
+        g.fillStyle(0xff0040, 0.2); g.fillCircle(14, 14, 14);
+        g.fillStyle(0xff0040);
+        g.fillRoundedRect(4, 6, 8, 18, 3);
+        g.fillRoundedRect(16, 6, 8, 18, 3);
+        g.fillStyle(0xcccccc); g.fillRoundedRect(4, 2, 20, 8, 4);
+        g.fillStyle(0x4444ff); g.fillRect(4, 18, 8, 6);
+        g.fillStyle(0xff4444); g.fillRect(16, 18, 8, 6);
+        g.generateTexture('magnet-pu', 28, 28); g.clear();
+
+        // --- Ground tile ---
+        g.fillStyle(0x12121e); g.fillRect(0, 0, 64, 90);
+        g.fillStyle(0x2a2a3e); g.fillRect(0, 0, 64, 6);
+        g.fillStyle(0x00ffff); g.fillRect(0, 0, 64, 3);
+        g.fillStyle(0x00cccc, 0.25); g.fillRect(0, 3, 64, 4);
+        g.fillStyle(0x6c5ce7, 0.06);
+        for (var gy = 14; gy < 90; gy += 16) g.fillRect(0, gy, 64, 1);
+        for (var gx = 0; gx < 64; gx += 16) g.fillRect(gx, 7, 1, 83);
+        g.generateTexture('ground-tile', 64, 90); g.clear();
+
+        // --- Far bg tile (city silhouette — pre-baked, no per-frame redraw) ---
+        var cityW = 800, cityH = 200;
+        g.fillStyle(0x0e0e1a, 0.9);
+        for (var cx = 0; cx < cityW; cx += Phaser.Math.Between(35, 80)) {
+          var bw = Phaser.Math.Between(25, 55);
+          var bh = Phaser.Math.Between(30, 160);
+          g.fillRect(cx, cityH - bh, bw, bh);
+          g.fillStyle(0x6c5ce7, 0.12);
+          for (var wy = cityH - bh + 6; wy < cityH - 4; wy += 12) {
+            for (var wx = cx + 3; wx < cx + bw - 3; wx += 8) {
+              if (Math.random() < 0.55) g.fillRect(wx, wy, 4, 5);
+            }
+          }
+          g.fillStyle(0x0e0e1a, 0.9);
+        }
+        g.generateTexture('city-bg', cityW, cityH); g.clear();
+
+        // --- Near bg tile (pipes / structures) ---
+        var nearW = 600, nearH = 120;
+        g.fillStyle(0x16162a, 0.7);
+        for (var px = 0; px < nearW; px += Phaser.Math.Between(50, 120)) {
+          var pw = Phaser.Math.Between(8, 16);
+          var ph = Phaser.Math.Between(30, 110);
+          g.fillRect(px, nearH - ph, pw, ph);
+          g.fillStyle(0x00fff5, 0.08); g.fillRect(px, nearH - ph, pw, 3);
+          g.fillStyle(0x16162a, 0.7);
+        }
+        g.generateTexture('near-bg', nearW, nearH); g.clear();
+
+        // --- Particle ---
+        g.fillStyle(0xffffff); g.fillCircle(4, 4, 4);
+        g.generateTexture('spark', 8, 8); g.clear();
+
+        // --- Shield bubble overlay ---
+        g.lineStyle(3, 0x00fff5, 0.6); g.strokeCircle(24, 28, 26);
+        g.lineStyle(1, 0xffffff, 0.3); g.strokeCircle(24, 28, 22);
+        g.generateTexture('shield-ring', 48, 56); g.clear();
+
+        g.destroy();
       }
-    }
 
-    spawnOrb(x, y, tex, pts) {
-      var c = this.pickups.create(x, y, tex);
-      c.body.allowGravity = false;
-      c.setVelocityX(-this.gameSpeed);
-      c.setDepth(4);
-      c.pts = pts;
-      this.tweens.add({
-        targets: c, y: y - 5, duration: 350,
-        yoyo: true, repeat: -1, ease: 'Sine.easeInOut'
-      });
-    }
+      create() {
+        this.score = 0;
+        this.dist = 0;
+        this.gameOver = false;
+        this.baseSpeed = 260;
+        this.gameSpeed = this.baseSpeed;
+        this.jumpCount = 0;
+        this.maxJumps = 2;
+        this.isSliding = false;
+        this.slideTimer = 0;
+        this.shielded = false;
+        this.shieldTimer = 0;
+        this.magnetActive = false;
+        this.magnetTimer = 0;
+        this.currentZone = 0;
+        this.bestDist = 0;
+        this.bestScore = 0;
+        this.comboCount = 0;
+        this.comboTimer = 0;
+        this.patternQueue = [];
 
-    collectOrb(player, orb) {
-      this.sparkEmitter.emitParticleAt(orb.x, orb.y);
-      var pts = orb.pts || 10;
-      orb.destroy();
-      this.score += pts;
-      this.scoreText.setText('ENERGY: ' + this.score);
-      this.tweens.add({ targets: this.scoreText, scaleX: 1.15, scaleY: 1.15, duration: 70, yoyo: true });
-    }
+        // Restore session-best from registry
+        var saved = this.registry.get('bestDist');
+        if (saved) this.bestDist = saved;
+        var savedScore = this.registry.get('bestScore');
+        if (savedScore) this.bestScore = savedScore;
 
-    hitObstacle(player, obs) {
-      if (this.gameOver) return;
-      this.gameOver = true;
-      this.physics.pause();
-      this.obsTimer.remove();
-      this.orbTimer.remove();
-      this.player.setTint(0xff0000);
-      this.cameras.main.shake(250, 0.02);
-      this.cameras.main.flash(200, 255, 0, 255, true);
+        // --- Background layers (all tileSprites — no per-frame redraws) ---
+        var zone = ZONES[0];
+        this.bgGrad = this.add.graphics();
+        this.drawBg(zone);
 
-      this.msgText.setText(
-        'SYSTEM OFFLINE\nEnergy: ' + this.score +
-        '\nDistance: ' + Math.floor(this.dist) + 'm' +
-        '\nTap or SPACE to reboot'
-      ).setVisible(true);
-      this.input.keyboard.once('keydown-SPACE', function() { this.scene.restart(); }.bind(this));
-    }
+        this.starField = [];
+        for (var i = 0; i < 70; i++) {
+          var sc = Math.random() < 0.3 ? 0x00fff5 : (Math.random() < 0.5 ? 0xff69b4 : 0xffffff);
+          var star = this.add.circle(
+            Phaser.Math.Between(0, W), Phaser.Math.Between(0, GROUND_Y - 100),
+            Phaser.Math.FloatBetween(0.5, 2), sc, Phaser.Math.FloatBetween(0.1, 0.5)
+          );
+          star.spd = Phaser.Math.FloatBetween(0.15, 0.5);
+          this.starField.push(star);
+        }
 
-    drawCity() {
-      var neonColors = [0x6c5ce7, 0xe84393, 0x00cec9];
-      this.cityGfx.clear();
-      for (var i = 0; i < this.buildings.length; i++) {
-        var b = this.buildings[i];
-        // Dark building
-        this.cityGfx.fillStyle(0x1a1a2e, 0.8);
-        this.cityGfx.fillRect(b.x, GROUND_Y - b.h, b.w, b.h);
-        // Neon edge glow
-        var nc = neonColors[b.hue];
-        this.cityGfx.lineStyle(1, nc, 0.3);
-        this.cityGfx.strokeRect(b.x, GROUND_Y - b.h, b.w, b.h);
-        // Windows
-        this.cityGfx.fillStyle(nc, 0.15);
-        for (var wy = GROUND_Y - b.h + 8; wy < GROUND_Y - 6; wy += 14) {
-          for (var wx = b.x + 4; wx < b.x + b.w - 4; wx += 10) {
-            if (Math.random() < 0.6) this.cityGfx.fillRect(wx, wy, 5, 6);
+        this.cityBg = this.add.tileSprite(W / 2, GROUND_Y - 100, W, 200, 'city-bg').setAlpha(0.5).setDepth(1);
+        this.nearBg = this.add.tileSprite(W / 2, GROUND_Y - 40, W, 120, 'near-bg').setAlpha(0.4).setDepth(2);
+
+        // --- Ground ---
+        this.groundTile = this.add.tileSprite(W / 2, GROUND_Y + 45, W, 90, 'ground-tile').setDepth(3);
+        this.groundBody = this.add.rectangle(W / 2, GROUND_Y + 4, W, 8, 0x000000, 0);
+        this.physics.add.existing(this.groundBody, true);
+
+        // --- Player ---
+        this.player = this.physics.add.sprite(PLAYER_X, LANE_FLOOR - 30, 'robot');
+        this.player.setBounce(0);
+        this.player.setGravityY(100);
+        this.player.body.setSize(22, 42);
+        this.player.body.setOffset(7, 4);
+        this.player.setDepth(6);
+
+        this.shieldSprite = this.add.image(PLAYER_X, LANE_FLOOR - 30, 'shield-ring').setDepth(7).setVisible(false).setAlpha(0.7);
+
+        // --- Groups ---
+        this.obstacles = this.physics.add.group();
+        this.pickups = this.physics.add.group();
+        this.powerups = this.physics.add.group();
+
+        // --- Collisions ---
+        this.physics.add.collider(this.player, this.groundBody, function() {
+          this.jumpCount = 0;
+          if (!this.isSliding) {
+            this.player.setTexture('robot');
+            this.player.body.setSize(22, 42);
+            this.player.body.setOffset(7, 4);
+          }
+        }, null, this);
+
+        this.physics.add.overlap(this.player, this.pickups, this.collectOrb, null, this);
+        this.physics.add.overlap(this.player, this.obstacles, this.hitObstacle, null, this);
+        this.physics.add.overlap(this.player, this.powerups, this.collectPowerup, null, this);
+
+        // --- Particles ---
+        this.sparkEmitter = this.add.particles(0, 0, 'spark', {
+          speed: { min: 80, max: 220 }, lifespan: 400,
+          scale: { start: 1.2, end: 0 }, emitting: false, quantity: 12,
+          tint: [0x00fff5, 0x00cec9, 0xffffff]
+        }).setDepth(8);
+
+        this.trailEmitter = this.add.particles(0, 0, 'spark', {
+          speed: { min: 10, max: 50 }, angle: { min: 150, max: 210 },
+          lifespan: 350, scale: { start: 0.6, end: 0 },
+          emitting: false, quantity: 1, tint: [0xff6b35, 0xffd700]
+        }).setDepth(5);
+
+        this.shieldBreakEmitter = this.add.particles(0, 0, 'spark', {
+          speed: { min: 100, max: 300 }, lifespan: 500,
+          scale: { start: 1.5, end: 0 }, emitting: false, quantity: 20,
+          tint: [0x00fff5, 0x00cec9, 0x6c5ce7]
+        }).setDepth(9);
+
+        this.comboEmitter = this.add.particles(0, 0, 'spark', {
+          speed: { min: 40, max: 100 }, angle: { min: 240, max: 300 },
+          lifespan: 500, scale: { start: 0.8, end: 0 },
+          emitting: false, quantity: 5, tint: [0xffd700, 0xffaa00]
+        }).setDepth(8);
+
+        // --- HUD ---
+        this.scoreText = this.add.text(16, 12, 'ENERGY: 0', {
+          fontSize: '22px', fontStyle: 'bold', fill: '#00fff5',
+          stroke: '#0a0a20', strokeThickness: 4
+        }).setDepth(20);
+
+        this.distText = this.add.text(W / 2, 12, '0m', {
+          fontSize: '16px', fill: '#a29bfe', stroke: '#0a0a20', strokeThickness: 3
+        }).setOrigin(0.5, 0).setDepth(20);
+
+        this.speedText = this.add.text(W - 16, 12, '1.0x', {
+          fontSize: '14px', fill: '#ff69b4', stroke: '#0a0a20', strokeThickness: 3
+        }).setOrigin(1, 0).setDepth(20);
+
+        this.zoneText = this.add.text(W / 2, 38, ZONES[0].name, {
+          fontSize: '13px', fill: '#00fff5', stroke: '#0a0a20', strokeThickness: 2
+        }).setOrigin(0.5, 0).setDepth(20).setAlpha(0.6);
+
+        this.comboText = this.add.text(PLAYER_X + 40, LANE_FLOOR - 80, '', {
+          fontSize: '18px', fontStyle: 'bold', fill: '#ffd700',
+          stroke: '#0a0a20', strokeThickness: 3
+        }).setOrigin(0.5).setDepth(20).setVisible(false);
+
+        this.powerupText = this.add.text(16, 40, '', {
+          fontSize: '14px', fill: '#00fff5', stroke: '#0a0a20', strokeThickness: 3
+        }).setDepth(20);
+
+        this.msgText = this.add.text(W / 2, H / 2, '', {
+          fontSize: '26px', fontStyle: 'bold', fill: '#fff',
+          stroke: '#0a0a20', strokeThickness: 5, align: 'center', lineSpacing: 6
+        }).setOrigin(0.5).setDepth(30).setVisible(false);
+
+        // --- Input ---
+        this.jumpKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+        this.upKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.UP);
+        this.downKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.DOWN);
+
+        this.input.on('pointerdown', function(ptr) {
+          if (this.gameOver) { this.scene.restart(); return; }
+          if (ptr.y > H * 0.6) {
+            this.startSlide();
+          } else {
+            this.tryJump();
+          }
+        }, this);
+
+        // --- Spawn timers ---
+        this.obsTimer = this.time.addEvent({
+          delay: 1600, callback: this.spawnPattern, callbackScope: this, loop: true
+        });
+        this.orbTimer = this.time.addEvent({
+          delay: 1000, callback: this.spawnPickups, callbackScope: this, loop: true
+        });
+        this.puTimer = this.time.addEvent({
+          delay: 8000, callback: this.spawnPowerup, callbackScope: this, loop: true
+        });
+      }
+
+      drawBg(zone) {
+        this.bgGrad.clear();
+        this.bgGrad.fillGradientStyle(zone.bg1, zone.bg1, zone.bg2, zone.bg2);
+        this.bgGrad.fillRect(0, 0, W, H);
+      }
+
+      tryJump() {
+        if (this.gameOver) return;
+        if (this.isSliding) this.endSlide();
+        if (this.jumpCount < this.maxJumps) {
+          var force = this.jumpCount === 0 ? -480 : -380;
+          this.player.setVelocityY(force);
+          this.jumpCount++;
+          this.trailEmitter.emitParticleAt(this.player.x, this.player.y + 20, this.jumpCount === 2 ? 4 : 2);
+          if (this.jumpCount === 2) {
+            this.cameras.main.shake(60, 0.005);
           }
         }
       }
-    }
 
-    update(time, delta) {
-      if (this.gameOver) return;
-
-      // Jump input
-      if (Phaser.Input.Keyboard.JustDown(this.jumpKey) || Phaser.Input.Keyboard.JustDown(this.upKey)) {
-        this.tryJump();
+      startSlide() {
+        if (this.gameOver || this.isSliding) return;
+        if (!this.player.body.touching.down) return;
+        this.isSliding = true;
+        this.slideTimer = 500;
+        this.player.setTexture('robot-slide');
+        this.player.body.setSize(44, SLIDE_HITBOX_H);
+        this.player.body.setOffset(2, 4);
+        this.player.y = LANE_FLOOR - SLIDE_HITBOX_H / 2 + 2;
       }
 
-      // Distance and speed
-      this.dist += (this.gameSpeed * delta) / 8000;
-      this.distText.setText(Math.floor(this.dist) + 'm');
-      this.gameSpeed = this.baseSpeed + Math.floor(this.dist / 25) * 5;
-      this.speedText.setText((this.gameSpeed / this.baseSpeed).toFixed(1) + 'x');
-
-      var delay = Math.max(600, 1400 - Math.floor(this.dist / 12) * 20);
-      if (this.obsTimer) this.obsTimer.delay = delay;
-
-      // Scroll ground
-      this.groundSprite.tilePositionX += this.gameSpeed * delta / 1000;
-
-      // Move obstacles and pickups
-      this.obstacles.children.each(function(obs) {
-        if (!obs || !obs.active) return;
-        obs.setVelocityX(-this.gameSpeed);
-        if (obs.x < -70) obs.destroy();
-      }.bind(this));
-      this.pickups.children.each(function(c) {
-        if (!c || !c.active) return;
-        c.body.velocity.x = -this.gameSpeed;
-        if (c.x < -30) c.destroy();
-      }.bind(this));
-
-      // Parallax stars
-      for (var i = 0; i < this.stars.length; i++) {
-        this.stars[i].x -= this.gameSpeed * delta / 5000;
-        if (this.stars[i].x < -5) this.stars[i].x = W + 5;
+      endSlide() {
+        if (!this.isSliding) return;
+        this.isSliding = false;
+        this.slideTimer = 0;
+        this.player.setTexture('robot');
+        this.player.body.setSize(22, 42);
+        this.player.body.setOffset(7, 4);
       }
 
-      // Parallax city
-      for (var i = 0; i < this.buildings.length; i++) {
-        this.buildings[i].x -= this.gameSpeed * delta / 2500;
-        if (this.buildings[i].x + this.buildings[i].w < -10) {
-          this.buildings[i].x = W + Phaser.Math.Between(10, 60);
-          this.buildings[i].h = Phaser.Math.Between(40, 180);
-          this.buildings[i].w = Phaser.Math.Between(30, 70);
-          this.buildings[i].hue = Phaser.Math.Between(0, 2);
+      spawnPattern() {
+        if (this.gameOver) return;
+
+        var diff = Math.min(Math.floor(this.dist / 200), 4);
+        var available;
+        if (diff < 1) {
+          available = PATTERNS.slice(0, 4);
+        } else if (diff < 2) {
+          available = PATTERNS.slice(0, 7);
+        } else if (diff < 3) {
+          available = PATTERNS.slice(0, 10);
+        } else {
+          available = PATTERNS;
+        }
+
+        var pattern = Phaser.Utils.Array.GetRandom(available);
+        for (var i = 0; i < pattern.length; i++) {
+          var item = pattern[i];
+          this.time.delayedCall(item.d * (240 / this.gameSpeed), function(type) {
+            this.spawnSingleObstacle(type);
+          }.bind(this), [item.t]);
         }
       }
-      this.drawCity();
 
-      // Robot trail effect while running
-      if (this.player.body.touching.down && time % 80 < 16) {
-        this.trailEmitter.emitParticleAt(this.player.x - 10, this.player.y + 14);
+      spawnSingleObstacle(type) {
+        if (this.gameOver) return;
+        var obs;
+        switch (type) {
+          case 'laser':
+            obs = this.obstacles.create(W + 30, LANE_FLOOR - 22, 'laser');
+            obs.body.setSize(10, 38);
+            break;
+          case 'drone':
+            var dy = Phaser.Math.Between(LANE_FLOOR - 110, LANE_FLOOR - 70);
+            obs = this.obstacles.create(W + 40, dy, 'drone');
+            obs.body.setSize(36, 20);
+            this.tweens.add({
+              targets: obs, y: dy - 18, duration: 700,
+              yoyo: true, repeat: -1, ease: 'Sine.easeInOut'
+            });
+            break;
+          case 'barrier':
+            obs = this.obstacles.create(W + 40, LANE_FLOOR - 50, 'barrier');
+            obs.body.setSize(52, 32);
+            obs.body.setOffset(4, 4);
+            break;
+          case 'saw':
+            obs = this.obstacles.create(W + 30, LANE_FLOOR - 16, 'saw');
+            obs.body.setSize(24, 24);
+            obs.body.setOffset(4, 4);
+            obs.sawAngle = 0;
+            break;
+        }
+        if (obs) {
+          obs.body.allowGravity = false;
+          obs.body.immovable = true;
+          obs.setVelocityX(-this.gameSpeed);
+          obs.setDepth(4);
+          obs.obsType = type;
+        }
       }
 
-      // Fell off screen
-      if (this.player.y > H + 40) {
-        this.hitObstacle(this.player, null);
+      spawnPickups() {
+        if (this.gameOver) return;
+        var baseX = W + 50;
+        var isBolt = Math.random() < 0.18;
+        var tex = isBolt ? 'bolt' : 'orb';
+        var pts = isBolt ? 30 : 10;
+        var pat = Phaser.Math.Between(0, 4);
+
+        if (pat === 0) {
+          for (var i = 0; i < 5; i++) this.makeOrb(baseX + i * 32, LANE_FLOOR - 45, tex, pts);
+        } else if (pat === 1) {
+          for (var i = 0; i < 5; i++) this.makeOrb(baseX + i * 30, LANE_FLOOR - 40 - i * 22, tex, pts);
+        } else if (pat === 2) {
+          for (var i = 0; i < 6; i++) {
+            var y = LANE_FLOOR - 60 - Math.abs(i - 2.5) * 20;
+            this.makeOrb(baseX + i * 28, y, tex, pts);
+          }
+        } else if (pat === 3) {
+          for (var i = 0; i < 4; i++) this.makeOrb(baseX + i * 30, LANE_FLOOR - 100, tex, pts);
+        } else {
+          this.makeOrb(baseX, LANE_FLOOR - 120, 'bolt', 50);
+        }
+      }
+
+      makeOrb(x, y, tex, pts) {
+        var c = this.pickups.create(x, y, tex);
+        c.body.allowGravity = false;
+        c.setVelocityX(-this.gameSpeed);
+        c.setDepth(4);
+        c.pts = pts;
+        c.baseY = y;
+        this.tweens.add({
+          targets: c, y: y - 6, duration: 400,
+          yoyo: true, repeat: -1, ease: 'Sine.easeInOut'
+        });
+      }
+
+      spawnPowerup() {
+        if (this.gameOver) return;
+        var type = Math.random() < 0.5 ? 'shield-pu' : 'magnet-pu';
+        var pu = this.powerups.create(W + 30, LANE_FLOOR - 90, type);
+        pu.body.allowGravity = false;
+        pu.setVelocityX(-this.gameSpeed);
+        pu.setDepth(4);
+        pu.puType = type;
+        this.tweens.add({
+          targets: pu, y: LANE_FLOOR - 100, duration: 600,
+          yoyo: true, repeat: -1, ease: 'Sine.easeInOut'
+        });
+        this.tweens.add({
+          targets: pu, angle: 360, duration: 2000, repeat: -1
+        });
+      }
+
+      collectOrb(player, orb) {
+        var pts = orb.pts || 10;
+        this.sparkEmitter.emitParticleAt(orb.x, orb.y);
+        orb.destroy();
+        this.comboCount++;
+        this.comboTimer = 1200;
+        var multiplier = Math.min(this.comboCount, 5);
+        var finalPts = pts * multiplier;
+        this.score += finalPts;
+        this.scoreText.setText('ENERGY: ' + this.score);
+        this.tweens.add({ targets: this.scoreText, scaleX: 1.12, scaleY: 1.12, duration: 60, yoyo: true });
+        if (this.comboCount >= 3) {
+          this.comboText.setText(this.comboCount + 'x COMBO!').setVisible(true).setAlpha(1);
+          this.comboEmitter.emitParticleAt(player.x + 30, player.y - 20);
+          this.tweens.add({ targets: this.comboText, alpha: 0, duration: 800, delay: 200 });
+        }
+      }
+
+      collectPowerup(player, pu) {
+        var type = pu.puType;
+        this.sparkEmitter.emitParticleAt(pu.x, pu.y);
+        pu.destroy();
+        if (type === 'shield-pu') {
+          this.shielded = true;
+          this.shieldTimer = 6000;
+          this.shieldSprite.setVisible(true);
+        } else if (type === 'magnet-pu') {
+          this.magnetActive = true;
+          this.magnetTimer = 5000;
+        }
+        this.cameras.main.flash(150, 0, 255, 255, true);
+      }
+
+      hitObstacle(player, obs) {
+        if (this.gameOver) return;
+        if (this.shielded) {
+          this.shielded = false;
+          this.shieldTimer = 0;
+          this.shieldSprite.setVisible(false);
+          this.shieldBreakEmitter.emitParticleAt(player.x, player.y);
+          this.cameras.main.shake(200, 0.015);
+          if (obs) obs.destroy();
+          return;
+        }
+        this.gameOver = true;
+        this.physics.pause();
+        if (this.obsTimer) this.obsTimer.remove();
+        if (this.orbTimer) this.orbTimer.remove();
+        if (this.puTimer) this.puTimer.remove();
+        this.player.setTint(0xff0000);
+        this.cameras.main.shake(300, 0.025);
+        this.cameras.main.flash(250, 255, 0, 80, true);
+
+        var finalDist = Math.floor(this.dist);
+        var newBestDist = finalDist > this.bestDist;
+        var newBestScore = this.score > this.bestScore;
+        if (newBestDist) { this.bestDist = finalDist; this.registry.set('bestDist', finalDist); }
+        if (newBestScore) { this.bestScore = this.score; this.registry.set('bestScore', this.score); }
+
+        var lines = ['SYSTEM OFFLINE'];
+        lines.push('Energy: ' + this.score + (newBestScore ? '  NEW BEST!' : '  Best: ' + this.bestScore));
+        lines.push('Distance: ' + finalDist + 'm' + (newBestDist ? '  NEW BEST!' : '  Best: ' + this.bestDist + 'm'));
+        lines.push('');
+        lines.push('Tap or SPACE to reboot');
+
+        this.msgText.setText(lines.join('\n')).setVisible(true);
+        this.tweens.add({ targets: this.msgText, alpha: 1, duration: 300 });
+        this.input.keyboard.once('keydown-SPACE', function() { this.scene.restart(); }, this);
+      }
+
+      update(time, delta) {
+        if (this.gameOver) return;
+
+        // --- Input ---
+        if (Phaser.Input.Keyboard.JustDown(this.jumpKey) || Phaser.Input.Keyboard.JustDown(this.upKey)) {
+          this.tryJump();
+        }
+        if (Phaser.Input.Keyboard.JustDown(this.downKey)) {
+          this.startSlide();
+        }
+
+        // --- Slide timer ---
+        if (this.isSliding) {
+          this.slideTimer -= delta;
+          if (this.slideTimer <= 0) this.endSlide();
+        }
+
+        // --- Shield timer ---
+        if (this.shielded) {
+          this.shieldTimer -= delta;
+          this.shieldSprite.setPosition(this.player.x, this.player.y);
+          this.shieldSprite.setAlpha(0.4 + 0.3 * Math.sin(time / 150));
+          if (this.shieldTimer <= 0) {
+            this.shielded = false;
+            this.shieldSprite.setVisible(false);
+          }
+        }
+
+        // --- Magnet timer + pull ---
+        if (this.magnetActive) {
+          this.magnetTimer -= delta;
+          if (this.magnetTimer <= 0) this.magnetActive = false;
+          var px = this.player.x, py = this.player.y;
+          this.pickups.children.each(function(c) {
+            if (!c || !c.active) return;
+            var dx = px - c.x, dy = py - c.y;
+            var dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < 180) {
+              var pull = 400 * (1 - dist / 180);
+              c.body.velocity.x += (dx / dist) * pull * (delta / 1000);
+              c.body.velocity.y += (dy / dist) * pull * (delta / 1000);
+            }
+          });
+        }
+
+        // --- Combo decay ---
+        if (this.comboTimer > 0) {
+          this.comboTimer -= delta;
+          if (this.comboTimer <= 0) { this.comboCount = 0; this.comboText.setVisible(false); }
+        }
+
+        // --- Power-up HUD ---
+        var puLines = [];
+        if (this.shielded) puLines.push('SHIELD ' + Math.ceil(this.shieldTimer / 1000) + 's');
+        if (this.magnetActive) puLines.push('MAGNET ' + Math.ceil(this.magnetTimer / 1000) + 's');
+        this.powerupText.setText(puLines.join('  '));
+
+        // --- Distance + speed curve ---
+        this.dist += (this.gameSpeed * delta) / 7500;
+        this.distText.setText(Math.floor(this.dist) + 'm');
+        this.gameSpeed = this.baseSpeed + Math.min(Math.floor(this.dist / 20) * 4, 200);
+        this.speedText.setText((this.gameSpeed / this.baseSpeed).toFixed(1) + 'x');
+
+        var spawnDelay = Math.max(650, 1600 - Math.floor(this.dist / 10) * 15);
+        if (this.obsTimer) this.obsTimer.delay = spawnDelay;
+
+        // --- Zone transitions ---
+        var newZone = Math.min(Math.floor(this.dist / 500), ZONES.length - 1);
+        if (newZone !== this.currentZone) {
+          this.currentZone = newZone;
+          var zone = ZONES[newZone];
+          this.drawBg(zone);
+          this.zoneText.setText(zone.name).setAlpha(1);
+          this.tweens.add({ targets: this.zoneText, alpha: 0.6, duration: 2000 });
+          this.cameras.main.flash(300, 255, 255, 255, true);
+
+          var gt = this.groundTile;
+          this.tweens.add({ targets: gt, alpha: 0.3, duration: 200, yoyo: true, onComplete: function() { gt.setAlpha(1); } });
+        }
+
+        // --- Scroll parallax layers ---
+        this.groundTile.tilePositionX += this.gameSpeed * delta / 1000;
+        this.cityBg.tilePositionX += this.gameSpeed * delta / 4000;
+        this.nearBg.tilePositionX += this.gameSpeed * delta / 2000;
+
+        // Stars parallax
+        for (var i = 0; i < this.starField.length; i++) {
+          var st = this.starField[i];
+          st.x -= this.gameSpeed * delta / 5000 * st.spd;
+          if (st.x < -5) st.x = W + 5;
+        }
+
+        // --- Update obstacles ---
+        this.obstacles.children.each(function(obs) {
+          if (!obs || !obs.active) return;
+          obs.setVelocityX(-this.gameSpeed);
+          if (obs.obsType === 'saw') {
+            obs.sawAngle = (obs.sawAngle || 0) + delta * 0.4;
+            obs.setAngle(obs.sawAngle);
+          }
+          if (obs.x < -80) obs.destroy();
+        }, this);
+
+        // --- Update pickups ---
+        this.pickups.children.each(function(c) {
+          if (!c || !c.active) return;
+          if (!this.magnetActive) c.body.velocity.x = -this.gameSpeed;
+          if (c.x < -40) c.destroy();
+        }, this);
+
+        // --- Update powerups ---
+        this.powerups.children.each(function(p) {
+          if (!p || !p.active) return;
+          p.setVelocityX(-this.gameSpeed);
+          if (p.x < -40) p.destroy();
+        }, this);
+
+        // --- Boot trail ---
+        if (this.player.body.touching.down && !this.isSliding) {
+          if (time % 100 < delta) {
+            this.trailEmitter.emitParticleAt(this.player.x - 12, this.player.y + 22, 2);
+          }
+        }
+
+        // --- Fell off screen ---
+        if (this.player.y > H + 50) {
+          this.hitObstacle(this.player, null);
+        }
       }
     }
-  }
 
-  new Phaser.Game({
-    type: Phaser.AUTO, width: W, height: H,
-    parent: 'game-container', backgroundColor: '#0f0c29',
-    physics: { default: 'arcade', arcade: { gravity: { y: 800 }, debug: false } },
-    scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
-    scene: RunnerScene
-  });
+    new Phaser.Game({
+      type: Phaser.AUTO, width: W, height: H,
+      parent: 'game-container', backgroundColor: '#0a0a20',
+      physics: { default: 'arcade', arcade: { gravity: { y: 900 }, debug: false } },
+      scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
+      scene: RunnerScene
+    });
+  })();
   </script>
 </body>
 </html>
