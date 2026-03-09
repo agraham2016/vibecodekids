@@ -30,7 +30,7 @@
   <!-- PLAYER_CHARACTER -->fighter<!-- /PLAYER_CHARACTER -->
   <!-- OBSTACLES -->enemies<!-- /OBSTACLES -->
   <div id="game-container"></div>
-  <div class="hint">Arrows = Move &bull; SPACE = Punch &bull; SHIFT = Kick &bull; DOWN = Block</div>
+  <div class="hint">Arrows = Move &bull; UP = Jump &bull; SPACE = Punch &bull; SHIFT = Kick &bull; DOWN or S = Block</div>
   <script>
   (function() {
     var W = 800, H = 500;
@@ -335,6 +335,7 @@
         // --- Input ---
         this.cursors = this.input.keyboard.createCursorKeys();
         this.shiftKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
+        this.blockKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S);
 
         // --- Touch controls ---
         this.touchState = { left: false, right: false, jump: false, punch: false, kick: false, block: false };
@@ -419,7 +420,7 @@
         }
 
         // --- Blocking ---
-        this.blocking = (this.cursors.down.isDown || this.touchState.block) && this.player.body.touching.down && !this.attacking;
+        this.blocking = (this.cursors.down.isDown || this.blockKey.isDown || this.touchState.block) && !this.attacking;
         if (this.blocking) {
           this.player.setVelocityX(0);
           this.player.setTint(0x74b9ff);
@@ -443,7 +444,8 @@
         }
 
         // --- Jump ---
-        if ((this.cursors.up.isDown || this.touchState.jump) && this.player.body.touching.down && !this.blocking) {
+        var onGround = this.player.body.touching.down || this.player.body.blocked.down;
+        if ((this.cursors.up.isDown || this.touchState.jump) && onGround && !this.blocking) {
           this.player.setVelocityY(-420);
           this.touchState.jump = false;
         }
@@ -583,11 +585,6 @@
         enemy.setVelocityY(-100);
 
         this.hitEmitter.emitParticleAt(enemy.x, enemy.y);
-
-        // Hit-freeze
-        this.physics.pause();
-        var self = this;
-        this.time.delayedCall(50, function() { if (!self.gameOver) self.physics.resume(); });
 
         var shakeAmt = hitbox.attackType === 'kick' ? 0.012 : 0.006;
         this.cameras.main.shake(120, shakeAmt);
@@ -748,6 +745,8 @@
           e.speed = 70 + this.wave * 5;
           e.dmg = 10 + this.wave * 2;
         }
+
+        e.body.checkCollision.up = false;
 
         e.hp = e.maxHp;
         e.enemyType = type;

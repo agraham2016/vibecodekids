@@ -22,7 +22,7 @@ const TUTORIAL_STEPS = [
     num: 2,
     icon: '💬',
     title: 'Tell the AI What You Want',
-    desc: "Start simple! Say something like 'make me a space racing game'. Then add features one at a time in follow-up messages.",
+    desc: "The AI already knows your game type — just tell it the vibe! Try 'make it a jungle theme' or 'set it in space'. Then tweak one thing at a time.",
   },
   {
     num: 3,

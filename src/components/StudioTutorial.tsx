@@ -35,7 +35,7 @@ const STEPS: TutorialStep[] = [
     targetSelector: '.chat-input-area',
     position: 'top',
     title: 'Tell the AI What You Want',
-    body: "Start simple! Try: 'make me a space racing game'. Once it's built, ask for changes one at a time like 'add asteroids' or 'make it faster'. Small steps = awesome games.",
+    body: "Now make it yours! The AI already knows what game you picked — just tell it the vibe you want. Try: 'make it a jungle theme' or 'set it in outer space'.",
     mobileTab: 'chat',
   },
   {
