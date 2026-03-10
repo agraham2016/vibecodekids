@@ -48,6 +48,7 @@
     let cursors, score, lives, levelNum;
     let scoreText, livesText, msgText, levelText;
     let gameState, ballOnPaddle;
+    let goPanel;
 
     const config = {
       type: Phaser.AUTO,
@@ -151,7 +152,7 @@
       }
 
       score = 0;
-      lives = 3;
+      lives = 1;
       levelNum = 1;
       gameState = 'playing';
 
@@ -175,7 +176,7 @@
         fontSize: '16px', fontFamily: 'Segoe UI', fill: '#00ffff', stroke: '#000', strokeThickness: 2
       }).setDepth(10);
 
-      livesText = this.add.text(W - 12, H - 24, 'Lives: 3', {
+      livesText = this.add.text(W - 12, H - 24, '', {
         fontSize: '16px', fontFamily: 'Segoe UI', fill: '#ff0055', stroke: '#000', strokeThickness: 2
       }).setOrigin(1, 0).setDepth(10);
 
@@ -186,6 +187,63 @@
       msgText = this.add.text(W / 2, H / 2, '', {
         fontSize: '28px', fontFamily: 'Segoe UI', fill: '#fff', stroke: '#0a0a2e', strokeThickness: 4, align: 'center'
       }).setOrigin(0.5).setDepth(20).setVisible(false);
+
+      goPanel = {};
+      goPanel.overlay = this.add.graphics().setDepth(30).setVisible(false);
+      goPanel.overlay.fillStyle(0x000000, 0.7);
+      goPanel.overlay.fillRect(0, 0, W, H);
+
+      const panelX = W / 2, panelY = H / 2;
+      const panelW = 320, panelH = 240;
+
+      goPanel.box = this.add.graphics().setDepth(31).setVisible(false);
+      goPanel.box.fillStyle(0x0f0f30, 0.95);
+      goPanel.box.fillRoundedRect(panelX - panelW / 2, panelY - panelH / 2, panelW, panelH, 16);
+      goPanel.box.lineStyle(2, 0x00ffff, 0.6);
+      goPanel.box.strokeRoundedRect(panelX - panelW / 2, panelY - panelH / 2, panelW, panelH, 16);
+
+      goPanel.title = this.add.text(panelX, panelY - 80, 'GAME OVER', {
+        fontSize: '36px', fontFamily: 'Segoe UI', fontStyle: 'bold',
+        fill: '#ff0055', stroke: '#000', strokeThickness: 4
+      }).setOrigin(0.5).setDepth(32).setVisible(false);
+
+      goPanel.scoreLabel = this.add.text(panelX, panelY - 30, '', {
+        fontSize: '22px', fontFamily: 'Segoe UI', fill: '#00ffff', stroke: '#000', strokeThickness: 3
+      }).setOrigin(0.5).setDepth(32).setVisible(false);
+
+      goPanel.levelLabel = this.add.text(panelX, panelY + 5, '', {
+        fontSize: '16px', fontFamily: 'Segoe UI', fill: '#ffee00', stroke: '#000', strokeThickness: 2
+      }).setOrigin(0.5).setDepth(32).setVisible(false);
+
+      goPanel.btn = this.add.graphics().setDepth(32).setVisible(false);
+      goPanel.btn.fillStyle(0x00ffff, 0.15);
+      goPanel.btn.fillRoundedRect(panelX - 80, panelY + 40, 160, 44, 10);
+      goPanel.btn.lineStyle(2, 0x00ffff, 0.8);
+      goPanel.btn.strokeRoundedRect(panelX - 80, panelY + 40, 160, 44, 10);
+
+      goPanel.btnText = this.add.text(panelX, panelY + 62, 'PLAY AGAIN', {
+        fontSize: '20px', fontFamily: 'Segoe UI', fontStyle: 'bold',
+        fill: '#ffffff', stroke: '#000', strokeThickness: 2
+      }).setOrigin(0.5).setDepth(33).setVisible(false);
+
+      goPanel.hint = this.add.text(panelX, panelY + 100, 'Click or press SPACE', {
+        fontSize: '13px', fontFamily: 'Segoe UI', fill: '#aaaaaa'
+      }).setOrigin(0.5).setDepth(32).setVisible(false);
+
+      goPanel.btnZone = this.add.rectangle(panelX, panelY + 62, 160, 44, 0x000000, 0)
+        .setDepth(34).setInteractive({ useHandCursor: true }).setVisible(false);
+      goPanel.btnZone.on('pointerover', () => {
+        goPanel.btnText.setFill('#00ffff');
+      });
+      goPanel.btnZone.on('pointerout', () => {
+        goPanel.btnText.setFill('#ffffff');
+      });
+      goPanel.btnZone.on('pointerdown', () => {
+        if (gameState === 'gameover' || gameState === 'win') {
+          gameState = 'playing';
+          this.scene.restart();
+        }
+      });
 
       cursors = this.input.keyboard.createCursorKeys();
       this.input.keyboard.addKey('SPACE');
@@ -307,7 +365,27 @@
           levelNum++;
           if (levelNum > 5) {
             gameState = 'win';
-            msgText.setText('YOU WIN!\nFinal Score: ' + score + '\nClick or SPACE to restart').setVisible(true);
+            balls.clear(true, true);
+
+            goPanel.title.setText('YOU WIN!').setFill('#00ff66');
+            goPanel.scoreLabel.setText('Final Score: ' + score);
+            goPanel.levelLabel.setText('All 5 Levels Cleared!');
+
+            goPanel.overlay.setVisible(true);
+            goPanel.box.setVisible(true);
+            goPanel.title.setVisible(true).setScale(0.5).setAlpha(0);
+            goPanel.scoreLabel.setVisible(true).setAlpha(0);
+            goPanel.levelLabel.setVisible(true).setAlpha(0);
+            goPanel.btn.setVisible(true).setAlpha(0);
+            goPanel.btnText.setVisible(true).setAlpha(0);
+            goPanel.hint.setVisible(true).setAlpha(0);
+            goPanel.btnZone.setVisible(true);
+
+            scene.tweens.add({ targets: goPanel.title, scale: 1, alpha: 1, duration: 400, ease: 'Back.easeOut' });
+            scene.tweens.add({ targets: goPanel.scoreLabel, alpha: 1, duration: 300, delay: 200 });
+            scene.tweens.add({ targets: goPanel.levelLabel, alpha: 1, duration: 300, delay: 350 });
+            scene.tweens.add({ targets: [goPanel.btn, goPanel.btnText], alpha: 1, duration: 300, delay: 500 });
+            scene.tweens.add({ targets: goPanel.hint, alpha: 1, duration: 300, delay: 650 });
           } else {
             levelText.setText('Level ' + levelNum);
             buildLevel(scene);
@@ -391,21 +469,32 @@
     }
 
     function loseBall(scene) {
-      lives--;
-      livesText.setText('Lives: ' + lives);
       if (scene.cache.audio.exists('explosionSfx')) scene.sound.play('explosionSfx', { volume: 0.5 });
 
-      if (lives <= 0) {
-        gameState = 'gameover';
-        balls.clear(true, true);
-        msgText.setText('GAME OVER\nScore: ' + score + '\nClick or SPACE to restart').setVisible(true);
-      } else {
-        balls.clear(true, true);
-        powerups.clear(true, true);
-        paddle.setDisplaySize(PADDLE_W, PADDLE_H);
-        paddle.body.setSize(PADDLE_W, PADDLE_H);
-        spawnBall(scene, true);
-      }
+      gameState = 'gameover';
+      balls.clear(true, true);
+      powerups.clear(true, true);
+
+      goPanel.scoreLabel.setText('Score: ' + score);
+      goPanel.levelLabel.setText('Reached Level ' + levelNum);
+
+      goPanel.overlay.setVisible(true);
+      goPanel.box.setVisible(true);
+      goPanel.title.setVisible(true).setScale(0.5).setAlpha(0);
+      goPanel.scoreLabel.setVisible(true).setAlpha(0);
+      goPanel.levelLabel.setVisible(true).setAlpha(0);
+      goPanel.btn.setVisible(true).setAlpha(0);
+      goPanel.btnText.setVisible(true).setAlpha(0);
+      goPanel.hint.setVisible(true).setAlpha(0);
+      goPanel.btnZone.setVisible(true);
+
+      scene.tweens.add({ targets: goPanel.title, scale: 1, alpha: 1, duration: 400, ease: 'Back.easeOut' });
+      scene.tweens.add({ targets: goPanel.scoreLabel, alpha: 1, duration: 300, delay: 200 });
+      scene.tweens.add({ targets: goPanel.levelLabel, alpha: 1, duration: 300, delay: 350 });
+      scene.tweens.add({ targets: [goPanel.btn, goPanel.btnText], alpha: 1, duration: 300, delay: 500 });
+      scene.tweens.add({ targets: goPanel.hint, alpha: 1, duration: 300, delay: 650 });
+
+      scene.cameras.main.shake(200, 0.015);
     }
 
     function update() {

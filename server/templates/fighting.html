@@ -257,7 +257,6 @@
         this.enemies = this.physics.add.group();
         this.pickups = this.physics.add.group();
 
-        this.physics.add.collider(this.enemies, this.groundBody);
         this.physics.add.overlap(this.atkHitbox, this.enemies, this.onHitEnemy, null, this);
         this.physics.add.overlap(this.player, this.pickups, this.collectPickup, null, this);
 
@@ -474,6 +473,11 @@
         var self = this;
         this.enemies.children.iterate(function(e) {
           if (!e || !e.active) return;
+
+          if (e.body.bottom > GROUND_Y) {
+            e.y -= (e.body.bottom - GROUND_Y);
+            if (e.body.velocity.y > 0) e.body.velocity.y = 0;
+          }
 
           // Update health bar position
           var bar = self.enemyBars.get(e);
@@ -745,8 +749,6 @@
           e.speed = 70 + this.wave * 5;
           e.dmg = 10 + this.wave * 2;
         }
-
-        e.body.checkCollision.up = false;
 
         e.hp = e.maxHp;
         e.enemyType = type;
