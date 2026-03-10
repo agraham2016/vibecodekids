@@ -3,129 +3,653 @@
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <style>
+    :root {
+      --game-primary: #ffaa22;
+      --game-secondary: #cc44ff;
+      --game-bg: #1a1040;
+      --game-text: #ffffff;
+      --game-accent: #44ddff;
+    }
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Segoe UI', sans-serif; background: linear-gradient(135deg, #4a1a6b 0%, #2a1040 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; touch-action: none; }
-    #game-container { border-radius: 12px; overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #1a1040 0%, #2a1050 50%, #1a1040 100%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      touch-action: none;
+    }
+    #game-container {
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 0 40px rgba(255, 170, 34, 0.2), 0 0 80px rgba(204, 68, 255, 0.1);
+    }
+    .hint {
+      position: fixed;
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: rgba(255,255,255,0.45);
+      font-size: 13px;
+      font-family: 'Segoe UI', sans-serif;
+      text-align: center;
+      pointer-events: none;
+    }
   </style>
-  <script src="https://cdn.jsdelivr.net/npm/phaser@3.86.0/dist/phaser.min.js" crossorigin="anonymous"></script>
 </head>
 <body>
   <div id="game-container"></div>
+  <div class="hint">Click cards to flip &bull; Match all pairs to win!</div>
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.86.0/dist/phaser.min.js" crossorigin="anonymous"></script>
   <script>
-    const W = 800, H = 500;
-    const COLS = 4, ROWS = 3;
-    const CARD_W = 90, CARD_H = 100;
-    const PAD = 30;
-    const PAIRS = (COLS * ROWS) / 2;
+    var W = 800, H = 550;
+    var CARD_W = 80, CARD_H = 96;
+    var GAP = 14;
 
-    const ICONS = ['⭐', '🌟', '💎', '🔮', '🐾', '🌈'];
-    const COLORS = [0xff4466, 0x44aaff, 0x44dd44, 0xffaa22, 0xdd44ff, 0x44ffdd];
+    var ICON_COLORS = [
+      0xff4466, 0x44aaff, 0x44dd44, 0xffaa22, 0xcc44ff,
+      0x44ddff, 0xff7744, 0xaadd44, 0xff44aa, 0x44ffaa
+    ];
 
-    let cards, matched, flipped, moves, gameState;
-    let scoreText, msgText;
+    var LEVEL_CONFIG = [
+      { cols: 4, rows: 3, starMoves: [8, 12, 18] },
+      { cols: 4, rows: 4, starMoves: [12, 18, 26] },
+      { cols: 5, rows: 4, starMoves: [16, 24, 34] }
+    ];
 
-    const config = {
-      type: Phaser.AUTO, width: W, height: H, parent: 'game-container', backgroundColor: '#2a1040',
-      scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
-      scene: { preload, create, update }
-    };
+    class MemoryScene extends Phaser.Scene {
+      constructor() { super('MemoryScene'); }
 
-    function preload() {
-    }
+      preload() {
+        var g = this.make.graphics({ add: false });
 
-    function create() {
-      const g = this.make.graphics({ add: false });
-      g.fillStyle(0x5b4d9e);
-      g.fillRoundedRect(0, 0, CARD_W, CARD_H, 8);
-      g.generateTexture('cardBack', CARD_W, CARD_H);
-      g.clear();
-      g.fillStyle(0xffffff);
-      g.fillRoundedRect(0, 0, CARD_W - 4, CARD_H - 4, 6);
-      g.generateTexture('cardFront', CARD_W - 4, CARD_H - 4);
-      g.destroy();
+        g.fillStyle(0x3a2a6e);
+        g.fillRoundedRect(0, 0, CARD_W, CARD_H, 10);
+        g.fillStyle(0x4a3a7e);
+        g.fillRoundedRect(3, 3, CARD_W - 6, CARD_H - 6, 8);
+        g.lineStyle(1, 0x6a5a9e, 0.5);
+        for (var dx = 8; dx < CARD_W; dx += 12) {
+          g.moveTo(dx, 8); g.lineTo(dx, CARD_H - 8);
+        }
+        for (var dy = 8; dy < CARD_H; dy += 12) {
+          g.moveTo(8, dy); g.lineTo(CARD_W - 8, dy);
+        }
+        g.strokePath();
+        g.fillStyle(0xffaa22, 0.15);
+        g.fillCircle(CARD_W / 2, CARD_H / 2, 16);
+        g.fillStyle(0xffaa22, 0.3);
+        g.fillCircle(CARD_W / 2, CARD_H / 2, 8);
+        g.generateTexture('cardBack', CARD_W, CARD_H);
+        g.clear();
 
-      const bg = this.add.graphics().fillStyle(0x2a1040).fillRect(0, 0, W, H);
-      matched = 0;
-      flipped = [];
-      moves = 0;
-      gameState = 'playing';
+        g.fillStyle(0xffffff);
+        g.fillRoundedRect(0, 0, CARD_W, CARD_H, 10);
+        g.fillStyle(0xf8f8ff);
+        g.fillRoundedRect(2, 2, CARD_W - 4, CARD_H - 4, 9);
+        g.generateTexture('cardFront', CARD_W, CARD_H);
+        g.clear();
 
-      const types = [];
-      for (let i = 0; i < PAIRS; i++) types.push(i, i);
-      Phaser.Utils.Array.Shuffle(types);
+        for (var i = 0; i < 10; i++) {
+          g.clear();
+          var cx = 20, cy = 20;
+          g.lineStyle(2.5, ICON_COLORS[i], 1);
 
-      cards = [];
-      const startX = (W - (COLS * (CARD_W + 12) - 12)) / 2 + CARD_W / 2 + 6;
-      const startY = 80;
-      for (let i = 0; i < COLS * ROWS; i++) {
-        const r = Math.floor(i / COLS), c = i % COLS;
-        const x = startX + c * (CARD_W + 12);
-        const y = startY + r * (CARD_H + 12);
-        const pairId = types[i];
-        const card = this.add.container(x, y);
-        const back = this.add.image(0, 0, 'cardBack').setInteractive({ useHandCursor: true });
-        const front = this.add.image(0, 0, 'cardFront').setVisible(false);
-        front.setTint(COLORS[pairId % COLORS.length]);
-        const icon = this.add.text(0, 0, ICONS[pairId % ICONS.length], { fontSize: '36px' }).setOrigin(0.5).setVisible(false);
-        card.add([back, front, icon]);
-        card.setData({ pairId, back, front, icon, flipped: false });
-        back.on('pointerdown', () => flipCard(this, card));
-        cards.push(card);
+          if (i === 0) {
+            for (var s = 0; s < 5; s++) {
+              var oa = -Math.PI / 2 + s * Math.PI * 2 / 5;
+              var ia = oa + Math.PI / 5;
+              var ox = cx + Math.cos(oa) * 14, oy = cy + Math.sin(oa) * 14;
+              var ix = cx + Math.cos(ia) * 6, iy = cy + Math.sin(ia) * 6;
+              if (s === 0) g.beginPath(), g.moveTo(ox, oy);
+              else g.lineTo(ox, oy);
+              g.lineTo(ix, iy);
+            }
+            g.closePath(); g.strokePath();
+            g.fillStyle(ICON_COLORS[i], 0.3); g.fillPath();
+          } else if (i === 1) {
+            g.strokeCircle(cx, cy, 12);
+            g.fillStyle(ICON_COLORS[i], 0.3); g.fillCircle(cx, cy, 12);
+          } else if (i === 2) {
+            g.beginPath(); g.moveTo(cx, cy - 14); g.lineTo(cx + 12, cy);
+            g.lineTo(cx, cy + 14); g.lineTo(cx - 12, cy); g.closePath();
+            g.strokePath(); g.fillStyle(ICON_COLORS[i], 0.3); g.fillPath();
+          } else if (i === 3) {
+            g.beginPath(); g.moveTo(cx, cy - 14); g.lineTo(cx + 14, cy + 10);
+            g.lineTo(cx - 14, cy + 10); g.closePath();
+            g.strokePath(); g.fillStyle(ICON_COLORS[i], 0.3); g.fillPath();
+          } else if (i === 4) {
+            g.strokeRect(cx - 10, cy - 10, 20, 20);
+            g.fillStyle(ICON_COLORS[i], 0.3); g.fillRect(cx - 10, cy - 10, 20, 20);
+          } else if (i === 5) {
+            g.beginPath();
+            for (var h = 0; h < 6; h++) {
+              var ha = -Math.PI / 6 + h * Math.PI / 3;
+              if (h === 0) g.moveTo(cx + Math.cos(ha) * 13, cy + Math.sin(ha) * 13);
+              else g.lineTo(cx + Math.cos(ha) * 13, cy + Math.sin(ha) * 13);
+            }
+            g.closePath(); g.strokePath();
+            g.fillStyle(ICON_COLORS[i], 0.3); g.fillPath();
+          } else if (i === 6) {
+            g.fillStyle(ICON_COLORS[i], 0.3);
+            g.fillCircle(cx - 6, cy - 4, 7);
+            g.fillCircle(cx + 6, cy - 4, 7);
+            g.beginPath(); g.moveTo(cx - 12, cy - 2);
+            g.lineTo(cx, cy + 14); g.lineTo(cx + 12, cy - 2);
+            g.closePath(); g.fillPath();
+            g.lineStyle(2.5, ICON_COLORS[i], 1);
+            g.strokeCircle(cx - 6, cy - 4, 7);
+            g.strokeCircle(cx + 6, cy - 4, 7);
+            g.beginPath(); g.moveTo(cx - 12, cy - 2);
+            g.lineTo(cx, cy + 14); g.lineTo(cx + 12, cy - 2); g.strokePath();
+          } else if (i === 7) {
+            g.strokeCircle(cx, cy, 12);
+            g.beginPath(); g.moveTo(cx, cy - 8); g.lineTo(cx, cy);
+            g.lineTo(cx + 6, cy + 4); g.strokePath();
+          } else if (i === 8) {
+            g.beginPath(); g.moveTo(cx - 10, cy + 12); g.lineTo(cx, cy - 14);
+            g.lineTo(cx + 10, cy + 12); g.strokePath();
+            g.beginPath(); g.moveTo(cx - 6, cy - 2); g.lineTo(cx + 6, cy - 2); g.strokePath();
+            g.fillStyle(ICON_COLORS[i], 0.3); g.fillCircle(cx, cy - 14, 3);
+          } else {
+            g.strokeCircle(cx - 5, cy, 10);
+            g.strokeCircle(cx + 5, cy, 10);
+          }
+
+          g.generateTexture('icon_' + i, 40, 40);
+        }
+
+        g.clear();
+        g.fillStyle(0xffffff);
+        g.fillCircle(4, 4, 4);
+        g.generateTexture('spark', 8, 8);
+
+        g.clear();
+        var stx = 16, sty = 16;
+        g.lineStyle(2, 0xffaa22);
+        g.fillStyle(0xffaa22);
+        g.beginPath();
+        for (var si = 0; si < 5; si++) {
+          var sa = -Math.PI / 2 + si * Math.PI * 2 / 5;
+          var sb = sa + Math.PI / 5;
+          if (si === 0) g.moveTo(stx + Math.cos(sa) * 14, sty + Math.sin(sa) * 14);
+          else g.lineTo(stx + Math.cos(sa) * 14, sty + Math.sin(sa) * 14);
+          g.lineTo(stx + Math.cos(sb) * 6, sty + Math.sin(sb) * 6);
+        }
+        g.closePath(); g.fillPath(); g.strokePath();
+        g.generateTexture('star', 32, 32);
+
+        g.clear();
+        g.lineStyle(2, 0x555555);
+        g.beginPath();
+        for (var ei = 0; ei < 5; ei++) {
+          var ea = -Math.PI / 2 + ei * Math.PI * 2 / 5;
+          var eb = ea + Math.PI / 5;
+          if (ei === 0) g.moveTo(stx + Math.cos(ea) * 14, sty + Math.sin(ea) * 14);
+          else g.lineTo(stx + Math.cos(ea) * 14, sty + Math.sin(ea) * 14);
+          g.lineTo(stx + Math.cos(eb) * 6, sty + Math.sin(eb) * 6);
+        }
+        g.closePath(); g.strokePath();
+        g.generateTexture('starEmpty', 32, 32);
+
+        g.clear();
+        g.destroy();
       }
 
-      scoreText = this.add.text(W / 2, 28, 'Moves: 0', { fontSize: '22px', fill: '#ffcc00', stroke: '#000', strokeThickness: 2 }).setOrigin(0.5).setDepth(10);
-      msgText = this.add.text(W / 2, H / 2, '', { fontSize: '28px', fill: '#fff', stroke: '#000', strokeThickness: 4, align: 'center' }).setOrigin(0.5).setDepth(20).setVisible(false);
+      create() {
+        this.levelNum = this.registry.get('memLevel') || 1;
+        this.bestMoves = this.registry.get('memBest') || 0;
+        var cfg = LEVEL_CONFIG[Math.min(this.levelNum - 1, LEVEL_CONFIG.length - 1)];
+        this.cols = cfg.cols;
+        this.rows = cfg.rows;
+        this.pairs = (this.cols * this.rows) / 2;
+        this.starThresholds = cfg.starMoves;
 
-      this.input.on('pointerdown', () => {
-        if (gameState === 'gameover') this.scene.restart();
-      });
-      this.input.keyboard.on('keydown-SPACE', () => {
-        if (gameState === 'gameover') this.scene.restart();
-      });
-    }
+        this.matched = 0;
+        this.flipped = [];
+        this.moves = 0;
+        this.elapsedTime = 0;
+        this.gameState = 'peek';
+        this.combo = 0;
+        this.cards = [];
+        this.canFlip = false;
 
-    function flipCard(scene, card) {
-      if (gameState !== 'playing' || card.getData('flipped') || flipped.length >= 2) return;
-      card.setData('flipped', true);
-      card.getAt(0).setVisible(false);
-      card.getAt(1).setVisible(true);
-      card.getAt(2).setVisible(true);
-      flipped.push(card);
-      if (scene.cache.audio.exists('clickSfx')) scene.sound.play('clickSfx', { volume: 0.4 });
+        var bg = this.add.graphics();
+        bg.fillGradientStyle(0x1a1040, 0x1a1040, 0x2a1050, 0x2a1050);
+        bg.fillRect(0, 0, W, H);
+        bg.lineStyle(1, 0x2a1a50, 0.25);
+        for (var gx = 0; gx <= W; gx += 40) { bg.moveTo(gx, 0); bg.lineTo(gx, H); }
+        for (var gy = 0; gy <= H; gy += 40) { bg.moveTo(0, gy); bg.lineTo(W, gy); }
+        bg.strokePath();
 
-      if (flipped.length === 2) {
-        moves++;
-        scoreText.setText('Moves: ' + moves);
-        const [a, b] = flipped;
-        if (a.getData('pairId') === b.getData('pairId')) {
-          if (scene.cache.audio.exists('coinSfx')) scene.sound.play('coinSfx', { volume: 0.5 });
-          scene.tweens.add({ targets: [a, b], scale: 0, duration: 300, onComplete: () => {
-            a.destroy(); b.destroy();
-            matched++;
-            flipped.length = 0;
-            if (matched >= PAIRS) {
-              gameState = 'gameover';
-              msgText.setText('You win!\nMoves: ' + moves + '\nClick or SPACE to play again').setVisible(true);
-            }
-          }});
-        } else {
-          scene.time.delayedCall(800, () => {
-            a.setData('flipped', false);
-            b.setData('flipped', false);
-            a.getAt(0).setVisible(true);
-            a.getAt(1).setVisible(false);
-            a.getAt(2).setVisible(false);
-            b.getAt(0).setVisible(true);
-            b.getAt(1).setVisible(false);
-            b.getAt(2).setVisible(false);
-            flipped.length = 0;
+        this.matchEmitter = this.add.particles(0, 0, 'spark', {
+          speed: { min: 60, max: 200 }, lifespan: 500,
+          scale: { start: 1.5, end: 0 }, emitting: false, quantity: 12,
+          tint: [0xffaa22, 0xffdd44, 0xffffff]
+        }).setDepth(15);
+
+        var types = [];
+        for (var ti = 0; ti < this.pairs; ti++) types.push(ti, ti);
+        Phaser.Utils.Array.Shuffle(types);
+
+        var gridW = this.cols * (CARD_W + GAP) - GAP;
+        var gridH = this.rows * (CARD_H + GAP) - GAP;
+        var startX = (W - gridW) / 2 + CARD_W / 2;
+        var startY = (H - gridH) / 2 + CARD_H / 2 + 15;
+
+        for (var ci = 0; ci < this.cols * this.rows; ci++) {
+          var row = Math.floor(ci / this.cols), col = ci % this.cols;
+          var cx = startX + col * (CARD_W + GAP);
+          var cy = startY + row * (CARD_H + GAP);
+          var pairId = types[ci];
+
+          var container = this.add.container(cx, cy).setDepth(5);
+          var back = this.add.image(0, 0, 'cardBack');
+          var front = this.add.image(0, 0, 'cardFront').setVisible(false);
+          front.setTint(ICON_COLORS[pairId % ICON_COLORS.length]);
+          var icon = this.add.image(0, -4, 'icon_' + (pairId % 10)).setVisible(false).setScale(1.4);
+
+          container.add([back, front, icon]);
+          container.pairId = pairId;
+          container.isFlipped = false;
+          container.isMatched = false;
+          container.backImg = back;
+          container.frontImg = front;
+          container.iconImg = icon;
+
+          back.setInteractive({ useHandCursor: true });
+          back.on('pointerdown', this.onCardClick.bind(this, container));
+
+          container.setScale(0);
+          this.tweens.add({
+            targets: container, scale: 1, duration: 300,
+            delay: ci * 40, ease: 'Back.easeOut'
           });
+
+          this.cards.push(container);
+        }
+
+        this.movesText = this.add.text(14, 12, 'Moves: 0', {
+          fontSize: '17px', fontFamily: 'Segoe UI', fill: '#ffaa22',
+          stroke: '#000', strokeThickness: 2
+        }).setDepth(10);
+
+        this.timerText = this.add.text(W / 2, 12, '0:00', {
+          fontSize: '17px', fontFamily: 'Segoe UI', fill: '#44ddff',
+          stroke: '#000', strokeThickness: 2
+        }).setOrigin(0.5, 0).setDepth(10);
+
+        this.levelText = this.add.text(W - 14, 12, 'Level ' + this.levelNum, {
+          fontSize: '17px', fontFamily: 'Segoe UI', fontStyle: 'bold',
+          fill: '#cc44ff', stroke: '#000', strokeThickness: 2
+        }).setOrigin(1, 0).setDepth(10);
+
+        this.pairsText = this.add.text(14, 36, 'Pairs: 0/' + this.pairs, {
+          fontSize: '14px', fontFamily: 'Segoe UI', fill: '#aaa',
+          stroke: '#000', strokeThickness: 2
+        }).setDepth(10);
+
+        this.comboText = this.add.text(W / 2, H / 2, '', {
+          fontSize: '28px', fontFamily: 'Segoe UI', fontStyle: 'bold',
+          fill: '#ffaa22', stroke: '#000', strokeThickness: 3
+        }).setOrigin(0.5).setDepth(18).setAlpha(0);
+
+        this.bannerText = this.add.text(W / 2, H / 2, '', {
+          fontSize: '36px', fontFamily: 'Segoe UI', fontStyle: 'bold',
+          fill: '#fff', stroke: '#000', strokeThickness: 4
+        }).setOrigin(0.5).setDepth(25).setAlpha(0);
+
+        this.createWinPanel();
+
+        this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+        this.spaceKey.on('down', function() {
+          if (this.gameState === 'won') this.restartOrNext();
+        }.bind(this));
+
+        var totalEntrance = this.cols * this.rows * 40 + 300;
+        this.time.delayedCall(totalEntrance, function() {
+          this.peekCards();
+        }.bind(this));
+
+        if (this.levelNum > 1) {
+          this.showBanner('Level ' + this.levelNum);
+        }
+      }
+
+      peekCards() {
+        for (var i = 0; i < this.cards.length; i++) {
+          var card = this.cards[i];
+          this.tweens.add({
+            targets: card, scaleX: 0, duration: 150, delay: i * 30,
+            onComplete: function(tween, targets) {
+              var c = targets[0];
+              c.backImg.setVisible(false);
+              c.frontImg.setVisible(true);
+              c.iconImg.setVisible(true);
+            },
+            onCompleteScope: this
+          });
+          this.tweens.add({
+            targets: card, scaleX: 1, duration: 150, delay: i * 30 + 150
+          });
+        }
+
+        var peekTime = this.cards.length * 30 + 300 + 1200;
+        this.time.delayedCall(peekTime, function() {
+          this.hideAllCards();
+        }.bind(this));
+      }
+
+      hideAllCards() {
+        for (var i = 0; i < this.cards.length; i++) {
+          var card = this.cards[i];
+          if (card.isMatched) continue;
+          this.tweens.add({
+            targets: card, scaleX: 0, duration: 120, delay: i * 20,
+            onComplete: function(tween, targets) {
+              var c = targets[0];
+              c.backImg.setVisible(true);
+              c.frontImg.setVisible(false);
+              c.iconImg.setVisible(false);
+            }
+          });
+          this.tweens.add({
+            targets: card, scaleX: 1, duration: 120, delay: i * 20 + 120
+          });
+        }
+
+        var hideTime = this.cards.length * 20 + 240 + 100;
+        this.time.delayedCall(hideTime, function() {
+          this.gameState = 'playing';
+          this.canFlip = true;
+        }.bind(this));
+      }
+
+      onCardClick(card) {
+        if (this.gameState !== 'playing' || !this.canFlip) return;
+        if (card.isFlipped || card.isMatched || this.flipped.length >= 2) return;
+
+        card.isFlipped = true;
+        this.flipped.push(card);
+        this.flipToFront(card);
+
+        if (this.flipped.length === 2) {
+          this.canFlip = false;
+          this.moves++;
+          this.movesText.setText('Moves: ' + this.moves);
+          this.checkMatch();
+        }
+      }
+
+      flipToFront(card) {
+        this.tweens.add({
+          targets: card, scaleX: 0, duration: 120,
+          onComplete: function() {
+            card.backImg.setVisible(false);
+            card.frontImg.setVisible(true);
+            card.iconImg.setVisible(true);
+            this.tweens.add({ targets: card, scaleX: 1, duration: 120 });
+          }.bind(this)
+        });
+      }
+
+      flipToBack(card) {
+        this.tweens.add({
+          targets: card, scaleX: 0, duration: 120,
+          onComplete: function() {
+            card.backImg.setVisible(true);
+            card.frontImg.setVisible(false);
+            card.iconImg.setVisible(false);
+            card.isFlipped = false;
+            this.tweens.add({ targets: card, scaleX: 1, duration: 120 });
+          }.bind(this)
+        });
+      }
+
+      checkMatch() {
+        var a = this.flipped[0], b = this.flipped[1];
+
+        if (a.pairId === b.pairId) {
+          this.combo++;
+          a.isMatched = true;
+          b.isMatched = true;
+          this.matched++;
+          this.pairsText.setText('Pairs: ' + this.matched + '/' + this.pairs);
+
+          this.matchEmitter.emitParticleAt(a.x, a.y);
+          this.matchEmitter.emitParticleAt(b.x, b.y);
+
+          this.tweens.add({
+            targets: [a, b], scale: 1.15, duration: 150, yoyo: true, ease: 'Quad.easeOut',
+            onComplete: function() {
+              a.setAlpha(0.4);
+              b.setAlpha(0.4);
+            }
+          });
+
+          if (this.combo >= 2) {
+            this.comboText.setText(this.combo + 'x Streak!');
+            this.comboText.setAlpha(1).setScale(0.5);
+            this.tweens.add({
+              targets: this.comboText, scale: 1.2, alpha: 0, duration: 800, ease: 'Power2'
+            });
+          }
+
+          this.flipped = [];
+          this.canFlip = true;
+
+          if (this.matched >= this.pairs) {
+            this.time.delayedCall(500, function() { this.winLevel(); }.bind(this));
+          }
+        } else {
+          this.combo = 0;
+          this.cameras.main.shake(120, 0.006);
+
+          this.time.delayedCall(700, function() {
+            this.flipToBack(a);
+            this.flipToBack(b);
+            this.flipped = [];
+            this.time.delayedCall(300, function() {
+              this.canFlip = true;
+            }.bind(this));
+          }.bind(this));
+        }
+      }
+
+      getStars() {
+        if (this.moves <= this.starThresholds[0]) return 3;
+        if (this.moves <= this.starThresholds[1]) return 2;
+        if (this.moves <= this.starThresholds[2]) return 1;
+        return 1;
+      }
+
+      winLevel() {
+        this.gameState = 'won';
+        var stars = this.getStars();
+
+        if (this.bestMoves === 0 || this.moves < this.bestMoves) {
+          this.bestMoves = this.moves;
+          this.registry.set('memBest', this.bestMoves);
+        }
+
+        this.cameras.main.flash(300, 255, 255, 255, false, null, this);
+        this.showWinPanel(stars);
+      }
+
+      createWinPanel() {
+        var px = W / 2, py = H / 2;
+        var pw = 320, ph = 300;
+        this.winPanel = {};
+
+        this.winPanel.overlay = this.add.graphics().setDepth(30).setVisible(false);
+        this.winPanel.overlay.fillStyle(0x000000, 0.65);
+        this.winPanel.overlay.fillRect(0, 0, W, H);
+
+        this.winPanel.box = this.add.graphics().setDepth(31).setVisible(false);
+        this.winPanel.box.fillStyle(0x1a1040, 0.95);
+        this.winPanel.box.fillRoundedRect(px - pw / 2, py - ph / 2, pw, ph, 16);
+        this.winPanel.box.lineStyle(2, 0xffaa22, 0.6);
+        this.winPanel.box.strokeRoundedRect(px - pw / 2, py - ph / 2, pw, ph, 16);
+
+        this.winPanel.title = this.add.text(px, py - 110, 'LEVEL CLEAR!', {
+          fontSize: '30px', fontFamily: 'Segoe UI', fontStyle: 'bold',
+          fill: '#ffaa22', stroke: '#000', strokeThickness: 4
+        }).setOrigin(0.5).setDepth(32).setVisible(false);
+
+        this.winPanel.stars = [];
+        for (var si = 0; si < 3; si++) {
+          var starImg = this.add.image(px - 44 + si * 44, py - 60, 'starEmpty')
+            .setDepth(32).setVisible(false).setScale(1.3);
+          this.winPanel.stars.push(starImg);
+        }
+
+        this.winPanel.movesLabel = this.add.text(px, py - 18, '', {
+          fontSize: '18px', fontFamily: 'Segoe UI', fill: '#fff',
+          stroke: '#000', strokeThickness: 2
+        }).setOrigin(0.5).setDepth(32).setVisible(false);
+
+        this.winPanel.timeLabel = this.add.text(px, py + 8, '', {
+          fontSize: '15px', fontFamily: 'Segoe UI', fill: '#44ddff',
+          stroke: '#000', strokeThickness: 2
+        }).setOrigin(0.5).setDepth(32).setVisible(false);
+
+        this.winPanel.bestLabel = this.add.text(px, py + 34, '', {
+          fontSize: '14px', fontFamily: 'Segoe UI', fill: '#cc44ff',
+          stroke: '#000', strokeThickness: 2
+        }).setOrigin(0.5).setDepth(32).setVisible(false);
+
+        this.winPanel.btn = this.add.graphics().setDepth(32).setVisible(false);
+        this.winPanel.btn.fillStyle(0xffaa22, 0.15);
+        this.winPanel.btn.fillRoundedRect(px - 75, py + 65, 150, 42, 10);
+        this.winPanel.btn.lineStyle(2, 0xffaa22, 0.7);
+        this.winPanel.btn.strokeRoundedRect(px - 75, py + 65, 150, 42, 10);
+
+        this.winPanel.btnText = this.add.text(px, py + 86, 'NEXT LEVEL', {
+          fontSize: '18px', fontFamily: 'Segoe UI', fontStyle: 'bold',
+          fill: '#ffffff', stroke: '#000', strokeThickness: 2
+        }).setOrigin(0.5).setDepth(33).setVisible(false);
+
+        this.winPanel.hint = this.add.text(px, py + 125, 'Click or press SPACE', {
+          fontSize: '12px', fontFamily: 'Segoe UI', fill: '#777'
+        }).setOrigin(0.5).setDepth(32).setVisible(false);
+
+        this.winPanel.btnZone = this.add.rectangle(px, py + 86, 150, 42, 0x000000, 0)
+          .setDepth(34).setInteractive({ useHandCursor: true }).setVisible(false);
+        this.winPanel.btnZone.on('pointerover', function() {
+          this.winPanel.btnText.setFill('#ffaa22');
+        }.bind(this));
+        this.winPanel.btnZone.on('pointerout', function() {
+          this.winPanel.btnText.setFill('#ffffff');
+        }.bind(this));
+        this.winPanel.btnZone.on('pointerdown', function() {
+          this.restartOrNext();
+        }.bind(this));
+      }
+
+      showWinPanel(numStars) {
+        var px = W / 2, py = H / 2;
+        var isLastLevel = this.levelNum >= LEVEL_CONFIG.length;
+
+        if (isLastLevel) {
+          this.winPanel.title.setText('YOU WIN!').setFill('#44dd44');
+          this.winPanel.btnText.setText('PLAY AGAIN');
+        } else {
+          this.winPanel.title.setText('LEVEL CLEAR!').setFill('#ffaa22');
+          this.winPanel.btnText.setText('NEXT LEVEL');
+        }
+
+        this.winPanel.movesLabel.setText('Moves: ' + this.moves);
+        var mins = Math.floor(this.elapsedTime / 60);
+        var secs = Math.floor(this.elapsedTime % 60);
+        this.winPanel.timeLabel.setText('Time: ' + mins + ':' + (secs < 10 ? '0' : '') + secs);
+        var bestStr = 'Best: ' + (this.bestMoves > 0 ? this.bestMoves + ' moves' : '--');
+        if (this.moves <= this.bestMoves) bestStr += '  NEW BEST!';
+        this.winPanel.bestLabel.setText(bestStr);
+
+        var parts = ['overlay', 'box', 'title', 'movesLabel', 'timeLabel', 'bestLabel', 'btn', 'btnText', 'hint', 'btnZone'];
+        for (var i = 0; i < parts.length; i++) this.winPanel[parts[i]].setVisible(true);
+        for (var j = 0; j < 3; j++) this.winPanel.stars[j].setVisible(true);
+
+        this.winPanel.title.setScale(0.5).setAlpha(0);
+        this.winPanel.movesLabel.setAlpha(0);
+        this.winPanel.timeLabel.setAlpha(0);
+        this.winPanel.bestLabel.setAlpha(0);
+        this.winPanel.btn.setAlpha(0);
+        this.winPanel.btnText.setAlpha(0);
+        this.winPanel.hint.setAlpha(0);
+
+        this.tweens.add({ targets: this.winPanel.title, scale: 1, alpha: 1, duration: 400, ease: 'Back.easeOut' });
+
+        for (var k = 0; k < 3; k++) {
+          var starTarget = this.winPanel.stars[k];
+          starTarget.setScale(0).setAlpha(0);
+          if (k < numStars) {
+            starTarget.setTexture('star');
+            this.tweens.add({
+              targets: starTarget, scale: 1.3, alpha: 1, duration: 300,
+              delay: 400 + k * 200, ease: 'Back.easeOut'
+            });
+          } else {
+            starTarget.setTexture('starEmpty');
+            this.tweens.add({
+              targets: starTarget, scale: 1.3, alpha: 0.5, duration: 200,
+              delay: 400 + k * 200
+            });
+          }
+        }
+
+        this.tweens.add({ targets: this.winPanel.movesLabel, alpha: 1, duration: 300, delay: 1000 });
+        this.tweens.add({ targets: this.winPanel.timeLabel, alpha: 1, duration: 300, delay: 1100 });
+        this.tweens.add({ targets: this.winPanel.bestLabel, alpha: 1, duration: 300, delay: 1200 });
+        this.tweens.add({ targets: [this.winPanel.btn, this.winPanel.btnText], alpha: 1, duration: 300, delay: 1400 });
+        this.tweens.add({ targets: this.winPanel.hint, alpha: 1, duration: 300, delay: 1500 });
+      }
+
+      restartOrNext() {
+        if (this.gameState !== 'won') return;
+        var isLastLevel = this.levelNum >= LEVEL_CONFIG.length;
+        if (isLastLevel) {
+          this.registry.set('memLevel', 1);
+        } else {
+          this.registry.set('memLevel', this.levelNum + 1);
+        }
+        this.scene.restart();
+      }
+
+      showBanner(text) {
+        this.bannerText.setText(text).setAlpha(0).setScale(0.5);
+        this.tweens.add({
+          targets: this.bannerText, alpha: 1, scale: 1.2, duration: 300, ease: 'Back.easeOut',
+          hold: 800,
+          onComplete: function() {
+            this.tweens.add({
+              targets: this.bannerText, alpha: 0, scale: 0.5, duration: 300
+            });
+          }.bind(this)
+        });
+      }
+
+      update(time, delta) {
+        if (this.gameState === 'playing') {
+          this.elapsedTime += delta / 1000;
+          var mins = Math.floor(this.elapsedTime / 60);
+          var secs = Math.floor(this.elapsedTime % 60);
+          this.timerText.setText(mins + ':' + (secs < 10 ? '0' : '') + secs);
         }
       }
     }
 
-    function update() {}
-    new Phaser.Game(config);
+    new Phaser.Game({
+      type: Phaser.AUTO,
+      width: W,
+      height: H,
+      parent: 'game-container',
+      backgroundColor: '#1a1040',
+      scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
+      scene: MemoryScene
+    });
   </script>
 </body>
 </html>

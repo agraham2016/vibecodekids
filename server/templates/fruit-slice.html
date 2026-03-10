@@ -3,180 +3,570 @@
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <style>
+    :root {
+      --game-primary: #ff6b35;
+      --game-secondary: #fdcb6e;
+      --game-bg: #1a1a2e;
+      --game-text: #ffffff;
+      --game-accent: #e74c3c;
+    }
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Segoe UI', sans-serif; background: linear-gradient(135deg, #ffeaa7 0%, #fdcb6e 50%, #e17055 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; overflow: hidden; touch-action: none; }
-    #game-container { border-radius: 12px; overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
-    .hint { margin-top: 12px; color: rgba(0,0,0,0.6); font-size: 13px; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      touch-action: none;
+    }
+    #game-container {
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 0 40px rgba(255, 107, 53, 0.25), 0 0 80px rgba(253, 203, 110, 0.1);
+    }
+    .hint {
+      position: fixed;
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: rgba(255,255,255,0.45);
+      font-size: 13px;
+      font-family: 'Segoe UI', sans-serif;
+      text-align: center;
+      pointer-events: none;
+    }
   </style>
-  <script src="https://cdn.jsdelivr.net/npm/phaser@3.86.0/dist/phaser.min.js" crossorigin="anonymous"></script>
 </head>
 <body>
   <div id="game-container"></div>
-  <div class="hint">Tap fruit to slice! Avoid bombs • 60 seconds • Score 100 to win</div>
+  <div class="hint">Swipe to slice fruit &bull; Avoid bombs &bull; Don't let fruit fall!</div>
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.86.0/dist/phaser.min.js" crossorigin="anonymous"></script>
   <script>
-    const W = 800, H = 500;
-    const FRUIT_R = 28;
-    const TARGET_SCORE = 100;
-    const GAME_TIME = 60000;
-    const BOMB_PENALTY = 20;
+    var W = 800, H = 550;
+    var GRAVITY = 600;
+    var GAME_TIME = 90;
+    var MAX_LIVES = 3;
 
-    class FruitSliceScene extends Phaser.Scene {
+    var FRUIT_DEFS = [
+      { name: 'apple',      fill: 0xe74c3c, inner: 0xf5e6cc, seed: 0x8b4513 },
+      { name: 'orange',     fill: 0xff9f43, inner: 0xffeaa7, seed: 0xff6b35 },
+      { name: 'watermelon', fill: 0x2ecc71, inner: 0xff6b6b, seed: 0x2d3436 },
+      { name: 'lemon',      fill: 0xf1c40f, inner: 0xffeaa7, seed: 0xf39c12 },
+      { name: 'grape',      fill: 0x8e44ad, inner: 0xd5a6e6, seed: 0x6c3483 },
+      { name: 'kiwi',       fill: 0x6ab04c, inner: 0xbadc58, seed: 0x2d3436 }
+    ];
+
+    class SliceScene extends Phaser.Scene {
+      constructor() { super('SliceScene'); }
+
       preload() {
         var g = this.make.graphics({ add: false });
+        var R = 28;
 
-        // Apple (red circle with green leaf)
-        g.clear(); g.fillStyle(0xe74c3c); g.fillCircle(32, 34, 28);
-        g.fillStyle(0x27ae60); g.fillRect(28, 2, 6, 12);
-        g.fillStyle(0x2ecc71); g.fillEllipse(38, 8, 14, 8);
-        g.generateTexture('apple', 64, 64); g.clear();
+        for (var fi = 0; fi < FRUIT_DEFS.length; fi++) {
+          var f = FRUIT_DEFS[fi];
+          g.clear();
+          g.fillStyle(f.fill);
+          g.fillCircle(R, R, R - 2);
+          g.fillStyle(0xffffff, 0.25);
+          g.fillCircle(R - 6, R - 6, 8);
+          if (fi === 0) {
+            g.fillStyle(0x27ae60); g.fillRect(R - 2, 2, 4, 8);
+            g.fillStyle(0x2ecc71); g.fillEllipse(R + 6, 6, 10, 6);
+          }
+          if (fi === 2) {
+            g.lineStyle(2, 0x229954, 0.5);
+            g.strokeCircle(R, R, R - 4);
+          }
+          g.generateTexture(f.name, R * 2, R * 2);
 
-        // Lemon (yellow oval)
-        g.fillStyle(0xf1c40f); g.fillEllipse(32, 32, 56, 44);
-        g.fillStyle(0xf39c12); g.fillEllipse(32, 32, 40, 30);
-        g.generateTexture('lemon', 64, 64); g.clear();
+          g.clear();
+          g.fillStyle(f.fill);
+          g.beginPath(); g.arc(R, R, R - 2, -Math.PI / 2, Math.PI / 2, false); g.closePath(); g.fillPath();
+          g.fillStyle(f.inner);
+          g.beginPath(); g.arc(R, R, R - 6, -Math.PI / 2, Math.PI / 2, false); g.closePath(); g.fillPath();
+          g.fillStyle(f.seed);
+          g.fillCircle(R + 2, R - 6, 2);
+          g.fillCircle(R + 4, R + 4, 2);
+          g.generateTexture(f.name + '_halfR', R * 2, R * 2);
 
-        // Lime (green circle)
-        g.fillStyle(0x2ecc71); g.fillCircle(32, 32, 26);
-        g.fillStyle(0x27ae60); g.fillCircle(32, 32, 18);
-        g.lineStyle(2, 0x1abc9c); g.strokeCircle(32, 32, 12);
-        g.generateTexture('lime', 64, 64); g.clear();
+          g.clear();
+          g.fillStyle(f.fill);
+          g.beginPath(); g.arc(R, R, R - 2, Math.PI / 2, -Math.PI / 2, false); g.closePath(); g.fillPath();
+          g.fillStyle(f.inner);
+          g.beginPath(); g.arc(R, R, R - 6, Math.PI / 2, -Math.PI / 2, false); g.closePath(); g.fillPath();
+          g.fillStyle(f.seed);
+          g.fillCircle(R - 2, R - 4, 2);
+          g.fillCircle(R - 4, R + 6, 2);
+          g.generateTexture(f.name + '_halfL', R * 2, R * 2);
+        }
 
-        // Banana (yellow curved shape)
-        g.fillStyle(0xf1c40f); g.fillRoundedRect(10, 20, 44, 20, 10);
-        g.fillStyle(0xf39c12); g.fillRoundedRect(14, 24, 36, 12, 6);
-        g.fillStyle(0x7f6b00); g.fillRect(48, 18, 6, 4);
-        g.generateTexture('banana', 64, 64); g.clear();
+        g.clear();
+        g.fillStyle(0x2d3436); g.fillCircle(28, 30, 24);
+        g.fillStyle(0x636e72); g.fillCircle(22, 24, 6);
+        g.fillStyle(0xdfe6e9, 0.6); g.fillCircle(20, 22, 3);
+        g.lineStyle(3, 0x636e72); g.beginPath(); g.moveTo(28, 6); g.lineTo(34, 0); g.strokePath();
+        g.fillStyle(0xe17055); g.fillCircle(34, 0, 5);
+        g.fillStyle(0xfdcb6e); g.fillCircle(34, 0, 3);
+        g.generateTexture('bomb', 56, 56);
 
-        // Strawberry (red triangle-ish with dots)
-        g.fillStyle(0xe74c3c); g.fillTriangle(32, 58, 10, 16, 54, 16);
-        g.fillStyle(0xe74c3c); g.fillCircle(32, 22, 18);
-        g.fillStyle(0x27ae60); g.fillTriangle(26, 10, 32, 0, 38, 10);
-        g.fillStyle(0xf5f5f5, 0.8);
-        g.fillCircle(26, 28, 2); g.fillCircle(38, 28, 2);
-        g.fillCircle(32, 38, 2); g.fillCircle(28, 46, 2); g.fillCircle(36, 46, 2);
-        g.generateTexture('strawberry', 64, 64); g.clear();
+        g.clear();
+        g.fillStyle(0xffffff);
+        g.fillCircle(4, 4, 4);
+        g.generateTexture('spark', 8, 8);
 
-        // Bomb (dark circle with fuse)
-        g.fillStyle(0x2d3436); g.fillCircle(32, 36, 24);
-        g.fillStyle(0x636e72); g.fillCircle(26, 30, 6);
-        g.fillStyle(0xdfe6e9); g.fillCircle(24, 28, 3);
-        g.lineStyle(3, 0x636e72); g.lineBetween(32, 12, 38, 4);
-        g.fillStyle(0xe17055); g.fillCircle(38, 4, 5);
-        g.fillStyle(0xfdcb6e); g.fillCircle(38, 4, 3);
-        g.generateTexture('bomb', 64, 64); g.clear();
+        g.clear();
+        g.fillStyle(0xe74c3c);
+        g.beginPath();
+        g.arc(10, 8, 6, Math.PI, 0, false);
+        g.arc(22, 8, 6, Math.PI, 0, false);
+        g.lineTo(28, 8); g.lineTo(16, 24); g.lineTo(4, 8);
+        g.closePath(); g.fillPath();
+        g.generateTexture('heart', 32, 28);
 
-        // Slice particle
-        g.fillStyle(0xffffff); g.fillCircle(4, 4, 4);
-        g.generateTexture('slice-particle', 8, 8);
+        g.clear();
+        g.fillStyle(0x555555);
+        g.beginPath();
+        g.arc(10, 8, 6, Math.PI, 0, false);
+        g.arc(22, 8, 6, Math.PI, 0, false);
+        g.lineTo(28, 8); g.lineTo(16, 24); g.lineTo(4, 8);
+        g.closePath(); g.fillPath();
+        g.generateTexture('heartEmpty', 32, 28);
 
+        g.clear();
         g.destroy();
       }
 
       create() {
-        var bg = this.add.graphics();
-        bg.fillStyle(0xffeaa7); bg.fillRect(0, 0, W, H);
-        for (var i = 0; i < 30; i++) {
-          bg.fillStyle(0xfdcb6e, 0.3);
-          bg.fillCircle(Phaser.Math.Between(0, W), Phaser.Math.Between(0, H), Phaser.Math.Between(20, 50));
-        }
-
+        this.bestScore = this.registry.get('fruitBest') || 0;
         this.score = 0;
+        this.lives = MAX_LIVES;
         this.gameOver = false;
-        this.lives = 3;
-        this.fruits = this.add.group();
+        this.timeLeft = GAME_TIME;
+        this.combo = 0;
+        this.maxCombo = 0;
+        this.fruitsSliced = 0;
+        this.swipeActive = false;
+        this.swipePoints = [];
+        this.swipeFruits = new Set();
+        this.activeFruits = [];
+        this.activeHalves = [];
+        this.spawnAccum = 0;
+        this.difficulty = 0;
 
-        this.livesText = this.add.text(W / 2, 12, '❤️❤️❤️', { fontSize: '22px' }).setOrigin(0.5, 0).setDepth(10);
-        this.scoreText = this.add.text(12, 12, 'Score: 0', { fontSize: '22px', fill: '#2d3436', stroke: '#fff', strokeThickness: 3 }).setDepth(10);
-        this.timeText = this.add.text(W - 12, 12, '60s', { fontSize: '22px', fill: '#e17055', stroke: '#fff', strokeThickness: 3 }).setOrigin(1, 0).setDepth(10);
-        this.msgText = this.add.text(W / 2, H / 2, '', { fontSize: '28px', fill: '#2d3436', stroke: '#fff', strokeThickness: 4, align: 'center' }).setOrigin(0.5).setDepth(20).setVisible(false);
+        var bg = this.add.graphics();
+        bg.fillGradientStyle(0x1a1a2e, 0x1a1a2e, 0x16213e, 0x0f3460);
+        bg.fillRect(0, 0, W, H);
+        for (var si = 0; si < 20; si++) {
+          bg.fillStyle(0xffffff, Phaser.Math.FloatBetween(0.02, 0.08));
+          bg.fillCircle(Phaser.Math.Between(0, W), Phaser.Math.Between(0, H), Phaser.Math.Between(1, 2));
+        }
 
-        this.startTime = Date.now();
-        this.spawnFruit();
-        this.spawnTimer = this.time.addEvent({ delay: 800, callback: () => this.spawnFruit(), loop: true });
-      }
+        this.trailGfx = this.add.graphics().setDepth(12);
 
-      spawnFruit() {
-        if (this.gameOver) return;
-        var isBomb = Math.random() < 0.15;
-        var key = isBomb ? 'bomb' : Phaser.Utils.Array.GetRandom(['apple', 'lemon', 'lime', 'banana', 'strawberry']);
-        var dir = Math.random() < 0.5 ? 1 : -1;
-        var startX = dir < 0 ? W + FRUIT_R : -FRUIT_R;
-        var endX = dir < 0 ? -FRUIT_R : W + FRUIT_R;
-        var y = Phaser.Math.Between(FRUIT_R * 2, H - FRUIT_R * 2);
-        var speed = Phaser.Math.Between(80, 180) * dir;
+        this.juiceEmitter = this.add.particles(0, 0, 'spark', {
+          speed: { min: 80, max: 250 }, lifespan: 400,
+          scale: { start: 1.5, end: 0 }, emitting: false, quantity: 10
+        }).setDepth(14);
 
-        var fruit = this.add.image(startX, y, key).setDisplaySize(FRUIT_R * 2, FRUIT_R * 2);
-        fruit.isBomb = isBomb;
-        fruit.setInteractive({ useHandCursor: true });
-        fruit.on('pointerdown', () => {
+        this.bombEmitter = this.add.particles(0, 0, 'spark', {
+          speed: { min: 100, max: 300 }, lifespan: 500,
+          scale: { start: 2, end: 0 }, emitting: false, quantity: 15,
+          tint: [0x2d3436, 0xe17055, 0xfdcb6e]
+        }).setDepth(14);
+
+        this.scoreText = this.add.text(14, 12, 'Score: 0', {
+          fontSize: '20px', fontFamily: 'Segoe UI', fill: '#fdcb6e',
+          stroke: '#000', strokeThickness: 3
+        }).setDepth(20);
+
+        this.bestText = this.add.text(14, 38, 'Best: ' + this.bestScore, {
+          fontSize: '14px', fontFamily: 'Segoe UI', fill: '#aaa',
+          stroke: '#000', strokeThickness: 2
+        }).setDepth(20);
+
+        this.timerText = this.add.text(W / 2, 12, this.formatTime(GAME_TIME), {
+          fontSize: '20px', fontFamily: 'Segoe UI', fill: '#ff6b35',
+          stroke: '#000', strokeThickness: 3
+        }).setOrigin(0.5, 0).setDepth(20);
+
+        this.heartIcons = [];
+        for (var hi = 0; hi < MAX_LIVES; hi++) {
+          var hrt = this.add.image(W - 20 - hi * 36, 22, 'heart').setDepth(20);
+          this.heartIcons.push(hrt);
+        }
+
+        this.comboText = this.add.text(W / 2, H / 2 - 60, '', {
+          fontSize: '32px', fontFamily: 'Segoe UI', fontStyle: 'bold',
+          fill: '#fdcb6e', stroke: '#000', strokeThickness: 4
+        }).setOrigin(0.5).setDepth(18).setAlpha(0);
+
+        this.createGameOverPanel();
+
+        this.input.on('pointerdown', function(p) {
           if (this.gameOver) return;
-          if (fruit.isBomb) {
-            this.score = Math.max(0, this.score - BOMB_PENALTY);
-            this.scoreText.setText('Score: ' + this.score);
-            this.lives--;
-            this.livesText.setText('❤️'.repeat(Math.max(0, this.lives)));
-            this.cameras.main.shake(150, 0.015);
-            this.showSliceEffect(fruit.x, fruit.y, 0x2d3436);
-            fruit.destroy();
-            if (this.lives <= 0) this.lose();
-          } else {
-            this.score += 12;
-            this.scoreText.setText('Score: ' + this.score);
-            this.showSliceEffect(fruit.x, fruit.y, 0xfdcb6e);
-            this.tweens.add({ targets: fruit, scaleX: 0.3, scaleY: 0.3, alpha: 0, duration: 150, onComplete: () => fruit.destroy() });
-            if (this.score >= TARGET_SCORE) this.win();
-          }
-        });
-        this.fruits.add(fruit);
+          this.swipeActive = true;
+          this.swipePoints = [{ x: p.x, y: p.y }];
+          this.swipeFruits = new Set();
+          this.checkSwipeCollisions(p.x, p.y);
+        }.bind(this));
 
-        var duration = Math.abs((endX - startX) / speed) * 1000;
-        this.tweens.add({
-          targets: fruit, x: endX, duration: duration,
-          onComplete: () => { if (fruit.active) fruit.destroy(); }
-        });
+        this.input.on('pointermove', function(p) {
+          if (!this.swipeActive || this.gameOver) return;
+          this.swipePoints.push({ x: p.x, y: p.y });
+          if (this.swipePoints.length > 20) this.swipePoints.shift();
+          this.checkSwipeCollisions(p.x, p.y);
+        }.bind(this));
+
+        this.input.on('pointerup', function() {
+          if (!this.swipeActive) return;
+          this.swipeActive = false;
+          var slicedInSwipe = this.swipeFruits.size;
+          if (slicedInSwipe >= 2) {
+            this.combo = slicedInSwipe;
+            if (this.combo > this.maxCombo) this.maxCombo = this.combo;
+            var bonus = slicedInSwipe * 5;
+            this.score += bonus;
+            this.scoreText.setText('Score: ' + this.score);
+            this.comboText.setText(slicedInSwipe + 'x COMBO! +' + bonus);
+            this.comboText.setAlpha(1).setScale(0.5);
+            this.tweens.add({
+              targets: this.comboText, scale: 1.3, alpha: 0, duration: 900, ease: 'Power2'
+            });
+          }
+          this.swipeFruits = new Set();
+          this.swipePoints = [];
+        }.bind(this));
+
+        this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+        this.spaceKey.on('down', function() {
+          if (this.gameOver) this.restartGame();
+        }.bind(this));
       }
 
-      showSliceEffect(x, y, tint) {
-        for (var i = 0; i < 6; i++) {
-          var p = this.add.image(x, y, 'slice-particle').setTint(tint).setDepth(15);
-          this.tweens.add({
-            targets: p,
-            x: x + Phaser.Math.Between(-40, 40),
-            y: y + Phaser.Math.Between(-40, 40),
-            alpha: 0, scaleX: 0.3, scaleY: 0.3,
-            duration: 300, onComplete: () => p.destroy()
-          });
+      formatTime(secs) {
+        var m = Math.floor(secs / 60);
+        var s = Math.floor(secs % 60);
+        return m + ':' + (s < 10 ? '0' : '') + s;
+      }
+
+      checkSwipeCollisions(px, py) {
+        for (var i = this.activeFruits.length - 1; i >= 0; i--) {
+          var fruit = this.activeFruits[i];
+          if (!fruit || !fruit.sprite || !fruit.sprite.active) continue;
+          if (this.swipeFruits.has(fruit)) continue;
+
+          var dist = Phaser.Math.Distance.Between(px, py, fruit.sprite.x, fruit.sprite.y);
+          if (dist < 44) {
+            this.swipeFruits.add(fruit);
+            if (fruit.isBomb) {
+              this.hitBomb(fruit);
+            } else {
+              this.sliceFruit(fruit);
+            }
+          }
         }
       }
 
-      win() {
-        this.gameOver = true;
-        this.spawnTimer.remove();
-        this.msgText.setText('SLICED! 🎉\nScore: ' + this.score + '\nTap to play again').setTint(0x55efc4).setVisible(true);
-        this.input.once('pointerdown', () => this.scene.restart());
+      sliceFruit(fruit) {
+        var fx = fruit.sprite.x, fy = fruit.sprite.y;
+        var def = FRUIT_DEFS[fruit.typeIdx];
+
+        this.juiceEmitter.setParticleTint(def.fill);
+        this.juiceEmitter.emitParticleAt(fx, fy);
+
+        var halfL = this.add.image(fx - 8, fy, def.name + '_halfL').setDepth(8);
+        var halfR = this.add.image(fx + 8, fy, def.name + '_halfR').setDepth(8);
+        halfL.vx = -Phaser.Math.Between(60, 140);
+        halfL.vy = -Phaser.Math.Between(80, 200);
+        halfL.rot = -Phaser.Math.Between(2, 5);
+        halfR.vx = Phaser.Math.Between(60, 140);
+        halfR.vy = -Phaser.Math.Between(80, 200);
+        halfR.rot = Phaser.Math.Between(2, 5);
+        this.activeHalves.push(halfL, halfR);
+
+        var pts = 10;
+        this.score += pts;
+        this.fruitsSliced++;
+        this.scoreText.setText('Score: ' + this.score);
+
+        var popup = this.add.text(fx, fy - 20, '+' + pts, {
+          fontSize: '18px', fontFamily: 'Segoe UI', fontStyle: 'bold',
+          fill: '#fff', stroke: '#000', strokeThickness: 2
+        }).setOrigin(0.5).setDepth(16);
+        this.tweens.add({
+          targets: popup, y: fy - 60, alpha: 0, duration: 600,
+          onComplete: function() { popup.destroy(); }
+        });
+
+        fruit.sprite.destroy();
+        fruit.sprite = null;
+        var idx = this.activeFruits.indexOf(fruit);
+        if (idx !== -1) this.activeFruits.splice(idx, 1);
       }
 
-      lose() {
-        this.gameOver = true;
-        this.spawnTimer.remove();
-        this.msgText.setText('GAME OVER 💥\nScore: ' + this.score + '\nTap to restart').setVisible(true);
-        this.input.once('pointerdown', () => this.scene.restart());
+      hitBomb(fruit) {
+        var bx = fruit.sprite.x, by = fruit.sprite.y;
+
+        this.bombEmitter.emitParticleAt(bx, by);
+        this.cameras.main.shake(250, 0.025);
+        this.cameras.main.flash(200, 255, 50, 0);
+
+        this.lives--;
+        this.updateHearts();
+
+        fruit.sprite.destroy();
+        fruit.sprite = null;
+        var idx = this.activeFruits.indexOf(fruit);
+        if (idx !== -1) this.activeFruits.splice(idx, 1);
+
+        if (this.lives <= 0) {
+          this.endGame();
+        }
       }
 
-      update() {
-        if (this.gameOver) return;
-        var elapsed = (Date.now() - this.startTime) / 1000;
-        var left = Math.max(0, Math.ceil(GAME_TIME / 1000 - elapsed));
-        this.timeText.setText(left + 's');
-        if (left <= 0 && this.score < TARGET_SCORE) this.lose();
+      updateHearts() {
+        for (var i = 0; i < MAX_LIVES; i++) {
+          this.heartIcons[i].setTexture(i < this.lives ? 'heart' : 'heartEmpty');
+        }
+      }
+
+      spawnWave() {
+        var count = Phaser.Math.Between(2, 3 + Math.floor(this.difficulty));
+        var bombChance = 0.12 + this.difficulty * 0.02;
+
+        for (var i = 0; i < count; i++) {
+          var isBomb = Math.random() < bombChance;
+          var typeIdx = Phaser.Math.Between(0, FRUIT_DEFS.length - 1);
+          var texKey = isBomb ? 'bomb' : FRUIT_DEFS[typeIdx].name;
+
+          var sx = Phaser.Math.Between(100, W - 100);
+          var launchVy = -Phaser.Math.Between(380, 520) - this.difficulty * 15;
+          var launchVx = Phaser.Math.Between(-120, 120);
+
+          var sprite = this.add.image(sx, H + 40, texKey).setDepth(6);
+          var fruitObj = {
+            sprite: sprite,
+            vx: launchVx,
+            vy: launchVy,
+            rotSpeed: Phaser.Math.FloatBetween(-4, 4),
+            isBomb: isBomb,
+            typeIdx: typeIdx,
+            sliced: false,
+            counted: false
+          };
+
+          this.activeFruits.push(fruitObj);
+        }
+      }
+
+      drawTrail() {
+        this.trailGfx.clear();
+        if (!this.swipeActive || this.swipePoints.length < 2) return;
+
+        var pts = this.swipePoints;
+        var len = pts.length;
+        for (var i = 1; i < len; i++) {
+          var alpha = i / len;
+          var width = alpha * 4;
+          this.trailGfx.lineStyle(width, 0xffffff, alpha * 0.6);
+          this.trailGfx.beginPath();
+          this.trailGfx.moveTo(pts[i - 1].x, pts[i - 1].y);
+          this.trailGfx.lineTo(pts[i].x, pts[i].y);
+          this.trailGfx.strokePath();
+        }
+      }
+
+      createGameOverPanel() {
+        var px = W / 2, py = H / 2;
+        var pw = 300, ph = 280;
+        this.goPanel = {};
+
+        this.goPanel.overlay = this.add.graphics().setDepth(30).setVisible(false);
+        this.goPanel.overlay.fillStyle(0x000000, 0.7);
+        this.goPanel.overlay.fillRect(0, 0, W, H);
+
+        this.goPanel.box = this.add.graphics().setDepth(31).setVisible(false);
+        this.goPanel.box.fillStyle(0x1a1a2e, 0.95);
+        this.goPanel.box.fillRoundedRect(px - pw / 2, py - ph / 2, pw, ph, 16);
+        this.goPanel.box.lineStyle(2, 0xff6b35, 0.6);
+        this.goPanel.box.strokeRoundedRect(px - pw / 2, py - ph / 2, pw, ph, 16);
+
+        this.goPanel.title = this.add.text(px, py - 100, 'GAME OVER', {
+          fontSize: '30px', fontFamily: 'Segoe UI', fontStyle: 'bold',
+          fill: '#e74c3c', stroke: '#000', strokeThickness: 4
+        }).setOrigin(0.5).setDepth(32).setVisible(false);
+
+        this.goPanel.scoreLabel = this.add.text(px, py - 50, '', {
+          fontSize: '22px', fontFamily: 'Segoe UI', fill: '#fdcb6e',
+          stroke: '#000', strokeThickness: 3
+        }).setOrigin(0.5).setDepth(32).setVisible(false);
+
+        this.goPanel.statsLabel = this.add.text(px, py - 18, '', {
+          fontSize: '15px', fontFamily: 'Segoe UI', fill: '#fff',
+          stroke: '#000', strokeThickness: 2
+        }).setOrigin(0.5).setDepth(32).setVisible(false);
+
+        this.goPanel.bestLabel = this.add.text(px, py + 10, '', {
+          fontSize: '15px', fontFamily: 'Segoe UI', fill: '#44ddff',
+          stroke: '#000', strokeThickness: 2
+        }).setOrigin(0.5).setDepth(32).setVisible(false);
+
+        this.goPanel.btn = this.add.graphics().setDepth(32).setVisible(false);
+        this.goPanel.btn.fillStyle(0xff6b35, 0.15);
+        this.goPanel.btn.fillRoundedRect(px - 75, py + 45, 150, 42, 10);
+        this.goPanel.btn.lineStyle(2, 0xff6b35, 0.7);
+        this.goPanel.btn.strokeRoundedRect(px - 75, py + 45, 150, 42, 10);
+
+        this.goPanel.btnText = this.add.text(px, py + 66, 'PLAY AGAIN', {
+          fontSize: '18px', fontFamily: 'Segoe UI', fontStyle: 'bold',
+          fill: '#ffffff', stroke: '#000', strokeThickness: 2
+        }).setOrigin(0.5).setDepth(33).setVisible(false);
+
+        this.goPanel.hint = this.add.text(px, py + 105, 'Click or press SPACE', {
+          fontSize: '12px', fontFamily: 'Segoe UI', fill: '#777'
+        }).setOrigin(0.5).setDepth(32).setVisible(false);
+
+        this.goPanel.btnZone = this.add.rectangle(px, py + 66, 150, 42, 0x000000, 0)
+          .setDepth(34).setInteractive({ useHandCursor: true }).setVisible(false);
+        this.goPanel.btnZone.on('pointerover', function() {
+          this.goPanel.btnText.setFill('#ff6b35');
+        }.bind(this));
+        this.goPanel.btnZone.on('pointerout', function() {
+          this.goPanel.btnText.setFill('#ffffff');
+        }.bind(this));
+        this.goPanel.btnZone.on('pointerdown', function() {
+          this.restartGame();
+        }.bind(this));
+      }
+
+      endGame() {
+        this.gameOver = true;
+
+        if (this.score > this.bestScore) {
+          this.bestScore = this.score;
+          this.registry.set('fruitBest', this.bestScore);
+        }
+
+        var isTimeUp = this.timeLeft <= 0 && this.lives > 0;
+
+        if (isTimeUp) {
+          this.goPanel.title.setText('TIME UP!').setFill('#ff6b35');
+        } else {
+          this.goPanel.title.setText('GAME OVER').setFill('#e74c3c');
+        }
+
+        this.goPanel.scoreLabel.setText('Score: ' + this.score);
+        this.goPanel.statsLabel.setText('Fruit sliced: ' + this.fruitsSliced + '  |  Best combo: ' + this.maxCombo + 'x');
+        var bestStr = 'Best: ' + this.bestScore;
+        if (this.score >= this.bestScore && this.score > 0) bestStr += '  NEW BEST!';
+        this.goPanel.bestLabel.setText(bestStr);
+
+        var parts = ['overlay', 'box', 'title', 'scoreLabel', 'statsLabel', 'bestLabel', 'btn', 'btnText', 'hint', 'btnZone'];
+        for (var i = 0; i < parts.length; i++) this.goPanel[parts[i]].setVisible(true);
+
+        this.goPanel.title.setScale(0.5).setAlpha(0);
+        this.goPanel.scoreLabel.setAlpha(0);
+        this.goPanel.statsLabel.setAlpha(0);
+        this.goPanel.bestLabel.setAlpha(0);
+        this.goPanel.btn.setAlpha(0);
+        this.goPanel.btnText.setAlpha(0);
+        this.goPanel.hint.setAlpha(0);
+
+        this.tweens.add({ targets: this.goPanel.title, scale: 1, alpha: 1, duration: 400, ease: 'Back.easeOut' });
+        this.tweens.add({ targets: this.goPanel.scoreLabel, alpha: 1, duration: 300, delay: 200 });
+        this.tweens.add({ targets: this.goPanel.statsLabel, alpha: 1, duration: 300, delay: 350 });
+        this.tweens.add({ targets: this.goPanel.bestLabel, alpha: 1, duration: 300, delay: 500 });
+        this.tweens.add({ targets: [this.goPanel.btn, this.goPanel.btnText], alpha: 1, duration: 300, delay: 650 });
+        this.tweens.add({ targets: this.goPanel.hint, alpha: 1, duration: 300, delay: 800 });
+      }
+
+      restartGame() {
+        if (!this.gameOver) return;
+        this.scene.restart();
+      }
+
+      update(time, delta) {
+        if (this.gameOver) {
+          this.trailGfx.clear();
+          return;
+        }
+
+        var dt = delta / 1000;
+
+        this.timeLeft -= dt;
+        if (this.timeLeft <= 0) {
+          this.timeLeft = 0;
+          this.endGame();
+          return;
+        }
+        this.timerText.setText(this.formatTime(this.timeLeft));
+        if (this.timeLeft < 10) this.timerText.setFill('#e74c3c');
+
+        this.difficulty = Math.min(5, (GAME_TIME - this.timeLeft) / 18);
+        var spawnRate = Math.max(0.6, 1.6 - this.difficulty * 0.15);
+        this.spawnAccum += dt;
+        if (this.spawnAccum >= spawnRate) {
+          this.spawnAccum = 0;
+          this.spawnWave();
+        }
+
+        for (var i = this.activeFruits.length - 1; i >= 0; i--) {
+          var f = this.activeFruits[i];
+          if (!f.sprite || !f.sprite.active) {
+            this.activeFruits.splice(i, 1);
+            continue;
+          }
+          f.vx *= 1;
+          f.vy += GRAVITY * dt;
+          f.sprite.x += f.vx * dt;
+          f.sprite.y += f.vy * dt;
+          f.sprite.rotation += f.rotSpeed * dt;
+
+          if (f.sprite.y > H + 60) {
+            if (!f.isBomb && !f.counted) {
+              f.counted = true;
+            }
+            f.sprite.destroy();
+            f.sprite = null;
+            this.activeFruits.splice(i, 1);
+          }
+        }
+
+        for (var hi = this.activeHalves.length - 1; hi >= 0; hi--) {
+          var half = this.activeHalves[hi];
+          if (!half || !half.active) {
+            this.activeHalves.splice(hi, 1);
+            continue;
+          }
+          half.vx = half.vx || 0;
+          half.vy = (half.vy || 0) + GRAVITY * dt;
+          half.x += half.vx * dt;
+          half.y += half.vy * dt;
+          half.rotation += (half.rot || 0) * dt;
+          half.alpha -= dt * 0.8;
+
+          if (half.y > H + 80 || half.alpha <= 0) {
+            half.destroy();
+            this.activeHalves.splice(hi, 1);
+          }
+        }
+
+        this.drawTrail();
       }
     }
 
     new Phaser.Game({
-      type: Phaser.AUTO, width: W, height: H,
-      parent: 'game-container', backgroundColor: '#ffeaa7',
+      type: Phaser.AUTO,
+      width: W,
+      height: H,
+      parent: 'game-container',
+      backgroundColor: '#1a1a2e',
       scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
-      scene: FruitSliceScene
+      scene: SliceScene
     });
   </script>
 </body>

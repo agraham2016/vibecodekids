@@ -3,292 +3,847 @@
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <style>
-    :root { --game-primary:#fd79a8; --game-secondary:#6c5ce7; }
-    * { margin:0; padding:0; box-sizing:border-box; }
-    body { font-family:'Segoe UI',sans-serif; background:linear-gradient(135deg,#fd79a8 0%,#e84393 50%,#6c5ce7 100%);
-      min-height:100vh; display:flex; align-items:center; justify-content:center; overflow:hidden;  touch-action: none; }
-    #game { border-radius:12px; overflow:hidden; box-shadow:0 8px 32px rgba(0,0,0,0.4); }
+    :root {
+      --game-primary: #cc44ff;
+      --game-secondary: #44ddff;
+      --game-bg: #0a0a2e;
+      --game-text: #ffffff;
+      --game-accent: #ff4466;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #0a0a2e 0%, #1a0a3e 50%, #0a0a2e 100%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      touch-action: none;
+    }
+    #game-container {
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 0 40px rgba(204, 68, 255, 0.25), 0 0 80px rgba(68, 221, 255, 0.12);
+    }
+    .hint {
+      position: fixed;
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: rgba(255,255,255,0.5);
+      font-size: 13px;
+      font-family: 'Segoe UI', sans-serif;
+      text-align: center;
+      pointer-events: none;
+    }
   </style>
-  <script src="https://cdn.jsdelivr.net/npm/phaser@3.86.0/dist/phaser.min.js" crossorigin="anonymous"></script>
 </head>
 <body>
-<div id="game"></div>
-<script>
-const COLS = 10, ROWS = 12, R = 18, COLORS = 6;
-const GW = COLS * R * 2 + R, GH = 600;
+  <div id="game-container"></div>
+  <div class="hint">Aim &amp; Click = Shoot &bull; S = Swap &bull; SPACE = Fire</div>
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.86.0/dist/phaser.min.js" crossorigin="anonymous"></script>
+  <script>
+    var COLS = 10, ROWS = 12, R = 18, MAX_COLORS = 6;
+    var GW = COLS * R * 2 + R, GH = 620;
+    var BALL_SPEED = 700;
+    var SHOOT_Y = GH - 70;
 
-class BubbleScene extends Phaser.Scene {
-  constructor() { super('BubbleScene'); }
+    var BUBBLE_COLORS = [0xff4466, 0x44aaff, 0x44dd44, 0xffaa22, 0xcc44ff, 0x44ddff];
 
-  preload() {
-  }
+    var LEVEL_CONFIG = [
+      { startRows: 5, colors: 5, pushDelay: 22000 },
+      { startRows: 6, colors: 5, pushDelay: 20000 },
+      { startRows: 6, colors: 6, pushDelay: 18000 },
+      { startRows: 7, colors: 6, pushDelay: 16000 },
+      { startRows: 7, colors: 6, pushDelay: 14000 }
+    ];
 
-  create() {
-    const g = this.make.graphics({ add: false });
-    const colors = [0xff4466, 0x44aaff, 0x44dd44, 0xffaa22, 0xdd44ff, 0x44ffdd];
-    for (let i = 0; i < COLORS; i++) {
-      g.clear();
-      g.fillStyle(colors[i]); g.fillCircle(R, R, R - 2);
-      const r = (colors[i] >> 16) & 0xff, gv = (colors[i] >> 8) & 0xff, b = colors[i] & 0xff;
-      g.fillStyle(Phaser.Display.Color.GetColor(Math.min(255, r + 60), Math.min(255, gv + 60), Math.min(255, b + 60)));
-      g.fillCircle(R - 4, R - 4, 5);
-      g.generateTexture('bubble_' + i, R * 2, R * 2);
-    }
-    g.clear();
-    g.fillStyle(0xffffff); g.fillCircle(4, 4, 3);
-    g.generateTexture('particle', 8, 8); g.destroy();
+    class BubbleScene extends Phaser.Scene {
+      constructor() { super('BubbleScene'); }
 
-    this.score = 0; this.gameOver = false;
-    this.grid = [];
-    this.bubbleGroup = this.add.group();
+      preload() {
+        var g = this.make.graphics({ add: false });
 
-    this.add.rectangle(GW / 2, GH / 2, GW, GH, 0x1a0a2e);
+        for (var i = 0; i < MAX_COLORS; i++) {
+          g.clear();
+          var c = BUBBLE_COLORS[i];
+          var cr = (c >> 16) & 0xff, cg = (c >> 8) & 0xff, cb = c & 0xff;
 
-    for (let row = 0; row < 6; row++) {
-      this.grid[row] = [];
-      for (let col = 0; col < COLS - (row % 2 ? 1 : 0); col++) {
-        const type = Phaser.Math.Between(0, COLORS - 1);
-        const pos = this.gridToPos(row, col);
-        const spr = this.add.image(pos.x, pos.y, 'bubble_' + type).setScale(0.9);
-        spr.bData = { row, col, type };
-        this.grid[row][col] = spr;
-        this.bubbleGroup.add(spr);
+          g.fillStyle(c, 0.25);
+          g.fillCircle(R, R, R);
+          g.fillStyle(c);
+          g.fillCircle(R, R, R - 2);
+          var light = Phaser.Display.Color.GetColor(
+            Math.min(255, cr + 80), Math.min(255, cg + 80), Math.min(255, cb + 80)
+          );
+          g.fillStyle(light, 0.6);
+          g.fillCircle(R - 3, R - 3, 6);
+          g.fillStyle(0xffffff, 0.7);
+          g.fillCircle(R - 4, R - 5, 3);
+
+          g.lineStyle(1.5, 0xffffff, 0.3);
+          if (i === 0) {
+            g.strokeCircle(R, R, 5);
+          } else if (i === 1) {
+            g.beginPath(); g.moveTo(R, R - 6); g.lineTo(R + 5, R);
+            g.lineTo(R, R + 6); g.lineTo(R - 5, R); g.closePath(); g.strokePath();
+          } else if (i === 2) {
+            g.beginPath();
+            for (var s = 0; s < 5; s++) {
+              var a = -Math.PI / 2 + s * Math.PI * 2 / 5;
+              var method = s === 0 ? 'moveTo' : 'lineTo';
+              g[method](R + Math.cos(a) * 6, R + Math.sin(a) * 6);
+            }
+            g.closePath(); g.strokePath();
+          } else if (i === 3) {
+            g.beginPath(); g.moveTo(R, R - 6); g.lineTo(R + 6, R + 5);
+            g.lineTo(R - 6, R + 5); g.closePath(); g.strokePath();
+          } else if (i === 4) {
+            g.strokeRect(R - 4, R - 4, 8, 8);
+          } else {
+            g.beginPath();
+            for (var h = 0; h < 6; h++) {
+              var ha = -Math.PI / 6 + h * Math.PI / 3;
+              var hm = h === 0 ? 'moveTo' : 'lineTo';
+              g[hm](R + Math.cos(ha) * 5, R + Math.sin(ha) * 5);
+            }
+            g.closePath(); g.strokePath();
+          }
+
+          g.generateTexture('bubble_' + i, R * 2, R * 2);
+        }
+
+        g.clear();
+        g.fillStyle(0xffffff);
+        g.fillCircle(4, 4, 4);
+        g.generateTexture('particle', 8, 8);
+
+        g.clear();
+        g.fillStyle(0xcc44ff, 0.15);
+        g.fillRect(0, 0, GW, 4);
+        g.fillStyle(0xcc44ff, 0.4);
+        g.fillRect(0, 1, GW, 2);
+        g.generateTexture('dangerline', GW, 4);
+
+        g.clear();
+        g.fillStyle(0x2a1a4e);
+        g.fillTriangle(GW / 2, 0, GW / 2 - 30, 24, GW / 2 + 30, 24);
+        g.fillStyle(0x3a2a5e);
+        g.fillTriangle(GW / 2, 2, GW / 2 - 26, 22, GW / 2 + 26, 22);
+        g.fillStyle(0xcc44ff, 0.3);
+        g.fillRect(GW / 2 - 28, 22, 56, 3);
+        g.generateTexture('launcher', GW, 26);
+
+        g.clear();
+        g.destroy();
       }
-    }
-    for (let row = 6; row < ROWS + 4; row++) this.grid[row] = [];
 
-    this.scoreText = this.add.text(GW / 2, GH - 30, 'Score: 0', {
-      fontSize: '20px', fill: '#fff', stroke: '#000', strokeThickness: 3
-    }).setOrigin(0.5).setDepth(10);
+      create() {
+        this.levelNum = this.registry.get('bubbleLevel') || 1;
+        this.score = this.registry.get('bubbleScore') || 0;
+        this.bestScore = this.registry.get('bubbleBest') || 0;
 
-    this.nextType = Phaser.Math.Between(0, COLORS - 1);
-    this.shooterBubble = null;
-    this.shooting = false;
-    this.loadShooter();
+        var cfg = LEVEL_CONFIG[Math.min(this.levelNum - 1, LEVEL_CONFIG.length - 1)];
+        this.numColors = cfg.colors;
+        this.startRows = cfg.startRows;
+        this.pushDelay = cfg.pushDelay;
 
-    this.aimLine = this.add.graphics().setDepth(5);
+        this.gameOver = false;
+        this.gameWon = false;
+        this.shooting = false;
+        this.combo = 0;
+        this.aimAngle = -Math.PI / 2;
 
-    this.input.on('pointermove', (p) => {
-      if (this.shooting || this.gameOver) return;
-      this.drawAim(p.x, p.y);
-    });
+        var bg = this.add.graphics();
+        bg.fillGradientStyle(0x0a0a2e, 0x0a0a2e, 0x1a0a3e, 0x1a0a3e);
+        bg.fillRect(0, 0, GW, GH);
+        bg.lineStyle(1, 0x1a1a40, 0.2);
+        for (var gx = 0; gx <= GW; gx += 36) { bg.moveTo(gx, 0); bg.lineTo(gx, GH); }
+        for (var gy = 0; gy <= GH; gy += 36) { bg.moveTo(0, gy); bg.lineTo(GW, gy); }
+        bg.strokePath();
+        var starColors = [0xcc44ff, 0x44ddff, 0xff4466, 0x44dd44];
+        for (var si = 0; si < 30; si++) {
+          bg.fillStyle(starColors[si % starColors.length], Phaser.Math.FloatBetween(0.05, 0.15));
+          bg.fillCircle(Phaser.Math.Between(0, GW), Phaser.Math.Between(0, GH), Phaser.Math.Between(1, 2));
+        }
 
-    this.input.on('pointerdown', (p) => {
-      if (this.shooting || this.gameOver) return;
-      if (p.y >= GH - 50) return;
-      const angle = Phaser.Math.Angle.Between(GW / 2, GH - 70, p.x, p.y);
-      if (angle > -0.15) return;
-      this.shooting = true;
-      this.aimLine.clear();
-      const speed = 600;
-      this.shotVx = Math.cos(angle) * speed;
-      this.shotVy = Math.sin(angle) * speed;
-    });
+        this.grid = [];
+        this.bubbleGroup = this.add.group();
+        this.buildLevel();
 
-    this.pushTimer = this.time.addEvent({ delay: 25000, callback: () => this.pushNewRow(), loop: true });
-  }
+        var dangerY = R + ROWS * (R * 1.73);
+        this.dangerLine = this.add.image(GW / 2, dangerY, 'dangerline').setDepth(2).setAlpha(0.5);
 
-  gridToPos(row, col) {
-    const offsetX = (row % 2) ? R : 0;
-    return { x: R + col * R * 2 + offsetX, y: R + row * (R * 1.73) };
-  }
+        this.launcherImg = this.add.image(GW / 2, SHOOT_Y + 16, 'launcher').setDepth(5);
 
-  posToGrid(x, y) {
-    let row = Math.round((y - R) / (R * 1.73));
-    row = Math.max(0, row);
-    const offsetX = (row % 2) ? R : 0;
-    let col = Math.round((x - R - offsetX) / (R * 2));
-    const maxCol = COLS - (row % 2 ? 1 : 0) - 1;
-    col = Phaser.Math.Clamp(col, 0, maxCol);
-    return { row, col };
-  }
+        this.currentType = this.randomType();
+        this.nextType = this.randomType();
+        this.shooterBubble = this.add.image(GW / 2, SHOOT_Y, 'bubble_' + this.currentType).setScale(0.9).setDepth(8);
 
-  loadShooter() {
-    this.currentType = this.nextType;
-    this.nextType = Phaser.Math.Between(0, COLORS - 1);
-    this.shooterBubble = this.add.image(GW / 2, GH - 70, 'bubble_' + this.currentType).setScale(0.9).setDepth(8);
-    this.shooting = false;
-  }
+        this.nextBubble = this.add.image(GW - 40, SHOOT_Y, 'bubble_' + this.nextType).setScale(0.6).setDepth(8);
+        this.nextLabel = this.add.text(GW - 40, SHOOT_Y - 22, 'NEXT', {
+          fontSize: '10px', fontFamily: 'Segoe UI', fill: '#aaa'
+        }).setOrigin(0.5).setDepth(8);
+        this.nextZone = this.add.rectangle(GW - 40, SHOOT_Y, 36, 36, 0x000000, 0)
+          .setDepth(9).setInteractive({ useHandCursor: true });
+        this.nextZone.on('pointerdown', function() { this.swapBubbles(); }.bind(this));
 
-  drawAim(px, py) {
-    this.aimLine.clear();
-    const angle = Phaser.Math.Angle.Between(GW / 2, GH - 70, px, py);
-    if (angle > -0.15) return;
-    this.aimLine.lineStyle(2, 0xffffff, 0.4);
-    this.aimLine.beginPath();
-    this.aimLine.moveTo(GW / 2, GH - 70);
-    this.aimLine.lineTo(GW / 2 + Math.cos(angle) * 200, GH - 70 + Math.sin(angle) * 200);
-    this.aimLine.strokePath();
-  }
+        this.aimLine = this.add.graphics().setDepth(5);
 
-  update(time, delta) {
-    if (this.gameOver || !this.shooting || !this.shooterBubble) return;
-    const dt = delta / 1000;
-    let nx = this.shooterBubble.x + this.shotVx * dt;
-    let ny = this.shooterBubble.y + this.shotVy * dt;
+        this.popEmitter = this.add.particles(0, 0, 'particle', {
+          speed: { min: 60, max: 180 }, lifespan: 350,
+          scale: { start: 1.2, end: 0 }, emitting: false, quantity: 8
+        }).setDepth(9);
 
-    if (nx < R) { nx = R; this.shotVx = Math.abs(this.shotVx); }
-    if (nx > GW - R) { nx = GW - R; this.shotVx = -Math.abs(this.shotVx); }
+        this.scoreText = this.add.text(10, 8, 'Score: ' + this.score, {
+          fontSize: '16px', fontFamily: 'Segoe UI', fill: '#cc44ff',
+          stroke: '#000', strokeThickness: 2
+        }).setDepth(10);
 
-    this.shooterBubble.x = nx;
-    this.shooterBubble.y = ny;
+        this.levelText = this.add.text(GW / 2, 8, 'Level ' + this.levelNum, {
+          fontSize: '16px', fontFamily: 'Segoe UI', fontStyle: 'bold',
+          fill: '#ffaa22', stroke: '#000', strokeThickness: 2
+        }).setOrigin(0.5, 0).setDepth(10);
 
-    if (ny <= R) { this.snapBubble(); return; }
+        this.bestText = this.add.text(GW - 10, 8, 'Best: ' + this.bestScore, {
+          fontSize: '14px', fontFamily: 'Segoe UI', fill: '#44ddff',
+          stroke: '#000', strokeThickness: 2
+        }).setOrigin(1, 0).setDepth(10);
 
-    for (const row of this.grid) {
-      for (const b of row) {
-        if (!b) continue;
-        const dist = Phaser.Math.Distance.Between(nx, ny, b.x, b.y);
-        if (dist < R * 1.8) { this.snapBubble(); return; }
+        this.comboText = this.add.text(GW / 2, SHOOT_Y - 40, '', {
+          fontSize: '24px', fontFamily: 'Segoe UI', fontStyle: 'bold',
+          fill: '#ffaa22', stroke: '#000', strokeThickness: 3
+        }).setOrigin(0.5).setDepth(15).setAlpha(0);
+
+        this.bannerText = this.add.text(GW / 2, GH / 2, '', {
+          fontSize: '40px', fontFamily: 'Segoe UI', fontStyle: 'bold',
+          fill: '#fff', stroke: '#000', strokeThickness: 4
+        }).setOrigin(0.5).setDepth(25).setAlpha(0);
+
+        this.createGameOverPanel();
+
+        this.input.on('pointermove', function(p) {
+          if (this.shooting || this.gameOver || this.gameWon) return;
+          this.aimAngle = Phaser.Math.Angle.Between(GW / 2, SHOOT_Y, p.x, p.y);
+          if (this.aimAngle > -0.15) this.aimAngle = -0.15;
+          if (this.aimAngle < -Math.PI + 0.15) this.aimAngle = -Math.PI + 0.15;
+          this.drawAim();
+        }.bind(this));
+
+        this.input.on('pointerdown', function(p) {
+          if (this.gameOver || this.gameWon) return;
+          if (this.shooting) return;
+          if (p.y >= GH - 40) return;
+          this.aimAngle = Phaser.Math.Angle.Between(GW / 2, SHOOT_Y, p.x, p.y);
+          if (this.aimAngle > -0.15) return;
+          if (this.aimAngle < -Math.PI + 0.15) return;
+          this.fireShot();
+        }.bind(this));
+
+        this.cursors = this.input.keyboard.createCursorKeys();
+        this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+        this.sKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S);
+
+        this.spaceKey.on('down', function() {
+          if (this.gameOver || this.gameWon) {
+            this.restartGame();
+            return;
+          }
+          if (!this.shooting) this.fireShot();
+        }.bind(this));
+
+        this.sKey.on('down', function() {
+          if (!this.shooting && !this.gameOver && !this.gameWon) this.swapBubbles();
+        }.bind(this));
+
+        this.pushTimer = this.time.addEvent({
+          delay: this.pushDelay, callback: this.pushNewRow, callbackScope: this, loop: true
+        });
+
+        if (this.levelNum > 1) {
+          this.showBanner('Level ' + this.levelNum + '!', 1200);
+        }
       }
-    }
-  }
 
-  snapBubble() {
-    const { row, col } = this.posToGrid(this.shooterBubble.x, this.shooterBubble.y);
-    if (this.grid[row] && this.grid[row][col]) {
-      const maxCol = COLS - (row % 2 ? 1 : 0);
-      for (let c = 0; c < maxCol; c++) {
-        if (!this.grid[row][c]) {
-          this.grid[row][c] = this.shooterBubble;
-          const pos = this.gridToPos(row, c);
-          this.shooterBubble.setPosition(pos.x, pos.y);
-          this.shooterBubble.bData = { row, col: c, type: this.currentType };
-          this.checkMatches(row, c);
-          this.loadShooter();
+      randomType() {
+        return Phaser.Math.Between(0, this.numColors - 1);
+      }
+
+      buildLevel() {
+        for (var ri = 0; ri < this.grid.length; ri++) {
+          if (!this.grid[ri]) continue;
+          for (var ci = 0; ci < this.grid[ri].length; ci++) {
+            if (this.grid[ri][ci]) this.grid[ri][ci].destroy();
+          }
+        }
+        this.grid = [];
+        for (var row = 0; row < this.startRows; row++) {
+          this.grid[row] = [];
+          for (var col = 0; col < COLS; col++) {
+            var type = this.randomType();
+            var pos = this.gridToPos(row, col);
+            var spr = this.add.image(pos.x, pos.y, 'bubble_' + type).setScale(0.9).setDepth(3);
+            spr.bData = { row: row, col: col, type: type };
+            this.grid[row][col] = spr;
+            this.bubbleGroup.add(spr);
+          }
+        }
+        for (var er = this.startRows; er < ROWS + 6; er++) this.grid[er] = [];
+      }
+
+      gridToPos(row, col) {
+        var offsetX = (row % 2) ? R : 0;
+        return { x: R + col * R * 2 + offsetX, y: R + row * (R * 1.73) };
+      }
+
+      posToGrid(x, y) {
+        var row = Math.round((y - R) / (R * 1.73));
+        row = Math.max(0, row);
+        var offsetX = (row % 2) ? R : 0;
+        var col = Math.round((x - R - offsetX) / (R * 2));
+        col = Phaser.Math.Clamp(col, 0, COLS - 1);
+        return { row: row, col: col };
+      }
+
+      getNeighbors(r, c) {
+        var even = r % 2 === 0;
+        var offsets = even
+          ? [[-1, -1], [-1, 0], [0, -1], [0, 1], [1, -1], [1, 0]]
+          : [[-1, 0], [-1, 1], [0, -1], [0, 1], [1, 0], [1, 1]];
+        var result = [];
+        for (var i = 0; i < offsets.length; i++) {
+          var nr = r + offsets[i][0], nc = c + offsets[i][1];
+          if (nr >= 0 && nc >= 0 && nc < COLS) {
+            result.push([nr, nc]);
+          }
+        }
+        return result;
+      }
+
+      swapBubbles() {
+        var tmp = this.currentType;
+        this.currentType = this.nextType;
+        this.nextType = tmp;
+        this.shooterBubble.setTexture('bubble_' + this.currentType);
+        this.nextBubble.setTexture('bubble_' + this.nextType);
+        this.tweens.add({ targets: this.nextBubble, scaleX: 0.8, scaleY: 0.8, duration: 100, yoyo: true });
+      }
+
+      drawAim() {
+        this.aimLine.clear();
+        var cx = GW / 2, cy = SHOOT_Y;
+        var dx = Math.cos(this.aimAngle);
+        var dy = Math.sin(this.aimAngle);
+        var step = 6, maxSteps = 75;
+        var dotOn = true, dotLen = 0;
+        var drawing = false;
+
+        this.aimLine.lineStyle(2, 0xffffff, 0.45);
+
+        for (var i = 0; i < maxSteps; i++) {
+          cx += dx * step;
+          cy += dy * step;
+
+          if (cx < R) { cx = R; dx = Math.abs(dx); }
+          if (cx > GW - R) { cx = GW - R; dx = -Math.abs(dx); }
+          if (cy < R) break;
+
+          var hitGrid = false;
+          for (var ri = 0; ri < this.grid.length; ri++) {
+            if (!this.grid[ri]) continue;
+            for (var ci = 0; ci < this.grid[ri].length; ci++) {
+              if (!this.grid[ri][ci]) continue;
+              if (Phaser.Math.Distance.Between(cx, cy, this.grid[ri][ci].x, this.grid[ri][ci].y) < R * 1.8) {
+                hitGrid = true; break;
+              }
+            }
+            if (hitGrid) break;
+          }
+          if (hitGrid) break;
+
+          dotLen += step;
+          if (dotLen > 8) { dotOn = !dotOn; dotLen = 0; }
+
+          if (dotOn) {
+            if (!drawing) {
+              this.aimLine.beginPath();
+              this.aimLine.moveTo(cx, cy);
+              drawing = true;
+            } else {
+              this.aimLine.lineTo(cx, cy);
+            }
+          } else if (drawing) {
+            this.aimLine.strokePath();
+            drawing = false;
+          }
+        }
+        if (drawing) this.aimLine.strokePath();
+      }
+
+      fireShot() {
+        this.shooting = true;
+        this.aimLine.clear();
+        this.shotVx = Math.cos(this.aimAngle) * BALL_SPEED;
+        this.shotVy = Math.sin(this.aimAngle) * BALL_SPEED;
+        this.tweens.add({
+          targets: this.launcherImg, y: SHOOT_Y + 20, duration: 60, yoyo: true, ease: 'Quad.easeOut'
+        });
+      }
+
+      loadShooter() {
+        this.currentType = this.nextType;
+        this.nextType = this.randomType();
+        this.shooterBubble.setPosition(GW / 2, SHOOT_Y);
+        this.shooterBubble.setTexture('bubble_' + this.currentType);
+        this.shooterBubble.setVisible(true).setScale(0.9);
+        this.nextBubble.setTexture('bubble_' + this.nextType);
+        this.shooting = false;
+      }
+
+      update(time, delta) {
+        if (this.gameOver || this.gameWon || !this.shooting || !this.shooterBubble) return;
+        var dt = delta / 1000;
+        var nx = this.shooterBubble.x + this.shotVx * dt;
+        var ny = this.shooterBubble.y + this.shotVy * dt;
+
+        if (nx < R) { nx = R; this.shotVx = Math.abs(this.shotVx); }
+        if (nx > GW - R) { nx = GW - R; this.shotVx = -Math.abs(this.shotVx); }
+
+        this.shooterBubble.x = nx;
+        this.shooterBubble.y = ny;
+
+        if (ny <= R) { this.snapBubble(); return; }
+
+        for (var ri = 0; ri < this.grid.length; ri++) {
+          if (!this.grid[ri]) continue;
+          for (var ci = 0; ci < this.grid[ri].length; ci++) {
+            var b = this.grid[ri][ci];
+            if (!b) continue;
+            var dist = Phaser.Math.Distance.Between(nx, ny, b.x, b.y);
+            if (dist < R * 1.8) { this.snapBubble(); return; }
+          }
+        }
+      }
+
+      snapBubble() {
+        var bx = this.shooterBubble.x, by = this.shooterBubble.y;
+        var target = this.posToGrid(bx, by);
+        var row = target.row, col = target.col;
+
+        if (!this.grid[row]) this.grid[row] = [];
+
+        if (this.grid[row][col]) {
+          var bestDist = Infinity, bestR = -1, bestC = -1;
+          var neighbors = this.getNeighbors(row, col);
+          for (var i = 0; i < neighbors.length; i++) {
+            var nr = neighbors[i][0], nc = neighbors[i][1];
+            if (!this.grid[nr]) this.grid[nr] = [];
+            if (!this.grid[nr][nc]) {
+              var npos = this.gridToPos(nr, nc);
+              var nd = Phaser.Math.Distance.Between(bx, by, npos.x, npos.y);
+              if (nd < bestDist) { bestDist = nd; bestR = nr; bestC = nc; }
+            }
+          }
+
+          if (bestR === -1) {
+            var q = [[row, col, 0]];
+            var vis = new Set();
+            vis.add(row + ',' + col);
+            while (q.length > 0) {
+              var item = q.shift();
+              var qr = item[0], qc = item[1], qdepth = item[2];
+              if (qdepth > 3) break;
+              var qn = this.getNeighbors(qr, qc);
+              for (var qi = 0; qi < qn.length; qi++) {
+                var qnr = qn[qi][0], qnc = qn[qi][1];
+                var qkey = qnr + ',' + qnc;
+                if (vis.has(qkey)) continue;
+                vis.add(qkey);
+                if (!this.grid[qnr]) this.grid[qnr] = [];
+                if (!this.grid[qnr][qnc]) {
+                  var qpos = this.gridToPos(qnr, qnc);
+                  var qd = Phaser.Math.Distance.Between(bx, by, qpos.x, qpos.y);
+                  if (qd < bestDist) { bestDist = qd; bestR = qnr; bestC = qnc; }
+                } else {
+                  q.push([qnr, qnc, qdepth + 1]);
+                }
+              }
+              if (bestR !== -1) break;
+            }
+          }
+
+          if (bestR === -1) { this.endGame(); return; }
+          row = bestR;
+          col = bestC;
+        }
+
+        if (!this.grid[row]) this.grid[row] = [];
+        this.grid[row][col] = this.shooterBubble;
+        var snapPos = this.gridToPos(row, col);
+        this.shooterBubble.setPosition(snapPos.x, snapPos.y);
+        this.shooterBubble.bData = { row: row, col: col, type: this.currentType };
+        this.shooterBubble.setDepth(3);
+
+        var snappedBubble = this.shooterBubble;
+        this.tweens.add({
+          targets: snappedBubble, scaleX: 1.05, scaleY: 1.05,
+          duration: 80, yoyo: true, ease: 'Quad.easeOut'
+        });
+
+        var popped = this.checkMatches(row, col);
+
+        if (row >= ROWS) {
+          this.endGame();
           return;
         }
+
+        if (this.countBubbles() === 0) {
+          this.levelComplete();
+          return;
+        }
+
+        this.shooterBubble = this.add.image(GW / 2, SHOOT_Y, 'bubble_' + this.nextType).setScale(0.9).setDepth(8);
+        this.loadShooter();
       }
-      this.endGame(); return;
-    }
-    if (!this.grid[row]) this.grid[row] = [];
-    this.grid[row][col] = this.shooterBubble;
-    const pos = this.gridToPos(row, col);
-    this.shooterBubble.setPosition(pos.x, pos.y);
-    this.shooterBubble.bData = { row, col, type: this.currentType };
-    this.checkMatches(row, col);
 
-    if (row >= ROWS) { this.endGame(); return; }
-    this.loadShooter();
-  }
+      checkMatches(row, col) {
+        var type = this.currentType;
+        var visited = new Set();
+        var matches = [];
+        var stack = [[row, col]];
 
-  checkMatches(row, col) {
-    const type = this.currentType;
-    const visited = new Set();
-    const matches = [];
-    const stack = [[row, col]];
-    while (stack.length) {
-      const [r, c] = stack.pop();
-      const key = r + ',' + c;
-      if (visited.has(key)) continue;
-      visited.add(key);
-      if (!this.grid[r] || !this.grid[r][c]) continue;
-      if (this.grid[r][c].bData.type !== type) continue;
-      matches.push([r, c]);
-      const neighbors = this.getNeighbors(r, c);
-      for (const [nr, nc] of neighbors) stack.push([nr, nc]);
-    }
-    if (matches.length >= 3) {
-      for (const [r, c] of matches) {
-        if (this.grid[r][c]) {
-          this.grid[r][c].destroy();
-          this.grid[r][c] = null;
-          this.score += 10;
+        while (stack.length) {
+          var item = stack.pop();
+          var r = item[0], c = item[1];
+          var key = r + ',' + c;
+          if (visited.has(key)) continue;
+          visited.add(key);
+          if (!this.grid[r] || !this.grid[r][c]) continue;
+          if (this.grid[r][c].bData.type !== type) continue;
+          matches.push([r, c]);
+          var neighbors = this.getNeighbors(r, c);
+          for (var i = 0; i < neighbors.length; i++) stack.push(neighbors[i]);
+        }
+
+        if (matches.length >= 3) {
+          this.combo++;
+          var pointsPerBubble = 10 + Math.min(this.combo - 1, 5) * 5;
+
+          for (var mi = 0; mi < matches.length; mi++) {
+            var mr = matches[mi][0], mc = matches[mi][1];
+            if (this.grid[mr][mc]) {
+              var bub = this.grid[mr][mc];
+              this.popEmitter.setParticleTint(BUBBLE_COLORS[bub.bData.type]);
+              this.popEmitter.emitParticleAt(bub.x, bub.y);
+              bub.destroy();
+              this.grid[mr][mc] = null;
+              this.score += pointsPerBubble;
+            }
+          }
+
+          var floatPopped = this.removeFloating();
+          this.score += floatPopped * 5;
+
+          this.scoreText.setText('Score: ' + this.score);
+
+          if (matches.length >= 5) {
+            this.cameras.main.shake(150, 0.01);
+          }
+
+          if (this.combo >= 2) {
+            this.comboText.setText(this.combo + 'x COMBO!');
+            this.comboText.setAlpha(1).setScale(0.5);
+            this.tweens.add({
+              targets: this.comboText, scale: 1.2, alpha: 0, duration: 800, ease: 'Power2'
+            });
+          }
+
+          return true;
+        }
+
+        this.combo = 0;
+        return false;
+      }
+
+      removeFloating() {
+        var connected = new Set();
+        var stack = [];
+        if (this.grid[0]) {
+          for (var c = 0; c < this.grid[0].length; c++) {
+            if (this.grid[0][c]) stack.push([0, c]);
+          }
+        }
+        while (stack.length) {
+          var item = stack.pop();
+          var r = item[0], ci = item[1];
+          var key = r + ',' + ci;
+          if (connected.has(key)) continue;
+          connected.add(key);
+          var neighbors = this.getNeighbors(r, ci);
+          for (var i = 0; i < neighbors.length; i++) {
+            var nr = neighbors[i][0], nc = neighbors[i][1];
+            if (this.grid[nr] && this.grid[nr][nc]) stack.push([nr, nc]);
+          }
+        }
+
+        var dropped = 0;
+        for (var row = 0; row < this.grid.length; row++) {
+          if (!this.grid[row]) continue;
+          for (var col = 0; col < this.grid[row].length; col++) {
+            if (this.grid[row][col] && !connected.has(row + ',' + col)) {
+              var fb = this.grid[row][col];
+              this.grid[row][col] = null;
+              dropped++;
+              this.tweens.add({
+                targets: fb, y: fb.y + 120, alpha: 0, scale: 0.3,
+                duration: 400, ease: 'Quad.easeIn',
+                onComplete: function() { this.destroy(); },
+                onCompleteScope: fb
+              });
+            }
+          }
+        }
+        return dropped;
+      }
+
+      countBubbles() {
+        var count = 0;
+        for (var r = 0; r < this.grid.length; r++) {
+          if (!this.grid[r]) continue;
+          for (var c = 0; c < this.grid[r].length; c++) {
+            if (this.grid[r][c]) count++;
+          }
+        }
+        return count;
+      }
+
+      pushNewRow() {
+        if (this.gameOver || this.gameWon) return;
+
+        for (var r = this.grid.length - 1; r >= 1; r--) {
+          this.grid[r] = this.grid[r - 1] || [];
+          for (var ci = 0; ci < this.grid[r].length; ci++) {
+            var b = this.grid[r][ci];
+            if (b) {
+              b.bData.row = r;
+              b.bData.col = ci;
+              var newPos = this.gridToPos(r, ci);
+              b.x = newPos.x;
+              b.y = newPos.y;
+            }
+          }
+        }
+
+        this.grid[0] = [];
+        for (var c = 0; c < COLS; c++) {
+          var type = this.randomType();
+          var pos = this.gridToPos(0, c);
+          var spr = this.add.image(pos.x, pos.y, 'bubble_' + type).setScale(0.9).setDepth(3);
+          spr.bData = { row: 0, col: c, type: type };
+          this.grid[0][c] = spr;
+          this.bubbleGroup.add(spr);
+        }
+
+        for (var row = 0; row < this.grid.length; row++) {
+          if (!this.grid[row]) continue;
+          for (var col = 0; col < this.grid[row].length; col++) {
+            if (this.grid[row][col] && this.grid[row][col].y > this.dangerLine.y) {
+              this.endGame();
+              return;
+            }
+          }
+        }
+
+        this.checkDangerFlash();
+      }
+
+      checkDangerFlash() {
+        var dangerY = this.dangerLine.y - R * 1.73 * 2;
+        var inDanger = false;
+        for (var r = 0; r < this.grid.length; r++) {
+          if (!this.grid[r]) continue;
+          for (var c = 0; c < this.grid[r].length; c++) {
+            if (this.grid[r][c] && this.grid[r][c].y > dangerY) {
+              inDanger = true;
+              this.grid[r][c].setTint(0xff6666);
+            }
+          }
+        }
+        if (inDanger) {
+          this.tweens.add({
+            targets: this.dangerLine, alpha: 0.9, duration: 300, yoyo: true, repeat: 2
+          });
         }
       }
-      try { this.sound.play('coinSfx'); } catch(e) {}
-      this.removeFloating();
-      this.scoreText.setText('Score: ' + this.score);
-    }
-  }
 
-  getNeighbors(r, c) {
-    const even = r % 2 === 0;
-    const offsets = even
-      ? [[-1, -1], [-1, 0], [0, -1], [0, 1], [1, -1], [1, 0]]
-      : [[-1, 0], [-1, 1], [0, -1], [0, 1], [1, 0], [1, 1]];
-    return offsets.map(([dr, dc]) => [r + dr, c + dc]).filter(([nr, nc]) => {
-      return nr >= 0 && nc >= 0 && this.grid[nr] && nc < (COLS - (nr % 2 ? 1 : 0));
+      showBanner(text, duration) {
+        this.bannerText.setText(text).setAlpha(0).setScale(0.5);
+        this.tweens.add({
+          targets: this.bannerText, alpha: 1, scale: 1.2, duration: 300, ease: 'Back.easeOut',
+          hold: duration - 600,
+          onComplete: function() {
+            this.tweens.add({
+              targets: this.bannerText, alpha: 0, scale: 0.5, duration: 300
+            });
+          }.bind(this)
+        });
+      }
+
+      levelComplete() {
+        this.gameWon = true;
+        this.shooting = false;
+        if (this.pushTimer) this.pushTimer.remove();
+
+        this.cameras.main.shake(200, 0.015);
+
+        if (this.levelNum >= 5) {
+          this.showEndPanel(true);
+          return;
+        }
+
+        this.registry.set('bubbleLevel', this.levelNum + 1);
+        this.registry.set('bubbleScore', this.score);
+
+        this.showBanner('Level Clear!', 1500);
+        this.time.delayedCall(1800, function() {
+          this.scene.restart();
+        }.bind(this));
+      }
+
+      createGameOverPanel() {
+        var px = GW / 2, py = GH / 2;
+        var pw = 280, ph = 260;
+        this.goPanel = {};
+
+        this.goPanel.overlay = this.add.graphics().setDepth(30).setVisible(false);
+        this.goPanel.overlay.fillStyle(0x000000, 0.7);
+        this.goPanel.overlay.fillRect(0, 0, GW, GH);
+
+        this.goPanel.box = this.add.graphics().setDepth(31).setVisible(false);
+        this.goPanel.box.fillStyle(0x0f0f30, 0.95);
+        this.goPanel.box.fillRoundedRect(px - pw / 2, py - ph / 2, pw, ph, 16);
+        this.goPanel.box.lineStyle(2, 0xcc44ff, 0.6);
+        this.goPanel.box.strokeRoundedRect(px - pw / 2, py - ph / 2, pw, ph, 16);
+
+        this.goPanel.title = this.add.text(px, py - 90, 'GAME OVER', {
+          fontSize: '32px', fontFamily: 'Segoe UI', fontStyle: 'bold',
+          fill: '#ff4466', stroke: '#000', strokeThickness: 4
+        }).setOrigin(0.5).setDepth(32).setVisible(false);
+
+        this.goPanel.scoreLabel = this.add.text(px, py - 40, '', {
+          fontSize: '20px', fontFamily: 'Segoe UI', fill: '#cc44ff',
+          stroke: '#000', strokeThickness: 3
+        }).setOrigin(0.5).setDepth(32).setVisible(false);
+
+        this.goPanel.levelLabel = this.add.text(px, py - 10, '', {
+          fontSize: '15px', fontFamily: 'Segoe UI', fill: '#ffaa22',
+          stroke: '#000', strokeThickness: 2
+        }).setOrigin(0.5).setDepth(32).setVisible(false);
+
+        this.goPanel.bestLabel = this.add.text(px, py + 20, '', {
+          fontSize: '15px', fontFamily: 'Segoe UI', fill: '#44ddff',
+          stroke: '#000', strokeThickness: 2
+        }).setOrigin(0.5).setDepth(32).setVisible(false);
+
+        this.goPanel.btn = this.add.graphics().setDepth(32).setVisible(false);
+        this.goPanel.btn.fillStyle(0xcc44ff, 0.15);
+        this.goPanel.btn.fillRoundedRect(px - 70, py + 50, 140, 40, 10);
+        this.goPanel.btn.lineStyle(2, 0xcc44ff, 0.8);
+        this.goPanel.btn.strokeRoundedRect(px - 70, py + 50, 140, 40, 10);
+
+        this.goPanel.btnText = this.add.text(px, py + 70, 'PLAY AGAIN', {
+          fontSize: '18px', fontFamily: 'Segoe UI', fontStyle: 'bold',
+          fill: '#ffffff', stroke: '#000', strokeThickness: 2
+        }).setOrigin(0.5).setDepth(33).setVisible(false);
+
+        this.goPanel.hint = this.add.text(px, py + 108, 'Click or press SPACE', {
+          fontSize: '12px', fontFamily: 'Segoe UI', fill: '#888'
+        }).setOrigin(0.5).setDepth(32).setVisible(false);
+
+        this.goPanel.btnZone = this.add.rectangle(px, py + 70, 140, 40, 0x000000, 0)
+          .setDepth(34).setInteractive({ useHandCursor: true }).setVisible(false);
+        this.goPanel.btnZone.on('pointerover', function() {
+          this.goPanel.btnText.setFill('#cc44ff');
+        }.bind(this));
+        this.goPanel.btnZone.on('pointerout', function() {
+          this.goPanel.btnText.setFill('#ffffff');
+        }.bind(this));
+        this.goPanel.btnZone.on('pointerdown', function() {
+          this.restartGame();
+        }.bind(this));
+      }
+
+      showEndPanel(isWin) {
+        if (this.score > this.bestScore) {
+          this.bestScore = this.score;
+          this.registry.set('bubbleBest', this.bestScore);
+        }
+
+        if (isWin) {
+          this.goPanel.title.setText('YOU WIN!').setFill('#44dd44');
+        } else {
+          this.goPanel.title.setText('GAME OVER').setFill('#ff4466');
+        }
+
+        this.goPanel.scoreLabel.setText('Score: ' + this.score);
+        this.goPanel.levelLabel.setText('Reached Level ' + this.levelNum);
+        var bestStr = 'Best: ' + this.bestScore;
+        if (this.score >= this.bestScore && this.score > 0) bestStr += '  NEW BEST!';
+        this.goPanel.bestLabel.setText(bestStr);
+
+        var parts = ['overlay', 'box', 'title', 'scoreLabel', 'levelLabel', 'bestLabel', 'btn', 'btnText', 'hint', 'btnZone'];
+        for (var i = 0; i < parts.length; i++) this.goPanel[parts[i]].setVisible(true);
+
+        this.goPanel.title.setScale(0.5).setAlpha(0);
+        this.goPanel.scoreLabel.setAlpha(0);
+        this.goPanel.levelLabel.setAlpha(0);
+        this.goPanel.bestLabel.setAlpha(0);
+        this.goPanel.btn.setAlpha(0);
+        this.goPanel.btnText.setAlpha(0);
+        this.goPanel.hint.setAlpha(0);
+
+        this.tweens.add({ targets: this.goPanel.title, scale: 1, alpha: 1, duration: 400, ease: 'Back.easeOut' });
+        this.tweens.add({ targets: this.goPanel.scoreLabel, alpha: 1, duration: 300, delay: 200 });
+        this.tweens.add({ targets: this.goPanel.levelLabel, alpha: 1, duration: 300, delay: 300 });
+        this.tweens.add({ targets: this.goPanel.bestLabel, alpha: 1, duration: 300, delay: 400 });
+        this.tweens.add({ targets: [this.goPanel.btn, this.goPanel.btnText], alpha: 1, duration: 300, delay: 550 });
+        this.tweens.add({ targets: this.goPanel.hint, alpha: 1, duration: 300, delay: 700 });
+      }
+
+      endGame() {
+        this.gameOver = true;
+        this.shooting = false;
+        if (this.pushTimer) this.pushTimer.remove();
+        if (this.shooterBubble) this.shooterBubble.setVisible(false);
+
+        this.cameras.main.shake(200, 0.015);
+        this.registry.set('bubbleLevel', 1);
+        this.registry.set('bubbleScore', 0);
+
+        this.showEndPanel(false);
+      }
+
+      restartGame() {
+        if (!this.gameOver && !this.gameWon) return;
+        if (this.gameOver) {
+          this.registry.set('bubbleLevel', 1);
+          this.registry.set('bubbleScore', 0);
+        }
+        this.scene.restart();
+      }
+    }
+
+    new Phaser.Game({
+      type: Phaser.AUTO,
+      width: GW,
+      height: GH,
+      parent: 'game-container',
+      backgroundColor: '#0a0a2e',
+      scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
+      scene: BubbleScene
     });
-  }
-
-  removeFloating() {
-    const connected = new Set();
-    const stack = [];
-    if (this.grid[0]) {
-      for (let c = 0; c < this.grid[0].length; c++) {
-        if (this.grid[0][c]) stack.push([0, c]);
-      }
-    }
-    while (stack.length) {
-      const [r, c] = stack.pop();
-      const key = r + ',' + c;
-      if (connected.has(key)) continue;
-      connected.add(key);
-      const neighbors = this.getNeighbors(r, c);
-      for (const [nr, nc] of neighbors) {
-        if (this.grid[nr] && this.grid[nr][nc]) stack.push([nr, nc]);
-      }
-    }
-    for (let r = 0; r < this.grid.length; r++) {
-      if (!this.grid[r]) continue;
-      for (let c = 0; c < this.grid[r].length; c++) {
-        if (this.grid[r][c] && !connected.has(r + ',' + c)) {
-          this.grid[r][c].destroy();
-          this.grid[r][c] = null;
-          this.score += 5;
-        }
-      }
-    }
-    this.scoreText.setText('Score: ' + this.score);
-  }
-
-  pushNewRow() {
-    if (this.gameOver) return;
-    for (let r = this.grid.length - 1; r >= 1; r--) {
-      this.grid[r] = this.grid[r - 1] || [];
-      for (const b of this.grid[r]) {
-        if (b) { b.y += R * 1.73; b.bData.row = r; }
-      }
-    }
-    this.grid[0] = [];
-    for (let c = 0; c < COLS; c++) {
-      const type = Phaser.Math.Between(0, COLORS - 1);
-      const pos = this.gridToPos(0, c);
-      const spr = this.add.image(pos.x, pos.y, 'bubble_' + type).setScale(0.9);
-      spr.bData = { row: 0, col: c, type };
-      this.grid[0][c] = spr;
-    }
-    for (const row of this.grid) {
-      for (const b of (row || [])) {
-        if (b && b.y > GH - 80) { this.endGame(); return; }
-      }
-    }
-  }
-
-  endGame() {
-    this.gameOver = true;
-    this.shooting = false;
-    if (this.shooterBubble) this.shooterBubble.setVisible(false);
-    this.add.rectangle(GW / 2, GH / 2, GW, GH, 0x000000, 0.7).setDepth(20);
-    this.add.text(GW / 2, GH / 2 - 30, 'Game Over!', {
-      fontSize: '36px', fill: '#fff', stroke: '#000', strokeThickness: 4
-    }).setOrigin(0.5).setDepth(21);
-    this.add.text(GW / 2, GH / 2 + 20, 'Score: ' + this.score, {
-      fontSize: '24px', fill: '#fdcb6e'
-    }).setOrigin(0.5).setDepth(21);
-    this.add.text(GW / 2, GH / 2 + 60, 'Click to restart', {
-      fontSize: '16px', fill: '#aaa'
-    }).setOrigin(0.5).setDepth(21);
-    this.input.once('pointerdown', () => this.scene.restart());
-  }
-}
-
-new Phaser.Game({
-  type: Phaser.AUTO, width: GW, height: GH, parent: 'game',
-  backgroundColor: '#1a0a2e', scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
- scene: BubbleScene
-});
-</script>
+  </script>
 </body>
 </html>
