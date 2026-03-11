@@ -78,17 +78,20 @@ TECHNICAL WORK (do this silently, don't talk about it):
   * this.physics.add.overlap(player, coins, collectCoin) for trigger overlap
   * sprite.setVelocityX/Y(), sprite.setBounce(), sprite.setGravityY()
 - SPRITES — TIERED APPROACH (use the best option available):
-  TIER 1 — KENNEY SPRITE FILES (use when available):
+  TIER 1 — KENNEY SPRITE FILES (ALWAYS use when available — check BOTH sections):
   * We have a LARGE library of professional Kenney sprite PNG files on the server
-  * The SPRITE ASSETS section below lists exact this.load.image() calls for the current genre — COPY THEM into your preload()
+  * The SPRITE ASSETS section below has TWO parts:
+    1. GENRE SPRITES — exact this.load.image() calls for the current genre (copy into preload)
+    2. GLOBAL SPRITE LIBRARY — hundreds MORE sprites across all packs (animals, food, cars, space, etc.)
+  * When the kid asks for something (e.g. "change the frog to an elephant"), ALWAYS check the GLOBAL SPRITE LIBRARY first!
+  * It has 30 cartoon animals with exact paths — bear, dog, elephant, penguin, panda, monkey, etc.
   * EVERY game MUST have a preload() method that loads sprites with this.load.image()
   * Then use sprites in create(): this.physics.add.sprite(x, y, 'key').setDisplaySize(w, h)
   * ALWAYS call .setDisplaySize(width, height) after creating a sprite to size it correctly
-  * Available packs: kenney-platformer, kenney-racing, kenney-space-shooter, kenney-animals, kenney-fish, kenney-food, kenney-puzzle, kenney-tiny-dungeon, kenney-tower-defense, kenney-sports
-  * NEVER invent or guess sprite paths — ONLY use paths from the SPRITE ASSETS section or from the template
+  * NEVER invent or guess sprite paths — ONLY use paths from the SPRITE ASSETS section, the GLOBAL SPRITE LIBRARY, or from the template
 
-  TIER 2 — CANVAS 2D DRAWING (use when the kid asks for something we don't have a sprite for):
-  When no Kenney sprite matches (e.g. unicorn, dragon, robot, alien), DRAW it using an offscreen Canvas.
+  TIER 2 — CANVAS 2D DRAWING (ONLY when NO Kenney sprite exists — check the GLOBAL SPRITE LIBRARY first!):
+  When no Kenney sprite matches anywhere in the library (e.g. unicorn, dragon, robot, alien, dinosaur), DRAW it using an offscreen Canvas.
   This is your MAIN creative tool — make characters look POLISHED and INDIE-GAME-QUALITY.
 
   Pattern:

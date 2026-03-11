@@ -503,8 +503,8 @@ export function formatAssetsFromSearch(sprites, genre, maxChars = SPRITE_ASSET_M
   lines.push('SPRITE ASSETS — MANDATORY: copy these this.load.image() lines into your preload()');
   lines.push('═══════════════════════════════════════════════════════════════');
   lines.push('');
-  lines.push('⚠️  DO NOT use generateTexture() or make.graphics() for sprites.');
-  lines.push('⚠️  ALWAYS load sprites from files using the exact paths below.');
+  lines.push('⚠️  ALWAYS check the GLOBAL SPRITE LIBRARY below BEFORE drawing with Canvas.');
+  lines.push('⚠️  Load sprites from files whenever a matching sprite exists — real sprites look better.');
   lines.push('⚠️  ALWAYS call .setDisplaySize(w, h) on sprites after creating them.');
   lines.push('⚠️  Wrap any this.sound.play() calls in try/catch.');
   lines.push('');
@@ -554,8 +554,8 @@ export function formatAssetsForPrompt(genre) {
   lines.push('SPRITE ASSETS — MANDATORY: copy these this.load.image() lines into your preload()');
   lines.push('═══════════════════════════════════════════════════════════════');
   lines.push('');
-  lines.push('⚠️  DO NOT use generateTexture() or make.graphics() for sprites.');
-  lines.push('⚠️  ALWAYS load sprites from files using the exact paths below.');
+  lines.push('⚠️  ALWAYS check the GLOBAL SPRITE LIBRARY below BEFORE drawing with Canvas.');
+  lines.push('⚠️  Load sprites from files whenever a matching sprite exists — real sprites look better.');
   lines.push('⚠️  ALWAYS call .setDisplaySize(w, h) on sprites after creating them.');
   lines.push('⚠️  Wrap any this.sound.play() calls in try/catch.');
   lines.push('');
@@ -586,9 +586,57 @@ export function formatAssetsForPrompt(genre) {
     lines.push('');
   }
 
-  lines.push('EXTRA PACKS — more sprites available if the game theme needs them:');
+  lines.push('═══════════════════════════════════════════════════════════════');
+  lines.push('GLOBAL SPRITE LIBRARY — CHECK HERE BEFORE USING CANVAS DRAWING!');
+  lines.push('═══════════════════════════════════════════════════════════════');
+  lines.push('If the kid asks for something NOT in the genre sprites above, CHECK these packs.');
+  lines.push('These are REAL sprite files on the server. Using them is ALWAYS better than Canvas drawing.');
+  lines.push('');
+
+  lines.push('🐾 ANIMAL SPRITES — 30 round cartoon animals (64x64):');
+  lines.push('   Path pattern: /assets/sprites/kenney-animals/Round/{name}.png');
+  lines.push('   Available animals:');
+  const animals = [
+    'bear',
+    'buffalo',
+    'chick',
+    'chicken',
+    'cow',
+    'crocodile',
+    'dog',
+    'duck',
+    'elephant',
+    'frog',
+    'giraffe',
+    'goat',
+    'gorilla',
+    'hippo',
+    'horse',
+    'monkey',
+    'moose',
+    'narwhal',
+    'owl',
+    'panda',
+    'parrot',
+    'penguin',
+    'pig',
+    'rabbit',
+    'rhino',
+    'sloth',
+    'snake',
+    'walrus',
+    'whale',
+    'zebra',
+  ];
+  for (const a of animals) {
+    lines.push(`     this.load.image('${a}', '/assets/sprites/kenney-animals/Round/${a}.png');`);
+  }
+  lines.push('');
+
   for (const [pack, info] of Object.entries(EXTRA_PACKS)) {
+    if (pack === 'kenney-animals') continue;
     lines.push(`  ${pack}: ${info.note}`);
+    lines.push(`    basePath: ${info.basePath}`);
     lines.push(`    Example: ${info.example}`);
   }
 
