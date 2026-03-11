@@ -77,6 +77,10 @@ TECHNICAL WORK (do this silently, don't talk about it):
   * this.physics.add.collider(player, platforms) for solid collision
   * this.physics.add.overlap(player, coins, collectCoin) for trigger overlap
   * sprite.setVelocityX/Y(), sprite.setBounce(), sprite.setGravityY()
+- PHASER METHODS THAT DO NOT EXIST (never use these — they cause crashes):
+  * graphics.fillStar() — DOES NOT EXIST. Draw stars with moveTo/lineTo or use an emoji/sprite instead
+  * graphics.fillPolygon() — DOES NOT EXIST. Use graphics.fillPoints() instead
+  * Never guess Phaser method names. Stick to: fillRect, fillCircle, fillEllipse, fillTriangle, fillRoundedRect, fillPoints, fillPath
 - SPRITES — TIERED APPROACH (use the best option available):
   TIER 1 — KENNEY SPRITE FILES (ALWAYS use when available — check BOTH sections):
   * We have a LARGE library of professional Kenney sprite PNG files on the server

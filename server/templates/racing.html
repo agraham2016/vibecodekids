@@ -34,68 +34,33 @@
   <div id="game"></div>
   <div class="controls-hint">&larr; &rarr; Steer &middot; &uarr; Accelerate &middot; &darr; Brake &middot; SPACE Restart</div>
 <script>
-const W = 800, H = 500, CW = 44, CH = 64;
+const W = 800, H = 500, CW = 48, CH = 80;
 const RL = 175, RR = 625, LANES = [250, 400, 550];
 
 let touchLeft = false, touchRight = false, touchUp = false, touchDown = false;
 
-function drawCar(scene, key, bodyColor, windshieldColor, accentColor) {
-  const g = scene.make.graphics({ add: false });
-  const w = CW, h = CH;
-
-  g.fillStyle(0x222222);
-  g.fillRect(2, 8, 7, 14);
-  g.fillRect(w - 9, 8, 7, 14);
-  g.fillRect(2, h - 22, 7, 14);
-  g.fillRect(w - 9, h - 22, 7, 14);
-
-  g.fillStyle(bodyColor);
-  g.fillRoundedRect(7, 0, w - 14, h, 8);
-
-  g.fillStyle(accentColor);
-  g.fillRect(7, 0, w - 14, 4);
-
-  g.fillStyle(windshieldColor);
-  g.fillRoundedRect(11, 8, w - 22, 16, 3);
-
-  g.fillStyle(windshieldColor, 0.7);
-  g.fillRoundedRect(11, h - 22, w - 22, 12, 3);
-
-  g.fillStyle(0xffffff);
-  g.fillRect(10, h - 3, 6, 3);
-  g.fillRect(w - 16, h - 3, 6, 3);
-
-  g.fillStyle(0xff4444);
-  g.fillRect(10, 0, 6, 3);
-  g.fillRect(w - 16, 0, 6, 3);
-
-  g.generateTexture(key, w, h);
-  g.destroy();
-}
-
 class Race extends Phaser.Scene {
   preload() {
-    drawCar(this, 'car-player', 0x2277dd, 0x88ccff, 0x55aaff);
-    drawCar(this, 'car-obstacle', 0xcc2222, 0x663333, 0xff4444);
-    drawCar(this, 'car-green', 0x22aa44, 0x336633, 0x44dd66);
-    drawCar(this, 'car-yellow', 0xddaa22, 0x665533, 0xffcc44);
+    this.load.image('car-player', '/assets/sprites/kenney-racing/Cars/car_blue_1.png');
+    this.load.image('car-obstacle', '/assets/sprites/kenney-racing/Cars/car_red_1.png');
+    this.load.image('car-green', '/assets/sprites/kenney-racing/Cars/car_green_1.png');
+    this.load.image('car-yellow', '/assets/sprites/kenney-racing/Cars/car_yellow_1.png');
+    this.load.image('cone', '/assets/sprites/kenney-racing/Objects/cone_straight.png');
+    this.load.image('oil', '/assets/sprites/kenney-racing/Objects/oil.png');
+    this.load.image('barrier', '/assets/sprites/kenney-racing/Objects/barrier_red.png');
+    this.load.image('tires', '/assets/sprites/kenney-racing/Objects/tires_red.png');
 
-    const cone = this.make.graphics({ add: false });
-    cone.fillStyle(0xff6600);
-    cone.fillTriangle(12, 0, 0, 24, 24, 24);
-    cone.fillStyle(0xffffff);
-    cone.fillRect(3, 10, 18, 3);
-    cone.fillRect(5, 17, 14, 3);
-    cone.generateTexture('cone', 24, 24);
-    cone.destroy();
-
-    const oil = this.make.graphics({ add: false });
-    oil.fillStyle(0x222222);
-    oil.fillEllipse(16, 16, 32, 28);
-    oil.fillStyle(0x444466, 0.5);
-    oil.fillEllipse(12, 12, 12, 10);
-    oil.generateTexture('oil', 32, 32);
-    oil.destroy();
+    this.load.on('loaderror', (file) => {
+      const c = document.createElement('canvas'); c.width = 48; c.height = 80;
+      const ctx = c.getContext('2d');
+      const grad = ctx.createRadialGradient(24, 36, 4, 24, 40, 30);
+      grad.addColorStop(0, '#ff9ed8'); grad.addColorStop(1, '#d63384');
+      ctx.fillStyle = grad;
+      ctx.beginPath(); ctx.roundRect(4, 0, 40, 76, 8); ctx.fill();
+      ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(16, 30, 4, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(32, 30, 4, 0, Math.PI * 2); ctx.fill();
+      this.textures.addCanvas(file.key, c);
+    });
   }
 
   create() {
@@ -114,10 +79,10 @@ class Race extends Phaser.Scene {
     });
 
     this.player = this.physics.add.sprite(400, H - 70, 'car-player');
-    this.player.setDisplaySize(CW, CH);
+    this.player.setDisplaySize(44, 64);
     this.player.setOrigin(0.5, 0.5);
     this.player.setCollideWorldBounds(true);
-    this.player.body.setSize(CW - 12, CH - 12);
+    this.player.body.setSize(36, 56);
 
     this.obs = this.physics.add.group();
     this.physics.add.overlap(this.player, this.obs, () => this.crash(), null, this);
@@ -190,7 +155,7 @@ class Race extends Phaser.Scene {
 
     this.obs.getChildren().forEach(o => {
       o.y += this.speed * 2.2;
-      if (o.y > H + CH) o.destroy();
+      if (o.y > H + 80) o.destroy();
     });
 
     this.elapsed += dt;
@@ -198,10 +163,10 @@ class Race extends Phaser.Scene {
     const diff = 1 + this.elapsed / 12000;
     if (this.spawnCD > Math.max(350, 1300 / diff)) {
       const tex = Phaser.Math.RND.pick(['car-obstacle', 'car-green', 'car-yellow']);
-      const o = this.obs.create(Phaser.Math.RND.pick(LANES), -CH, tex);
-      o.setDisplaySize(CW, CH);
+      const o = this.obs.create(Phaser.Math.RND.pick(LANES), -70, tex);
+      o.setDisplaySize(44, 64);
       o.setOrigin(0.5, 0.5);
-      o.body.setSize(CW - 12, CH - 12);
+      o.body.setSize(36, 56);
       this.spawnCD = 0;
     }
 
