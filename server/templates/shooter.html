@@ -21,135 +21,30 @@
   <script>
   class ShooterScene extends Phaser.Scene {
     preload() {
-      const g = this.make.graphics({ add: false });
+      this.load.image('ship', '/assets/sprites/kenney-space-shooter/playerShip1_blue.png');
+      this.load.image('enemy', '/assets/sprites/kenney-space-shooter/Enemies/enemyRed1.png');
+      this.load.image('enemy2', '/assets/sprites/kenney-space-shooter/Enemies/enemyBlack2.png');
+      this.load.image('enemy3', '/assets/sprites/kenney-space-shooter/Enemies/enemyGreen3.png');
+      this.load.image('bullet', '/assets/sprites/kenney-space-shooter/Lasers/laserBlue01.png');
+      this.load.image('meteor', '/assets/sprites/kenney-space-shooter/Meteors/meteorBrown_big1.png');
+      this.load.image('powerup', '/assets/sprites/kenney-space-shooter/Power-ups/powerupBlue_shield.png');
+      this.load.image('star', '/assets/sprites/kenney-space-shooter/Effects/star1.png');
+      this.load.image('particle', '/assets/sprites/common/particle.png');
 
-      // --- Player ship: blue triangular with cockpit and engine glow ---
-      g.fillStyle(0x003399);
-      g.beginPath();
-      g.moveTo(24, 2); g.lineTo(4, 42); g.lineTo(16, 34);
-      g.lineTo(32, 34); g.lineTo(44, 42);
-      g.closePath(); g.fillPath();
-      g.fillStyle(0x0055cc);
-      g.beginPath();
-      g.moveTo(24, 2); g.lineTo(10, 38); g.lineTo(18, 32);
-      g.lineTo(30, 32); g.lineTo(38, 38);
-      g.closePath(); g.fillPath();
-      g.fillStyle(0x00bbff);
-      g.beginPath();
-      g.moveTo(24, 10); g.lineTo(19, 24); g.lineTo(29, 24);
-      g.closePath(); g.fillPath();
-      g.fillStyle(0x4488ff, 0.7);
-      g.fillCircle(18, 40, 4);
-      g.fillCircle(30, 40, 4);
-      g.fillStyle(0xaaddff, 0.9);
-      g.fillCircle(18, 40, 2);
-      g.fillCircle(30, 40, 2);
-      g.generateTexture('ship', 48, 48); g.clear();
-
-      // --- Enemy 1: red aggressive V-wing ---
-      g.fillStyle(0x990000);
-      g.beginPath();
-      g.moveTo(24, 44); g.lineTo(2, 6); g.lineTo(18, 18);
-      g.lineTo(30, 18); g.lineTo(46, 6);
-      g.closePath(); g.fillPath();
-      g.fillStyle(0xdd2222);
-      g.beginPath();
-      g.moveTo(24, 40); g.lineTo(14, 18); g.lineTo(34, 18);
-      g.closePath(); g.fillPath();
-      g.fillStyle(0xff6666);
-      g.fillCircle(24, 26, 4);
-      g.generateTexture('enemy', 48, 48); g.clear();
-
-      // --- Enemy 2: orange diamond interceptor ---
-      g.fillStyle(0xcc5500);
-      g.beginPath();
-      g.moveTo(24, 44); g.lineTo(4, 24); g.lineTo(24, 4); g.lineTo(44, 24);
-      g.closePath(); g.fillPath();
-      g.fillStyle(0xff8833);
-      g.beginPath();
-      g.moveTo(24, 36); g.lineTo(12, 24); g.lineTo(24, 12); g.lineTo(36, 24);
-      g.closePath(); g.fillPath();
-      g.fillStyle(0xffbb66);
-      g.fillRect(20, 20, 8, 8);
-      g.generateTexture('enemy2', 48, 48); g.clear();
-
-      // --- Enemy 3: green angular dart ---
-      g.fillStyle(0x007700);
-      g.beginPath();
-      g.moveTo(24, 44); g.lineTo(2, 14); g.lineTo(14, 4);
-      g.lineTo(24, 16); g.lineTo(34, 4); g.lineTo(46, 14);
-      g.closePath(); g.fillPath();
-      g.fillStyle(0x22aa22);
-      g.beginPath();
-      g.moveTo(24, 38); g.lineTo(12, 16); g.lineTo(24, 20); g.lineTo(36, 16);
-      g.closePath(); g.fillPath();
-      g.fillStyle(0x66dd66);
-      g.fillCircle(24, 28, 4);
-      g.generateTexture('enemy3', 48, 48); g.clear();
-
-      // --- Bullet: cyan laser bolt ---
-      g.fillStyle(0x00cccc);
-      g.fillRect(1, 0, 6, 16);
-      g.fillStyle(0x00ffff);
-      g.fillRect(2, 1, 4, 14);
-      g.fillStyle(0xaaffff);
-      g.fillRect(3, 2, 2, 12);
-      g.generateTexture('bullet', 8, 16); g.clear();
-
-      // --- Meteor: brown rocky asteroid with craters ---
-      g.fillStyle(0x7B4A1B);
-      g.beginPath();
-      g.moveTo(24, 2); g.lineTo(36, 6); g.lineTo(44, 16);
-      g.lineTo(42, 32); g.lineTo(34, 42); g.lineTo(20, 46);
-      g.lineTo(8, 40); g.lineTo(2, 28); g.lineTo(4, 14); g.lineTo(14, 4);
-      g.closePath(); g.fillPath();
-      g.fillStyle(0x9B6A3B);
-      g.beginPath();
-      g.moveTo(24, 8); g.lineTo(34, 12); g.lineTo(38, 20);
-      g.lineTo(34, 32); g.lineTo(24, 38); g.lineTo(14, 34);
-      g.lineTo(10, 24); g.lineTo(14, 14);
-      g.closePath(); g.fillPath();
-      g.fillStyle(0x5B3A0B);
-      g.fillCircle(20, 18, 5);
-      g.fillCircle(32, 28, 4);
-      g.fillCircle(15, 33, 3);
-      g.fillCircle(30, 14, 3);
-      g.generateTexture('meteor', 48, 48); g.clear();
-
-      // --- Powerup: blue shield orb ---
-      g.fillStyle(0x0066dd, 0.4);
-      g.fillCircle(16, 16, 14);
-      g.lineStyle(2, 0x00aaff, 1);
-      g.strokeCircle(16, 16, 14);
-      g.fillStyle(0x00bbff);
-      g.beginPath();
-      g.moveTo(16, 4); g.lineTo(7, 14); g.lineTo(7, 23);
-      g.lineTo(16, 30); g.lineTo(25, 23); g.lineTo(25, 14);
-      g.closePath(); g.fillPath();
-      g.fillStyle(0x88ddff);
-      g.beginPath();
-      g.moveTo(16, 8); g.lineTo(11, 15); g.lineTo(11, 20);
-      g.lineTo(16, 25); g.lineTo(21, 20); g.lineTo(21, 15);
-      g.closePath(); g.fillPath();
-      g.generateTexture('powerup', 32, 32); g.clear();
-
-      // --- Star particle (white glow) ---
-      g.fillStyle(0xffffff, 0.3);
-      g.fillCircle(5, 5, 5);
-      g.fillStyle(0xffffff, 0.7);
-      g.fillCircle(5, 5, 3);
-      g.fillStyle(0xffffff);
-      g.fillCircle(5, 5, 1);
-      g.generateTexture('star', 10, 10); g.clear();
-
-      // --- Explosion / generic particle ---
-      g.fillStyle(0xffffff, 0.6);
-      g.fillCircle(4, 4, 4);
-      g.fillStyle(0xffffff);
-      g.fillCircle(4, 4, 2);
-      g.generateTexture('particle', 8, 8); g.clear();
-
-      g.destroy();
+      this.load.on('loaderror', (file) => {
+        const c = document.createElement('canvas'); c.width = 64; c.height = 64;
+        const ctx = c.getContext('2d');
+        const grad = ctx.createRadialGradient(32, 28, 4, 32, 32, 24);
+        grad.addColorStop(0, '#ff9ed8'); grad.addColorStop(1, '#d63384');
+        ctx.fillStyle = grad;
+        ctx.beginPath(); ctx.arc(32, 32, 24, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = '#a0204c'; ctx.lineWidth = 2; ctx.stroke();
+        ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(24, 26, 4, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(40, 26, 4, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#333'; ctx.beginPath(); ctx.arc(25, 27, 2, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(41, 27, 2, 0, Math.PI * 2); ctx.fill();
+        this.textures.addCanvas(file.key, c);
+      });
     }
 
     create() {

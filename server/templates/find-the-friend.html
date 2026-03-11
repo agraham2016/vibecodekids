@@ -32,34 +32,29 @@
 
     class FindTheFriendScene extends Phaser.Scene {
       preload() {
-        var g = this.make.graphics({ add: false });
-        var sz = 48;
-        for (var i = 0; i < CRITTER_DEFS.length; i++) {
-          var c = CRITTER_DEFS[i];
-          g.clear();
-          // Body (round)
-          g.fillStyle(c.bodyColor); g.fillCircle(sz / 2, sz / 2, 18);
-          // Ears
-          g.fillStyle(c.earColor);
-          g.fillCircle(sz / 2 - 12, sz / 2 - 16, 7);
-          g.fillCircle(sz / 2 + 12, sz / 2 - 16, 7);
-          // Inner ears
-          g.fillStyle(c.bodyColor === 0xffffff && c.key !== 'panda' ? c.earColor : 0xfab1a0, 0.5);
-          g.fillCircle(sz / 2 - 12, sz / 2 - 16, 4);
-          g.fillCircle(sz / 2 + 12, sz / 2 - 16, 4);
-          // Eyes
-          g.fillStyle(0xffffff); g.fillCircle(sz / 2 - 6, sz / 2 - 3, 5); g.fillCircle(sz / 2 + 6, sz / 2 - 3, 5);
-          g.fillStyle(c.eyeColor); g.fillCircle(sz / 2 - 5, sz / 2 - 3, 3); g.fillCircle(sz / 2 + 5, sz / 2 - 3, 3);
-          g.fillStyle(0xffffff); g.fillCircle(sz / 2 - 4, sz / 2 - 4, 1); g.fillCircle(sz / 2 + 6, sz / 2 - 4, 1);
-          // Nose
-          g.fillStyle(c.nose); g.fillCircle(sz / 2, sz / 2 + 4, 3);
-          // Mouth
-          g.lineStyle(1, 0x636e72);
-          g.lineBetween(sz / 2 - 3, sz / 2 + 8, sz / 2, sz / 2 + 10);
-          g.lineBetween(sz / 2, sz / 2 + 10, sz / 2 + 3, sz / 2 + 8);
-          g.generateTexture(c.key, sz, sz);
-        }
-        g.destroy();
+        this.load.image('bear', '/assets/sprites/kenney-animals/Round/bear.png');
+        this.load.image('dog', '/assets/sprites/kenney-animals/Round/dog.png');
+        this.load.image('elephant', '/assets/sprites/kenney-animals/Round/elephant.png');
+        this.load.image('penguin', '/assets/sprites/kenney-animals/Round/penguin.png');
+        this.load.image('panda', '/assets/sprites/kenney-animals/Round/panda.png');
+        this.load.image('owl', '/assets/sprites/kenney-animals/Round/owl.png');
+        this.load.image('monkey', '/assets/sprites/kenney-animals/Round/monkey.png');
+        this.load.image('rabbit', '/assets/sprites/kenney-animals/Round/rabbit.png');
+
+        this.load.on('loaderror', (file) => {
+          const c = document.createElement('canvas'); c.width = 64; c.height = 64;
+          const ctx = c.getContext('2d');
+          const grad = ctx.createRadialGradient(32, 28, 4, 32, 32, 24);
+          grad.addColorStop(0, '#ff9ed8'); grad.addColorStop(1, '#d63384');
+          ctx.fillStyle = grad;
+          ctx.beginPath(); ctx.arc(32, 32, 24, 0, Math.PI * 2); ctx.fill();
+          ctx.strokeStyle = '#a0204c'; ctx.lineWidth = 2; ctx.stroke();
+          ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(24, 26, 4, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc(40, 26, 4, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#333'; ctx.beginPath(); ctx.arc(25, 27, 2, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc(41, 27, 2, 0, Math.PI * 2); ctx.fill();
+          this.textures.addCanvas(file.key, c);
+        });
       }
 
       create() {

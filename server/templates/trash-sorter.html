@@ -23,17 +23,30 @@
     const MAX_MISTAKES = 5;
 
     class TrashSorterScene extends Phaser.Scene {
-      preload() {}
+      preload() {
+        this.load.image('recycle', '/assets/sprites/kenney-food/tile_0020.png');
+        this.load.image('compost', '/assets/sprites/kenney-food/tile_0021.png');
+        this.load.image('trash', '/assets/sprites/kenney-food/tile_0022.png');
+        this.load.image('star', '/assets/sprites/common/star.png');
+
+        this.load.on('loaderror', (file) => {
+          const c = document.createElement('canvas'); c.width = 64; c.height = 64;
+          const ctx = c.getContext('2d');
+          const grad = ctx.createRadialGradient(32, 28, 4, 32, 32, 24);
+          grad.addColorStop(0, '#ff9ed8'); grad.addColorStop(1, '#d63384');
+          ctx.fillStyle = grad;
+          ctx.beginPath(); ctx.arc(32, 32, 24, 0, Math.PI * 2); ctx.fill();
+          ctx.strokeStyle = '#a0204c'; ctx.lineWidth = 2; ctx.stroke();
+          ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(24, 26, 4, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc(40, 26, 4, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#333'; ctx.beginPath(); ctx.arc(25, 27, 2, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc(41, 27, 2, 0, Math.PI * 2); ctx.fill();
+          this.textures.addCanvas(file.key, c);
+        });
+      }
 
       create() {
         const g = this.make.graphics({ add: false });
-
-        g.fillStyle(0x74b9ff); g.fillRoundedRect(0, 0, ITEM_W, ITEM_H, 6); g.fillStyle(0x0984e3); g.fillRect(8, 8, 24, 24);
-        g.generateTexture('recycle', ITEM_W, ITEM_H); g.clear();
-        g.fillStyle(0x55efc4); g.fillRoundedRect(0, 0, ITEM_W, ITEM_H, 6); g.fillStyle(0x00b894); g.fillCircle(20, 20, 12);
-        g.generateTexture('compost', ITEM_W, ITEM_H); g.clear();
-        g.fillStyle(0xdfe6e9); g.fillRoundedRect(0, 0, ITEM_W, ITEM_H, 6); g.fillStyle(0xb2bec3); g.fillRect(10, 10, 20, 20);
-        g.generateTexture('trash', ITEM_W, ITEM_H); g.clear();
         g.fillStyle(0x636e72); g.fillRect(0, 0, W, 60);
         g.fillStyle(0x2d3436); g.fillRect(0, 4, W, 52);
         for (let x = 0; x < W; x += 24) { g.fillStyle(0x74b9ff, 0.3); g.fillRect(x, 26, 12, 8); }
@@ -76,7 +89,7 @@
         if (this.gameOver) return;
         const types = ['recycle', 'compost', 'trash'];
         const type = Phaser.Utils.Array.GetRandom(types);
-        const item = this.add.image(ITEM_W, CONVEYOR_Y, type);
+        const item = this.add.image(ITEM_W, CONVEYOR_Y, type).setDisplaySize(ITEM_W, ITEM_H);
         item.type = type;
         item.typeIdx = types.indexOf(type);
         this.items.add(item);

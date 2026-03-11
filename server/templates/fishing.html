@@ -36,21 +36,26 @@
     };
 
     function preload() {
+      this.load.image('bobber', '/assets/sprites/kenney-fish/bubble_b.png');
+      this.load.image('fish', '/assets/sprites/kenney-fish/fish_orange.png');
+
+      this.load.on('loaderror', (file) => {
+        const c = document.createElement('canvas'); c.width = 64; c.height = 64;
+        const ctx = c.getContext('2d');
+        const grad = ctx.createRadialGradient(32, 28, 4, 32, 32, 24);
+        grad.addColorStop(0, '#ff9ed8'); grad.addColorStop(1, '#d63384');
+        ctx.fillStyle = grad;
+        ctx.beginPath(); ctx.arc(32, 32, 24, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = '#a0204c'; ctx.lineWidth = 2; ctx.stroke();
+        ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(24, 26, 4, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(40, 26, 4, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#333'; ctx.beginPath(); ctx.arc(25, 27, 2, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(41, 27, 2, 0, Math.PI * 2); ctx.fill();
+        this.textures.addCanvas(file.key, c);
+      });
     }
 
     function create() {
-      const g = this.make.graphics({ add: false });
-      g.fillStyle(0xfdcb6e);
-      g.fillCircle(8, 8, 8);
-      g.generateTexture('bobber', 16, 16);
-      g.clear();
-      g.fillStyle(0xe17055);
-      g.fillEllipse(15, 8, 20, 10);
-      g.fillStyle(0xff6b6b);
-      g.fillCircle(25, 8, 4);
-      g.generateTexture('fish', 30, 16);
-      g.destroy();
-
       const bg = this.add.graphics();
       bg.fillGradientStyle(0x74b9ff, 0x74b9ff, 0x0984e3, 0x0a3d62);
       bg.fillRect(0, 0, W, H);
@@ -62,7 +67,7 @@
 
       bobber = this.add.circle(W / 2, H - 80, 8, 0xfdcb6e);
       rodLine = this.add.line(0, 0, W / 2, H - 40, W / 2, H - 80, 0x8b7355, 1).setLineWidth(3).setDepth(0);
-      fish = this.add.image(W / 2, H - 80, 'fish').setVisible(false);
+      fish = this.add.image(W / 2, H - 80, 'fish').setDisplaySize(30, 16).setVisible(false);
 
       scoreText = this.add.text(12, 12, 'Score: 0', { fontSize: '20px', fill: '#fdcb6e', stroke: '#000', strokeThickness: 2 }).setDepth(10);
       msgText = this.add.text(W / 2, H / 2 - 30, 'Click to cast!', { fontSize: '24px', fill: '#fff', stroke: '#000', strokeThickness: 3, align: 'center' }).setOrigin(0.5).setDepth(10);

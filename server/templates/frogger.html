@@ -27,40 +27,27 @@ class Frog extends Phaser.Scene {
   constructor() { super('Frog'); }
 
   preload() {
-    var g = this.make.graphics({ add: false });
+    this.load.image('frog', '/assets/sprites/kenney-animals/Round/frog.png');
+    this.load.image('car0', '/assets/sprites/kenney-racing/Cars/car_red_small_1.png');
+    this.load.image('car1', '/assets/sprites/kenney-racing/Cars/car_blue_small_3.png');
+    this.load.image('car2', '/assets/sprites/kenney-racing/Cars/car_green_1.png');
+    this.load.image('truck', '/assets/sprites/kenney-racing/Cars/car_yellow_1.png');
+    this.load.image('log', '/assets/sprites/frogger/log.png');
 
-    // Frog (green body, big eyes)
-    g.fillStyle(0x27ae60); g.fillCircle(20, 22, 16);
-    g.fillStyle(0x2ecc71); g.fillCircle(20, 20, 14);
-    g.fillStyle(0xffffff); g.fillCircle(14, 14, 5); g.fillCircle(26, 14, 5);
-    g.fillStyle(0x2d3436); g.fillCircle(14, 14, 3); g.fillCircle(26, 14, 3);
-    g.fillStyle(0x27ae60); g.fillEllipse(10, 30, 10, 6); g.fillEllipse(30, 30, 10, 6);
-    g.generateTexture('frog', 40, 40); g.clear();
-
-    // Cars (3 color variants)
-    var carColors = [0x3498db, 0xe74c3c, 0xf39c12];
-    for (var ci = 0; ci < carColors.length; ci++) {
-      g.fillStyle(carColors[ci]); g.fillRoundedRect(2, 6, 44, 24, 6);
-      g.fillStyle(0x74b9ff, 0.4); g.fillRoundedRect(30, 10, 12, 8, 3);
-      g.fillStyle(0x2d3436); g.fillCircle(12, 32, 5); g.fillCircle(36, 32, 5);
-      g.fillStyle(0x636e72); g.fillCircle(12, 32, 3); g.fillCircle(36, 32, 3);
-      g.generateTexture('car' + ci, 48, 38); g.clear();
-    }
-
-    // Truck (wider)
-    g.fillStyle(0xfdcb6e); g.fillRoundedRect(2, 4, 64, 28, 6);
-    g.fillStyle(0xf39c12); g.fillRoundedRect(4, 8, 24, 20, 4);
-    g.fillStyle(0x2d3436); g.fillCircle(16, 34, 5); g.fillCircle(52, 34, 5);
-    g.generateTexture('truck', 68, 40); g.clear();
-
-    // Log (brown)
-    g.fillStyle(0x8d6e63); g.fillRoundedRect(0, 4, 80, 28, 10);
-    g.fillStyle(0x6d4c41); g.fillCircle(6, 18, 10); g.fillCircle(74, 18, 10);
-    g.lineStyle(1, 0x5d4037, 0.4);
-    g.lineBetween(20, 10, 20, 26); g.lineBetween(40, 10, 40, 26); g.lineBetween(60, 10, 60, 26);
-    g.generateTexture('log', 80, 36); g.clear();
-
-    g.destroy();
+    this.load.on('loaderror', (file) => {
+      const c = document.createElement('canvas'); c.width = 64; c.height = 64;
+      const ctx = c.getContext('2d');
+      const grad = ctx.createRadialGradient(32, 28, 4, 32, 32, 24);
+      grad.addColorStop(0, '#ff9ed8'); grad.addColorStop(1, '#d63384');
+      ctx.fillStyle = grad;
+      ctx.beginPath(); ctx.arc(32, 32, 24, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = '#a0204c'; ctx.lineWidth = 2; ctx.stroke();
+      ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(24, 26, 4, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(40, 26, 4, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#333'; ctx.beginPath(); ctx.arc(25, 27, 2, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(41, 27, 2, 0, Math.PI * 2); ctx.fill();
+      this.textures.addCanvas(file.key, c);
+    });
   }
 
   create() {

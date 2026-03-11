@@ -35,82 +35,28 @@
   <script>
   class TowerDefenseScene extends Phaser.Scene {
     preload() {
-      const g = this.make.graphics({ add: false });
+      this.load.image('tower', '/assets/sprites/kenney-tower-defense/towerDefense_tile180.png');
+      this.load.image('towerGun', '/assets/sprites/kenney-tower-defense/towerDefense_tile249.png');
+      this.load.image('enemy', '/assets/sprites/kenney-tower-defense/towerDefense_tile245.png');
+      this.load.image('path', '/assets/sprites/kenney-tower-defense/towerDefense_tile024.png');
+      this.load.image('grassTile', '/assets/sprites/kenney-tower-defense/towerDefense_tile001.png');
+      this.load.image('bullet', '/assets/sprites/common/star.png');
+      this.load.image('particle', '/assets/sprites/common/particle.png');
 
-      // Tower: blue crystal on stone base
-      g.fillStyle(0x6b6b5a);
-      g.fillRect(6, 24, 28, 12);
-      g.fillStyle(0x8a8a72);
-      g.fillRect(8, 26, 24, 8);
-      g.fillStyle(0x3a6ea5);
-      g.fillRect(12, 6, 16, 22);
-      g.fillStyle(0x5b9bd5);
-      g.fillRect(14, 8, 12, 18);
-      g.fillStyle(0x8fc4e8);
-      g.fillTriangle(20, 0, 12, 10, 28, 10);
-      g.fillStyle(0xaadcf0);
-      g.fillRect(17, 12, 3, 6);
-      g.fillStyle(0xd4eef8);
-      g.fillCircle(18, 13, 2);
-      g.generateTexture('tower', 40, 40);
-      g.clear();
-
-      // Enemy: red goblin (circle body + eyes)
-      g.fillStyle(0xb33030);
-      g.fillCircle(12, 14, 10);
-      g.fillStyle(0xd44040);
-      g.fillCircle(12, 13, 8);
-      g.fillStyle(0xe06050);
-      g.fillTriangle(4, 6, 7, 12, 2, 12);
-      g.fillTriangle(20, 6, 17, 12, 22, 12);
-      g.fillStyle(0xffffff);
-      g.fillCircle(9, 11, 3);
-      g.fillCircle(15, 11, 3);
-      g.fillStyle(0x220000);
-      g.fillCircle(10, 11, 1.5);
-      g.fillCircle(16, 11, 1.5);
-      g.fillStyle(0x801010);
-      g.fillRect(9, 18, 6, 2);
-      g.generateTexture('enemy', 24, 24);
-      g.clear();
-
-      // Bullet: yellow dot projectile
-      g.fillStyle(0xdaa520);
-      g.fillCircle(4, 4, 4);
-      g.fillStyle(0xffd700);
-      g.fillCircle(3, 3, 2.5);
-      g.fillStyle(0xfffacd);
-      g.fillCircle(2, 2, 1);
-      g.generateTexture('bullet', 8, 8);
-      g.clear();
-
-      // Path tile: tan/stone cobblestone
-      g.fillStyle(0xc2a868);
-      g.fillRect(0, 0, 40, 40);
-      g.fillStyle(0xb09858);
-      g.fillRect(1, 1, 18, 12);
-      g.fillRect(21, 1, 18, 12);
-      g.fillRect(10, 15, 20, 11);
-      g.fillRect(1, 28, 16, 11);
-      g.fillRect(19, 28, 20, 11);
-      g.lineStyle(1, 0x8a7840, 0.5);
-      g.strokeRect(1, 1, 18, 12);
-      g.strokeRect(21, 1, 18, 12);
-      g.strokeRect(10, 15, 20, 11);
-      g.strokeRect(1, 28, 16, 11);
-      g.strokeRect(19, 28, 20, 11);
-      g.generateTexture('path', 40, 40);
-      g.clear();
-
-      // Particle: soft glow circle
-      g.fillStyle(0xffffff);
-      g.fillCircle(4, 4, 4);
-      g.fillStyle(0xffffff, 0.5);
-      g.fillCircle(4, 4, 3);
-      g.generateTexture('particle', 8, 8);
-      g.clear();
-
-      g.destroy();
+      this.load.on('loaderror', (file) => {
+        const c = document.createElement('canvas'); c.width = 64; c.height = 64;
+        const ctx = c.getContext('2d');
+        const grad = ctx.createRadialGradient(32, 28, 4, 32, 32, 24);
+        grad.addColorStop(0, '#ff9ed8'); grad.addColorStop(1, '#d63384');
+        ctx.fillStyle = grad;
+        ctx.beginPath(); ctx.arc(32, 32, 24, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = '#a0204c'; ctx.lineWidth = 2; ctx.stroke();
+        ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(24, 26, 4, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(40, 26, 4, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#333'; ctx.beginPath(); ctx.arc(25, 27, 2, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(41, 27, 2, 0, Math.PI * 2); ctx.fill();
+        this.textures.addCanvas(file.key, c);
+      });
     }
 
     create() {
@@ -269,7 +215,7 @@
       // Stone path tiles
       this.pathCells.forEach(key => {
         const [cx, cy] = key.split(',').map(Number);
-        this.add.image(cx * this.CELL + this.CELL / 2, cy * this.CELL + this.CELL / 2 + this.CELL, 'path').setDepth(1);
+        this.add.image(cx * this.CELL + this.CELL / 2, cy * this.CELL + this.CELL / 2 + this.CELL, 'path').setDisplaySize(this.CELL, this.CELL).setDepth(1);
       });
 
       // Path edge darkening
@@ -328,7 +274,7 @@
       const x = col * this.CELL + this.CELL / 2;
       const y = row * this.CELL + this.CELL / 2 + this.CELL;
 
-      const sprite = this.add.image(x, y, 'tower').setDepth(5);
+      const sprite = this.add.image(x, y, 'tower').setDisplaySize(40, 40).setDepth(5);
       sprite.setScale(0);
       this.tweens.add({ targets: sprite, scale: 1, duration: 200, ease: 'Back.easeOut' });
 
@@ -375,7 +321,7 @@
       const speed = 50 + this.wave * 5;
       const isBoss = this.enemiesSpawned === this.enemiesToSpawn && this.wave % 3 === 0;
 
-      const e = this.enemies.create(this.pixelPath[0].x, this.pixelPath[0].y, 'enemy').setDepth(6);
+      const e = this.enemies.create(this.pixelPath[0].x, this.pixelPath[0].y, 'enemy').setDisplaySize(24, 24).setDepth(6);
       e.hp = isBoss ? hp * 3 : hp;
       e.maxHp = e.hp;
       e.speed = isBoss ? speed * 0.6 : speed;
@@ -543,7 +489,7 @@
 
         if (closest) {
           tower.lastFired = time;
-          const b = this.bullets.create(tower.x, tower.y, 'bullet').setDepth(6);
+          const b = this.bullets.create(tower.x, tower.y, 'bullet').setDisplaySize(8, 8).setDepth(6);
           b.damage = tower.damage;
           b.body.allowGravity = false;
 

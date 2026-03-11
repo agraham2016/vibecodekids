@@ -29,22 +29,27 @@
     };
 
     function preload() {
+      this.load.image('player', '/assets/sprites/kenney-space-shooter/playerShip2_green.png');
+      this.load.image('bullet', '/assets/sprites/kenney-space-shooter/Lasers/laserGreen01.png');
+      this.load.image('enemy', '/assets/sprites/kenney-space-shooter/Enemies/enemyRed3.png');
+
+      this.load.on('loaderror', (file) => {
+        const c = document.createElement('canvas'); c.width = 64; c.height = 64;
+        const ctx = c.getContext('2d');
+        const grad = ctx.createRadialGradient(32, 28, 4, 32, 32, 24);
+        grad.addColorStop(0, '#ff9ed8'); grad.addColorStop(1, '#d63384');
+        ctx.fillStyle = grad;
+        ctx.beginPath(); ctx.arc(32, 32, 24, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = '#a0204c'; ctx.lineWidth = 2; ctx.stroke();
+        ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(24, 26, 4, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(40, 26, 4, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#333'; ctx.beginPath(); ctx.arc(25, 27, 2, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(41, 27, 2, 0, Math.PI * 2); ctx.fill();
+        this.textures.addCanvas(file.key, c);
+      });
     }
 
     function create() {
-      const g = this.make.graphics({ add: false });
-      g.fillStyle(0x55efc4);
-      g.fillTriangle(12, 0, -8, 8, -8, -8);
-      g.generateTexture('player', 24, 24);
-      g.clear();
-      g.fillStyle(0xffffff);
-      g.fillCircle(3, 3, 3);
-      g.generateTexture('bullet', 6, 6);
-      g.clear();
-      g.fillStyle(0xe94560);
-      g.fillCircle(10, 10, 10);
-      g.generateTexture('enemy', 20, 20);
-      g.destroy();
 
       const bg = this.add.graphics().fillStyle(0x1a1a2e).fillRect(0, 0, W, H);
       for (let i = 0; i < 80; i++) {

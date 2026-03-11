@@ -62,67 +62,26 @@
     };
 
     function preload() {
-      const g = this.make.graphics({ add: false });
+      this.load.image('paddle', '/assets/sprites/brick-breaker/paddle.png');
+      this.load.image('ball', '/assets/sprites/kenney-puzzle/ballBlue.png');
+      this.load.image('brick', '/assets/sprites/kenney-puzzle/element_blue_rectangle_glossy.png');
+      this.load.image('powerup', '/assets/sprites/brick-breaker/powerup.png');
+      this.load.image('particle', '/assets/sprites/common/particle.png');
 
-      // Paddle: sleek metallic chrome with neon cyan trim
-      g.fillStyle(0x00ffff, 0.3);
-      g.fillRoundedRect(0, 0, PADDLE_W, PADDLE_H, 7);
-      g.fillStyle(0x3a4a6a);
-      g.fillRoundedRect(1, 1, PADDLE_W - 2, PADDLE_H - 2, 6);
-      g.fillStyle(0x5a6a8a);
-      g.fillRoundedRect(2, 2, PADDLE_W - 4, 6, 4);
-      g.fillStyle(0x7a8aaa);
-      g.fillRoundedRect(4, 2, PADDLE_W - 8, 3, 2);
-      g.fillStyle(0x00ffff, 0.7);
-      g.fillRect(8, 0, PADDLE_W - 16, 1);
-      g.generateTexture('paddle', PADDLE_W, PADDLE_H);
-      g.clear();
-
-      // Ball: glowing cyan/white orb
-      g.fillStyle(0x00aaff);
-      g.fillCircle(BALL_R, BALL_R, BALL_R);
-      g.fillStyle(0x44ddff);
-      g.fillCircle(BALL_R, BALL_R, BALL_R - 1);
-      g.fillStyle(0xaaeeff);
-      g.fillCircle(BALL_R, BALL_R, BALL_R - 3);
-      g.fillStyle(0xffffff);
-      g.fillCircle(BALL_R, BALL_R, BALL_R - 4);
-      g.fillStyle(0xffffff, 0.9);
-      g.fillCircle(BALL_R - 2, BALL_R - 2, 2);
-      g.generateTexture('ball', BALL_R * 2, BALL_R * 2);
-      g.clear();
-
-      // Brick: white base with bevel for tinting — bright edge, slightly darker center
-      g.fillStyle(0xffffff);
-      g.fillRoundedRect(0, 0, BRICK_W, BRICK_H, 4);
-      g.fillStyle(0xcccccc);
-      g.fillRoundedRect(2, 2, BRICK_W - 4, BRICK_H - 4, 3);
-      g.fillStyle(0xffffff, 0.45);
-      g.fillRoundedRect(3, 2, BRICK_W - 6, (BRICK_H - 4) / 2, 2);
-      g.generateTexture('brick', BRICK_W, BRICK_H);
-      g.clear();
-
-      // Powerup: neon glowing orb
-      g.fillStyle(0xffffff, 0.2);
-      g.fillCircle(10, 10, 10);
-      g.fillStyle(0xffffff, 0.5);
-      g.fillCircle(10, 10, 7);
-      g.fillStyle(0xffffff);
-      g.fillCircle(10, 10, 4);
-      g.fillStyle(0xffffff, 0.85);
-      g.fillCircle(9, 9, 2);
-      g.generateTexture('powerup', 20, 20);
-      g.clear();
-
-      // Particle: small bright dot
-      g.fillStyle(0xffffff, 0.6);
-      g.fillCircle(4, 4, 4);
-      g.fillStyle(0xffffff);
-      g.fillCircle(4, 4, 3);
-      g.generateTexture('particle', 8, 8);
-      g.clear();
-
-      g.destroy();
+      this.load.on('loaderror', (file) => {
+        const c = document.createElement('canvas'); c.width = 64; c.height = 64;
+        const ctx = c.getContext('2d');
+        const grad = ctx.createRadialGradient(32, 28, 4, 32, 32, 24);
+        grad.addColorStop(0, '#ff9ed8'); grad.addColorStop(1, '#d63384');
+        ctx.fillStyle = grad;
+        ctx.beginPath(); ctx.arc(32, 32, 24, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = '#a0204c'; ctx.lineWidth = 2; ctx.stroke();
+        ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(24, 26, 4, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(40, 26, 4, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#333'; ctx.beginPath(); ctx.arc(25, 27, 2, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(41, 27, 2, 0, Math.PI * 2); ctx.fill();
+        this.textures.addCanvas(file.key, c);
+      });
     }
 
     function create() {

@@ -24,55 +24,27 @@
 
     class TreasureDiverScene extends Phaser.Scene {
       preload() {
-        var g = this.make.graphics({ add: false });
+        this.load.image('diver', '/assets/sprites/kenney-fish/fish_blue.png');
+        this.load.image('gem', '/assets/sprites/kenney-fish/fish_orange.png');
+        this.load.image('jellyfish', '/assets/sprites/kenney-fish/fish_red.png');
+        this.load.image('seaweed', '/assets/sprites/kenney-fish/seaweed_green_a.png');
+        this.load.image('rock', '/assets/sprites/kenney-fish/rock_a.png');
+        this.load.image('bubble', '/assets/sprites/kenney-fish/bubble_a.png');
 
-        // Diver (yellow body, blue goggles, flippers)
-        g.clear();
-        g.fillStyle(0xf1c40f); g.fillEllipse(32, 32, 48, 28);
-        g.fillStyle(0x3498db); g.fillCircle(44, 28, 8);
-        g.fillStyle(0xffffff); g.fillCircle(46, 27, 4);
-        g.fillStyle(0x2d3436); g.fillCircle(46, 27, 2);
-        g.fillStyle(0xe74c3c); g.fillRect(8, 30, 12, 6);
-        g.fillStyle(0xe74c3c); g.fillRect(8, 38, 12, 6);
-        g.lineStyle(2, 0x636e72); g.lineBetween(32, 20, 32, 12);
-        g.fillStyle(0x636e72); g.fillCircle(32, 10, 4);
-        g.generateTexture('diver', 64, 64); g.clear();
-
-        // Gem (gold diamond shape with sparkle)
-        g.fillStyle(0xffd700); g.fillTriangle(16, 4, 4, 16, 28, 16);
-        g.fillStyle(0xf39c12); g.fillTriangle(16, 28, 4, 16, 28, 16);
-        g.fillStyle(0xfffff0, 0.6); g.fillTriangle(16, 6, 10, 14, 22, 14);
-        g.generateTexture('gem', 32, 32); g.clear();
-
-        // Jellyfish (pink dome with tentacles)
-        g.fillStyle(0xe84393); g.fillEllipse(24, 16, 36, 24);
-        g.fillStyle(0xfd79a8); g.fillEllipse(24, 14, 28, 16);
-        g.lineStyle(2, 0xe84393);
-        g.lineBetween(10, 24, 8, 42); g.lineBetween(16, 26, 14, 44);
-        g.lineBetween(24, 28, 24, 46); g.lineBetween(32, 26, 34, 44);
-        g.lineBetween(38, 24, 40, 42);
-        g.fillStyle(0x2d3436); g.fillCircle(18, 14, 2); g.fillCircle(30, 14, 2);
-        g.generateTexture('jellyfish', 48, 48); g.clear();
-
-        // Seaweed (green wavy strip)
-        g.fillStyle(0x27ae60);
-        g.fillRoundedRect(12, 0, 8, 64, 4);
-        g.fillStyle(0x2ecc71);
-        g.fillEllipse(16, 16, 20, 10);
-        g.fillEllipse(16, 40, 18, 8);
-        g.generateTexture('seaweed', 32, 64); g.clear();
-
-        // Rock (grey rounded shape)
-        g.fillStyle(0x636e72); g.fillEllipse(24, 28, 44, 32);
-        g.fillStyle(0x95a5a6); g.fillEllipse(22, 24, 32, 20);
-        g.generateTexture('rock', 48, 48); g.clear();
-
-        // Bubble (semi-transparent circle)
-        g.lineStyle(2, 0xdfe6e9); g.strokeCircle(8, 8, 6);
-        g.fillStyle(0xffffff, 0.3); g.fillCircle(6, 6, 2);
-        g.generateTexture('bubble', 16, 16);
-
-        g.destroy();
+        this.load.on('loaderror', (file) => {
+          const c = document.createElement('canvas'); c.width = 64; c.height = 64;
+          const ctx = c.getContext('2d');
+          const grad = ctx.createRadialGradient(32, 28, 4, 32, 32, 24);
+          grad.addColorStop(0, '#ff9ed8'); grad.addColorStop(1, '#d63384');
+          ctx.fillStyle = grad;
+          ctx.beginPath(); ctx.arc(32, 32, 24, 0, Math.PI * 2); ctx.fill();
+          ctx.strokeStyle = '#a0204c'; ctx.lineWidth = 2; ctx.stroke();
+          ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(24, 26, 4, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc(40, 26, 4, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#333'; ctx.beginPath(); ctx.arc(25, 27, 2, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc(41, 27, 2, 0, Math.PI * 2); ctx.fill();
+          this.textures.addCanvas(file.key, c);
+        });
       }
 
       create() {
@@ -89,7 +61,7 @@
 
         // Ambient bubbles
         for (var i = 0; i < 12; i++) {
-          var bub = this.add.image(Phaser.Math.Between(20, W - 20), Phaser.Math.Between(50, H - 50), 'bubble').setAlpha(0.4);
+          var bub = this.add.image(Phaser.Math.Between(20, W - 20), Phaser.Math.Between(50, H - 50), 'bubble').setDisplaySize(16, 16).setAlpha(0.4);
           this.tweens.add({ targets: bub, y: -20, alpha: 0, duration: Phaser.Math.Between(3000, 7000), repeat: -1, delay: Phaser.Math.Between(0, 3000) });
         }
 

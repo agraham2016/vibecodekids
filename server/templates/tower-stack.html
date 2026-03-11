@@ -21,16 +21,30 @@
     const TARGET_HEIGHT = 15;
 
     class TowerStackScene extends Phaser.Scene {
-      preload() {}
+      preload() {
+        this.load.image('block0', '/assets/sprites/kenney-puzzle/element_blue_rectangle_glossy.png');
+        this.load.image('block1', '/assets/sprites/kenney-puzzle/element_green_rectangle_glossy.png');
+        this.load.image('block2', '/assets/sprites/kenney-puzzle/element_yellow_rectangle_glossy.png');
+        this.load.image('block3', '/assets/sprites/kenney-puzzle/element_red_rectangle_glossy.png');
+        this.load.image('block4', '/assets/sprites/kenney-puzzle/element_purple_rectangle_glossy.png');
+
+        this.load.on('loaderror', (file) => {
+          const c = document.createElement('canvas'); c.width = 64; c.height = 64;
+          const ctx = c.getContext('2d');
+          const grad = ctx.createRadialGradient(32, 28, 4, 32, 32, 24);
+          grad.addColorStop(0, '#ff9ed8'); grad.addColorStop(1, '#d63384');
+          ctx.fillStyle = grad;
+          ctx.beginPath(); ctx.arc(32, 32, 24, 0, Math.PI * 2); ctx.fill();
+          ctx.strokeStyle = '#a0204c'; ctx.lineWidth = 2; ctx.stroke();
+          ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(24, 26, 4, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc(40, 26, 4, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#333'; ctx.beginPath(); ctx.arc(25, 27, 2, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc(41, 27, 2, 0, Math.PI * 2); ctx.fill();
+          this.textures.addCanvas(file.key, c);
+        });
+      }
 
       create() {
-        const g = this.make.graphics({ add: false });
-        const colors = [0x74b9ff, 0x55efc4, 0xfdcb6e, 0xfd79a8, 0xa29bfe];
-        colors.forEach((c, i) => {
-          g.fillStyle(c); g.fillRoundedRect(0, 0, BLOCK_W, BLOCK_H, 6);
-          g.generateTexture('block' + i, BLOCK_W, BLOCK_H); g.clear();
-        });
-        g.destroy();
 
         const bg = this.add.graphics();
         bg.fillStyle(0x2d3436); bg.fillRect(0, 0, W, H);

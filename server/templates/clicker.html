@@ -22,114 +22,24 @@ const ups=[
 
 class Game extends Phaser.Scene{
   preload(){
-    // --- gem: large faceted diamond shape with glow ---
-    const gemG=this.make.graphics({add:false});
-    const cx=64,cy=64;
-    // outer glow
-    gemG.fillStyle(0x4488ff,0.15);
-    gemG.fillCircle(cx,cy,58);
-    gemG.fillStyle(0x66aaff,0.25);
-    gemG.fillCircle(cx,cy,46);
-    // diamond body — hexagonal gem shape
-    gemG.fillStyle(0x2266dd,1);
-    gemG.beginPath();
-    gemG.moveTo(cx,cy-44);       // top
-    gemG.lineTo(cx+36,cy-16);    // upper-right
-    gemG.lineTo(cx+30,cy+20);    // lower-right
-    gemG.lineTo(cx,cy+44);       // bottom
-    gemG.lineTo(cx-30,cy+20);    // lower-left
-    gemG.lineTo(cx-36,cy-16);    // upper-left
-    gemG.closePath();
-    gemG.fillPath();
-    // lighter inner facet (left highlight)
-    gemG.fillStyle(0x55aaff,0.6);
-    gemG.beginPath();
-    gemG.moveTo(cx,cy-44);
-    gemG.lineTo(cx-36,cy-16);
-    gemG.lineTo(cx-10,cy);
-    gemG.lineTo(cx,cy-20);
-    gemG.closePath();
-    gemG.fillPath();
-    // lighter inner facet (right highlight)
-    gemG.fillStyle(0x3399ee,0.45);
-    gemG.beginPath();
-    gemG.moveTo(cx,cy-44);
-    gemG.lineTo(cx+36,cy-16);
-    gemG.lineTo(cx+10,cy);
-    gemG.lineTo(cx,cy-20);
-    gemG.closePath();
-    gemG.fillPath();
-    // bright center highlight
-    gemG.fillStyle(0xaaddff,0.5);
-    gemG.beginPath();
-    gemG.moveTo(cx,cy-20);
-    gemG.lineTo(cx+10,cy);
-    gemG.lineTo(cx,cy+10);
-    gemG.lineTo(cx-10,cy);
-    gemG.closePath();
-    gemG.fillPath();
-    // bottom facets
-    gemG.fillStyle(0x1a44aa,0.7);
-    gemG.beginPath();
-    gemG.moveTo(cx,cy+44);
-    gemG.lineTo(cx-30,cy+20);
-    gemG.lineTo(cx-10,cy);
-    gemG.lineTo(cx,cy+10);
-    gemG.closePath();
-    gemG.fillPath();
-    gemG.fillStyle(0x113388,0.8);
-    gemG.beginPath();
-    gemG.moveTo(cx,cy+44);
-    gemG.lineTo(cx+30,cy+20);
-    gemG.lineTo(cx+10,cy);
-    gemG.lineTo(cx,cy+10);
-    gemG.closePath();
-    gemG.fillPath();
-    // gem outline
-    gemG.lineStyle(2,0x88ccff,0.8);
-    gemG.beginPath();
-    gemG.moveTo(cx,cy-44);
-    gemG.lineTo(cx+36,cy-16);
-    gemG.lineTo(cx+30,cy+20);
-    gemG.lineTo(cx,cy+44);
-    gemG.lineTo(cx-30,cy+20);
-    gemG.lineTo(cx-36,cy-16);
-    gemG.closePath();
-    gemG.strokePath();
-    gemG.generateTexture('gem',128,128);
-    gemG.destroy();
+    this.load.image('gem','/assets/sprites/kenney-puzzle/element_blue_diamond_glossy.png');
+    this.load.image('sparkle','/assets/sprites/common/star.png');
+    this.load.image('dot','/assets/sprites/common/particle.png');
 
-    // --- sparkle: 4-pointed star ---
-    const starG=this.make.graphics({add:false});
-    const sc=16;
-    starG.fillStyle(0xffd700,1);
-    starG.beginPath();
-    starG.moveTo(sc,0);
-    starG.lineTo(sc+3,sc-3);
-    starG.lineTo(sc*2,sc);
-    starG.lineTo(sc+3,sc+3);
-    starG.lineTo(sc,sc*2);
-    starG.lineTo(sc-3,sc+3);
-    starG.lineTo(0,sc);
-    starG.lineTo(sc-3,sc-3);
-    starG.closePath();
-    starG.fillPath();
-    // bright center
-    starG.fillStyle(0xffffff,0.7);
-    starG.fillCircle(sc,sc,3);
-    starG.generateTexture('sparkle',32,32);
-    starG.destroy();
-
-    // --- dot: soft radial particle ---
-    const dotG=this.make.graphics({add:false});
-    dotG.fillStyle(0xffffff,0.9);
-    dotG.fillCircle(8,8,8);
-    dotG.fillStyle(0xffffff,0.5);
-    dotG.fillCircle(8,8,5);
-    dotG.fillStyle(0xffffff,1);
-    dotG.fillCircle(8,8,2);
-    dotG.generateTexture('dot',16,16);
-    dotG.destroy();
+    this.load.on('loaderror',(file)=>{
+      const c=document.createElement('canvas');c.width=64;c.height=64;
+      const ctx=c.getContext('2d');
+      const grad=ctx.createRadialGradient(32,28,4,32,32,24);
+      grad.addColorStop(0,'#ff9ed8');grad.addColorStop(1,'#d63384');
+      ctx.fillStyle=grad;
+      ctx.beginPath();ctx.arc(32,32,24,0,Math.PI*2);ctx.fill();
+      ctx.strokeStyle='#a0204c';ctx.lineWidth=2;ctx.stroke();
+      ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(24,26,4,0,Math.PI*2);ctx.fill();
+      ctx.beginPath();ctx.arc(40,26,4,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#333';ctx.beginPath();ctx.arc(25,27,2,0,Math.PI*2);ctx.fill();
+      ctx.beginPath();ctx.arc(41,27,2,0,Math.PI*2);ctx.fill();
+      this.textures.addCanvas(file.key,c);
+    });
   }
 
   create(){

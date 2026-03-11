@@ -45,15 +45,30 @@
     }
 
     function preload() {
+      this.load.image('dot', '/assets/sprites/kenney-platformer/coin_gold.png');
+      this.load.image('player', '/assets/sprites/kenney-tiny-dungeon/tile_0096.png');
+      this.load.image('wall', '/assets/sprites/kenney-tiny-dungeon/tile_0001.png');
+      this.load.image('floor', '/assets/sprites/kenney-tiny-dungeon/tile_0000.png');
+      this.load.image('enemy', '/assets/sprites/kenney-tiny-dungeon/tile_0111.png');
+
+      this.load.on('loaderror', (file) => {
+        const c = document.createElement('canvas'); c.width = 64; c.height = 64;
+        const ctx = c.getContext('2d');
+        const grad = ctx.createRadialGradient(32, 28, 4, 32, 32, 24);
+        grad.addColorStop(0, '#ff9ed8'); grad.addColorStop(1, '#d63384');
+        ctx.fillStyle = grad;
+        ctx.beginPath(); ctx.arc(32, 32, 24, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = '#a0204c'; ctx.lineWidth = 2; ctx.stroke();
+        ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(24, 26, 4, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(40, 26, 4, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#333'; ctx.beginPath(); ctx.arc(25, 27, 2, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(41, 27, 2, 0, Math.PI * 2); ctx.fill();
+        this.textures.addCanvas(file.key, c);
+      });
     }
 
     function create() {
       genMaze();
-      const g = this.make.graphics({ add: false });
-      g.fillStyle(0xfdcb6e);
-      g.fillCircle(3, 3, 3);
-      g.generateTexture('dot', 6, 6);
-      g.destroy();
 
       const walls = this.physics.add.staticGroup();
       const bg = this.add.graphics();
@@ -70,6 +85,7 @@
             walls.add(wall);
           } else if (MAZE[r][c] === 0 && !(r === 1 && c === 1) && !(r === ROWS - 2 && c === COLS - 2)) {
             const dot = dots.create(c * TILE + TILE / 2, r * TILE + TILE / 2, 'dot');
+            dot.setDisplaySize(10, 10);
             dot.setCircle(3);
             dotsTotal++;
           }

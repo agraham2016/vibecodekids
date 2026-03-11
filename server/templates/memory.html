@@ -64,20 +64,25 @@
       constructor() { super('MemoryScene'); }
 
       preload() {
+        this.load.image('icon_0', '/assets/sprites/kenney-animals/Round/bear.png');
+        this.load.image('icon_1', '/assets/sprites/kenney-animals/Round/dog.png');
+        this.load.image('icon_2', '/assets/sprites/kenney-animals/Round/elephant.png');
+        this.load.image('icon_3', '/assets/sprites/kenney-animals/Round/penguin.png');
+        this.load.image('icon_4', '/assets/sprites/kenney-animals/Round/panda.png');
+        this.load.image('icon_5', '/assets/sprites/kenney-animals/Round/owl.png');
+        this.load.image('icon_6', '/assets/sprites/kenney-animals/Round/monkey.png');
+        this.load.image('icon_7', '/assets/sprites/kenney-animals/Round/rabbit.png');
+        this.load.image('icon_8', '/assets/sprites/kenney-animals/Round/frog.png');
+        this.load.image('icon_9', '/assets/sprites/kenney-animals/Round/chick.png');
+        this.load.image('spark', '/assets/sprites/common/particle.png');
+        this.load.image('star', '/assets/sprites/common/star.png');
+
         var g = this.make.graphics({ add: false });
 
         g.fillStyle(0x3a2a6e);
         g.fillRoundedRect(0, 0, CARD_W, CARD_H, 10);
         g.fillStyle(0x4a3a7e);
         g.fillRoundedRect(3, 3, CARD_W - 6, CARD_H - 6, 8);
-        g.lineStyle(1, 0x6a5a9e, 0.5);
-        for (var dx = 8; dx < CARD_W; dx += 12) {
-          g.moveTo(dx, 8); g.lineTo(dx, CARD_H - 8);
-        }
-        for (var dy = 8; dy < CARD_H; dy += 12) {
-          g.moveTo(8, dy); g.lineTo(CARD_W - 8, dy);
-        }
-        g.strokePath();
         g.fillStyle(0xffaa22, 0.15);
         g.fillCircle(CARD_W / 2, CARD_H / 2, 16);
         g.fillStyle(0xffaa22, 0.3);
@@ -92,96 +97,7 @@
         g.generateTexture('cardFront', CARD_W, CARD_H);
         g.clear();
 
-        for (var i = 0; i < 10; i++) {
-          g.clear();
-          var cx = 20, cy = 20;
-          g.lineStyle(2.5, ICON_COLORS[i], 1);
-
-          if (i === 0) {
-            for (var s = 0; s < 5; s++) {
-              var oa = -Math.PI / 2 + s * Math.PI * 2 / 5;
-              var ia = oa + Math.PI / 5;
-              var ox = cx + Math.cos(oa) * 14, oy = cy + Math.sin(oa) * 14;
-              var ix = cx + Math.cos(ia) * 6, iy = cy + Math.sin(ia) * 6;
-              if (s === 0) g.beginPath(), g.moveTo(ox, oy);
-              else g.lineTo(ox, oy);
-              g.lineTo(ix, iy);
-            }
-            g.closePath(); g.strokePath();
-            g.fillStyle(ICON_COLORS[i], 0.3); g.fillPath();
-          } else if (i === 1) {
-            g.strokeCircle(cx, cy, 12);
-            g.fillStyle(ICON_COLORS[i], 0.3); g.fillCircle(cx, cy, 12);
-          } else if (i === 2) {
-            g.beginPath(); g.moveTo(cx, cy - 14); g.lineTo(cx + 12, cy);
-            g.lineTo(cx, cy + 14); g.lineTo(cx - 12, cy); g.closePath();
-            g.strokePath(); g.fillStyle(ICON_COLORS[i], 0.3); g.fillPath();
-          } else if (i === 3) {
-            g.beginPath(); g.moveTo(cx, cy - 14); g.lineTo(cx + 14, cy + 10);
-            g.lineTo(cx - 14, cy + 10); g.closePath();
-            g.strokePath(); g.fillStyle(ICON_COLORS[i], 0.3); g.fillPath();
-          } else if (i === 4) {
-            g.strokeRect(cx - 10, cy - 10, 20, 20);
-            g.fillStyle(ICON_COLORS[i], 0.3); g.fillRect(cx - 10, cy - 10, 20, 20);
-          } else if (i === 5) {
-            g.beginPath();
-            for (var h = 0; h < 6; h++) {
-              var ha = -Math.PI / 6 + h * Math.PI / 3;
-              if (h === 0) g.moveTo(cx + Math.cos(ha) * 13, cy + Math.sin(ha) * 13);
-              else g.lineTo(cx + Math.cos(ha) * 13, cy + Math.sin(ha) * 13);
-            }
-            g.closePath(); g.strokePath();
-            g.fillStyle(ICON_COLORS[i], 0.3); g.fillPath();
-          } else if (i === 6) {
-            g.fillStyle(ICON_COLORS[i], 0.3);
-            g.fillCircle(cx - 6, cy - 4, 7);
-            g.fillCircle(cx + 6, cy - 4, 7);
-            g.beginPath(); g.moveTo(cx - 12, cy - 2);
-            g.lineTo(cx, cy + 14); g.lineTo(cx + 12, cy - 2);
-            g.closePath(); g.fillPath();
-            g.lineStyle(2.5, ICON_COLORS[i], 1);
-            g.strokeCircle(cx - 6, cy - 4, 7);
-            g.strokeCircle(cx + 6, cy - 4, 7);
-            g.beginPath(); g.moveTo(cx - 12, cy - 2);
-            g.lineTo(cx, cy + 14); g.lineTo(cx + 12, cy - 2); g.strokePath();
-          } else if (i === 7) {
-            g.strokeCircle(cx, cy, 12);
-            g.beginPath(); g.moveTo(cx, cy - 8); g.lineTo(cx, cy);
-            g.lineTo(cx + 6, cy + 4); g.strokePath();
-          } else if (i === 8) {
-            g.beginPath(); g.moveTo(cx - 10, cy + 12); g.lineTo(cx, cy - 14);
-            g.lineTo(cx + 10, cy + 12); g.strokePath();
-            g.beginPath(); g.moveTo(cx - 6, cy - 2); g.lineTo(cx + 6, cy - 2); g.strokePath();
-            g.fillStyle(ICON_COLORS[i], 0.3); g.fillCircle(cx, cy - 14, 3);
-          } else {
-            g.strokeCircle(cx - 5, cy, 10);
-            g.strokeCircle(cx + 5, cy, 10);
-          }
-
-          g.generateTexture('icon_' + i, 40, 40);
-        }
-
-        g.clear();
-        g.fillStyle(0xffffff);
-        g.fillCircle(4, 4, 4);
-        g.generateTexture('spark', 8, 8);
-
-        g.clear();
         var stx = 16, sty = 16;
-        g.lineStyle(2, 0xffaa22);
-        g.fillStyle(0xffaa22);
-        g.beginPath();
-        for (var si = 0; si < 5; si++) {
-          var sa = -Math.PI / 2 + si * Math.PI * 2 / 5;
-          var sb = sa + Math.PI / 5;
-          if (si === 0) g.moveTo(stx + Math.cos(sa) * 14, sty + Math.sin(sa) * 14);
-          else g.lineTo(stx + Math.cos(sa) * 14, sty + Math.sin(sa) * 14);
-          g.lineTo(stx + Math.cos(sb) * 6, sty + Math.sin(sb) * 6);
-        }
-        g.closePath(); g.fillPath(); g.strokePath();
-        g.generateTexture('star', 32, 32);
-
-        g.clear();
         g.lineStyle(2, 0x555555);
         g.beginPath();
         for (var ei = 0; ei < 5; ei++) {
@@ -196,6 +112,21 @@
 
         g.clear();
         g.destroy();
+
+        this.load.on('loaderror', (file) => {
+          var c = document.createElement('canvas'); c.width = 64; c.height = 64;
+          var ctx = c.getContext('2d');
+          var grad = ctx.createRadialGradient(32, 28, 4, 32, 32, 24);
+          grad.addColorStop(0, '#ff9ed8'); grad.addColorStop(1, '#d63384');
+          ctx.fillStyle = grad;
+          ctx.beginPath(); ctx.arc(32, 32, 24, 0, Math.PI * 2); ctx.fill();
+          ctx.strokeStyle = '#a0204c'; ctx.lineWidth = 2; ctx.stroke();
+          ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(24, 26, 4, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc(40, 26, 4, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#333'; ctx.beginPath(); ctx.arc(25, 27, 2, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc(41, 27, 2, 0, Math.PI * 2); ctx.fill();
+          this.textures.addCanvas(file.key, c);
+        });
       }
 
       create() {

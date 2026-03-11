@@ -64,80 +64,38 @@
       constructor() { super('BubbleScene'); }
 
       preload() {
+        this.load.image('bubble_0', '/assets/sprites/kenney-puzzle/element_red_square_glossy.png');
+        this.load.image('bubble_1', '/assets/sprites/kenney-puzzle/element_blue_square_glossy.png');
+        this.load.image('bubble_2', '/assets/sprites/kenney-puzzle/element_green_square_glossy.png');
+        this.load.image('bubble_3', '/assets/sprites/kenney-puzzle/element_yellow_polygon_glossy.png');
+        this.load.image('bubble_4', '/assets/sprites/kenney-puzzle/element_purple_polygon_glossy.png');
+        this.load.image('bubble_5', '/assets/sprites/kenney-puzzle/element_grey_square_glossy.png');
+        this.load.image('particle', '/assets/sprites/common/particle.png');
+
         var g = this.make.graphics({ add: false });
-
-        for (var i = 0; i < MAX_COLORS; i++) {
-          g.clear();
-          var c = BUBBLE_COLORS[i];
-          var cr = (c >> 16) & 0xff, cg = (c >> 8) & 0xff, cb = c & 0xff;
-
-          g.fillStyle(c, 0.25);
-          g.fillCircle(R, R, R);
-          g.fillStyle(c);
-          g.fillCircle(R, R, R - 2);
-          var light = Phaser.Display.Color.GetColor(
-            Math.min(255, cr + 80), Math.min(255, cg + 80), Math.min(255, cb + 80)
-          );
-          g.fillStyle(light, 0.6);
-          g.fillCircle(R - 3, R - 3, 6);
-          g.fillStyle(0xffffff, 0.7);
-          g.fillCircle(R - 4, R - 5, 3);
-
-          g.lineStyle(1.5, 0xffffff, 0.3);
-          if (i === 0) {
-            g.strokeCircle(R, R, 5);
-          } else if (i === 1) {
-            g.beginPath(); g.moveTo(R, R - 6); g.lineTo(R + 5, R);
-            g.lineTo(R, R + 6); g.lineTo(R - 5, R); g.closePath(); g.strokePath();
-          } else if (i === 2) {
-            g.beginPath();
-            for (var s = 0; s < 5; s++) {
-              var a = -Math.PI / 2 + s * Math.PI * 2 / 5;
-              var method = s === 0 ? 'moveTo' : 'lineTo';
-              g[method](R + Math.cos(a) * 6, R + Math.sin(a) * 6);
-            }
-            g.closePath(); g.strokePath();
-          } else if (i === 3) {
-            g.beginPath(); g.moveTo(R, R - 6); g.lineTo(R + 6, R + 5);
-            g.lineTo(R - 6, R + 5); g.closePath(); g.strokePath();
-          } else if (i === 4) {
-            g.strokeRect(R - 4, R - 4, 8, 8);
-          } else {
-            g.beginPath();
-            for (var h = 0; h < 6; h++) {
-              var ha = -Math.PI / 6 + h * Math.PI / 3;
-              var hm = h === 0 ? 'moveTo' : 'lineTo';
-              g[hm](R + Math.cos(ha) * 5, R + Math.sin(ha) * 5);
-            }
-            g.closePath(); g.strokePath();
-          }
-
-          g.generateTexture('bubble_' + i, R * 2, R * 2);
-        }
-
-        g.clear();
-        g.fillStyle(0xffffff);
-        g.fillCircle(4, 4, 4);
-        g.generateTexture('particle', 8, 8);
-
-        g.clear();
-        g.fillStyle(0xcc44ff, 0.15);
-        g.fillRect(0, 0, GW, 4);
-        g.fillStyle(0xcc44ff, 0.4);
-        g.fillRect(0, 1, GW, 2);
-        g.generateTexture('dangerline', GW, 4);
-
-        g.clear();
-        g.fillStyle(0x2a1a4e);
-        g.fillTriangle(GW / 2, 0, GW / 2 - 30, 24, GW / 2 + 30, 24);
-        g.fillStyle(0x3a2a5e);
-        g.fillTriangle(GW / 2, 2, GW / 2 - 26, 22, GW / 2 + 26, 22);
-        g.fillStyle(0xcc44ff, 0.3);
-        g.fillRect(GW / 2 - 28, 22, 56, 3);
-        g.generateTexture('launcher', GW, 26);
-
-        g.clear();
+        g.fillStyle(0xcc44ff, 0.15); g.fillRect(0, 0, GW, 4);
+        g.fillStyle(0xcc44ff, 0.4); g.fillRect(0, 1, GW, 2);
+        g.generateTexture('dangerline', GW, 4); g.clear();
+        g.fillStyle(0x2a1a4e); g.fillTriangle(GW / 2, 0, GW / 2 - 30, 24, GW / 2 + 30, 24);
+        g.fillStyle(0x3a2a5e); g.fillTriangle(GW / 2, 2, GW / 2 - 26, 22, GW / 2 + 26, 22);
+        g.fillStyle(0xcc44ff, 0.3); g.fillRect(GW / 2 - 28, 22, 56, 3);
+        g.generateTexture('launcher', GW, 26); g.clear();
         g.destroy();
+
+        this.load.on('loaderror', (file) => {
+          var c = document.createElement('canvas'); c.width = 64; c.height = 64;
+          var ctx = c.getContext('2d');
+          var grad = ctx.createRadialGradient(32, 28, 4, 32, 32, 24);
+          grad.addColorStop(0, '#ff9ed8'); grad.addColorStop(1, '#d63384');
+          ctx.fillStyle = grad;
+          ctx.beginPath(); ctx.arc(32, 32, 24, 0, Math.PI * 2); ctx.fill();
+          ctx.strokeStyle = '#a0204c'; ctx.lineWidth = 2; ctx.stroke();
+          ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(24, 26, 4, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc(40, 26, 4, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#333'; ctx.beginPath(); ctx.arc(25, 27, 2, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc(41, 27, 2, 0, Math.PI * 2); ctx.fill();
+          this.textures.addCanvas(file.key, c);
+        });
       }
 
       create() {

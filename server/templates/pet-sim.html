@@ -20,131 +20,26 @@ class PetScene extends Phaser.Scene {
   constructor() { super('PetScene'); }
 
   preload() {
-    const g = this.make.graphics({ add: false });
+    this.load.image('pet', '/assets/sprites/kenney-animals/Round/dog.png');
+    this.load.image('heart', '/assets/sprites/common/heart.png');
+    this.load.image('food', '/assets/sprites/kenney-food/tile_0000.png');
+    this.load.image('toy', '/assets/sprites/common/star.png');
+    this.load.image('particle', '/assets/sprites/common/particle.png');
 
-    // --- PET: Kawaii orange tabby cat (64×64) ---
-    // Tail (behind body)
-    g.fillStyle(0xE88A3A);
-    g.fillCircle(56, 40, 4);
-    g.fillRect(46, 38, 12, 5);
-    g.fillStyle(0xC06828);
-    g.fillRect(48, 39, 2, 3);
-    g.fillRect(52, 39, 2, 3);
-    // Body
-    g.fillStyle(0xF4A040);
-    g.fillEllipse(32, 46, 32, 18);
-    // Body stripes
-    g.fillStyle(0xD07030);
-    g.fillRect(23, 38, 2, 10);
-    g.fillRect(29, 37, 2, 12);
-    g.fillRect(35, 37, 2, 12);
-    g.fillRect(41, 38, 2, 10);
-    // Head
-    g.fillStyle(0xF4A040);
-    g.fillCircle(32, 22, 18);
-    // Ears outer
-    g.fillTriangle(13, 18, 19, 2, 26, 15);
-    g.fillTriangle(38, 15, 45, 2, 51, 18);
-    // Ears inner (pink)
-    g.fillStyle(0xFFB0C0);
-    g.fillTriangle(15, 17, 19, 5, 25, 15);
-    g.fillTriangle(39, 15, 45, 5, 49, 17);
-    // Forehead stripes
-    g.fillStyle(0xD07030);
-    g.fillRect(28, 9, 2, 8);
-    g.fillRect(31, 7, 2, 10);
-    g.fillRect(34, 9, 2, 8);
-    // Eyes (big kawaii)
-    g.fillStyle(0xFFFFFF);
-    g.fillCircle(24, 23, 7);
-    g.fillCircle(40, 23, 7);
-    g.fillStyle(0x2D1F0E);
-    g.fillCircle(25, 24, 5);
-    g.fillCircle(39, 24, 5);
-    // Eye highlights
-    g.fillStyle(0xFFFFFF);
-    g.fillCircle(23, 21, 2.5);
-    g.fillCircle(37, 21, 2.5);
-    g.fillCircle(26, 26, 1);
-    g.fillCircle(40, 26, 1);
-    // Nose (pink)
-    g.fillStyle(0xFF8888);
-    g.fillTriangle(30, 30, 34, 30, 32, 33);
-    // Mouth
-    g.lineStyle(1.5, 0x8B6040);
-    g.lineBetween(32, 33, 28, 36);
-    g.lineBetween(32, 33, 36, 36);
-    // Whiskers
-    g.lineStyle(1, 0xC89060);
-    g.lineBetween(14, 28, 22, 30);
-    g.lineBetween(14, 32, 22, 32);
-    g.lineBetween(42, 30, 50, 28);
-    g.lineBetween(42, 32, 50, 32);
-    // Blush (rosy cheeks)
-    g.fillStyle(0xFFAAAA, 0.5);
-    g.fillCircle(16, 30, 4);
-    g.fillCircle(48, 30, 4);
-    // Front paws
-    g.fillStyle(0xF4A040);
-    g.fillCircle(22, 56, 6);
-    g.fillCircle(42, 56, 6);
-    // Paw pads
-    g.fillStyle(0xFFB0C0);
-    g.fillCircle(22, 57, 2.5);
-    g.fillCircle(42, 57, 2.5);
-    g.generateTexture('pet', 64, 64);
-    g.clear();
-
-    // --- HEART (24×24) ---
-    g.fillStyle(0xFF4466);
-    g.fillCircle(8, 8, 6);
-    g.fillCircle(16, 8, 6);
-    g.fillTriangle(2, 10, 22, 10, 12, 22);
-    g.fillStyle(0xFF8899, 0.5);
-    g.fillCircle(7, 6, 2);
-    g.generateTexture('heart', 24, 24);
-    g.clear();
-
-    // --- FOOD: Bowl of kibble (32×32) ---
-    g.fillStyle(0x8B5E3C);
-    g.fillEllipse(16, 24, 28, 14);
-    g.fillStyle(0xA0714D);
-    g.fillEllipse(16, 17, 30, 8);
-    g.fillStyle(0x704A2C);
-    g.fillEllipse(16, 17, 24, 5);
-    g.fillStyle(0xC49A6C);
-    g.fillCircle(10, 14, 3);
-    g.fillCircle(17, 12, 3);
-    g.fillCircle(23, 14, 3);
-    g.fillStyle(0xB08050);
-    g.fillCircle(13, 11, 2);
-    g.fillCircle(20, 11, 2);
-    g.generateTexture('food', 32, 32);
-    g.clear();
-
-    // --- TOY: Yarn ball (28×28) ---
-    g.fillStyle(0xDD55AA);
-    g.fillCircle(14, 14, 12);
-    g.lineStyle(1.5, 0xEE88CC);
-    g.lineBetween(5, 8, 23, 20);
-    g.lineBetween(5, 20, 23, 8);
-    g.lineBetween(14, 2, 14, 26);
-    g.lineStyle(1, 0xCC3388);
-    g.lineBetween(3, 14, 25, 14);
-    g.lineBetween(7, 4, 21, 24);
-    g.lineBetween(7, 24, 21, 4);
-    g.fillStyle(0xFFBBDD, 0.4);
-    g.fillCircle(10, 9, 4);
-    g.generateTexture('toy', 28, 28);
-    g.clear();
-
-    // --- PARTICLE (8×8) ---
-    g.fillStyle(0xFFCCDD);
-    g.fillCircle(4, 4, 3);
-    g.fillStyle(0xFFFFFF, 0.6);
-    g.fillCircle(3, 3, 1);
-    g.generateTexture('particle', 8, 8);
-    g.destroy();
+    this.load.on('loaderror', (file) => {
+      const c = document.createElement('canvas'); c.width = 64; c.height = 64;
+      const ctx = c.getContext('2d');
+      const grad = ctx.createRadialGradient(32, 28, 4, 32, 32, 24);
+      grad.addColorStop(0, '#ff9ed8'); grad.addColorStop(1, '#d63384');
+      ctx.fillStyle = grad;
+      ctx.beginPath(); ctx.arc(32, 32, 24, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = '#a0204c'; ctx.lineWidth = 2; ctx.stroke();
+      ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(24, 26, 4, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(40, 26, 4, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#333'; ctx.beginPath(); ctx.arc(25, 27, 2, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(41, 27, 2, 0, Math.PI * 2); ctx.fill();
+      this.textures.addCanvas(file.key, c);
+    });
   }
 
   create() {

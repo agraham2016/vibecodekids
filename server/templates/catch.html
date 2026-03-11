@@ -50,31 +50,27 @@
     };
 
     function preload() {
+      this.load.image('basket', '/assets/sprites/catch/paddle.png');
+      this.load.image('good', '/assets/sprites/kenney-food/tile_0000.png');
+      this.load.image('bad', '/assets/sprites/kenney-food/tile_0001.png');
+
+      this.load.on('loaderror', (file) => {
+        const c = document.createElement('canvas'); c.width = 64; c.height = 64;
+        const ctx = c.getContext('2d');
+        const grad = ctx.createRadialGradient(32, 28, 4, 32, 32, 24);
+        grad.addColorStop(0, '#ff9ed8'); grad.addColorStop(1, '#d63384');
+        ctx.fillStyle = grad;
+        ctx.beginPath(); ctx.arc(32, 32, 24, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = '#a0204c'; ctx.lineWidth = 2; ctx.stroke();
+        ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(24, 26, 4, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(40, 26, 4, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#333'; ctx.beginPath(); ctx.arc(25, 27, 2, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(41, 27, 2, 0, Math.PI * 2); ctx.fill();
+        this.textures.addCanvas(file.key, c);
+      });
     }
 
     function create() {
-      const g = this.make.graphics({ add: false });
-
-      g.fillStyle(0x55efc4);
-      g.fillRoundedRect(0, 0, BASKET_W, BASKET_H, 8);
-      g.fillStyle(0x00b894);
-      g.fillRoundedRect(4, 4, BASKET_W - 8, BASKET_H - 8, 6);
-      g.fillStyle(0x55efc4);
-      g.fillTriangle(BASKET_W / 2 - 20, BASKET_H, BASKET_W / 2, BASKET_H + 12, BASKET_W / 2 + 20, BASKET_H);
-      g.generateTexture('basket', BASKET_W, BASKET_H + 15);
-      g.clear();
-
-      g.fillStyle(0xffffff);
-      g.fillCircle(ITEM_R, ITEM_R, ITEM_R - 2);
-      g.generateTexture('good', ITEM_R * 2, ITEM_R * 2);
-      g.clear();
-
-      g.fillStyle(0x2d3436);
-      g.fillCircle(ITEM_R, ITEM_R, ITEM_R - 2);
-      g.fillStyle(0x636e72);
-      g.fillCircle(ITEM_R - 4, ITEM_R - 4, 4);
-      g.generateTexture('bad', ITEM_R * 2, ITEM_R * 2);
-      g.destroy();
 
       const bg = this.add.graphics();
       bg.fillStyle(0x2d1b69);

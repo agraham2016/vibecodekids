@@ -63,81 +63,39 @@
       constructor() { super('SliceScene'); }
 
       preload() {
-        var g = this.make.graphics({ add: false });
-        var R = 28;
-
+        var FRUIT_FILES = [
+          '/assets/sprites/kenney-food/tile_0000.png',
+          '/assets/sprites/kenney-food/tile_0001.png',
+          '/assets/sprites/kenney-food/tile_0002.png',
+          '/assets/sprites/kenney-food/tile_0003.png',
+          '/assets/sprites/kenney-food/tile_0004.png',
+          '/assets/sprites/kenney-food/tile_0005.png'
+        ];
         for (var fi = 0; fi < FRUIT_DEFS.length; fi++) {
           var f = FRUIT_DEFS[fi];
-          g.clear();
-          g.fillStyle(f.fill);
-          g.fillCircle(R, R, R - 2);
-          g.fillStyle(0xffffff, 0.25);
-          g.fillCircle(R - 6, R - 6, 8);
-          if (fi === 0) {
-            g.fillStyle(0x27ae60); g.fillRect(R - 2, 2, 4, 8);
-            g.fillStyle(0x2ecc71); g.fillEllipse(R + 6, 6, 10, 6);
-          }
-          if (fi === 2) {
-            g.lineStyle(2, 0x229954, 0.5);
-            g.strokeCircle(R, R, R - 4);
-          }
-          g.generateTexture(f.name, R * 2, R * 2);
-
-          g.clear();
-          g.fillStyle(f.fill);
-          g.beginPath(); g.arc(R, R, R - 2, -Math.PI / 2, Math.PI / 2, false); g.closePath(); g.fillPath();
-          g.fillStyle(f.inner);
-          g.beginPath(); g.arc(R, R, R - 6, -Math.PI / 2, Math.PI / 2, false); g.closePath(); g.fillPath();
-          g.fillStyle(f.seed);
-          g.fillCircle(R + 2, R - 6, 2);
-          g.fillCircle(R + 4, R + 4, 2);
-          g.generateTexture(f.name + '_halfR', R * 2, R * 2);
-
-          g.clear();
-          g.fillStyle(f.fill);
-          g.beginPath(); g.arc(R, R, R - 2, Math.PI / 2, -Math.PI / 2, false); g.closePath(); g.fillPath();
-          g.fillStyle(f.inner);
-          g.beginPath(); g.arc(R, R, R - 6, Math.PI / 2, -Math.PI / 2, false); g.closePath(); g.fillPath();
-          g.fillStyle(f.seed);
-          g.fillCircle(R - 2, R - 4, 2);
-          g.fillCircle(R - 4, R + 6, 2);
-          g.generateTexture(f.name + '_halfL', R * 2, R * 2);
+          this.load.image(f.name, FRUIT_FILES[fi]);
+          this.load.image(f.name + '_halfR', FRUIT_FILES[fi]);
+          this.load.image(f.name + '_halfL', FRUIT_FILES[fi]);
         }
+        this.load.image('bomb', '/assets/sprites/kenney-food/tile_0010.png');
+        this.load.image('spark', '/assets/sprites/common/particle.png');
+        this.load.image('heart', '/assets/sprites/common/heart.png');
+        this.load.image('heartEmpty', '/assets/sprites/common/heart.png');
 
-        g.clear();
-        g.fillStyle(0x2d3436); g.fillCircle(28, 30, 24);
-        g.fillStyle(0x636e72); g.fillCircle(22, 24, 6);
-        g.fillStyle(0xdfe6e9, 0.6); g.fillCircle(20, 22, 3);
-        g.lineStyle(3, 0x636e72); g.beginPath(); g.moveTo(28, 6); g.lineTo(34, 0); g.strokePath();
-        g.fillStyle(0xe17055); g.fillCircle(34, 0, 5);
-        g.fillStyle(0xfdcb6e); g.fillCircle(34, 0, 3);
-        g.generateTexture('bomb', 56, 56);
-
-        g.clear();
-        g.fillStyle(0xffffff);
-        g.fillCircle(4, 4, 4);
-        g.generateTexture('spark', 8, 8);
-
-        g.clear();
-        g.fillStyle(0xe74c3c);
-        g.beginPath();
-        g.arc(10, 8, 6, Math.PI, 0, false);
-        g.arc(22, 8, 6, Math.PI, 0, false);
-        g.lineTo(28, 8); g.lineTo(16, 24); g.lineTo(4, 8);
-        g.closePath(); g.fillPath();
-        g.generateTexture('heart', 32, 28);
-
-        g.clear();
-        g.fillStyle(0x555555);
-        g.beginPath();
-        g.arc(10, 8, 6, Math.PI, 0, false);
-        g.arc(22, 8, 6, Math.PI, 0, false);
-        g.lineTo(28, 8); g.lineTo(16, 24); g.lineTo(4, 8);
-        g.closePath(); g.fillPath();
-        g.generateTexture('heartEmpty', 32, 28);
-
-        g.clear();
-        g.destroy();
+        this.load.on('loaderror', (file) => {
+          const c = document.createElement('canvas'); c.width = 64; c.height = 64;
+          const ctx = c.getContext('2d');
+          const grad = ctx.createRadialGradient(32, 28, 4, 32, 32, 24);
+          grad.addColorStop(0, '#ff9ed8'); grad.addColorStop(1, '#d63384');
+          ctx.fillStyle = grad;
+          ctx.beginPath(); ctx.arc(32, 32, 24, 0, Math.PI * 2); ctx.fill();
+          ctx.strokeStyle = '#a0204c'; ctx.lineWidth = 2; ctx.stroke();
+          ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(24, 26, 4, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc(40, 26, 4, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#333'; ctx.beginPath(); ctx.arc(25, 27, 2, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc(41, 27, 2, 0, Math.PI * 2); ctx.fill();
+          this.textures.addCanvas(file.key, c);
+        });
       }
 
       create() {
@@ -195,7 +153,7 @@
 
         this.heartIcons = [];
         for (var hi = 0; hi < MAX_LIVES; hi++) {
-          var hrt = this.add.image(W - 20 - hi * 36, 22, 'heart').setDepth(20);
+          var hrt = this.add.image(W - 20 - hi * 36, 22, 'heart').setDisplaySize(32, 28).setDepth(20);
           this.heartIcons.push(hrt);
         }
 
@@ -278,8 +236,8 @@
         this.juiceEmitter.setParticleTint(def.fill);
         this.juiceEmitter.emitParticleAt(fx, fy);
 
-        var halfL = this.add.image(fx - 8, fy, def.name + '_halfL').setDepth(8);
-        var halfR = this.add.image(fx + 8, fy, def.name + '_halfR').setDepth(8);
+        var halfL = this.add.image(fx - 8, fy, def.name + '_halfL').setDisplaySize(28, 28).setDepth(8);
+        var halfR = this.add.image(fx + 8, fy, def.name + '_halfR').setDisplaySize(28, 28).setDepth(8);
         halfL.vx = -Phaser.Math.Between(60, 140);
         halfL.vy = -Phaser.Math.Between(80, 200);
         halfL.rot = -Phaser.Math.Between(2, 5);
@@ -347,7 +305,7 @@
           var launchVy = -Phaser.Math.Between(380, 520) - this.difficulty * 15;
           var launchVx = Phaser.Math.Between(-120, 120);
 
-          var sprite = this.add.image(sx, H + 40, texKey).setDepth(6);
+          var sprite = this.add.image(sx, H + 40, texKey).setDisplaySize(56, 56).setDepth(6);
           var fruitObj = {
             sprite: sprite,
             vx: launchVx,

@@ -40,61 +40,25 @@
   <script>
   class SnakeScene extends Phaser.Scene {
     preload() {
-      const g = this.make.graphics({ add: false });
+      this.load.image('head', '/assets/sprites/kenney-animals/Round/snake.png');
+      this.load.image('body', '/assets/sprites/kenney-animals/Round/snake.png');
+      this.load.image('food', '/assets/sprites/kenney-food/tile_0000.png');
+      this.load.image('particle', '/assets/sprites/common/particle.png');
 
-      // Head: cyan diamond shape with bright core and glowing eyes
-      g.fillStyle(0x00ffff, 0.25);
-      g.fillCircle(10, 10, 10);
-      g.fillStyle(0x00ffff, 0.6);
-      g.fillCircle(10, 10, 8);
-      g.fillStyle(0x00ffff);
-      g.fillRoundedRect(2, 4, 16, 12, 4);
-      g.fillStyle(0xaaffff);
-      g.fillRoundedRect(4, 6, 12, 8, 3);
-      g.fillStyle(0xffffff);
-      g.fillCircle(13, 7, 2.5);
-      g.fillCircle(13, 13, 2.5);
-      g.fillStyle(0xff00ff);
-      g.fillCircle(13, 7, 1.2);
-      g.fillCircle(13, 13, 1.2);
-      g.generateTexture('head', 20, 20);
-      g.clear();
-
-      // Body: glowing magenta/cyan particle segment
-      g.fillStyle(0xff00ff, 0.15);
-      g.fillCircle(10, 10, 10);
-      g.fillStyle(0xff00ff, 0.4);
-      g.fillCircle(10, 10, 7);
-      g.fillStyle(0xff44ff);
-      g.fillCircle(10, 10, 5);
-      g.fillStyle(0xffaaff);
-      g.fillCircle(10, 10, 2.5);
-      g.generateTexture('body', 20, 20);
-      g.clear();
-
-      // Food: bright neon yellow-green pulsing orb
-      g.fillStyle(0xffff00, 0.15);
-      g.fillCircle(10, 10, 10);
-      g.fillStyle(0xffff00, 0.35);
-      g.fillCircle(10, 10, 8);
-      g.fillStyle(0xffff00, 0.7);
-      g.fillCircle(10, 10, 6);
-      g.fillStyle(0xffffff);
-      g.fillCircle(10, 10, 3);
-      g.fillStyle(0xffffff);
-      g.fillCircle(8, 8, 1.5);
-      g.generateTexture('food', 20, 20);
-      g.clear();
-
-      // Particle: small bright white-cyan spark
-      g.fillStyle(0x00ffff, 0.3);
-      g.fillCircle(4, 4, 4);
-      g.fillStyle(0xffffff);
-      g.fillCircle(4, 4, 2);
-      g.generateTexture('particle', 8, 8);
-      g.clear();
-
-      g.destroy();
+      this.load.on('loaderror', (file) => {
+        const c = document.createElement('canvas'); c.width = 64; c.height = 64;
+        const ctx = c.getContext('2d');
+        const grad = ctx.createRadialGradient(32, 28, 4, 32, 32, 24);
+        grad.addColorStop(0, '#ff9ed8'); grad.addColorStop(1, '#d63384');
+        ctx.fillStyle = grad;
+        ctx.beginPath(); ctx.arc(32, 32, 24, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = '#a0204c'; ctx.lineWidth = 2; ctx.stroke();
+        ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(24, 26, 4, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(40, 26, 4, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#333'; ctx.beginPath(); ctx.arc(25, 27, 2, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(41, 27, 2, 0, Math.PI * 2); ctx.fill();
+        this.textures.addCanvas(file.key, c);
+      });
     }
 
     create() {
@@ -131,14 +95,14 @@
           (startX - i) * this.tileSize + this.tileSize / 2,
           startY * this.tileSize + this.tileSize / 2,
           i === 0 ? 'head' : 'body'
-        ).setDepth(5);
+        ).setDisplaySize(this.tileSize, this.tileSize).setDepth(5);
         seg.gridX = startX - i;
         seg.gridY = startY;
         this.snake.push(seg);
       }
       this.colorizeSnake();
 
-      this.foodSprite = this.add.image(0, 0, 'food').setDepth(4);
+      this.foodSprite = this.add.image(0, 0, 'food').setDisplaySize(this.tileSize, this.tileSize).setDepth(4);
       this.placeFood();
 
       this.foodGlow = this.add.circle(this.foodSprite.x, this.foodSprite.y, 14, 0xffff00, 0.12).setDepth(3);
@@ -223,7 +187,7 @@
       const ateFood = (newX === this.foodX && newY === this.foodY);
       let tail;
       if (ateFood) {
-        tail = this.add.image(0, 0, 'body').setDepth(5);
+        tail = this.add.image(0, 0, 'body').setDisplaySize(this.tileSize, this.tileSize).setDepth(5);
       } else {
         tail = this.snake.pop();
       }

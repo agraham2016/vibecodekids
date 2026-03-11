@@ -64,172 +64,106 @@
 
     class RunnerScene extends Phaser.Scene {
       preload() {
+        this.load.image('robot', '/assets/sprites/kenney-platformer/character_green_idle.png');
+        this.load.image('orb', '/assets/sprites/kenney-platformer/coin_gold.png');
+        this.load.image('spark', '/assets/sprites/common/particle.png');
+
         var g = this.make.graphics({ add: false });
 
-        // --- Robot (standing: 36x48) ---
-        // Head
-        g.fillStyle(0x1e1e3a); g.fillRoundedRect(6, 0, 24, 18, 6);
-        g.fillStyle(0x00fff5); g.fillRoundedRect(9, 4, 18, 10, 4);
-        g.fillStyle(0xffffff, 0.55); g.fillRoundedRect(11, 5, 7, 6, 2);
-        g.fillStyle(0xff00ff); g.fillCircle(28, 3, 3);
-        g.fillStyle(0xff69b4); g.fillCircle(28, 3, 1.5);
-        // Body
-        g.fillStyle(0x6c5ce7); g.fillRoundedRect(8, 18, 20, 16, 4);
-        g.fillStyle(0x00fff5); g.fillCircle(18, 25, 5);
-        g.fillStyle(0xffffff, 0.45); g.fillCircle(17, 24, 2.5);
-        g.lineStyle(1, 0xa29bfe, 0.4);
-        g.lineBetween(10, 20, 26, 20); g.lineBetween(10, 28, 26, 28);
-        // Arms
-        g.fillStyle(0xa29bfe); g.fillRoundedRect(1, 20, 7, 12, 3);
-        g.fillRoundedRect(28, 20, 7, 12, 3);
-        g.fillStyle(0x00fff5, 0.6); g.fillRect(2, 30, 5, 2);
-        g.fillRect(29, 30, 5, 2);
-        // Legs
-        g.fillStyle(0x4a4a6a); g.fillRect(10, 34, 7, 8);
-        g.fillRect(19, 34, 7, 8);
-        // Boots with glow
-        g.fillStyle(0xff6b35); g.fillRoundedRect(9, 41, 9, 7, 2);
-        g.fillRoundedRect(18, 41, 9, 7, 2);
-        g.fillStyle(0xffd700, 0.5); g.fillRect(11, 45, 5, 3);
-        g.fillRect(20, 45, 5, 3);
-        g.generateTexture('robot', 36, 48); g.clear();
-
-        // --- Robot slide (wide + flat: 48x22) ---
         g.fillStyle(0x6c5ce7); g.fillRoundedRect(0, 6, 40, 14, 5);
         g.fillStyle(0x1e1e3a); g.fillRoundedRect(30, 2, 18, 14, 5);
         g.fillStyle(0x00fff5); g.fillRoundedRect(33, 5, 12, 8, 3);
-        g.fillStyle(0xffffff, 0.5); g.fillRect(35, 6, 5, 4);
-        g.fillStyle(0xff00ff); g.fillCircle(46, 3, 2);
-        g.fillStyle(0x00fff5); g.fillCircle(20, 12, 4);
-        g.fillStyle(0xff6b35); g.fillRect(0, 16, 8, 5);
-        g.fillRect(10, 18, 8, 4);
+        g.fillStyle(0xff6b35); g.fillRect(0, 16, 8, 5); g.fillRect(10, 18, 8, 4);
         g.generateTexture('robot-slide', 48, 22); g.clear();
 
-        // --- Ground laser (jump over) ---
         g.fillStyle(0x4a4a5e); g.fillRect(0, 0, 8, 44);
         g.fillStyle(0xff0040, 0.85); g.fillRect(8, 6, 5, 32);
-        g.fillStyle(0xff4070, 0.35); g.fillRect(6, 4, 9, 36);
         g.fillStyle(0xff0040); g.fillCircle(4, 4, 5); g.fillCircle(4, 40, 5);
-        g.fillStyle(0xff6090, 0.5); g.fillCircle(4, 4, 3); g.fillCircle(4, 40, 3);
         g.generateTexture('laser', 16, 44); g.clear();
 
-        // --- Flying drone (jump or slide timing) ---
         g.fillStyle(0x6c5ce7); g.fillEllipse(22, 14, 40, 18);
         g.fillStyle(0xa29bfe); g.fillEllipse(22, 12, 32, 12);
-        g.fillStyle(0xff0000); g.fillCircle(14, 12, 3.5);
-        g.fillStyle(0xff6b6b); g.fillCircle(14, 12, 2);
-        g.fillStyle(0xff0000); g.fillCircle(30, 12, 3.5);
-        g.fillStyle(0xff6b6b); g.fillCircle(30, 12, 2);
-        g.fillStyle(0x4a4a6a); g.fillRect(2, 20, 10, 4); g.fillRect(32, 20, 10, 4);
-        g.fillStyle(0xff0040, 0.4); g.fillRect(16, 24, 12, 3);
+        g.fillStyle(0xff0000); g.fillCircle(14, 12, 3.5); g.fillCircle(30, 12, 3.5);
         g.generateTexture('drone', 44, 28); g.clear();
 
-        // --- Overhead barrier (must slide under) ---
         g.fillStyle(0x4a4a5e); g.fillRect(0, 0, 60, 8);
         g.fillStyle(0x4a4a5e); g.fillRect(0, 0, 8, 36); g.fillRect(52, 0, 8, 36);
         g.fillStyle(0xff6b35, 0.7); g.fillRect(8, 4, 44, 4);
-        g.fillStyle(0xffa500, 0.3); g.fillRect(6, 2, 48, 8);
-        g.fillStyle(0xff6b35); g.fillCircle(4, 36, 4); g.fillCircle(56, 36, 4);
         g.generateTexture('barrier', 60, 40); g.clear();
 
-        // --- Floor saw blade (jump over, tighter timing) ---
-        g.fillStyle(0xff0040, 0.2); g.fillCircle(16, 16, 16);
         g.fillStyle(0xcccccc); g.fillCircle(16, 16, 12);
         g.fillStyle(0x999999); g.fillCircle(16, 16, 8);
         g.fillStyle(0xff0040); g.fillCircle(16, 16, 4);
-        for (var a = 0; a < 8; a++) {
-          var angle = (a / 8) * Math.PI * 2;
-          var tx = 16 + Math.cos(angle) * 14;
-          var ty = 16 + Math.sin(angle) * 14;
-          g.fillStyle(0xdddddd); g.fillTriangle(tx, ty, tx + 3, ty + 3, tx - 3, ty + 3);
-        }
         g.generateTexture('saw', 32, 32); g.clear();
 
-        // --- Energy orb ---
-        g.fillStyle(0x00fff5, 0.25); g.fillCircle(12, 12, 12);
-        g.fillStyle(0x00cec9); g.fillCircle(12, 12, 8);
-        g.fillStyle(0x00fff5); g.fillCircle(12, 12, 5);
-        g.fillStyle(0xffffff, 0.7); g.fillCircle(10, 9, 3);
-        g.generateTexture('orb', 24, 24); g.clear();
-
-        // --- Bolt collectible (rare, high value) ---
         g.fillStyle(0xffd700, 0.3); g.fillCircle(12, 12, 12);
         g.fillStyle(0xffb700); g.fillCircle(12, 12, 8);
         g.lineStyle(3, 0xffffff);
         g.beginPath(); g.moveTo(14, 3); g.lineTo(9, 12); g.lineTo(14, 12);
-        g.lineTo(10, 21); g.lineTo(16, 11); g.lineTo(12, 11); g.closePath();
-        g.strokePath();
+        g.lineTo(10, 21); g.lineTo(16, 11); g.lineTo(12, 11); g.closePath(); g.strokePath();
         g.generateTexture('bolt', 24, 24); g.clear();
 
-        // --- Shield power-up ---
         g.fillStyle(0x00fff5, 0.2); g.fillCircle(14, 14, 14);
         g.lineStyle(3, 0x00fff5);
         g.beginPath(); g.moveTo(14, 2); g.lineTo(4, 8); g.lineTo(4, 16);
-        g.lineTo(14, 26); g.lineTo(24, 16); g.lineTo(24, 8); g.closePath();
-        g.strokePath();
-        g.fillStyle(0x00fff5, 0.4);
-        g.fillTriangle(14, 8, 10, 16, 18, 16);
+        g.lineTo(14, 26); g.lineTo(24, 16); g.lineTo(24, 8); g.closePath(); g.strokePath();
         g.generateTexture('shield-pu', 28, 28); g.clear();
 
-        // --- Magnet power-up ---
         g.fillStyle(0xff0040, 0.2); g.fillCircle(14, 14, 14);
-        g.fillStyle(0xff0040);
-        g.fillRoundedRect(4, 6, 8, 18, 3);
-        g.fillRoundedRect(16, 6, 8, 18, 3);
+        g.fillStyle(0xff0040); g.fillRoundedRect(4, 6, 8, 18, 3); g.fillRoundedRect(16, 6, 8, 18, 3);
         g.fillStyle(0xcccccc); g.fillRoundedRect(4, 2, 20, 8, 4);
-        g.fillStyle(0x4444ff); g.fillRect(4, 18, 8, 6);
-        g.fillStyle(0xff4444); g.fillRect(16, 18, 8, 6);
         g.generateTexture('magnet-pu', 28, 28); g.clear();
 
-        // --- Ground tile ---
         g.fillStyle(0x12121e); g.fillRect(0, 0, 64, 90);
-        g.fillStyle(0x2a2a3e); g.fillRect(0, 0, 64, 6);
         g.fillStyle(0x00ffff); g.fillRect(0, 0, 64, 3);
-        g.fillStyle(0x00cccc, 0.25); g.fillRect(0, 3, 64, 4);
         g.fillStyle(0x6c5ce7, 0.06);
         for (var gy = 14; gy < 90; gy += 16) g.fillRect(0, gy, 64, 1);
         for (var gx = 0; gx < 64; gx += 16) g.fillRect(gx, 7, 1, 83);
         g.generateTexture('ground-tile', 64, 90); g.clear();
 
-        // --- Far bg tile (city silhouette — pre-baked, no per-frame redraw) ---
         var cityW = 800, cityH = 200;
         g.fillStyle(0x0e0e1a, 0.9);
         for (var cx = 0; cx < cityW; cx += Phaser.Math.Between(35, 80)) {
-          var bw = Phaser.Math.Between(25, 55);
-          var bh = Phaser.Math.Between(30, 160);
+          var bw = Phaser.Math.Between(25, 55); var bh = Phaser.Math.Between(30, 160);
           g.fillRect(cx, cityH - bh, bw, bh);
           g.fillStyle(0x6c5ce7, 0.12);
-          for (var wy = cityH - bh + 6; wy < cityH - 4; wy += 12) {
-            for (var wx = cx + 3; wx < cx + bw - 3; wx += 8) {
+          for (var wy = cityH - bh + 6; wy < cityH - 4; wy += 12)
+            for (var wx = cx + 3; wx < cx + bw - 3; wx += 8)
               if (Math.random() < 0.55) g.fillRect(wx, wy, 4, 5);
-            }
-          }
           g.fillStyle(0x0e0e1a, 0.9);
         }
         g.generateTexture('city-bg', cityW, cityH); g.clear();
 
-        // --- Near bg tile (pipes / structures) ---
         var nearW = 600, nearH = 120;
         g.fillStyle(0x16162a, 0.7);
         for (var px = 0; px < nearW; px += Phaser.Math.Between(50, 120)) {
-          var pw = Phaser.Math.Between(8, 16);
-          var ph = Phaser.Math.Between(30, 110);
+          var pw = Phaser.Math.Between(8, 16); var ph = Phaser.Math.Between(30, 110);
           g.fillRect(px, nearH - ph, pw, ph);
           g.fillStyle(0x00fff5, 0.08); g.fillRect(px, nearH - ph, pw, 3);
           g.fillStyle(0x16162a, 0.7);
         }
         g.generateTexture('near-bg', nearW, nearH); g.clear();
 
-        // --- Particle ---
-        g.fillStyle(0xffffff); g.fillCircle(4, 4, 4);
-        g.generateTexture('spark', 8, 8); g.clear();
-
-        // --- Shield bubble overlay ---
         g.lineStyle(3, 0x00fff5, 0.6); g.strokeCircle(24, 28, 26);
         g.lineStyle(1, 0xffffff, 0.3); g.strokeCircle(24, 28, 22);
         g.generateTexture('shield-ring', 48, 56); g.clear();
 
         g.destroy();
+
+        this.load.on('loaderror', (file) => {
+          var c = document.createElement('canvas'); c.width = 64; c.height = 64;
+          var ctx = c.getContext('2d');
+          var grad = ctx.createRadialGradient(32, 28, 4, 32, 32, 24);
+          grad.addColorStop(0, '#ff9ed8'); grad.addColorStop(1, '#d63384');
+          ctx.fillStyle = grad;
+          ctx.beginPath(); ctx.arc(32, 32, 24, 0, Math.PI * 2); ctx.fill();
+          ctx.strokeStyle = '#a0204c'; ctx.lineWidth = 2; ctx.stroke();
+          ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(24, 26, 4, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc(40, 26, 4, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#333'; ctx.beginPath(); ctx.arc(25, 27, 2, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc(41, 27, 2, 0, Math.PI * 2); ctx.fill();
+          this.textures.addCanvas(file.key, c);
+        });
       }
 
       create() {

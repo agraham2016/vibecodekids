@@ -26,6 +26,22 @@ class RhythmScene extends Phaser.Scene {
   constructor() { super('RhythmScene'); }
 
   preload() {
+    this.load.image('particle', '/assets/sprites/common/particle.png');
+
+    this.load.on('loaderror', (file) => {
+      const c = document.createElement('canvas'); c.width = 64; c.height = 64;
+      const ctx = c.getContext('2d');
+      const grad = ctx.createRadialGradient(32, 28, 4, 32, 32, 24);
+      grad.addColorStop(0, '#ff9ed8'); grad.addColorStop(1, '#d63384');
+      ctx.fillStyle = grad;
+      ctx.beginPath(); ctx.arc(32, 32, 24, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = '#a0204c'; ctx.lineWidth = 2; ctx.stroke();
+      ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(24, 26, 4, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(40, 26, 4, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#333'; ctx.beginPath(); ctx.arc(25, 27, 2, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(41, 27, 2, 0, Math.PI * 2); ctx.fill();
+      this.textures.addCanvas(file.key, c);
+    });
   }
 
   create() {
@@ -42,8 +58,6 @@ class RhythmScene extends Phaser.Scene {
     g.lineStyle(1, 0xffffff, 0.3); g.strokeCircle(24, 24, 12);
     g.generateTexture('target', 48, 48);
     g.clear();
-    g.fillStyle(0xffffff); g.fillCircle(4, 4, 3);
-    g.generateTexture('particle', 8, 8);
     g.destroy();
 
     this.add.rectangle(GW / 2, GH / 2, GW, GH, 0x1a0a2e);

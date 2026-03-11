@@ -49,21 +49,30 @@
     };
 
     function preload() {
+      this.load.image('ball', '/assets/sprites/kenney-puzzle/ballBlue.png');
+
+      this.load.on('loaderror', (file) => {
+        const c = document.createElement('canvas'); c.width = 64; c.height = 64;
+        const ctx = c.getContext('2d');
+        const grad = ctx.createRadialGradient(32, 28, 4, 32, 32, 24);
+        grad.addColorStop(0, '#ff9ed8'); grad.addColorStop(1, '#d63384');
+        ctx.fillStyle = grad;
+        ctx.beginPath(); ctx.arc(32, 32, 24, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = '#a0204c'; ctx.lineWidth = 2; ctx.stroke();
+        ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(24, 26, 4, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(40, 26, 4, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#333'; ctx.beginPath(); ctx.arc(25, 27, 2, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(41, 27, 2, 0, Math.PI * 2); ctx.fill();
+        this.textures.addCanvas(file.key, c);
+      });
     }
 
     function create() {
       const g = this.make.graphics({ add: false });
-
       g.fillStyle(0xffffff);
       g.fillRoundedRect(0, 0, PADDLE_W, PADDLE_H, 6);
       g.generateTexture('paddle', PADDLE_W, PADDLE_H);
       g.clear();
-
-      g.fillStyle(0xffffff);
-      g.fillCircle(BALL_R, BALL_R, BALL_R);
-      g.fillStyle(0xe0e0e0, 0.5);
-      g.fillCircle(BALL_R - 2, BALL_R - 2, 3);
-      g.generateTexture('ball', BALL_R * 2, BALL_R * 2);
       g.destroy();
 
       const bg = this.add.graphics();
@@ -95,6 +104,7 @@
       this.physics.add.existing(rightWall, true);
 
       ball = this.physics.add.sprite(W / 2, H / 2, 'ball');
+      ball.setDisplaySize(BALL_R * 2, BALL_R * 2);
       ball.setCircle(BALL_R);
       ball.setBounce(1);
       ball.body.allowGravity = false;

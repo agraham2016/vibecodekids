@@ -22,66 +22,28 @@
     var W = 800, H = 500, WORLD_W = 2400;
 
     function preload() {
-      var g = this.make.graphics({ add: false });
+      this.load.image('player', '/assets/sprites/kenney-platformer/character_green_idle.png');
+      this.load.image('ground', '/assets/sprites/kenney-platformer/terrain_grass_block.png');
+      this.load.image('platform', '/assets/sprites/kenney-platformer/block_plank.png');
+      this.load.image('coin', '/assets/sprites/kenney-platformer/coin_gold.png');
+      this.load.image('enemy', '/assets/sprites/kenney-platformer/slime_normal_rest.png');
+      this.load.image('bgSky', '/assets/sprites/kenney-platformer/background_solid_sky.png');
+      this.load.image('bgHills', '/assets/sprites/kenney-platformer/background_color_hills.png');
 
-      // Player — green character with eyes and feet
-      g.fillStyle(0x2ecc71); g.fillRoundedRect(8, 8, 28, 28, 6);
-      g.fillStyle(0x27ae60); g.fillRoundedRect(10, 12, 24, 22, 5);
-      g.fillStyle(0xffffff); g.fillCircle(18, 16, 5); g.fillCircle(30, 16, 5);
-      g.fillStyle(0x2d3436); g.fillCircle(19, 16, 3); g.fillCircle(31, 16, 3);
-      g.fillStyle(0xffffff); g.fillCircle(20, 15, 1); g.fillCircle(32, 15, 1);
-      g.fillStyle(0xe17055); g.fillRect(22, 24, 6, 3);
-      g.fillStyle(0x2d3436); g.fillRoundedRect(12, 36, 10, 8, 3);
-      g.fillRoundedRect(26, 36, 10, 8, 3);
-      g.generateTexture('player', 48, 48); g.clear();
-
-      // Ground tile — grass top, dirt bottom
-      g.fillStyle(0x8B4513); g.fillRect(0, 0, 70, 70);
-      g.fillStyle(0xa0522d); g.fillRect(0, 0, 70, 70);
-      g.fillStyle(0x2ecc71); g.fillRect(0, 0, 70, 14);
-      g.fillStyle(0x27ae60); g.fillRect(0, 10, 70, 8);
-      g.fillStyle(0x6d4c41, 0.4); g.fillCircle(20, 40, 6); g.fillCircle(50, 50, 5); g.fillCircle(35, 60, 4);
-      g.generateTexture('ground', 70, 70); g.clear();
-
-      // Platform — wooden plank
-      g.fillStyle(0xd4a76a); g.fillRoundedRect(0, 0, 96, 24, 4);
-      g.fillStyle(0xc49a5e); g.fillRect(4, 4, 88, 16);
-      g.lineStyle(1, 0xb08d4f, 0.5);
-      g.lineBetween(8, 8, 88, 8); g.lineBetween(8, 14, 88, 14);
-      g.fillStyle(0x8B6914, 0.3); g.fillCircle(20, 12, 3); g.fillCircle(72, 10, 2);
-      g.generateTexture('platform', 96, 24); g.clear();
-
-      // Coin — spinning gold circle
-      g.fillStyle(0xffd700); g.fillCircle(14, 14, 13);
-      g.fillStyle(0xffa502); g.fillCircle(14, 14, 9);
-      g.fillStyle(0xffd700); g.fillCircle(14, 14, 6);
-      g.fillStyle(0xfffff0, 0.5); g.fillCircle(11, 11, 4);
-      g.generateTexture('coin', 28, 28); g.clear();
-
-      // Enemy — purple slime with eyes
-      g.fillStyle(0x6c5ce7); g.fillEllipse(18, 22, 32, 26);
-      g.fillStyle(0xa29bfe); g.fillEllipse(18, 18, 26, 18);
-      g.fillStyle(0xffffff); g.fillCircle(12, 16, 5); g.fillCircle(24, 16, 5);
-      g.fillStyle(0x2d3436); g.fillCircle(13, 17, 3); g.fillCircle(25, 17, 3);
-      g.fillStyle(0xdfe6e9, 0.3); g.fillEllipse(14, 12, 8, 4);
-      g.generateTexture('enemy', 36, 36); g.clear();
-
-      // Sky background tile
-      g.fillGradientStyle(0x74b9ff, 0x74b9ff, 0xa29bfe, 0xa29bfe);
-      g.fillRect(0, 0, 128, 128);
-      g.fillStyle(0xffffff, 0.3); g.fillEllipse(40, 30, 50, 20);
-      g.fillStyle(0xffffff, 0.2); g.fillEllipse(100, 50, 40, 16);
-      g.generateTexture('bgSky', 128, 128); g.clear();
-
-      // Hills background tile
-      g.fillStyle(0x55efc4, 0.4);
-      g.fillEllipse(64, 100, 160, 80);
-      g.fillStyle(0x00b894, 0.3);
-      g.fillEllipse(30, 110, 100, 60);
-      g.fillEllipse(100, 115, 120, 50);
-      g.generateTexture('bgHills', 128, 128); g.clear();
-
-      g.destroy();
+      this.load.on('loaderror', (file) => {
+        const c = document.createElement('canvas'); c.width = 64; c.height = 64;
+        const ctx = c.getContext('2d');
+        const grad = ctx.createRadialGradient(32, 28, 4, 32, 32, 24);
+        grad.addColorStop(0, '#ff9ed8'); grad.addColorStop(1, '#d63384');
+        ctx.fillStyle = grad;
+        ctx.beginPath(); ctx.arc(32, 32, 24, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = '#a0204c'; ctx.lineWidth = 2; ctx.stroke();
+        ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(24, 26, 4, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(40, 26, 4, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#333'; ctx.beginPath(); ctx.arc(25, 27, 2, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(41, 27, 2, 0, Math.PI * 2); ctx.fill();
+        this.textures.addCanvas(file.key, c);
+      });
     }
 
     function create() {
