@@ -20,6 +20,7 @@
 |--------|---------------|------------|-----------------|
 | Anthropic (Claude) | PII-stripped prompts, base64 screenshots | ✅ Generic enterprise | Accepted for launch |
 | xAI (Grok) | PII-stripped prompts (13+ only; under-13 Claude-only) | ✅ Generic enterprise | Accepted for launch |
+| OpenAI (GPT) | PII-stripped prompts (all ages) | ✅ Generic enterprise | Accepted for launch |
 | Stripe | username, displayName, tier, ageBracket (checkout metadata); no password/emails | ✅ Standard | Part of Stripe ToS |
 | Resend | Recipient email, message body (consent, reset, dashboard links) | ✅ Generic enterprise / ToS | Accepted for launch |
 | Sentry | Stack traces, request metadata (PII scrubbed) | ✅ Generic enterprise / ToS | Accepted for launch |
@@ -51,6 +52,17 @@
 | **DPA location** | xAI Business/Enterprise terms |
 | **No-training clause** | Verify in executed agreement |
 | **Action** | Atlas: Execute DPA. Elias: Confirm no-training and data handling terms. |
+
+### OpenAI (GPT)
+
+| Field | Value |
+|-------|-------|
+| **Data we send** | System prompts, user prompts (PII-stripped), conversation history. All ages routed. |
+| **Purpose** | AI game code generation |
+| **Child data** | Under-13 prompts transmitted (PII stripped). |
+| **DPA location** | OpenAI Business/Enterprise terms; DPA available on request |
+| **No-training clause** | OpenAI API terms state they do not train on API data; verify in executed agreement |
+| **Action** | Atlas: Execute DPA or confirm existing agreement covers children's data. Elias: Review for COPPA adequacy. |
 
 ### Stripe
 
@@ -115,6 +127,7 @@
 |--------|--------------|------|-------|
 | Anthropic | Atlas Reid | March 2026 | Generic enterprise DPA accepted for launch |
 | xAI | Atlas Reid | March 2026 | Generic enterprise DPA accepted for launch |
+| OpenAI | Atlas Reid | March 2026 | Generic enterprise DPA accepted for launch |
 | Stripe | Atlas Reid | March 2026 | Standard DPA in ToS |
 | Resend | Atlas Reid | March 2026 | Generic enterprise / ToS accepted for launch |
 | Sentry | Atlas Reid | March 2026 | Generic enterprise / ToS accepted for launch |
@@ -125,6 +138,7 @@
 
 - [x] Anthropic DPA — generic enterprise accepted for launch
 - [x] xAI DPA — generic enterprise accepted for launch
+- [x] OpenAI DPA — generic enterprise accepted for launch
 - [x] Stripe DPA — standard in ToS
 - [x] Resend DPA — generic enterprise / ToS accepted for launch
 - [x] Sentry DPA — generic enterprise / ToS accepted for launch

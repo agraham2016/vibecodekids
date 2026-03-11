@@ -1,13 +1,14 @@
 /**
- * AI Service (Dual-Model: Claude + Grok)
+ * AI Service (Tri-Model: Claude + Grok + OpenAI)
  *
  * Handles all AI API interactions with:
  * - Claude (Anthropic API) — "Professor Claude": patient teacher
  * - Grok (xAI API via OpenAI SDK) — "VibeGrok": hype gamer buddy
+ * - OpenAI (GPT API via OpenAI SDK) — "Coach GPT": competitive game coach
  * - Prompt caching (cache_control) for static system prompts
  * - Streaming support for faster perceived response times
  * - Conversation history trimming to reduce token waste
- * - Token usage tracking and cost logging for BOTH models
+ * - Token usage tracking and cost logging for ALL models
  * - Retry logic with exponential backoff
  * - Truncation recovery (continuation requests)
  */
@@ -24,12 +25,17 @@ import {
   XAI_API_KEY,
   GROK_MODEL,
   GROK_BASE_URL,
+  OPENAI_API_KEY,
+  OPENAI_MODEL,
 } from '../config/index.js';
 
 const anthropic = ANTHROPIC_API_KEY ? new Anthropic({ apiKey: ANTHROPIC_API_KEY }) : null;
 
 // Grok client — xAI API is OpenAI-compatible, just different baseURL
 const grokClient = XAI_API_KEY ? new OpenAI({ apiKey: XAI_API_KEY, baseURL: GROK_BASE_URL }) : null;
+
+// OpenAI client — uses the same SDK as Grok with default base URL
+const openaiClient = OPENAI_API_KEY ? new OpenAI({ apiKey: OPENAI_API_KEY }) : null;
 
 /**
  * Check if Claude is available (API key configured).
@@ -43,6 +49,13 @@ export function isClaudeAvailable() {
  */
 export function isGrokAvailable() {
   return !!grokClient;
+}
+
+/**
+ * Check if OpenAI is available (API key configured).
+ */
+export function isOpenAIAvailable() {
+  return !!openaiClient;
 }
 
 function requireClaude() {
@@ -78,13 +91,18 @@ const PRICING = {
     input: 3.0, // $3.00 / 1M input tokens
     output: 15.0, // $15.00 / 1M output tokens
   },
+  // GPT-5.4 pricing (OpenAI) — March 2026
+  openai: {
+    input: 2.5, // $2.50 / 1M input tokens
+    output: 15.0, // $15.00 / 1M output tokens
+  },
 };
 
 /**
- * Track token usage and costs for any model (Claude or Grok).
+ * Track token usage and costs for any model (Claude, Grok, or OpenAI).
  * @param {object} response - API response with usage info
  * @param {string|null} userId - For per-user tracking
- * @param {'claude'|'grok'} model - Which model was called
+ * @param {'claude'|'grok'|'openai'} model - Which model was called
  */
 function trackUsage(response, userId = null, model = 'claude') {
   const usage = response.usage;
@@ -92,12 +110,12 @@ function trackUsage(response, userId = null, model = 'claude') {
 
   let inputTokens, outputTokens, costCents;
 
-  if (model === 'grok') {
-    // OpenAI-compatible usage format
+  if (model === 'grok' || model === 'openai') {
+    // OpenAI-compatible usage format (both Grok and OpenAI use this)
+    const pricing = PRICING[model];
     inputTokens = usage.prompt_tokens || 0;
     outputTokens = usage.completion_tokens || 0;
-    costCents =
-      (inputTokens / 1_000_000) * PRICING.grok.input * 100 + (outputTokens / 1_000_000) * PRICING.grok.output * 100;
+    costCents = (inputTokens / 1_000_000) * pricing.input * 100 + (outputTokens / 1_000_000) * pricing.output * 100;
   } else {
     // Anthropic usage format
     inputTokens = usage.input_tokens || 0;
@@ -130,18 +148,21 @@ function trackUsage(response, userId = null, model = 'claude') {
       costCents: 0,
       claudeCalls: 0,
       grokCalls: 0,
+      openaiCalls: 0,
     };
     userStats.requests++;
     userStats.inputTokens += inputTokens;
     userStats.outputTokens += outputTokens;
     userStats.costCents += costCents;
     if (model === 'grok') userStats.grokCalls++;
+    else if (model === 'openai') userStats.openaiCalls++;
     else userStats.claudeCalls++;
     usageStats.byUser.set(userId, userStats);
   }
 
   // Log summary
-  const modelTag = model === 'grok' ? '🤖 Grok' : '🧠 Claude';
+  const modelTags = { claude: '🧠 Claude', grok: '🤖 Grok', openai: '🏆 OpenAI' };
+  const modelTag = modelTags[model] || model;
   console.log(
     `💰 ${modelTag}: ${inputTokens}in/${outputTokens}out | $${(costCents / 100).toFixed(4)} | Total: $${(usageStats.totalCostCents / 100).toFixed(4)}`,
   );
@@ -376,12 +397,70 @@ export async function callGrok(systemPrompt, messages, maxTokens, userId = null)
 }
 
 /**
- * Extract the text content from a Grok (OpenAI-format) response.
+ * Extract the text content from an OpenAI-format response (works for both Grok and OpenAI).
  * @param {object} response - OpenAI-compatible response
  * @returns {string} The assistant's reply text
  */
-export function extractGrokText(response) {
+export function extractOpenAIText(response) {
   return response?.choices?.[0]?.message?.content || '';
+}
+
+// Keep backward-compatible alias
+export const extractGrokText = extractOpenAIText;
+
+// ========== OPENAI (GPT) API CALLS ==========
+
+/**
+ * Call OpenAI GPT API with retry logic.
+ *
+ * @param {string} systemPrompt - The full system prompt (personality + context)
+ * @param {Array} messages - Conversation messages [{role, content}]
+ * @param {number} maxTokens - Max output tokens
+ * @param {string|null} userId - For usage tracking
+ * @returns {object} OpenAI-compatible response object
+ */
+export async function callOpenAI(systemPrompt, messages, maxTokens, userId = null) {
+  if (!openaiClient) {
+    throw new Error('OpenAI API key not configured. Set OPENAI_API_KEY in .env');
+  }
+
+  const openAIMessages = [
+    { role: 'system', content: systemPrompt },
+    ...messages.map((msg) => ({
+      role: msg.role,
+      content:
+        typeof msg.content === 'string'
+          ? msg.content
+          : Array.isArray(msg.content)
+            ? msg.content
+                .filter((p) => p.type === 'text')
+                .map((p) => p.text)
+                .join('\n')
+            : String(msg.content),
+    })),
+  ];
+
+  let response;
+  for (let attempt = 1; attempt <= AI_RETRY_COUNT; attempt++) {
+    try {
+      response = await openaiClient.chat.completions.create({
+        model: OPENAI_MODEL,
+        max_tokens: maxTokens,
+        messages: openAIMessages,
+        temperature: 0.7,
+      });
+      trackUsage(response, userId, 'openai');
+      return response;
+    } catch (apiError) {
+      console.error(`⚠️ OpenAI API attempt ${attempt}/${AI_RETRY_COUNT} failed:`, apiError.status, apiError.message);
+      if (attempt === AI_RETRY_COUNT) {
+        throw new Error(
+          `OpenAI API failed after ${AI_RETRY_COUNT} attempts: ${apiError.status || ''} ${apiError.message || 'Unknown error'}`,
+        );
+      }
+      await new Promise((r) => setTimeout(r, AI_RETRY_DELAY_MS * Math.pow(2, attempt - 1)));
+    }
+  }
 }
 
 // ========== CODE EXTRACTION ==========

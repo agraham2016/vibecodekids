@@ -28,6 +28,7 @@ import {
   ANTHROPIC_API_KEY,
   AI_MODEL,
   XAI_API_KEY,
+  OPENAI_API_KEY,
   STRIPE_SECRET_KEY,
   STRIPE_WEBHOOK_SECRET,
   STRIPE_PRICES,
@@ -434,6 +435,7 @@ app.get('/api/health', async (_req, res) => {
     ai: !!ANTHROPIC_API_KEY,
     aiModel: ANTHROPIC_API_KEY ? AI_MODEL : null,
     grok: !!XAI_API_KEY,
+    openai: !!OPENAI_API_KEY,
     timestamp: new Date().toISOString(),
   };
 

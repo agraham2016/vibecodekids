@@ -1,9 +1,9 @@
 /**
- * Game Handler — Core Dual-Model Routing Engine
+ * Game Handler — Core Tri-Model Routing Engine
  *
- * This is the brain of the dual-AI system. It decides which model to call
- * (Claude or Grok), manages the response cache, and handles special modes
- * like critic loops and "Ask the Other Buddy".
+ * This is the brain of the tri-AI system. It decides which model to call
+ * (Claude, Grok, or OpenAI), manages the response cache, and handles special
+ * modes like critic loops and "Ask the Other Buddy".
  *
  * ROUTING LOGIC:
  * ─────────────────────────────────────────────────────────────
@@ -12,9 +12,10 @@
  * 'default'         │ Claude (safe default for initial generation)
  * 'claude'          │ Force Claude (explicit user choice)
  * 'grok'            │ Force Grok (explicit user choice / creative iteration)
+ * 'openai'          │ Force OpenAI (explicit user choice / coach mode)
  * 'creative'        │ Route to Grok ("Make it more fun!")
  * 'debug'           │ Try Claude first (up to 2 attempts), then auto-route to Grok
- * 'ask-other-buddy' │ Send to whichever model WASN'T used last
+ * 'ask-other-buddy' │ Send to the NEXT model in rotation
  * 'critic'          │ Claude generates → Grok critiques → Claude polishes
  * ─────────────────────────────────────────────────────────────
  *
@@ -30,12 +31,14 @@ import {
   trimConversationHistory,
   callClaude,
   callGrok,
-  extractGrokText,
+  callOpenAI,
+  extractOpenAIText,
   extractCode,
   isTruncated,
   extractPartialCode,
   attemptContinuation,
   isGrokAvailable,
+  isOpenAIAvailable,
 } from './ai.js';
 import {
   generateCacheKey,
@@ -181,13 +184,18 @@ export async function generateOrIterateGame({
     }
   }
 
-  // If Grok isn't available, always fall back to Claude
+  // If Grok isn't available, fall back to Claude
   if (!isGrokAvailable() && ['grok', 'creative'].includes(effectiveMode)) {
     console.log('⚠️ Grok not available (no XAI_API_KEY), falling back to Claude');
     effectiveMode = 'claude';
   }
   if (!isGrokAvailable() && effectiveMode === 'critic') {
     console.log('⚠️ Grok not available, critic mode → Claude only');
+    effectiveMode = 'claude';
+  }
+  // If OpenAI isn't available, fall back to Claude
+  if (!isOpenAIAvailable() && effectiveMode === 'openai') {
+    console.log('⚠️ OpenAI not available (no OPENAI_API_KEY), falling back to Claude');
     effectiveMode = 'claude';
   }
 
@@ -283,19 +291,27 @@ export async function generateOrIterateGame({
 /**
  * Decide which model to call based on mode and context.
  */
+const NEXT_BUDDY = { claude: 'grok', grok: 'openai', openai: 'claude' };
+
 function resolveTargetModel(mode, lastModelUsed) {
   switch (mode) {
     case 'grok':
     case 'creative':
       return 'grok';
+    case 'openai':
+      return 'openai';
     case 'claude':
     case 'default':
     case 'debug':
       return 'claude';
-    case 'ask-other-buddy':
-      return lastModelUsed === 'claude' ? 'grok' : 'claude';
+    case 'ask-other-buddy': {
+      const next = NEXT_BUDDY[lastModelUsed] || 'grok';
+      if (next === 'grok' && !isGrokAvailable()) return 'openai';
+      if (next === 'openai' && !isOpenAIAvailable()) return 'claude';
+      return next;
+    }
     case 'critic':
-      return 'claude'; // Critic starts with Claude, then Grok reviews
+      return 'claude';
     default:
       return 'claude';
   }
@@ -369,10 +385,13 @@ async function handleSingleModel({ prompt, currentCode, conversationHistory, gam
   let wasTruncated = false;
 
   if (targetModel === 'grok') {
-    // Grok: combine personality + static + dynamic into one system prompt
     const fullSystemPrompt = personalityWrapper + '\n\n' + staticPrompt + '\n\n' + dynamicContext;
     const response = await callGrok(fullSystemPrompt, messages, maxTokens, userId);
-    assistantText = extractGrokText(response);
+    assistantText = extractOpenAIText(response);
+  } else if (targetModel === 'openai') {
+    const fullSystemPrompt = personalityWrapper + '\n\n' + staticPrompt + '\n\n' + dynamicContext;
+    const response = await callOpenAI(fullSystemPrompt, messages, maxTokens, userId);
+    assistantText = extractOpenAIText(response);
   } else {
     // Claude: use the split prompt system with cache_control
     const fullStaticPrompt = personalityWrapper + '\n\n' + staticPrompt;
@@ -413,7 +432,11 @@ async function handleSingleModel({ prompt, currentCode, conversationHistory, gam
       if (targetModel === 'grok') {
         const fullSystemPrompt = personalityWrapper + '\n\n' + staticPrompt + '\n\n' + dynamicContext;
         const retryResponse = await callGrok(fullSystemPrompt, trimmedFixup, maxTokens, userId);
-        retryText = extractGrokText(retryResponse);
+        retryText = extractOpenAIText(retryResponse);
+      } else if (targetModel === 'openai') {
+        const fullSystemPrompt = personalityWrapper + '\n\n' + staticPrompt + '\n\n' + dynamicContext;
+        const retryResponse = await callOpenAI(fullSystemPrompt, trimmedFixup, maxTokens, userId);
+        retryText = extractOpenAIText(retryResponse);
       } else {
         const fullStaticPrompt = personalityWrapper + '\n\n' + staticPrompt;
         const retryResponse = await callClaude(fullStaticPrompt, dynamicContext, trimmedFixup, maxTokens, userId);
@@ -539,6 +562,15 @@ async function handleDebugMode({ prompt, currentCode, conversationHistory, gameC
  * "Ask the Other Buddy" — sends current code + issue to the model
  * that WASN'T used last time. Kid-triggered model switching.
  */
+const BUDDY_HANDOFF_PROMPTS = {
+  claude: (prompt) =>
+    `Professor Claude here! 🎓 Another buddy was working on this game and the kid wants a second opinion.\n\nThe kid says: "${prompt}"\n\nPlease review the current code carefully, fix any issues, and explain what you changed in a simple, encouraging way.`,
+  grok: (prompt) =>
+    `YOOO VibeGrok jumping in! 🚀🔥 Another buddy was building this game and the kid wants MY take on it!\n\nThe kid says: "${prompt}"\n\nLet me check this out, fix anything that's off, and add some extra sauce! 😎`,
+  openai: (prompt) =>
+    `Coach GPT stepping in! 🏆 Another buddy was building this game and the kid wants a fresh perspective.\n\nThe kid says: "${prompt}"\n\nLet me review the game plan, tighten up the gameplay, and level this up! 💪`,
+};
+
 async function handleAskOtherBuddy({
   prompt,
   currentCode,
@@ -548,14 +580,16 @@ async function handleAskOtherBuddy({
   userId,
   lastModelUsed,
 }) {
-  const otherModel = lastModelUsed === 'grok' ? 'claude' : 'grok';
-  console.log(`🔄 Ask Other Buddy: switching from ${lastModelUsed || 'unknown'} → ${otherModel}`);
+  const otherModel = NEXT_BUDDY[lastModelUsed] || 'grok';
+  const finalModel =
+    otherModel === 'grok' && !isGrokAvailable()
+      ? 'openai'
+      : otherModel === 'openai' && !isOpenAIAvailable()
+        ? 'claude'
+        : otherModel;
+  console.log(`🔄 Ask Other Buddy: switching from ${lastModelUsed || 'unknown'} → ${finalModel}`);
 
-  const _buddyName = otherModel === 'grok' ? 'VibeGrok' : 'Professor Claude';
-  const contextPrompt =
-    lastModelUsed === 'grok'
-      ? `Professor Claude here! 🎓 VibeGrok was working on this game and the kid wants a second opinion.\n\nThe kid says: "${prompt}"\n\nPlease review the current code carefully, fix any issues, and explain what you changed in a simple, encouraging way.`
-      : `YOOO VibeGrok jumping in! 🚀🔥 Professor Claude was building this game and the kid wants MY take on it!\n\nThe kid says: "${prompt}"\n\nLet me check this out, fix anything that's off, and add some extra sauce! 😎`;
+  const contextPrompt = BUDDY_HANDOFF_PROMPTS[finalModel](prompt);
 
   const result = await handleSingleModel({
     prompt: contextPrompt,
@@ -564,7 +598,7 @@ async function handleAskOtherBuddy({
     gameConfig,
     image,
     userId,
-    targetModel: otherModel,
+    targetModel: finalModel,
   });
 
   return result;

@@ -73,6 +73,7 @@ function App() {
     activeModel,
     switchModel,
     grokAvailable,
+    openaiAvailable,
     lastModelUsed,
   } = useChat({
     onCodeGenerated: (newCode) => {
@@ -441,6 +442,7 @@ function App() {
             activeModel={activeModel}
             onSwitchModel={switchModel}
             grokAvailable={grokAvailable}
+            openaiAvailable={openaiAvailable}
             lastModelUsed={lastModelUsed}
             onUseAlternateCode={handleUseAlternateCode}
             onReplayTutorial={() => {

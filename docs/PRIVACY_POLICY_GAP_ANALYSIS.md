@@ -25,7 +25,7 @@
 | Discord 13+ only | "Discord community links — hidden entirely for Junior accounts" |
 | Stripe micro-charge disclosure | "credit card micro-charge ($0.50, immediately refunded) or by email confirmation" |
 | "We share limited data with service providers" | "We share limited data with trusted service providers solely to operate our platform" |
-| Third-party providers named | Anthropic, xAI, Stripe, Resend, Sentry |
+| Third-party providers named | Anthropic, xAI, OpenAI, Stripe, Resend, Sentry |
 | Data retention (90d events, 30d deleted) | Listed; also 12mo inactive Junior purge, 48h deletion |
 | Parental rights | Review, delete, revoke, toggle, export |
 | Parent Command Center | Described |

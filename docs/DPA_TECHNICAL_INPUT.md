@@ -10,9 +10,10 @@
 
 1. **Anthropic** — AI provider; receives most child prompt data. Highest exposure.
 2. **xAI (Grok)** — AI provider; receives 13+ prompts only. High exposure.
-3. **Resend** — Parent email, consent/reset message content. Medium exposure.
-4. **Sentry** — Error metadata; PII scrubbed. Lower exposure.
-5. **Stripe** — Already has standard DPA; confirm acceptance.
+3. **OpenAI (GPT)** — AI provider; receives all ages' prompts. High exposure.
+4. **Resend** — Parent email, consent/reset message content. Medium exposure.
+5. **Sentry** — Error metadata; PII scrubbed. Lower exposure.
+6. **Stripe** — Already has standard DPA; confirm acceptance.
 
 ---
 
@@ -53,6 +54,23 @@ Same as Anthropic. Additional:
 ### Technical Verification
 - [ ] Confirm `XAI_API_KEY` storage (env var).
 - [ ] Code path: under-13 → `mode` forced to `claude` before `generateOrIterateGame` is called.
+
+---
+
+## OpenAI (GPT)
+
+### Data We Send (Technical Fact Check)
+- Same structure as Anthropic/xAI
+- **All ages routed to OpenAI** — no age restriction currently applied
+- PII-stripped via same `piiScanner.js`
+
+### Clauses to Insist On
+Same as Anthropic. Additional:
+- **API data usage** — OpenAI's API terms state data is not used for training; verify this clause is present in executed DPA.
+
+### Technical Verification
+- [ ] Confirm `OPENAI_API_KEY` storage (env var).
+- [ ] Confirm OpenAI API calls use model `gpt-5.4` as configured in `config/index.js`.
 
 ---
 

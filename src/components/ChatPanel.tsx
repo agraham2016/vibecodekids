@@ -61,6 +61,7 @@ interface ChatPanelProps {
   activeModel: AIModel;
   onSwitchModel: (model: AIModel) => void;
   grokAvailable: boolean;
+  openaiAvailable: boolean;
   lastModelUsed: AIModel | null;
   onUseAlternateCode?: (code: string) => void;
   onReplayTutorial?: () => void;
@@ -70,7 +71,10 @@ interface ChatPanelProps {
 const MODEL_INFO: Record<AIModel, { name: string; icon: string; color: string }> = {
   claude: { name: 'Professor Claude', icon: '🎓', color: 'claude' },
   grok: { name: 'VibeGrok', icon: '🚀', color: 'grok' },
+  openai: { name: 'Coach GPT', icon: '🏆', color: 'openai' },
 };
+
+const NEXT_BUDDY_MAP: Record<string, AIModel> = { claude: 'grok', grok: 'openai', openai: 'claude' };
 
 /** Safe lookup — handles null/undefined or invalid model names. */
 function getModelInfo(model: AIModel | null | undefined) {
@@ -277,6 +281,7 @@ export default function ChatPanel({
   activeModel,
   onSwitchModel,
   grokAvailable,
+  openaiAvailable,
   lastModelUsed,
   onUseAlternateCode,
   onReplayTutorial,
@@ -508,8 +513,10 @@ export default function ChatPanel({
 
   const handleAskOtherBuddy = () => {
     if (isLoading) return;
-    const otherModel = lastModelUsed === 'grok' ? 'claude' : 'grok';
-    const buddyName = MODEL_INFO[otherModel].name;
+    let next = NEXT_BUDDY_MAP[lastModelUsed || 'claude'] || 'grok';
+    if (next === 'grok' && !grokAvailable) next = 'openai';
+    if (next === 'openai' && !openaiAvailable) next = 'claude';
+    const buddyName = MODEL_INFO[next].name;
     onSendMessage(input.trim() || `Hey ${buddyName}, can you take a look at my game?`, undefined, 'ask-other-buddy');
     setInput('');
   };
@@ -530,9 +537,11 @@ export default function ChatPanel({
     setInput('');
   };
 
-  // Get info for the "other" buddy
-  const otherModel: AIModel = lastModelUsed === 'grok' ? 'claude' : 'grok';
-  const otherBuddy = MODEL_INFO[otherModel];
+  // Get info for the "next" buddy in rotation
+  let nextBuddy: AIModel = NEXT_BUDDY_MAP[lastModelUsed || 'claude'] || 'grok';
+  if (nextBuddy === 'grok' && !grokAvailable) nextBuddy = 'openai';
+  if (nextBuddy === 'openai' && !openaiAvailable) nextBuddy = 'claude';
+  const otherBuddy = MODEL_INFO[nextBuddy];
 
   // Loading personality name (defensive: activeModel should always be valid)
   const loadingModelInfo = getModelInfo(activeModel) ?? MODEL_INFO.claude;
@@ -564,6 +573,18 @@ export default function ChatPanel({
             disabled={isLoading || !grokAvailable}
           >
             🚀
+          </button>
+          <button
+            className={`model-toggle-btn ${activeModel === 'openai' ? 'active' : ''} ${!openaiAvailable ? 'unavailable' : ''}`}
+            onClick={() => openaiAvailable && onSwitchModel('openai')}
+            title={
+              openaiAvailable
+                ? 'Coach GPT — Competitive coach, levels up your game'
+                : 'Coach GPT not available (no API key)'
+            }
+            disabled={isLoading || !openaiAvailable}
+          >
+            🏆
           </button>
         </div>
       </div>
@@ -600,6 +621,13 @@ export default function ChatPanel({
                   <span className="buddy-card-icon">🚀</span>
                   <span className="buddy-card-name">VibeGrok</span>
                   <span className="buddy-card-desc">Hype buddy. Makes things EPIC and fun!</span>
+                </div>
+              )}
+              {openaiAvailable && (
+                <div className="buddy-card buddy-card-openai">
+                  <span className="buddy-card-icon">🏆</span>
+                  <span className="buddy-card-name">Coach GPT</span>
+                  <span className="buddy-card-desc">Game coach. Levels up your gameplay!</span>
                 </div>
               )}
             </div>
@@ -768,7 +796,11 @@ export default function ChatPanel({
                     <span></span>
                   </div>
                   <div className="loading-label">
-                    {activeModel === 'grok' ? 'VibeGrok is cooking... 🔥' : 'Professor Claude is thinking... 🧠'}
+                    {activeModel === 'grok'
+                      ? 'VibeGrok is cooking... 🔥'
+                      : activeModel === 'openai'
+                        ? 'Coach GPT is strategizing... 🏆'
+                        : 'Professor Claude is thinking... 🧠'}
                   </div>
                   <div className="loading-sublabel">Finding the best references and building your game...</div>
                 </div>
@@ -780,32 +812,32 @@ export default function ChatPanel({
       </div>
 
       {/* ===== QUICK ACTION BUTTONS ===== */}
-      {messages.length > 0 && !isLoading && (
+      {messages.length > 0 && !isLoading && (grokAvailable || openaiAvailable) && (
         <div className="quick-actions">
           {grokAvailable && (
-            <>
-              <button
-                className="quick-action-btn action-fun"
-                onClick={handleMakeItFun}
-                title="Let VibeGrok add some creative flair!"
-              >
-                🔥 Make It Fun!
-              </button>
-              <button
-                className="quick-action-btn action-buddy"
-                onClick={handleAskOtherBuddy}
-                title={`Ask ${otherBuddy.name} to take a look`}
-              >
-                {otherBuddy.icon} Ask {otherBuddy.name.split(' ').pop()}
-              </button>
-              <button
-                className="quick-action-btn action-critic"
-                onClick={handleCriticMode}
-                title="Both AIs work together — Claude builds, Grok reviews!"
-              >
-                🤝 Team Up!
-              </button>
-            </>
+            <button
+              className="quick-action-btn action-fun"
+              onClick={handleMakeItFun}
+              title="Let VibeGrok add some creative flair!"
+            >
+              🔥 Make It Fun!
+            </button>
+          )}
+          <button
+            className="quick-action-btn action-buddy"
+            onClick={handleAskOtherBuddy}
+            title={`Ask ${otherBuddy.name} to take a look`}
+          >
+            {otherBuddy.icon} Ask {otherBuddy.name.split(' ').pop()}
+          </button>
+          {grokAvailable && (
+            <button
+              className="quick-action-btn action-critic"
+              onClick={handleCriticMode}
+              title="Both AIs work together — Claude builds, Grok reviews!"
+            >
+              🤝 Team Up!
+            </button>
           )}
         </div>
       )}
@@ -843,7 +875,9 @@ export default function ChatPanel({
                   ? 'Describe what you want to do with this image...'
                   : activeModel === 'grok'
                     ? 'Tell VibeGrok what to build! 🚀🔥'
-                    : 'What do you want to change? 🎨'
+                    : activeModel === 'openai'
+                      ? 'Challenge Coach GPT! 🏆💪'
+                      : 'What do you want to change? 🎨'
             }
             disabled={isLoading}
             rows={3}
@@ -906,7 +940,7 @@ export default function ChatPanel({
               aria-label="Send message"
             >
               <span className="send-icon" aria-hidden="true">
-                {activeModel === 'grok' ? '🔥' : '🚀'}
+                {activeModel === 'grok' ? '🔥' : activeModel === 'openai' ? '🏆' : '🚀'}
               </span>
               <span className="send-text">Send</span>
             </button>

@@ -76,7 +76,12 @@ export const XAI_API_KEY = process.env.XAI_API_KEY;
 export const GROK_MODEL = process.env.GROK_MODEL || 'grok-3-fast';
 export const GROK_BASE_URL = 'https://api.x.ai/v1';
 
-// ========== DUAL-MODEL SETTINGS ==========
+// ========== OPENAI (GPT) ==========
+
+export const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+export const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-5.4';
+
+// ========== TRI-MODEL SETTINGS ==========
 
 export const SESSION_TOKEN_CAP = parseInt(process.env.SESSION_TOKEN_CAP || '200000', 10);
 export const DEBUG_MAX_CLAUDE_ATTEMPTS = 2; // How many Claude tries before auto-routing to Grok for debugging

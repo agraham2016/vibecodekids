@@ -53,7 +53,7 @@ Record the reviewer name, date, and any notes. Retain all completed checklists f
 | 2.2 | High-reliability VPC method is available (Stripe micro-charge with immediate refund) | YES | `parentVerifyCharge.js` — $0.50 charge + auto-refund |
 | 2.3 | Email-based consent ("email plus") is available as a secondary option | YES | `consent.js` sends tokenized email links |
 | 2.4 | Consent email clearly discloses: what data is collected, how it is used, and which third parties process it | YES | HTML template in `sendConsentEmail()` |
-| 2.5 | Consent email lists all third-party service providers by name (Anthropic, xAI, Stripe, Resend) | YES | Verified in consent email HTML |
+| 2.5 | Consent email lists all third-party service providers by name (Anthropic, xAI, OpenAI, Stripe, Resend) | YES | Verified in consent email HTML |
 | 2.6 | Consent email explains parental rights (review, delete, revoke, toggle features) | YES | Includes link to Parent Command Center |
 | 2.7 | Consent links expire within 72 hours | YES | `CONSENT_TOKEN_EXPIRY_MS` = 72h |
 | 2.8 | Parents can deny consent via a link in the email | YES | `action=deny` path in parent.js |

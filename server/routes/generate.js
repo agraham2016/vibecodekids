@@ -1,18 +1,18 @@
 /**
- * AI Generation Route (Dual-Model: Claude + Grok)
+ * AI Generation Route (Tri-Model: Claude + Grok + OpenAI)
  *
- * POST /api/generate - Generate or modify game code using dual AI models.
+ * POST /api/generate - Generate or modify game code using tri-model AI system.
  *
  * Supports:
- * - Mode-based routing (default/claude/grok/creative/debug/ask-other-buddy/critic)
- * - Response caching across BOTH models
+ * - Mode-based routing (default/claude/grok/openai/creative/debug/ask-other-buddy/critic)
+ * - Response caching across ALL models
  * - Template cache for brand-new games
  * - Auto-detection of creative/debug intent from prompt
  * - Token usage tracking per user per model
  *
- * New request body fields:
- * - mode: 'default' | 'claude' | 'grok' | 'creative' | 'debug' | 'ask-other-buddy' | 'critic'
- * - lastModelUsed: 'claude' | 'grok' (for ask-other-buddy routing)
+ * Request body fields:
+ * - mode: 'default' | 'claude' | 'grok' | 'openai' | 'creative' | 'debug' | 'ask-other-buddy' | 'critic'
+ * - lastModelUsed: 'claude' | 'grok' | 'openai' (for ask-other-buddy routing)
  * - debugAttempt: number (for debug escalation tracking)
  */
 
@@ -29,6 +29,7 @@ import {
   cacheTemplate,
   isGrokAvailable,
   isClaudeAvailable,
+  isOpenAIAvailable,
 } from '../services/ai.js';
 import { generateOrIterateGame } from '../services/gameHandler.js';
 import { logGenerateEvent } from '../services/eventStore.js';
@@ -73,7 +74,7 @@ export default function createGenerateRouter(sessions) {
         `🎮 Generate request: "${(message || '').slice(0, 80)}" | mode: ${mode} | model-hint: ${lastModelUsed || 'none'} | gameConfig: ${gameConfig ? gameConfig.gameType : 'none'} | hasCode: ${!!currentCode} | historyLen: ${conversationHistory.length}`,
       );
 
-      if (!isClaudeAvailable() && !isGrokAvailable()) {
+      if (!isClaudeAvailable() && !isGrokAvailable() && !isOpenAIAvailable()) {
         return res.status(503).json({
           message:
             'AI features are not available — no AI API keys are configured. Please set ANTHROPIC_API_KEY in .env.',
@@ -293,6 +294,7 @@ export default function createGenerateRouter(sessions) {
         modelUsed: result.modelUsed,
         isCacheHit: result.isCacheHit,
         grokAvailable: isGrokAvailable(),
+        openaiAvailable: isOpenAIAvailable(),
       };
 
       // Include alternate response for critic/side-by-side modes
@@ -361,6 +363,9 @@ export default function createGenerateRouter(sessions) {
         statusCode = 503;
       } else if (errMsg.includes('xai') || errMsg.includes('grok')) {
         friendlyMessage = 'VibeGrok is taking a nap! 😴 Let me switch to Professor Claude...';
+        statusCode = 503;
+      } else if (errMsg.includes('openai') && !errMsg.includes('anthropic')) {
+        friendlyMessage = 'Coach GPT is catching their breath! 🏆 Let me switch to another buddy...';
         statusCode = 503;
       }
 

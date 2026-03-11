@@ -242,10 +242,10 @@ WHAT WE COLLECT:
 - Basic anonymized usage data
 
 THIRD-PARTY SERVICE PROVIDERS:
-- AI Generation: Your child's game-creation prompts are sent to Anthropic (Claude)
-  and/or xAI (Grok) to generate game code. We strip personal information from
-  prompts before transmission. These providers process data under contract and
-  do not use children's data for their own training.
+- AI Generation: Your child's game-creation prompts are sent to Anthropic (Claude),
+  xAI (Grok), and/or OpenAI (GPT) to generate game code. We strip personal
+  information from prompts before transmission. These providers process data under
+  contract and do not use children's data for their own training.
 - Email: We use Resend to deliver this email and other transactional messages.
 - Payments: If you upgrade, Stripe processes payment. We do not send your child's
   information to Stripe.

@@ -129,10 +129,10 @@ export interface AuthMeResponse {
 }
 
 /** Which AI model was used. */
-export type AIModel = 'claude' | 'grok';
+export type AIModel = 'claude' | 'grok' | 'openai';
 
-/** AI routing mode for the dual-model system. */
-export type AIMode = 'default' | 'claude' | 'grok' | 'creative' | 'debug' | 'ask-other-buddy' | 'critic';
+/** AI routing mode for the tri-model system. */
+export type AIMode = 'default' | 'claude' | 'grok' | 'openai' | 'creative' | 'debug' | 'ask-other-buddy' | 'critic';
 
 /** Alternate response from the other AI model (critic/side-by-side). */
 export interface AlternateResponse {
@@ -147,7 +147,7 @@ export interface DebugInfo {
   finalModel: AIModel;
 }
 
-/** /api/generate response (dual-model). */
+/** /api/generate response (tri-model). */
 export interface GenerateResponse {
   message: string;
   code: string | null;
@@ -155,6 +155,7 @@ export interface GenerateResponse {
   modelUsed: AIModel | null;
   isCacheHit: boolean;
   grokAvailable?: boolean;
+  openaiAvailable?: boolean;
   alternateResponse?: AlternateResponse;
   debugInfo?: DebugInfo;
   rateLimited?: boolean;
@@ -164,7 +165,7 @@ export interface GenerateResponse {
   cached?: boolean;
 }
 
-/** /api/generate request body (dual-model). */
+/** /api/generate request body (tri-model). */
 export interface GenerateRequest {
   message: string;
   image?: string;

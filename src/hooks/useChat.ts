@@ -1,7 +1,7 @@
 /**
- * useChat Hook (Dual-Model: Claude + Grok)
+ * useChat Hook (Tri-Model: Claude + Grok + OpenAI)
  *
- * Manages chat messages, AI generation, and dual-model routing.
+ * Manages chat messages, AI generation, and tri-model routing.
  * Tracks which AI buddy is active, handles mode switching,
  * and surfaces model metadata to the UI.
  */
@@ -31,9 +31,11 @@ interface UseChatOptions {
   onUpgradeNeeded: () => void;
 }
 
-function pickRandomStartingModel(grokAvailable: boolean): AIModel {
-  if (!grokAvailable) return 'claude';
-  return Math.random() < 0.5 ? 'claude' : 'grok';
+function pickRandomStartingModel(grokAvailable: boolean, openaiAvailable: boolean): AIModel {
+  const pool: AIModel[] = ['claude'];
+  if (grokAvailable) pool.push('grok');
+  if (openaiAvailable) pool.push('openai');
+  return pool[Math.floor(Math.random() * pool.length)];
 }
 
 export function useChat({ onCodeGenerated, onUsageUpdate, onUpgradeNeeded }: UseChatOptions) {
@@ -41,22 +43,25 @@ export function useChat({ onCodeGenerated, onUsageUpdate, onUpgradeNeeded }: Use
   const [isLoading, setIsLoading] = useState(false);
   const [activeModel, setActiveModel] = useState<AIModel>('claude');
   const [grokAvailable, setGrokAvailable] = useState(false);
+  const [openaiAvailable, setOpenaiAvailable] = useState(false);
   const [lastModelUsed, setLastModelUsed] = useState<AIModel | null>(null);
   const debugAttemptRef = useRef(0);
   const sessionIdRef = useRef(crypto.randomUUID());
   const startingModelRef = useRef<AIModel>('claude');
   const hasPickedInitialRef = useRef(false);
 
-  // Check if Grok is available on mount; when known, randomize starting model for fresh session
+  // Check which models are available on mount; randomize starting model for fresh session
   useEffect(() => {
     api
-      .get<{ grok?: boolean }>('/api/health')
+      .get<{ grok?: boolean; openai?: boolean }>('/api/health')
       .then((data) => {
-        const available = !!data.grok;
-        setGrokAvailable(available);
+        const grokOk = !!data.grok;
+        const openaiOk = !!data.openai;
+        setGrokAvailable(grokOk);
+        setOpenaiAvailable(openaiOk);
         if (!hasPickedInitialRef.current) {
           hasPickedInitialRef.current = true;
-          const picked = pickRandomStartingModel(available);
+          const picked = pickRandomStartingModel(grokOk, openaiOk);
           startingModelRef.current = picked;
           setActiveModel(picked);
         }
@@ -96,7 +101,8 @@ export function useChat({ onCodeGenerated, onUsageUpdate, onUpgradeNeeded }: Use
       // Determine the mode to send
       // If the user toggled to Grok, default mode becomes 'grok'
       // If modeOverride is set (from a button), use that
-      const mode: AIMode = modeOverride || (activeModel === 'grok' ? 'grok' : 'default');
+      const mode: AIMode =
+        modeOverride || (activeModel === 'grok' ? 'grok' : activeModel === 'openai' ? 'openai' : 'default');
 
       try {
         const data = await api.post<GenerateResponse>('/api/generate', {
@@ -120,9 +126,12 @@ export function useChat({ onCodeGenerated, onUsageUpdate, onUpgradeNeeded }: Use
           onUsageUpdate(data.usage);
         }
 
-        // Track Grok availability
+        // Track model availability
         if (data.grokAvailable !== undefined) {
           setGrokAvailable(data.grokAvailable);
+        }
+        if (data.openaiAvailable !== undefined) {
+          setOpenaiAvailable(data.openaiAvailable);
         }
 
         // Track which model was used
@@ -191,13 +200,13 @@ export function useChat({ onCodeGenerated, onUsageUpdate, onUpgradeNeeded }: Use
 
   const clearMessages = useCallback(() => {
     sessionIdRef.current = crypto.randomUUID();
-    const picked = pickRandomStartingModel(grokAvailable);
+    const picked = pickRandomStartingModel(grokAvailable, openaiAvailable);
     startingModelRef.current = picked;
     setActiveModel(picked);
     setMessages([]);
     setLastModelUsed(null);
     debugAttemptRef.current = 0;
-  }, [grokAvailable]);
+  }, [grokAvailable, openaiAvailable]);
 
   /** Send thumbs up/down feedback for an AI response. */
   const sendFeedback = useCallback(
@@ -226,6 +235,7 @@ export function useChat({ onCodeGenerated, onUsageUpdate, onUpgradeNeeded }: Use
     activeModel,
     switchModel,
     grokAvailable,
+    openaiAvailable,
     lastModelUsed,
   };
 }

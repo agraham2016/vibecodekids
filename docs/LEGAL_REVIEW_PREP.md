@@ -48,6 +48,7 @@ Vibe Code Kids is a kid-safe AI game creation platform serving children 6–18, 
 |--------|-----------|---------|
 | Anthropic (Claude) | PII-stripped prompts, base64 game screenshots | AI game generation |
 | xAI (Grok) | PII-stripped prompts (13+ only; under-13 Claude-only) | AI game generation |
+| OpenAI | PII-stripped prompts, base64 game screenshots | AI game generation |
 | Stripe | Username, displayName, tier, ageBracket (no password/emails) | Payment, parental verification |
 | Resend | Recipient email, message body | Consent emails, password reset |
 | Sentry | Error traces (auth/cookie headers scrubbed) | Error monitoring |
@@ -70,7 +71,7 @@ Vibe Code Kids is a kid-safe AI game creation platform serving children 6–18, 
 
 | Item | FTC Requirement | Our Position | Counsel Decision Needed |
 |------|-----------------|--------------|-------------------------|
-| **Integral to service** | Parents may consent to collection without consenting to third-party disclosure, *except* when disclosure is "integral to the website or online service." | We send PII-stripped prompts to Anthropic/xAI. AI generation *is* the product. Argument: disclosure is integral. | Confirm if our single consent flow satisfies, or if we need split consent (collection vs. AI third-party sharing). |
+| **Integral to service** | Parents may consent to collection without consenting to third-party disclosure, *except* when disclosure is "integral to the website or online service." | We send PII-stripped prompts to Anthropic, xAI, and OpenAI. AI generation *is* the product. Argument: disclosure is integral. | Confirm if our single consent flow satisfies, or if we need split consent (collection vs. AI third-party sharing). |
 | **Consent email item (3)** | Consent email must specify that parent can consent to collection without third-party sharing. | We name vendors and purposes but do not include this sentence. | Draft language for consent email; approve before implementation. |
 | **Image/screenshot** | Disclose when children's images are sent to third parties. | We disclose: "For some game iteration features, we may send a screenshot of the game to our AI provider..." Screenshots are game visuals, not photos of children. | Confirm disclosure adequacy. |
 
