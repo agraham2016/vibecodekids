@@ -30,6 +30,7 @@ Each agent should read this file first to understand team structure, then read t
 | Kid-First UX Designer | Lumi Rivers | `.cursor/rules/lumi-ux-designer.md` | UX flows, microcopy, accessibility, child safety UX, parent portal design |
 | Parent-Focused Growth Marketer | Harper Lane | `.cursor/rules/harper-growth-marketer.md` | Parent acquisition, campaigns, funnels, tracking plans, conversions — within child data boundary |
 | Community & Moderation Lead | Rowan Vale | `.cursor/rules/rowan-community-moderation.md` | Arcade safety, moderation policy, reporting flows, community guidelines, parent comms |
+| Game Template Developer | Orion Vex | `.cursor/rules/orion-game-template-dev.md` | Game templates (2D + 3D), Kenney asset usage, template wiring, gameplay polish |
 
 ---
 
@@ -57,6 +58,8 @@ Each agent should read this file first to understand team structure, then read t
 | Tracking/pixel placement on any page | Harper (specs), Nova (implements) | Elias (approves child data boundary) |
 | Moderation policy, community guidelines, escalation rules | Rowan | Atlas (approves), Elias (COPPA alignment) |
 | Report/review UI, moderation queue design | Rowan (specs), Nova (implements) | Atlas (if new surface) |
+| Game templates (2D + 3D), gameplay, asset usage | Orion Vex | Atlas (if new genre) |
+| Template wiring (referenceResolver, assetManifest) | Orion Vex | — |
 | Launch go/no-go | Atlas | All review `LAUNCH_READINESS.md` |
 
 ---
