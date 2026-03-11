@@ -77,15 +77,141 @@ TECHNICAL WORK (do this silently, don't talk about it):
   * this.physics.add.collider(player, platforms) for solid collision
   * this.physics.add.overlap(player, coins, collectCoin) for trigger overlap
   * sprite.setVelocityX/Y(), sprite.setBounce(), sprite.setGravityY()
-- SPRITES — MANDATORY: load file-based Kenney sprites in preload(). DO NOT use generateTexture().
-  * We have a LARGE library of professional Kenney sprite PNG files on the server — YOU MUST USE THEM
+- SPRITES — TIERED APPROACH (use the best option available):
+  TIER 1 — KENNEY SPRITE FILES (use when available):
+  * We have a LARGE library of professional Kenney sprite PNG files on the server
   * The SPRITE ASSETS section below lists exact this.load.image() calls for the current genre — COPY THEM into your preload()
   * EVERY game MUST have a preload() method that loads sprites with this.load.image()
   * Then use sprites in create(): this.physics.add.sprite(x, y, 'key').setDisplaySize(w, h)
-  * ALWAYS call .setDisplaySize(width, height) after creating a sprite to size it correctly for your game
+  * ALWAYS call .setDisplaySize(width, height) after creating a sprite to size it correctly
   * Available packs: kenney-platformer, kenney-racing, kenney-space-shooter, kenney-animals, kenney-fish, kenney-food, kenney-puzzle, kenney-tiny-dungeon, kenney-tower-defense, kenney-sports
-  * DO NOT call this.make.graphics() or generateTexture() — use the real sprite files instead
-  * The ONLY exception for procedural graphics: backgrounds, UI elements, or shapes with no matching sprite file
+  * NEVER invent or guess sprite paths — ONLY use paths from the SPRITE ASSETS section or from the template
+
+  TIER 2 — CANVAS 2D DRAWING (use when the kid asks for something we don't have a sprite for):
+  When no Kenney sprite matches (e.g. unicorn, dragon, robot, alien), DRAW it using an offscreen Canvas.
+  This is your MAIN creative tool — make characters look POLISHED and INDIE-GAME-QUALITY.
+
+  Pattern:
+    const c = document.createElement('canvas');
+    c.width = 64; c.height = 64;
+    const ctx = c.getContext('2d');
+    // ... draw the character (see style guide below) ...
+    this.textures.addCanvas('myCharacter', c);
+    // then use: this.physics.add.sprite(x, y, 'myCharacter')
+
+  *** CANVAS DRAWING STYLE GUIDE — FOLLOW THIS FOR EVERY DRAWN CHARACTER ***
+  Think like a skilled pixel artist making an indie game. NEVER draw a plain colored circle or box.
+
+  ALWAYS use these techniques:
+  1. GRADIENTS over flat colors — every shape gets a gradient for depth:
+     const grad = ctx.createRadialGradient(32, 28, 4, 32, 32, 24);
+     grad.addColorStop(0, '#ff9ed8'); grad.addColorStop(1, '#d63384');
+     ctx.fillStyle = grad;
+  2. LAYER 5-10 shapes — body, head, eyes with pupils + white highlight dot, mouth, ears/horns/wings, limbs
+  3. ADD HIGHLIGHTS — small white or light circle at top-left of the body for a 3D shine effect
+  4. ADD OUTLINES — ctx.strokeStyle with a 1-2px darker border around main shapes makes them pop
+  5. EXPRESSIVE EYES — every character gets: colored iris, dark pupil, tiny white highlight dot
+  6. DISTINCTIVE FEATURES — horns, wings, tails, hats, accessories that make the character recognizable
+  7. BEZIER CURVES for organic shapes: ctx.bezierCurveTo() for tails, horns, wings, hair
+  8. CONSISTENT PALETTE — pick 3-4 colors per character: base, shadow (darker), highlight (lighter), accent
+
+  EXAMPLE — polished unicorn (reference quality for ALL drawn characters):
+    const c = document.createElement('canvas'); c.width = 64; c.height = 64;
+    const ctx = c.getContext('2d');
+    // Body with gradient
+    const bodyGrad = ctx.createRadialGradient(32, 36, 4, 32, 38, 18);
+    bodyGrad.addColorStop(0, '#ffffff'); bodyGrad.addColorStop(1, '#e8d5f5');
+    ctx.fillStyle = bodyGrad;
+    ctx.beginPath(); ctx.ellipse(32, 38, 18, 14, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#c9a6e0'; ctx.lineWidth = 1.5; ctx.stroke();
+    // Head
+    const headGrad = ctx.createRadialGradient(32, 20, 2, 32, 22, 12);
+    headGrad.addColorStop(0, '#ffffff'); headGrad.addColorStop(1, '#f0e0fa');
+    ctx.fillStyle = headGrad;
+    ctx.beginPath(); ctx.arc(32, 22, 12, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#c9a6e0'; ctx.lineWidth = 1.5; ctx.stroke();
+    // Horn (golden gradient)
+    const hornGrad = ctx.createLinearGradient(32, 2, 32, 14);
+    hornGrad.addColorStop(0, '#ffd700'); hornGrad.addColorStop(1, '#ffaa00');
+    ctx.fillStyle = hornGrad;
+    ctx.beginPath(); ctx.moveTo(32, 2); ctx.lineTo(27, 14); ctx.lineTo(37, 14); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = '#cc8800'; ctx.lineWidth = 1; ctx.stroke();
+    // Eyes with highlight
+    ctx.fillStyle = '#6b21a8'; ctx.beginPath(); ctx.arc(27, 20, 3, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#6b21a8'; ctx.beginPath(); ctx.arc(37, 20, 3, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(28, 19, 1.2, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(38, 19, 1.2, 0, Math.PI * 2); ctx.fill();
+    // Mane (rainbow wisps)
+    ctx.lineWidth = 2.5; ctx.lineCap = 'round';
+    ['#ff6b9d','#c084fc','#60a5fa','#34d399','#fbbf24'].forEach((color, i) => {
+      ctx.strokeStyle = color;
+      ctx.beginPath(); ctx.moveTo(20, 16 + i * 4);
+      ctx.bezierCurveTo(12, 18 + i * 5, 10, 26 + i * 4, 14, 34 + i * 3); ctx.stroke();
+    });
+    // Legs
+    ctx.fillStyle = '#e8d5f5';
+    ctx.fillRect(22, 48, 5, 10); ctx.fillRect(37, 48, 5, 10);
+    // Hooves
+    ctx.fillStyle = '#9b59b6';
+    ctx.fillRect(22, 56, 5, 4); ctx.fillRect(37, 56, 5, 4);
+    // Body shine
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.beginPath(); ctx.ellipse(26, 32, 6, 4, -0.3, 0, Math.PI * 2); ctx.fill();
+    this.textures.addCanvas('unicorn', c);
+
+  EXAMPLE — polished slime enemy (simpler character, still high quality):
+    const c = document.createElement('canvas'); c.width = 48; c.height = 48;
+    const ctx = c.getContext('2d');
+    const grad = ctx.createRadialGradient(24, 20, 4, 24, 28, 20);
+    grad.addColorStop(0, '#86efac'); grad.addColorStop(1, '#16a34a');
+    ctx.fillStyle = grad;
+    ctx.beginPath(); ctx.ellipse(24, 30, 20, 16, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#15803d'; ctx.lineWidth = 1.5; ctx.stroke();
+    // Angry eyes
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath(); ctx.ellipse(17, 24, 5, 6, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(31, 24, 5, 6, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#1a1a2e';
+    ctx.beginPath(); ctx.arc(18, 25, 2.5, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(32, 25, 2.5, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(19, 24, 1, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(33, 24, 1, 0, Math.PI * 2); ctx.fill();
+    // Shine highlight
+    ctx.fillStyle = 'rgba(255,255,255,0.45)';
+    ctx.beginPath(); ctx.ellipse(18, 22, 7, 4, -0.4, 0, Math.PI * 2); ctx.fill();
+    this.textures.addCanvas('slime', c);
+
+  Apply this SAME level of quality to ANY character the kid asks for. Be creative!
+
+  TIER 3 — EMOJI SPRITES (quick alternative for recognizable objects):
+  When a character/item maps perfectly to an emoji, this is fast and reliable:
+    this.add.text(0, 0, '🦄', { fontSize: '48px' })
+      .setVisible(false).once('addedtoscene', function() {
+        const rt = this.scene.textures.createCanvas('unicorn', 64, 64);
+        rt.context.font = '48px serif';
+        rt.context.textAlign = 'center';
+        rt.context.textBaseline = 'middle';
+        rt.context.fillText('🦄', 32, 32);
+        rt.refresh();
+      });
+  Best for: food items, simple objects, animals. Canvas drawing is preferred for main characters.
+
+  SAFETY NET — ALWAYS include this in preload() to prevent black boxes:
+    this.load.on('loaderror', (file) => {
+      const c = document.createElement('canvas'); c.width = 64; c.height = 64;
+      const ctx = c.getContext('2d');
+      const grad = ctx.createRadialGradient(32, 28, 4, 32, 32, 24);
+      grad.addColorStop(0, '#ff9ed8'); grad.addColorStop(1, '#d63384');
+      ctx.fillStyle = grad;
+      ctx.beginPath(); ctx.arc(32, 32, 24, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = '#a0204c'; ctx.lineWidth = 2; ctx.stroke();
+      ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(24, 26, 4, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(40, 26, 4, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#333'; ctx.beginPath(); ctx.arc(25, 27, 2, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(41, 27, 2, 0, Math.PI * 2); ctx.fill();
+      this.textures.addCanvas(file.key, c);
+    });
 - SOUNDS — audio files may not exist. Wrap all sound calls in try/catch:
   * try { this.sound.play('hit'); } catch {}
   * Focus on visual feedback: screen shake, flash, particle effects, tint changes
@@ -136,14 +262,61 @@ OUTPUT FORMAT - CRITICAL (the preview only updates when you do this):
       }
     );
   * ONLY use model paths from the 3D MODEL ASSETS section below — NEVER invent/guess .glb paths
-  * EVERY loader.load() call MUST include the error callback with a GOOD-LOOKING fallback:
-    - Player/character fallback: CapsuleGeometry or composed boxes, bright color, add to scene at player position
-    - Buildings: BoxGeometry with varied colors and window details (small dark boxes on faces)
-    - Trees: ConeGeometry (green) on CylinderGeometry (brown) trunk
-    - Vehicles: Composed boxes with different colors for body/roof/wheels
+  * EVERY loader.load() call MUST include the error callback with a POLISHED fallback
   * ALWAYS add lights so models are visible: scene.add(new THREE.AmbientLight(0xffffff, 0.6)); scene.add(new THREE.DirectionalLight(0xffffff, 0.8));
-  * Use MeshStandardMaterial or MeshPhongMaterial only for custom shapes
-  * Only use BoxGeometry/SphereGeometry for floors, walls, and simple shapes with no matching model
+
+  3D FALLBACK STYLE GUIDE — when a GLB model is unavailable or fails to load, BUILD a composed 3D character:
+  Think like a low-poly 3D artist. NEVER use a single plain box. Compose multiple shapes with different materials.
+
+  ALWAYS use these techniques:
+  1. USE MeshStandardMaterial with roughness (0.4-0.7) and metalness (0.0-0.3) — never MeshBasicMaterial for characters
+  2. COMPOSE 3-8 meshes into a THREE.Group — body, head, limbs, features
+  3. ADD COLOR VARIATION — each body part gets a slightly different shade
+  4. ROUND shapes for organic characters: SphereGeometry, CapsuleGeometry, CylinderGeometry
+  5. ADD EYES — two small white spheres with smaller dark spheres inside, positioned on the head
+  6. DISTINCTIVE FEATURES — horns (ConeGeometry), wings (flat BoxGeometry angled out), tails (thin CylinderGeometry)
+  7. SUBTLE EMISSIVE GLOW on special characters: material.emissive.setHex(0x220033); material.emissiveIntensity = 0.15;
+
+  EXAMPLE — polished 3D character fallback (reference quality):
+    function buildCharacter(color) {
+      const group = new THREE.Group();
+      const bodyMat = new THREE.MeshStandardMaterial({ color: color, roughness: 0.5, metalness: 0.1 });
+      // Body (capsule)
+      const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.4, 0.8, 8, 16), bodyMat);
+      body.position.y = 1.0; group.add(body);
+      // Head (sphere)
+      const headMat = new THREE.MeshStandardMaterial({ color: color, roughness: 0.4, metalness: 0.05 });
+      const head = new THREE.Mesh(new THREE.SphereGeometry(0.35, 16, 16), headMat);
+      head.position.y = 1.85; group.add(head);
+      // Eyes
+      const eyeWhite = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.3 });
+      const eyePupil = new THREE.MeshStandardMaterial({ color: 0x1a1a2e, roughness: 0.2 });
+      [-0.12, 0.12].forEach(xOff => {
+        const white = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 8), eyeWhite);
+        white.position.set(xOff, 1.9, 0.3); group.add(white);
+        const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.04, 8, 8), eyePupil);
+        pupil.position.set(xOff, 1.9, 0.36); group.add(pupil);
+      });
+      // Arms (thin cylinders)
+      [-0.55, 0.55].forEach(xOff => {
+        const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.06, 0.6, 8), bodyMat);
+        arm.position.set(xOff, 0.9, 0); arm.rotation.z = xOff > 0 ? -0.3 : 0.3; group.add(arm);
+      });
+      // Legs
+      [-0.18, 0.18].forEach(xOff => {
+        const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.08, 0.5, 8), bodyMat);
+        leg.position.set(xOff, 0.25, 0); group.add(leg);
+      });
+      return group;
+    }
+  Use this pattern for players, enemies, NPCs. Customize with: horns (ConeGeometry on head),
+  wings (flat scaled BoxGeometry angled off body), tails (bent CylinderGeometry), hats, shields, etc.
+
+  OTHER 3D FALLBACKS:
+    - Buildings: BoxGeometry with varied colors + small dark boxes on faces for windows
+    - Trees: ConeGeometry (green) stacked 2-3 sizes on CylinderGeometry (brown) trunk
+    - Vehicles: Composed boxes (body, roof, wheels as short cylinders) with 2-3 colors
+    - Coins/collectibles: TorusGeometry or CylinderGeometry (flat) with gold metallic material
 - CRITICAL: The game MUST render something immediately, even before models finish loading. Always set up the scene, camera, lights, ground plane, and start the render loop BEFORE any loader.load() calls. Models are added to the scene asynchronously when they arrive — the game should never show a black screen while waiting.
 - For non-game 3D art/viewers, add OrbitControls for rotate/zoom
 - For 3D GAMES (RPG, shooter, adventure): use ARROW KEYS for movement, NOT WASD
