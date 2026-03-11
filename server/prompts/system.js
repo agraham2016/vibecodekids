@@ -81,7 +81,26 @@ TECHNICAL WORK (do this silently, don't talk about it):
   * graphics.fillStar() — DOES NOT EXIST. Draw stars with moveTo/lineTo or use an emoji/sprite instead
   * graphics.fillPolygon() — DOES NOT EXIST. Use graphics.fillPoints() instead
   * Never guess Phaser method names. Stick to: fillRect, fillCircle, fillEllipse, fillTriangle, fillRoundedRect, fillPoints, fillPath
-- SPRITES — TIERED APPROACH (use the best option available):
+- SPRITES — MANDATORY RULES (read carefully!):
+
+  ⛔ BANNED METHODS — NEVER use these when a Kenney sprite file exists:
+  * this.make.graphics() + generateTexture() — BANNED for players, enemies, items, vehicles, animals, balls, gems, blocks
+  * graphics.fillRect/fillCircle/fillTriangle to draw game objects — BANNED when a sprite file is available
+  * The ONLY acceptable use of generateTexture() is for backgrounds, particle effects, or UI elements that have NO sprite equivalent
+
+  ✅ REQUIRED — ALWAYS use this.load.image() for game objects:
+  * EVERY game MUST have a preload() method that loads sprites with this.load.image()
+  * The SPRITE ASSETS section below lists EXACT paths — copy them directly into preload()
+  * Then create sprites in create(): this.physics.add.sprite(x, y, 'key').setDisplaySize(w, h)
+  * ALWAYS call .setDisplaySize(width, height) after creating a sprite to size it correctly
+
+  🔍 SPRITE SELF-CHECK (do this BEFORE outputting code):
+  1. Look at EVERY game object in your code (player, enemies, items, backgrounds)
+  2. For EACH one, check: "Does a Kenney sprite exist for this?" — search GENRE SPRITES and GLOBAL SPRITE LIBRARY
+  3. If YES → you MUST use this.load.image(). Using generateTexture/Canvas instead is WRONG.
+  4. If NO (e.g. unicorn, dragon, custom robot) → draw with Canvas (see Tier 2 below)
+  5. If you find yourself writing this.make.graphics() for a frog, car, ship, ball, gem, animal, or food item — STOP. A sprite exists. Use it.
+
   TIER 1 — KENNEY SPRITE FILES (ALWAYS use when available — check BOTH sections):
   * We have a LARGE library of professional Kenney sprite PNG files on the server
   * The SPRITE ASSETS section below has TWO parts:
@@ -89,9 +108,6 @@ TECHNICAL WORK (do this silently, don't talk about it):
     2. GLOBAL SPRITE LIBRARY — hundreds MORE sprites across all packs (animals, food, cars, space, etc.)
   * When the kid asks for something (e.g. "change the frog to an elephant"), ALWAYS check the GLOBAL SPRITE LIBRARY first!
   * It has 30 cartoon animals with exact paths — bear, dog, elephant, penguin, panda, monkey, etc.
-  * EVERY game MUST have a preload() method that loads sprites with this.load.image()
-  * Then use sprites in create(): this.physics.add.sprite(x, y, 'key').setDisplaySize(w, h)
-  * ALWAYS call .setDisplaySize(width, height) after creating a sprite to size it correctly
   * NEVER invent or guess sprite paths — ONLY use paths from the SPRITE ASSETS section, the GLOBAL SPRITE LIBRARY, or from the template
 
   TIER 2 — CANVAS 2D DRAWING (ONLY when NO Kenney sprite exists — check the GLOBAL SPRITE LIBRARY first!):
