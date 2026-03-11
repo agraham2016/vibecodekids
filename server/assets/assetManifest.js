@@ -424,6 +424,121 @@ export const ASSET_MANIFEST = {
     ],
     sounds: [],
   },
+  pong: {
+    sprites: [
+      { key: 'ball', path: '/assets/sprites/kenney-puzzle/ballBlue.png', w: 16, h: 16, note: 'blue ball' },
+      {
+        key: 'paddleBlue',
+        path: '/assets/sprites/kenney-puzzle/element_blue_rectangle_glossy.png',
+        w: 48,
+        h: 24,
+        note: 'player paddle',
+      },
+      {
+        key: 'paddleRed',
+        path: '/assets/sprites/kenney-puzzle/element_red_rectangle_glossy.png',
+        w: 48,
+        h: 24,
+        note: 'opponent paddle',
+      },
+      { key: 'star', path: '/assets/sprites/common/star.png', w: 16, h: 16 },
+    ],
+    sounds: [],
+  },
+  'whack-a-mole': {
+    sprites: [
+      { key: 'mole', path: '/assets/sprites/kenney-animals/Round/gorilla.png', w: 64, h: 64, note: 'mole target' },
+      { key: 'mole2', path: '/assets/sprites/kenney-animals/Round/bear.png', w: 64, h: 64, note: 'alt target' },
+      { key: 'mole3', path: '/assets/sprites/kenney-animals/Round/rabbit.png', w: 64, h: 64, note: 'bonus target' },
+      { key: 'star', path: '/assets/sprites/common/star.png', w: 16, h: 16 },
+    ],
+    sounds: [],
+  },
+  maze: {
+    sprites: [
+      {
+        key: 'player',
+        path: '/assets/sprites/kenney-tiny-dungeon/tile_0096.png',
+        w: 16,
+        h: 16,
+        note: 'knight character',
+      },
+      { key: 'wall', path: '/assets/sprites/kenney-tiny-dungeon/tile_0001.png', w: 16, h: 16, note: 'stone wall' },
+      { key: 'floor', path: '/assets/sprites/kenney-tiny-dungeon/tile_0000.png', w: 16, h: 16, note: 'wood floor' },
+      { key: 'dot', path: '/assets/sprites/kenney-platformer/coin_gold.png', w: 32, h: 32, note: 'collectible dot' },
+      { key: 'enemy', path: '/assets/sprites/kenney-tiny-dungeon/tile_0111.png', w: 16, h: 16, note: 'slime enemy' },
+    ],
+    sounds: [],
+  },
+  'simon-says': {
+    sprites: [
+      {
+        key: 'btnBlue',
+        path: '/assets/sprites/kenney-puzzle/element_blue_square_glossy.png',
+        w: 32,
+        h: 32,
+        note: 'blue button',
+      },
+      {
+        key: 'btnRed',
+        path: '/assets/sprites/kenney-puzzle/element_red_square_glossy.png',
+        w: 32,
+        h: 32,
+        note: 'red button',
+      },
+      {
+        key: 'btnGreen',
+        path: '/assets/sprites/kenney-puzzle/element_green_square_glossy.png',
+        w: 32,
+        h: 32,
+        note: 'green button',
+      },
+      {
+        key: 'btnYellow',
+        path: '/assets/sprites/kenney-puzzle/element_yellow_square_glossy.png',
+        w: 32,
+        h: 32,
+        note: 'yellow button',
+      },
+      { key: 'star', path: '/assets/sprites/common/star.png', w: 16, h: 16 },
+    ],
+    sounds: [],
+  },
+  rhythm: {
+    sprites: [
+      {
+        key: 'noteBlue',
+        path: '/assets/sprites/kenney-puzzle/element_blue_diamond_glossy.png',
+        w: 48,
+        h: 48,
+        note: 'blue note',
+      },
+      {
+        key: 'noteRed',
+        path: '/assets/sprites/kenney-puzzle/element_red_diamond_glossy.png',
+        w: 48,
+        h: 48,
+        note: 'red note',
+      },
+      {
+        key: 'noteGreen',
+        path: '/assets/sprites/kenney-puzzle/element_green_diamond_glossy.png',
+        w: 48,
+        h: 48,
+        note: 'green note',
+      },
+      {
+        key: 'notePurple',
+        path: '/assets/sprites/kenney-puzzle/element_purple_diamond_glossy.png',
+        w: 48,
+        h: 48,
+        note: 'purple note',
+      },
+      { key: 'particle', path: '/assets/sprites/common/particle.png', w: 8, h: 8 },
+      { key: 'star', path: '/assets/sprites/common/star.png', w: 16, h: 16 },
+    ],
+    sounds: [],
+  },
   common: {
     sprites: [
       { key: 'heart', path: '/assets/sprites/common/heart.png', w: 16, h: 16 },

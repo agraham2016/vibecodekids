@@ -217,29 +217,7 @@ export async function resolveReferences({ prompt, genre, gameConfig, isNewGame }
     }
   }
 
-  // ===== 3. LOAD BUILT-IN TEMPLATE (for new games) =====
-  // Skip 2D templates when the prompt implies a 3D game (roblox, obby, explicit 3D, etc.)
-  const lowerPrompt = (prompt || '').toLowerCase();
-  const force3D =
-    lowerPrompt.includes('roblox') ||
-    lowerPrompt.includes('obby') ||
-    lowerPrompt.includes('3d') ||
-    lowerPrompt.includes('three.js') ||
-    gameConfig?.dimension === '3d';
-
-  if (isNewGame && effectiveGenre && !force3D) {
-    const template = await loadTemplate(effectiveGenre);
-    if (template) {
-      const chunk = formatTemplateReference(template, effectiveGenre);
-      if (chunk.length <= charBudget) {
-        parts.push(chunk);
-        charBudget -= chunk.length;
-        sources.push(`template:${template.filename}`);
-      }
-    }
-  }
-
-  // ===== 4. INJECT ASSET LIST FOR GENRE =====
+  // ===== 3. INJECT SPRITE ASSET LIST FOR GENRE (highest priority — injected first) =====
   if (effectiveGenre) {
     let assetBlock = '';
     if (USE_POSTGRES) {
@@ -264,6 +242,33 @@ export async function resolveReferences({ prompt, genre, gameConfig, isNewGame }
     if (assetBlock && assetBlock.length <= charBudget) {
       parts.push(assetBlock);
       charBudget -= assetBlock.length;
+    } else if (assetBlock) {
+      console.warn(
+        `⚠️ Sprite asset block DROPPED — ${assetBlock.length} chars exceeds remaining budget of ${charBudget}`,
+      );
+    }
+  }
+
+  // ===== 4. LOAD BUILT-IN TEMPLATE (for new games) =====
+  const lowerPrompt = (prompt || '').toLowerCase();
+  const force3D =
+    lowerPrompt.includes('roblox') ||
+    lowerPrompt.includes('obby') ||
+    lowerPrompt.includes('3d') ||
+    lowerPrompt.includes('three.js') ||
+    gameConfig?.dimension === '3d';
+
+  if (isNewGame && effectiveGenre && !force3D) {
+    const template = await loadTemplate(effectiveGenre);
+    if (template) {
+      const chunk = formatTemplateReference(template, effectiveGenre);
+      if (chunk.length <= charBudget) {
+        parts.push(chunk);
+        charBudget -= chunk.length;
+        sources.push(`template:${template.filename}`);
+      } else {
+        console.warn(`⚠️ Template DROPPED — ${chunk.length} chars exceeds remaining budget of ${charBudget}`);
+      }
     }
   }
 
