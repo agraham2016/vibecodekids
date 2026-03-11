@@ -445,7 +445,7 @@ export async function callOpenAI(systemPrompt, messages, maxTokens, userId = nul
     try {
       response = await openaiClient.chat.completions.create({
         model: OPENAI_MODEL,
-        max_tokens: maxTokens,
+        max_completion_tokens: maxTokens,
         messages: openAIMessages,
         temperature: 0.7,
       });
