@@ -500,13 +500,13 @@ export function formatAssetsFromSearch(sprites, genre, maxChars = SPRITE_ASSET_M
   if (!sprites || sprites.length === 0) return formatAssetsForPrompt(genre);
 
   const lines = ['═══════════════════════════════════════════════════════════════'];
-  lines.push('SPRITE ASSETS — MANDATORY: copy these this.load.image() lines into your preload()');
+  lines.push('⛔⛔⛔ SPRITE ASSETS — YOU MUST USE THESE (DO NOT use generateTexture instead!) ⛔⛔⛔');
   lines.push('═══════════════════════════════════════════════════════════════');
   lines.push('');
-  lines.push('⚠️  ALWAYS check the GLOBAL SPRITE LIBRARY below BEFORE drawing with Canvas.');
-  lines.push('⚠️  Load sprites from files whenever a matching sprite exists — real sprites look better.');
-  lines.push('⚠️  ALWAYS call .setDisplaySize(w, h) on sprites after creating them.');
-  lines.push('⚠️  Wrap any this.sound.play() calls in try/catch.');
+  lines.push('YOUR preload() MUST contain this.load.image() calls from these sprites.');
+  lines.push('DO NOT use this.make.graphics() or generateTexture() for game objects.');
+  lines.push('ALWAYS call .setDisplaySize(w, h) on sprites after creating them.');
+  lines.push('ALWAYS include a this.load.on("loaderror") fallback handler in preload().');
   lines.push('');
 
   const roleOrder = ['player', 'enemy', 'collectible', 'background', 'other'];
@@ -551,17 +551,17 @@ export function formatAssetsForPrompt(genre) {
   const common = ASSET_MANIFEST.common;
 
   let lines = ['═══════════════════════════════════════════════════════════════'];
-  lines.push('SPRITE ASSETS — MANDATORY: copy these this.load.image() lines into your preload()');
+  lines.push('⛔⛔⛔ SPRITE ASSETS — YOU MUST USE THESE (DO NOT use generateTexture instead!) ⛔⛔⛔');
   lines.push('═══════════════════════════════════════════════════════════════');
   lines.push('');
-  lines.push('⚠️  ALWAYS check the GLOBAL SPRITE LIBRARY below BEFORE drawing with Canvas.');
-  lines.push('⚠️  Load sprites from files whenever a matching sprite exists — real sprites look better.');
-  lines.push('⚠️  ALWAYS call .setDisplaySize(w, h) on sprites after creating them.');
-  lines.push('⚠️  Wrap any this.sound.play() calls in try/catch.');
+  lines.push('YOUR preload() MUST contain this.load.image() calls from these sprites.');
+  lines.push('DO NOT use this.make.graphics() or generateTexture() for game objects.');
+  lines.push('ALWAYS call .setDisplaySize(w, h) on sprites after creating them.');
+  lines.push('ALWAYS include a this.load.on("loaderror") fallback handler in preload().');
   lines.push('');
 
   if (genreAssets && genreAssets.sprites.length > 0) {
-    lines.push(`COPY THIS INTO YOUR preload() METHOD for ${genre}:`);
+    lines.push(`⬇️⬇️⬇️ YOUR preload() MUST CONTAIN THESE EXACT LINES for ${genre}: ⬇️⬇️⬇️`);
     lines.push('```');
     lines.push('preload() {');
     for (const s of genreAssets.sprites) {
@@ -569,6 +569,14 @@ export function formatAssetsForPrompt(genre) {
       if (s.note) desc += `  // ${s.note}`;
       lines.push(desc);
     }
+    lines.push('');
+    lines.push('  // MANDATORY fallback handler');
+    lines.push('  this.load.on("loaderror", (file) => {');
+    lines.push('    const c = document.createElement("canvas"); c.width = 64; c.height = 64;');
+    lines.push('    const ctx = c.getContext("2d");');
+    lines.push('    ctx.fillStyle = "#d63384"; ctx.beginPath(); ctx.arc(32, 32, 24, 0, Math.PI * 2); ctx.fill();');
+    lines.push('    this.textures.addCanvas(file.key, c);');
+    lines.push('  });');
     lines.push('}');
     lines.push('```');
     lines.push('');

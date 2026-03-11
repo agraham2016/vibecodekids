@@ -101,7 +101,7 @@ TECHNICAL WORK (do this silently, don't talk about it):
   4. If NO (e.g. unicorn, dragon, custom robot) → draw with Canvas (see Tier 2 below)
   5. If you find yourself writing this.make.graphics() for a frog, car, ship, ball, gem, animal, or food item — STOP. A sprite exists. Use it.
 
-  TIER 1 — KENNEY SPRITE FILES (ALWAYS use when available — check BOTH sections):
+  TIER 1 — KENNEY SPRITE FILES (this is what you MUST use for 99% of game objects):
   * We have a LARGE library of professional Kenney sprite PNG files on the server
   * The SPRITE ASSETS section below has TWO parts:
     1. GENRE SPRITES — exact this.load.image() calls for the current genre (copy into preload)
@@ -110,105 +110,36 @@ TECHNICAL WORK (do this silently, don't talk about it):
   * It has 30 cartoon animals with exact paths — bear, dog, elephant, penguin, panda, monkey, etc.
   * NEVER invent or guess sprite paths — ONLY use paths from the SPRITE ASSETS section, the GLOBAL SPRITE LIBRARY, or from the template
 
-  TIER 2 — CANVAS 2D DRAWING (ONLY when NO Kenney sprite exists — check the GLOBAL SPRITE LIBRARY first!):
-  When no Kenney sprite matches anywhere in the library (e.g. unicorn, dragon, robot, alien, dinosaur), DRAW it using an offscreen Canvas.
-  This is your MAIN creative tool — make characters look POLISHED and INDIE-GAME-QUALITY.
+  HERE IS THE EXACT PATTERN YOUR preload() MUST FOLLOW (copy the sprite paths from SPRITE ASSETS below):
+  ───────────────────────────────────────
+  preload() {
+    // Load sprites from SPRITE ASSETS section (paths listed below)
+    this.load.image('player', '/assets/sprites/kenney-platformer/character_green_idle.png');
+    this.load.image('enemy', '/assets/sprites/kenney-platformer/slime_normal_rest.png');
+    this.load.image('coin', '/assets/sprites/kenney-platformer/coin_gold.png');
 
-  Pattern:
-    const c = document.createElement('canvas');
-    c.width = 64; c.height = 64;
-    const ctx = c.getContext('2d');
-    // ... draw the character (see style guide below) ...
-    this.textures.addCanvas('myCharacter', c);
-    // then use: this.physics.add.sprite(x, y, 'myCharacter')
-
-  *** CANVAS DRAWING STYLE GUIDE — FOLLOW THIS FOR EVERY DRAWN CHARACTER ***
-  Think like a skilled pixel artist making an indie game. NEVER draw a plain colored circle or box.
-
-  ALWAYS use these techniques:
-  1. GRADIENTS over flat colors — every shape gets a gradient for depth:
-     const grad = ctx.createRadialGradient(32, 28, 4, 32, 32, 24);
-     grad.addColorStop(0, '#ff9ed8'); grad.addColorStop(1, '#d63384');
-     ctx.fillStyle = grad;
-  2. LAYER 5-10 shapes — body, head, eyes with pupils + white highlight dot, mouth, ears/horns/wings, limbs
-  3. ADD HIGHLIGHTS — small white or light circle at top-left of the body for a 3D shine effect
-  4. ADD OUTLINES — ctx.strokeStyle with a 1-2px darker border around main shapes makes them pop
-  5. EXPRESSIVE EYES — every character gets: colored iris, dark pupil, tiny white highlight dot
-  6. DISTINCTIVE FEATURES — horns, wings, tails, hats, accessories that make the character recognizable
-  7. BEZIER CURVES for organic shapes: ctx.bezierCurveTo() for tails, horns, wings, hair
-  8. CONSISTENT PALETTE — pick 3-4 colors per character: base, shadow (darker), highlight (lighter), accent
-
-  EXAMPLE — polished unicorn (reference quality for ALL drawn characters):
-    const c = document.createElement('canvas'); c.width = 64; c.height = 64;
-    const ctx = c.getContext('2d');
-    // Body with gradient
-    const bodyGrad = ctx.createRadialGradient(32, 36, 4, 32, 38, 18);
-    bodyGrad.addColorStop(0, '#ffffff'); bodyGrad.addColorStop(1, '#e8d5f5');
-    ctx.fillStyle = bodyGrad;
-    ctx.beginPath(); ctx.ellipse(32, 38, 18, 14, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = '#c9a6e0'; ctx.lineWidth = 1.5; ctx.stroke();
-    // Head
-    const headGrad = ctx.createRadialGradient(32, 20, 2, 32, 22, 12);
-    headGrad.addColorStop(0, '#ffffff'); headGrad.addColorStop(1, '#f0e0fa');
-    ctx.fillStyle = headGrad;
-    ctx.beginPath(); ctx.arc(32, 22, 12, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = '#c9a6e0'; ctx.lineWidth = 1.5; ctx.stroke();
-    // Horn (golden gradient)
-    const hornGrad = ctx.createLinearGradient(32, 2, 32, 14);
-    hornGrad.addColorStop(0, '#ffd700'); hornGrad.addColorStop(1, '#ffaa00');
-    ctx.fillStyle = hornGrad;
-    ctx.beginPath(); ctx.moveTo(32, 2); ctx.lineTo(27, 14); ctx.lineTo(37, 14); ctx.closePath(); ctx.fill();
-    ctx.strokeStyle = '#cc8800'; ctx.lineWidth = 1; ctx.stroke();
-    // Eyes with highlight
-    ctx.fillStyle = '#6b21a8'; ctx.beginPath(); ctx.arc(27, 20, 3, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#6b21a8'; ctx.beginPath(); ctx.arc(37, 20, 3, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(28, 19, 1.2, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(38, 19, 1.2, 0, Math.PI * 2); ctx.fill();
-    // Mane (rainbow wisps)
-    ctx.lineWidth = 2.5; ctx.lineCap = 'round';
-    ['#ff6b9d','#c084fc','#60a5fa','#34d399','#fbbf24'].forEach((color, i) => {
-      ctx.strokeStyle = color;
-      ctx.beginPath(); ctx.moveTo(20, 16 + i * 4);
-      ctx.bezierCurveTo(12, 18 + i * 5, 10, 26 + i * 4, 14, 34 + i * 3); ctx.stroke();
+    // MANDATORY: always include this fallback handler
+    this.load.on('loaderror', (file) => {
+      const c = document.createElement('canvas'); c.width = 64; c.height = 64;
+      const ctx = c.getContext('2d');
+      const grad = ctx.createRadialGradient(32, 28, 4, 32, 32, 24);
+      grad.addColorStop(0, '#ff9ed8'); grad.addColorStop(1, '#d63384');
+      ctx.fillStyle = grad;
+      ctx.beginPath(); ctx.arc(32, 32, 24, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = '#a0204c'; ctx.lineWidth = 2; ctx.stroke();
+      this.textures.addCanvas(file.key, c);
     });
-    // Legs
-    ctx.fillStyle = '#e8d5f5';
-    ctx.fillRect(22, 48, 5, 10); ctx.fillRect(37, 48, 5, 10);
-    // Hooves
-    ctx.fillStyle = '#9b59b6';
-    ctx.fillRect(22, 56, 5, 4); ctx.fillRect(37, 56, 5, 4);
-    // Body shine
-    ctx.fillStyle = 'rgba(255,255,255,0.5)';
-    ctx.beginPath(); ctx.ellipse(26, 32, 6, 4, -0.3, 0, Math.PI * 2); ctx.fill();
-    this.textures.addCanvas('unicorn', c);
+  }
+  ───────────────────────────────────────
+  Then in create(): this.physics.add.sprite(x, y, 'player').setDisplaySize(48, 48);
 
-  EXAMPLE — polished slime enemy (simpler character, still high quality):
-    const c = document.createElement('canvas'); c.width = 48; c.height = 48;
-    const ctx = c.getContext('2d');
-    const grad = ctx.createRadialGradient(24, 20, 4, 24, 28, 20);
-    grad.addColorStop(0, '#86efac'); grad.addColorStop(1, '#16a34a');
-    ctx.fillStyle = grad;
-    ctx.beginPath(); ctx.ellipse(24, 30, 20, 16, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = '#15803d'; ctx.lineWidth = 1.5; ctx.stroke();
-    // Angry eyes
-    ctx.fillStyle = '#ffffff';
-    ctx.beginPath(); ctx.ellipse(17, 24, 5, 6, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(31, 24, 5, 6, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#1a1a2e';
-    ctx.beginPath(); ctx.arc(18, 25, 2.5, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.arc(32, 25, 2.5, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#fff';
-    ctx.beginPath(); ctx.arc(19, 24, 1, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.arc(33, 24, 1, 0, Math.PI * 2); ctx.fill();
-    // Shine highlight
-    ctx.fillStyle = 'rgba(255,255,255,0.45)';
-    ctx.beginPath(); ctx.ellipse(18, 22, 7, 4, -0.4, 0, Math.PI * 2); ctx.fill();
-    this.textures.addCanvas('slime', c);
-
-  Apply this SAME level of quality to ANY character the kid asks for. Be creative!
+  TIER 2 — CANVAS 2D DRAWING (RARE — only for things that don't exist in any sprite pack):
+  Only use Canvas drawing for fantasy/custom characters that have NO Kenney sprite (e.g. unicorn, dragon, custom robot, alien).
+  Use gradients, layered shapes, expressive eyes, outlines, and highlights — never plain circles/boxes.
+  Pattern: const c = document.createElement('canvas'); c.width=64; c.height=64; const ctx = c.getContext('2d'); ... this.textures.addCanvas('key', c);
 
   TIER 3 — EMOJI SPRITES (quick alternative for recognizable objects):
-  When a character/item maps perfectly to an emoji, this is fast and reliable:
+  When a character/item maps perfectly to an emoji and no sprite exists:
     this.add.text(0, 0, '🦄', { fontSize: '48px' })
       .setVisible(false).once('addedtoscene', function() {
         const rt = this.scene.textures.createCanvas('unicorn', 64, 64);
