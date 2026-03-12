@@ -16,6 +16,8 @@ import { ASSET_MANIFEST } from '../assets/assetManifest.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const TEMPLATES_DIR = path.join(__dirname, '..', 'templates');
+const PUBLIC_DIR = path.join(__dirname, '..', '..', 'public');
+const spritePathCache = new Map();
 
 /**
  * Inject sprite loading into AI-generated game code.
@@ -33,21 +35,23 @@ export async function injectSprites(code, genre) {
   const spriteLoads = await getSpriteLoadsForGenre(genre);
   if (spriteLoads.length === 0) return code;
 
+  const invalidPathCount = await countInvalidSpritePaths(code, spriteLoads);
   const proceduralTextureCount =
     (code.match(/generateTexture\s*\(/g) || []).length + (code.match(/this\.textures\.addCanvas\s*\(/g) || []).length;
   const loadImageCount = (code.match(/this\.load\.image\s*\(/g) || []).length;
 
-  if (proceduralTextureCount === 0 && loadImageCount > 0) {
+  if (proceduralTextureCount === 0 && invalidPathCount === 0 && loadImageCount > 0) {
     return code;
   }
 
   console.log(
-    `🎨 Sprite injector: genre="${genre}" | load.image=${loadImageCount} | procedural=${proceduralTextureCount}`,
+    `🎨 Sprite injector: genre="${genre}" | load.image=${loadImageCount} | procedural=${proceduralTextureCount} | invalidPaths=${invalidPathCount}`,
   );
 
   let modified = code;
   const spriteKeys = new Set(spriteLoads.map((s) => s.key));
 
+  modified = await repairInvalidSpritePaths(modified, spriteLoads);
   modified = removeGraphicsBlock(modified, spriteKeys);
   modified = removeCanvasTextureBlock(modified, spriteKeys);
   modified = insertSpriteLoading(modified, spriteLoads);
@@ -87,6 +91,95 @@ async function extractTemplateSpriteLoads(genre) {
     return loads;
   } catch {
     return [];
+  }
+}
+
+async function countInvalidSpritePaths(code, spriteLoads) {
+  const loadCalls = extractLoadImageCalls(code);
+  let invalid = 0;
+  for (const call of loadCalls) {
+    if (!call.path.startsWith('/assets/')) continue;
+    const exists = await assetPathExists(call.path);
+    if (!exists && findReplacementForKey(call.key, spriteLoads)) {
+      invalid++;
+    }
+  }
+  return invalid;
+}
+
+async function repairInvalidSpritePaths(code, spriteLoads) {
+  const replacements = [];
+  const loadCalls = extractLoadImageCalls(code);
+
+  for (const call of loadCalls) {
+    if (!call.path.startsWith('/assets/')) continue;
+    const exists = await assetPathExists(call.path);
+    if (exists) continue;
+
+    const replacement = findReplacementForKey(call.key, spriteLoads);
+    if (!replacement || replacement.path === call.path) continue;
+
+    replacements.push({ ...call, replacementPath: replacement.path });
+  }
+
+  for (const fix of replacements.reverse()) {
+    const original = code.slice(fix.start, fix.end);
+    const updated = original.replace(fix.path, fix.replacementPath);
+    code = code.slice(0, fix.start) + updated + code.slice(fix.end);
+  }
+
+  if (replacements.length > 0) {
+    console.log(
+      `🩹 Sprite injector: repaired ${replacements.length} invalid sprite path${replacements.length === 1 ? '' : 's'}`,
+    );
+  }
+
+  return code;
+}
+
+function extractLoadImageCalls(code) {
+  const pattern = /this\.load\.image\(\s*['"]([^'"]+)['"]\s*,\s*['"]([^'"]+)['"]\s*\)/g;
+  const calls = [];
+  let match;
+  while ((match = pattern.exec(code)) !== null) {
+    calls.push({
+      key: match[1],
+      path: match[2],
+      start: match.index,
+      end: pattern.lastIndex,
+    });
+  }
+  return calls;
+}
+
+function findReplacementForKey(key, spriteLoads) {
+  const exact = spriteLoads.find((s) => s.key === key);
+  if (exact) return exact;
+
+  const normalizedKey = normalizeKey(key);
+  return (
+    spriteLoads.find((s) => normalizeKey(s.key) === normalizedKey) ||
+    spriteLoads.find((s) => normalizedKey.includes(normalizeKey(s.key)) || normalizeKey(s.key).includes(normalizedKey))
+  );
+}
+
+function normalizeKey(value) {
+  return String(value || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '');
+}
+
+async function assetPathExists(assetPath) {
+  if (spritePathCache.has(assetPath)) return spritePathCache.get(assetPath);
+
+  const localPath = path.join(PUBLIC_DIR, assetPath.replace(/^\/+/, ''));
+  try {
+    await fs.access(localPath);
+    spritePathCache.set(assetPath, true);
+    return true;
+  } catch {
+    spritePathCache.set(assetPath, false);
+    return false;
   }
 }
 

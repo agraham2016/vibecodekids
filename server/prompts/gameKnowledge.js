@@ -22,13 +22,10 @@ PHASER.JS GAME DESIGN PATTERNS AND TECHNIQUES:
 2. LOADING SPRITES AND SOUNDS (preferred — use pre-made assets):
    function preload() {
      // Load sprites from the asset library
-     this.load.image('player', '/assets/sprites/platformer/player.png');
-     this.load.image('coin', '/assets/sprites/platformer/coin.png');
-     this.load.image('enemy', '/assets/sprites/platformer/enemy.png');
+     this.load.image('player', '/assets/sprites/kenney-platformer/character_green_idle.png');
+     this.load.image('coin', '/assets/sprites/kenney-platformer/coin_gold.png');
+     this.load.image('enemy', '/assets/sprites/kenney-platformer/slime_normal_rest.png');
      this.load.image('particle', '/assets/sprites/common/particle.png');
-     // Load spritesheets (for animation)
-     this.load.spritesheet('explosion', '/assets/sprites/shooter/explosion.png', { frameWidth: 64, frameHeight: 64 });
-     this.load.spritesheet('gems', '/assets/sprites/puzzle/gems.png', { frameWidth: 32, frameHeight: 32 });
      // Load sounds
      this.load.audio('jump', '/assets/sounds/jump.wav');
      this.load.audio('coin', '/assets/sounds/coin.wav');
