@@ -72,7 +72,6 @@ function App() {
     sendFeedback,
     activeModel,
     switchModel,
-    grokAvailable,
     openaiAvailable,
     lastModelUsed,
   } = useChat({
@@ -441,7 +440,6 @@ function App() {
             isLoading={isLoading}
             activeModel={activeModel}
             onSwitchModel={switchModel}
-            grokAvailable={grokAvailable}
             openaiAvailable={openaiAvailable}
             lastModelUsed={lastModelUsed}
             onUseAlternateCode={handleUseAlternateCode}

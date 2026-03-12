@@ -11,10 +11,10 @@
  * ─────────────────────────────────────────────────────────────
  * 'default'         │ Claude (safe default for initial generation)
  * 'claude'          │ Force Claude (explicit user choice)
- * 'grok'            │ Force Grok (explicit user choice / creative iteration)
+ * 'grok'            │ Force Grok (backend preserved, frontend hidden for now)
  * 'openai'          │ Force OpenAI (explicit user choice / coach mode)
- * 'creative'        │ Route to Grok ("Make it more fun!")
- * 'debug'           │ Try Claude first (up to 2 attempts), then auto-route to Grok
+ * 'creative'        │ Route to OpenAI for creative iteration
+ * 'debug'           │ Try Claude first (up to 2 attempts), then auto-route to OpenAI
  * 'ask-other-buddy' │ Send to the NEXT model in rotation
  * 'critic'          │ Claude generates → Grok critiques → Claude polishes
  * ─────────────────────────────────────────────────────────────
@@ -57,7 +57,7 @@ import { injectSprites } from './spriteInjector.js';
 
 /**
  * Auto-detect if the kid's prompt is asking for creative/fun iteration.
- * These keywords route to Grok for the "hype" treatment.
+ * These keywords route to OpenAI for creative polish while Grok stays hidden.
  */
 const CREATIVE_TRIGGERS = [
   'make it more fun',
@@ -186,7 +186,7 @@ export async function generateOrIterateGame({
   }
 
   // If Grok isn't available, fall back to Claude
-  if (!isGrokAvailable() && ['grok', 'creative'].includes(effectiveMode)) {
+  if (!isGrokAvailable() && effectiveMode === 'grok') {
     console.log('⚠️ Grok not available (no XAI_API_KEY), falling back to Claude');
     effectiveMode = 'claude';
   }
@@ -292,13 +292,14 @@ export async function generateOrIterateGame({
 /**
  * Decide which model to call based on mode and context.
  */
-const NEXT_BUDDY = { claude: 'grok', grok: 'openai', openai: 'claude' };
+const NEXT_BUDDY = { claude: 'openai', openai: 'claude', grok: 'claude' };
 
 function resolveTargetModel(mode, lastModelUsed) {
   switch (mode) {
     case 'grok':
-    case 'creative':
       return 'grok';
+    case 'creative':
+      return 'openai';
     case 'openai':
       return 'openai';
     case 'claude':
@@ -306,8 +307,7 @@ function resolveTargetModel(mode, lastModelUsed) {
     case 'debug':
       return 'claude';
     case 'ask-other-buddy': {
-      const next = NEXT_BUDDY[lastModelUsed] || 'grok';
-      if (next === 'grok' && !isGrokAvailable()) return 'openai';
+      const next = NEXT_BUDDY[lastModelUsed] || 'openai';
       if (next === 'openai' && !isOpenAIAvailable()) return 'claude';
       return next;
     }
@@ -515,7 +515,7 @@ function summarizeCodeChange(prompt, category) {
 
 /**
  * Debug mode: Try Claude first. If it doesn't fix the issue after
- * DEBUG_MAX_CLAUDE_ATTEMPTS, auto-route to Grok with a "critic" prompt.
+ * DEBUG_MAX_CLAUDE_ATTEMPTS, auto-route to OpenAI for a second pass.
  */
 async function handleDebugMode({ prompt, currentCode, conversationHistory, gameConfig, image, userId, debugAttempt }) {
   const attempt = debugAttempt + 1;
@@ -540,24 +540,24 @@ async function handleDebugMode({ prompt, currentCode, conversationHistory, gameC
       debugInfo: { attempts: attempt, finalModel: 'claude' },
     };
   } else {
-    // Claude didn't fix it — try Grok with critic prompt
-    console.log('🔀 Claude debug attempts exhausted — routing to Grok for fresh eyes');
+    // Claude didn't fix it — try OpenAI for a second set of eyes
+    console.log('🔀 Claude debug attempts exhausted — routing to OpenAI for fresh eyes');
 
-    const grokDebugPrompt = `YO a kid's game is broken and Professor Claude couldn't fix it! 😤\n\nThe kid said: "${prompt}"\n\nHere's the code that's NOT working. Find the bugs, fix them, and make it work!\nBe thorough — check EVERYTHING. Then output the COMPLETE fixed HTML.\n\nAlso add a little something fun while you're in there 😎🔥`;
+    const openAIDebugPrompt = `Coach GPT stepping in to debug this game. The kid said: "${prompt}"\n\nHere's the code that's NOT working. Find the bugs, fix them, and make it work.\nBe thorough — check EVERYTHING. Then output the COMPLETE fixed HTML.\n\nIf you can, add a little extra polish while you're in there.`;
 
     const result = await handleSingleModel({
-      prompt: grokDebugPrompt,
+      prompt: openAIDebugPrompt,
       currentCode,
       conversationHistory,
       gameConfig,
       image,
       userId,
-      targetModel: 'grok',
+      targetModel: 'openai',
     });
 
     return {
       ...result,
-      debugInfo: { attempts: attempt, finalModel: 'grok' },
+      debugInfo: { attempts: attempt, finalModel: 'openai' },
     };
   }
 }
@@ -586,13 +586,8 @@ async function handleAskOtherBuddy({
   userId,
   lastModelUsed,
 }) {
-  const otherModel = NEXT_BUDDY[lastModelUsed] || 'grok';
-  const finalModel =
-    otherModel === 'grok' && !isGrokAvailable()
-      ? 'openai'
-      : otherModel === 'openai' && !isOpenAIAvailable()
-        ? 'claude'
-        : otherModel;
+  const otherModel = NEXT_BUDDY[lastModelUsed] || 'openai';
+  const finalModel = otherModel === 'openai' && !isOpenAIAvailable() ? 'claude' : otherModel;
   console.log(`🔄 Ask Other Buddy: switching from ${lastModelUsed || 'unknown'} → ${finalModel}`);
 
   const contextPrompt = BUDDY_HANDOFF_PROMPTS[finalModel](prompt);
