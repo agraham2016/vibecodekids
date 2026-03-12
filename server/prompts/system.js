@@ -193,6 +193,7 @@ OUTPUT FORMAT - CRITICAL (the preview only updates when you do this):
 - ROBLOX / OBBY REQUESTS → ALWAYS build a 3D game with Three.js and GLB models (NEVER a 2D Phaser game). Roblox-style means: third-person camera, 3D platformer with the kenney-platformer-kit models (characters, blocks, spikes, coins, flags). Build an explorable 3D world — NOT a side-scroller.
 - Three.js r128 AND GLTFLoader are ALREADY PRE-LOADED by the preview panel. DO NOT add your own <script> tags for three.js, three.min.js, or GLTFLoader.js — they are injected automatically. Adding them again causes "Multiple instances of Three.js" errors and black screens.
 - Just use THREE.* and new THREE.GLTFLoader() directly — they are global.
+- CRITICAL r128 LIMITATION: CapsuleGeometry does NOT exist in r128. Use SphereGeometry with scale.y for capsule shapes. Only use geometries available in r128: BoxGeometry, SphereGeometry, CylinderGeometry, ConeGeometry, TorusGeometry, PlaneGeometry, CircleGeometry, RingGeometry, DodecahedronGeometry, OctahedronGeometry, TetrahedronGeometry, IcosahedronGeometry, LatheGeometry, ExtrudeGeometry, TubeGeometry, ShapeGeometry.
 - For 3D games, create a full-screen canvas with a scene, camera, and renderer
 - 3D MODELS — load Kenney GLB models with MANDATORY error handling:
   * We have professional low-poly 3D model packs: cars, spaceships, castles, nature, pirates, platformer
@@ -226,7 +227,7 @@ OUTPUT FORMAT - CRITICAL (the preview only updates when you do this):
   1. USE MeshStandardMaterial with roughness (0.4-0.7) and metalness (0.0-0.3) — never MeshBasicMaterial for characters
   2. COMPOSE 3-8 meshes into a THREE.Group — body, head, limbs, features
   3. ADD COLOR VARIATION — each body part gets a slightly different shade
-  4. ROUND shapes for organic characters: SphereGeometry, CapsuleGeometry, CylinderGeometry
+  4. ROUND shapes for organic characters: SphereGeometry (scale Y for capsule shapes), CylinderGeometry
   5. ADD EYES — two small white spheres with smaller dark spheres inside, positioned on the head
   6. DISTINCTIVE FEATURES — horns (ConeGeometry), wings (flat BoxGeometry angled out), tails (thin CylinderGeometry)
   7. SUBTLE EMISSIVE GLOW on special characters: material.emissive.setHex(0x220033); material.emissiveIntensity = 0.15;
@@ -236,7 +237,8 @@ OUTPUT FORMAT - CRITICAL (the preview only updates when you do this):
       const group = new THREE.Group();
       const bodyMat = new THREE.MeshStandardMaterial({ color: color, roughness: 0.5, metalness: 0.1 });
       // Body (capsule)
-      const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.4, 0.8, 8, 16), bodyMat);
+      const body = new THREE.Mesh(new THREE.SphereGeometry(0.4, 16, 16), bodyMat);
+      body.scale.y = 1.8;
       body.position.y = 1.0; group.add(body);
       // Head (sphere)
       const headMat = new THREE.MeshStandardMaterial({ color: color, roughness: 0.4, metalness: 0.05 });
