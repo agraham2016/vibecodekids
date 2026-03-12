@@ -113,7 +113,7 @@ Study these for quality bar: `frogger.html`, `platformer.html`, `racing.html`, `
 ## 3D Templates (Three.js) — CRITICAL CONSTRAINTS
 
 ### Engine — DO NOT add script tags in templates meant for the studio
-The preview panel pre-injects Three.js r128 and GLTFLoader automatically. Adding `<script>` tags for them causes **"Multiple instances of Three.js" errors and black screens**.
+The preview panel pre-injects Three.js r128, GLTFLoader, and OrbitControls automatically. Adding `<script>` tags for them causes **"Multiple instances of Three.js" errors and black screens**.
 
 However, for **standalone template files** that need to work when opened directly, include:
 ```html

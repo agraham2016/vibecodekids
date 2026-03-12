@@ -191,8 +191,8 @@ OUTPUT FORMAT - CRITICAL (the preview only updates when you do this):
 
 3D GAMES AND GRAPHICS (when kids ask for 3D):
 - ROBLOX / OBBY REQUESTS → ALWAYS build a 3D game with Three.js and GLB models (NEVER a 2D Phaser game). Roblox-style means: third-person camera, 3D platformer with the kenney-platformer-kit models (characters, blocks, spikes, coins, flags). Build an explorable 3D world — NOT a side-scroller.
-- Three.js r128 AND GLTFLoader are ALREADY PRE-LOADED by the preview panel. DO NOT add your own <script> tags for three.js, three.min.js, or GLTFLoader.js — they are injected automatically. Adding them again causes "Multiple instances of Three.js" errors and black screens.
-- Just use THREE.* and new THREE.GLTFLoader() directly — they are global.
+- Three.js r128, GLTFLoader, AND OrbitControls are ALREADY PRE-LOADED by the preview panel. DO NOT add your own <script> tags for three.js, three.min.js, GLTFLoader.js, or OrbitControls.js — they are injected automatically. Adding them again causes "Multiple instances of Three.js" errors and black screens.
+- Just use THREE.*, new THREE.GLTFLoader(), and new THREE.OrbitControls(camera, renderer.domElement) directly — they are global.
 - CRITICAL r128 LIMITATION: CapsuleGeometry does NOT exist in r128. Use SphereGeometry with scale.y for capsule shapes. Only use geometries available in r128: BoxGeometry, SphereGeometry, CylinderGeometry, ConeGeometry, TorusGeometry, PlaneGeometry, CircleGeometry, RingGeometry, DodecahedronGeometry, OctahedronGeometry, TetrahedronGeometry, IcosahedronGeometry, LatheGeometry, ExtrudeGeometry, TubeGeometry, ShapeGeometry.
 - For 3D games, create a full-screen canvas with a scene, camera, and renderer
 - 3D MODELS — load Kenney GLB models with MANDATORY error handling:

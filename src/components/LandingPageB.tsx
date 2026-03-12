@@ -40,7 +40,7 @@ type Phase = 'idle' | 'loading' | 'playing' | 'gated';
 function injectLibraries(code: string): string {
   const hasFullStructure = code.toLowerCase().includes('<!doctype') || code.toLowerCase().includes('<html');
   const previewScrollStyle = `<style>html,body{overflow-y:auto!important;overflow-x:hidden;min-height:100%}</style>`;
-  const libraryScripts = `<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script><script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script><script>
+  const libraryScripts = `<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script><script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script><script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script><script>
     window.THREE=THREE;delete window.createImageBitmap;
     (function(){if(!window.THREE||!window.THREE.ImageLoader)return;var o=window.THREE.ImageLoader.prototype.load;window.THREE.ImageLoader.prototype.load=function(u,l,p,e){if(typeof u==='string'&&u.indexOf('blob:')===0){fetch(u).then(function(r){return r.blob()}).then(function(b){return new Promise(function(res,rej){var r=new FileReader();r.onload=function(){res(r.result)};r.onerror=function(){rej(r.error)};r.readAsDataURL(b)})}).then(function(d){o.call(this,d,l,p,e)}.bind(this)).catch(function(err){if(e)e(err)})}else{o.call(this,u,l,p,e)}}})();
   </script>`;

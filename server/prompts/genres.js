@@ -170,7 +170,7 @@ export function detectGameGenre(message) {
 export const THREE_D_GAME_RULES = `
 3D GAME - CRITICAL RULES:
 
-DO NOT ADD THREE.JS SCRIPT TAGS — Three.js r128 and GLTFLoader are already pre-loaded by the preview. Adding duplicate script tags causes "Multiple instances" errors and black screens. Just use THREE.* and new THREE.GLTFLoader() directly.
+DO NOT ADD THREE.JS SCRIPT TAGS — Three.js r128, GLTFLoader, and OrbitControls are already pre-loaded by the preview. Adding duplicate script tags causes "Multiple instances" errors and black screens. Just use THREE.*, new THREE.GLTFLoader(), and new THREE.OrbitControls(camera, renderer.domElement) directly.
 
 SCENE SETUP ORDER (prevents black screen):
 1. Create scene, camera, renderer, lights, ground plane, sky color FIRST
