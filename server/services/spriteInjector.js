@@ -8,43 +8,86 @@
  * sprite files are used in the final output.
  */
 
+import { promises as fs } from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { ASSET_MANIFEST } from '../assets/assetManifest.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const TEMPLATES_DIR = path.join(__dirname, '..', 'templates');
 
 /**
  * Inject sprite loading into AI-generated game code.
  *
+ * Uses the actual template `this.load.image()` keys when possible, because they
+ * match the keys the AI is most likely to reference in create()/update().
+ *
  * @param {string} code - The full HTML game code from the AI
  * @param {string|null} genre - Detected game genre
- * @returns {string} The code with sprites injected (or original if no changes needed)
+ * @returns {Promise<string>} The code with sprites injected (or original if no changes needed)
  */
-export function injectSprites(code, genre) {
+export async function injectSprites(code, genre) {
   if (!code || !genre) return code;
 
-  const manifest = ASSET_MANIFEST[genre];
-  if (!manifest || !manifest.sprites || manifest.sprites.length === 0) return code;
+  const spriteLoads = await getSpriteLoadsForGenre(genre);
+  if (spriteLoads.length === 0) return code;
 
-  if (codeAlreadyUsesSprites(code)) return code;
+  const proceduralTextureCount =
+    (code.match(/generateTexture\s*\(/g) || []).length + (code.match(/this\.textures\.addCanvas\s*\(/g) || []).length;
+  const loadImageCount = (code.match(/this\.load\.image\s*\(/g) || []).length;
 
-  console.log(`🎨 Sprite injector: AI did not use this.load.image() for "${genre}" — injecting sprites`);
+  if (proceduralTextureCount === 0 && loadImageCount > 0) {
+    return code;
+  }
+
+  console.log(
+    `🎨 Sprite injector: genre="${genre}" | load.image=${loadImageCount} | procedural=${proceduralTextureCount}`,
+  );
 
   let modified = code;
+  const spriteKeys = new Set(spriteLoads.map((s) => s.key));
 
-  const spriteKeys = new Set(manifest.sprites.map((s) => s.key));
   modified = removeGraphicsBlock(modified, spriteKeys);
   modified = removeCanvasTextureBlock(modified, spriteKeys);
-  modified = insertSpriteLoading(modified, manifest.sprites);
+  modified = insertSpriteLoading(modified, spriteLoads);
 
   if (modified !== code) {
-    console.log(`✅ Sprite injector: replaced procedural drawing with ${manifest.sprites.length} sprite loads`);
+    console.log(`✅ Sprite injector: ensured ${spriteLoads.length} sprite loads for "${genre}"`);
   }
 
   return modified;
 }
 
-function codeAlreadyUsesSprites(code) {
-  const loadImageCount = (code.match(/this\.load\.image\s*\(/g) || []).length;
-  const generateTextureCount = (code.match(/generateTexture\s*\(/g) || []).length;
-  return loadImageCount > 0 && loadImageCount >= generateTextureCount;
+async function getSpriteLoadsForGenre(genre) {
+  const templateLoads = await extractTemplateSpriteLoads(genre);
+  if (templateLoads.length > 0) return templateLoads;
+
+  const manifest = ASSET_MANIFEST[genre];
+  if (!manifest || !manifest.sprites) return [];
+  return manifest.sprites.map((s) => ({ key: s.key, path: s.path }));
+}
+
+async function extractTemplateSpriteLoads(genre) {
+  const templatePath = path.join(TEMPLATES_DIR, `${genre}.html`);
+  try {
+    const content = await fs.readFile(templatePath, 'utf-8');
+    const loads = [];
+    const seen = new Set();
+    const loadPattern = /this\.load\.image\(\s*['"]([^'"]+)['"]\s*,\s*['"]([^'"]+)['"]\s*\)/g;
+    let match;
+    while ((match = loadPattern.exec(content)) !== null) {
+      const key = match[1];
+      const spritePath = match[2];
+      if (!seen.has(key)) {
+        seen.add(key);
+        loads.push({ key, path: spritePath });
+      }
+    }
+    return loads;
+  } catch {
+    return [];
+  }
 }
 
 /**
@@ -132,11 +175,22 @@ function insertSpriteLoading(code, sprites) {
 
   const insertPos = preloadMatch.index + preloadMatch[0].length;
 
-  const loadLines = sprites.map((s) => `      this.load.image('${s.key}', '${s.path}');`).join('\n');
+  const existingKeys = new Set();
+  const existingLoadPattern = /this\.load\.image\(\s*['"]([^'"]+)['"]\s*,/g;
+  let match;
+  while ((match = existingLoadPattern.exec(code)) !== null) {
+    existingKeys.add(match[1]);
+  }
 
-  const spriteBlock = `
-      // Kenney sprite assets (auto-injected)
-${loadLines}
+  const missingLoads = sprites.filter((s) => !existingKeys.has(s.key));
+  const hasLoadErrorHandler = /this\.load\.on\(\s*['"]loaderror['"]/.test(code);
+
+  if (missingLoads.length === 0 && hasLoadErrorHandler) return code;
+
+  const loadLines = missingLoads.map((s) => `      this.load.image('${s.key}', '${s.path}');`).join('\n');
+  const fallbackBlock = hasLoadErrorHandler
+    ? ''
+    : `
 
       // Fallback for any missing sprites
       this.load.on('loaderror', (file) => {
@@ -149,7 +203,11 @@ ${loadLines}
         ctx.beginPath(); ctx.arc(32, 32, 24, 0, Math.PI * 2); ctx.fill();
         ctx.strokeStyle = '#a0204c'; ctx.lineWidth = 2; ctx.stroke();
         this.textures.addCanvas(file.key, c);
-      });
+      });`;
+
+  const spriteBlock = `
+      // Kenney sprite assets (auto-injected)
+${loadLines}${fallbackBlock}
 `;
 
   return code.slice(0, insertPos) + spriteBlock + code.slice(insertPos);

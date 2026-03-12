@@ -1,10 +1,10 @@
 /**
  * Response Cache (Dual-Model)
- * 
+ *
  * Caches AI responses by hashing: prompt + currentCode context + model.
  * Stores responses from BOTH Claude and Grok → higher hit rate when kids
  * repeat common requests like "add lasers", "fix jump", "make it faster".
- * 
+ *
  * Key features:
  * - Deterministic hash from prompt + code snapshot + model
  * - TTL-based expiration (default 1 hour)
@@ -29,20 +29,24 @@ const cacheStats = {
   patternMisses: 0,
 };
 
+// Bump this whenever prompt assembly or post-processing changes in a way that
+// should invalidate previously cached AI code responses.
+const CACHE_SCHEMA_VERSION = 'sprites-v2';
+
 // ========== HASH FUNCTION ==========
 
 /**
  * Generate a deterministic cache key from the request context.
- * 
+ *
  * We hash:
  * - The user's prompt (what they asked for)
  * - A fingerprint of the current code (first 2000 + last 2000 chars to keep it fast)
  * - The target model ('claude' or 'grok')
  * - The mode ('default', 'creative', 'debug', 'critic', etc.)
- * 
+ *
  * This means "add lasers" with the same base code will hit cache
  * regardless of conversation history length.
- * 
+ *
  * @param {string} prompt - The user's message
  * @param {string|null} currentCode - The current game code (can be large)
  * @param {'claude'|'grok'} model - Which model to cache for
@@ -52,7 +56,7 @@ const cacheStats = {
 export function generateCacheKey(prompt, currentCode, model, mode) {
   // Normalize prompt: lowercase, trim, collapse whitespace
   const normalizedPrompt = (prompt || '').toLowerCase().trim().replace(/\s+/g, ' ');
-  
+
   // Code fingerprint: first 2000 + last 2000 chars (fast for large code)
   let codeFingerprint = '';
   if (currentCode) {
@@ -64,7 +68,7 @@ export function generateCacheKey(prompt, currentCode, model, mode) {
     }
   }
 
-  const input = `${normalizedPrompt}::${codeFingerprint}::${model}::${mode}`;
+  const input = `${normalizedPrompt}::${codeFingerprint}::${model}::${mode}::${CACHE_SCHEMA_VERSION}`;
   return createHash('sha256').update(input).digest('hex');
 }
 
@@ -72,13 +76,13 @@ export function generateCacheKey(prompt, currentCode, model, mode) {
 
 /**
  * Look up a cached response.
- * 
+ *
  * @param {string} key - Cache key from generateCacheKey()
  * @returns {object|null} Cached entry { response, code, model, timestamp } or null
  */
 export function getCachedResponse(key) {
   if (!key) return null;
-  
+
   const entry = cache.get(key);
   if (!entry) {
     cacheStats.misses++;
@@ -96,7 +100,7 @@ export function getCachedResponse(key) {
   cacheStats.hits++;
   if (entry.model === 'grok') cacheStats.grokHits++;
   else cacheStats.claudeHits++;
-  
+
   entry.lastAccessed = Date.now();
   entry.hitCount++;
 
@@ -106,7 +110,7 @@ export function getCachedResponse(key) {
 
 /**
  * Store a response in the cache.
- * 
+ *
  * @param {string} key - Cache key
  * @param {object} data - Data to cache
  * @param {string} data.response - The AI's text response (friendly message)
@@ -212,7 +216,7 @@ function patternCacheKey(category, genre, model) {
 /**
  * Look up a pattern hint. Returns a description of what changes were
  * made previously for a similar request, or null.
- * 
+ *
  * @param {string} category - From detectIterationPattern()
  * @param {string|null} genre - Detected game genre
  * @param {string} model - 'claude' or 'grok'
@@ -239,7 +243,7 @@ export function getPatternHint(category, genre, model) {
 /**
  * Store what worked for a given pattern. We keep a short summary
  * of the kinds of changes that resolved the request.
- * 
+ *
  * @param {string} category - Pattern category
  * @param {string|null} genre - Game genre
  * @param {string} model - Which model succeeded
@@ -288,7 +292,7 @@ export function getResponseCacheStats() {
       hits: cacheStats.hits,
       misses: cacheStats.misses,
       evictions: cacheStats.evictions,
-      hitRate: total > 0 ? (cacheStats.hits / total * 100).toFixed(1) + '%' : '0%',
+      hitRate: total > 0 ? ((cacheStats.hits / total) * 100).toFixed(1) + '%' : '0%',
       claudeHits: cacheStats.claudeHits,
       grokHits: cacheStats.grokHits,
     },
@@ -297,7 +301,7 @@ export function getResponseCacheStats() {
       maxSize: PATTERN_CACHE_MAX,
       hits: cacheStats.patternHits,
       misses: cacheStats.patternMisses,
-      hitRate: patternTotal > 0 ? (cacheStats.patternHits / patternTotal * 100).toFixed(1) + '%' : '0%',
+      hitRate: patternTotal > 0 ? ((cacheStats.patternHits / patternTotal) * 100).toFixed(1) + '%' : '0%',
     },
   };
 }

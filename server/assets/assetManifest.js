@@ -94,8 +94,10 @@ export const ASSET_MANIFEST = {
   frogger: {
     sprites: [
       { key: 'frog', path: '/assets/sprites/kenney-animals/Round/frog.png', w: 64, h: 64, note: 'round cartoon frog' },
-      { key: 'car', path: '/assets/sprites/kenney-racing/Cars/car_red_small_1.png', w: 32, h: 48 },
-      { key: 'truck', path: '/assets/sprites/kenney-racing/Cars/car_blue_small_3.png', w: 32, h: 48 },
+      { key: 'car0', path: '/assets/sprites/kenney-racing/Cars/car_red_small_1.png', w: 32, h: 48 },
+      { key: 'car1', path: '/assets/sprites/kenney-racing/Cars/car_blue_small_3.png', w: 32, h: 48 },
+      { key: 'car2', path: '/assets/sprites/kenney-racing/Cars/car_green_1.png', w: 32, h: 48 },
+      { key: 'truck', path: '/assets/sprites/kenney-racing/Cars/car_yellow_1.png', w: 32, h: 48 },
       { key: 'log', path: '/assets/sprites/frogger/log.png', w: 96, h: 32 },
     ],
     sounds: [],

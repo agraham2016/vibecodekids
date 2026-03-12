@@ -458,7 +458,7 @@ async function handleSingleModel({ prompt, currentCode, conversationHistory, gam
 
   // Post-process: inject Kenney sprites if the AI used generateTexture instead
   if (code && genre) {
-    code = injectSprites(code, genre);
+    code = await injectSprites(code, genre);
   }
 
   // Store pattern success if we got code and this was an iteration pattern
