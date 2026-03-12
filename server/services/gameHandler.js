@@ -51,6 +51,7 @@ import {
 import { DEBUG_MAX_CLAUDE_ATTEMPTS } from '../config/index.js';
 import { resolveReferences } from './referenceResolver.js';
 import { detectGameGenre } from '../prompts/index.js';
+import { injectSprites } from './spriteInjector.js';
 
 // ========== MODE DETECTION HELPERS ==========
 
@@ -453,6 +454,11 @@ async function handleSingleModel({ prompt, currentCode, conversationHistory, gam
     } catch (retryErr) {
       console.error('⚠️ Multiplayer auto-retry failed:', retryErr.message);
     }
+  }
+
+  // Post-process: inject Kenney sprites if the AI used generateTexture instead
+  if (code && genre) {
+    code = injectSprites(code, genre);
   }
 
   // Store pattern success if we got code and this was an iteration pattern
