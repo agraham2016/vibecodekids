@@ -136,6 +136,10 @@ const GENRE_TEMPLATE_MAP = {
   'find-the-friend': 'find-the-friend.html',
   'hidden-object': 'find-the-friend.html',
   seek: 'find-the-friend.html',
+  'rise-up': 'flappy.html',
+  rise: 'flappy.html',
+  balloon: 'flappy.html',
+  'balloon-pop': 'flappy.html',
   roblox: 'platformer.html',
   obby: 'platformer.html',
 };

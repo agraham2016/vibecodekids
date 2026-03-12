@@ -179,6 +179,42 @@ export const ASSET_MANIFEST = {
     ],
     sounds: [],
   },
+  'rise-up': {
+    sprites: [
+      {
+        key: 'balloon',
+        path: '/assets/sprites/kenney-animals/Round/parrot.png',
+        w: 64,
+        h: 64,
+        note: 'player balloon/character',
+      },
+      {
+        key: 'shield',
+        path: '/assets/sprites/kenney-space-shooter/Power-ups/powerupBlue_shield.png',
+        w: 24,
+        h: 24,
+        note: 'shield power-up',
+      },
+      {
+        key: 'obstacle',
+        path: '/assets/sprites/kenney-platformer/slime_normal_rest.png',
+        w: 32,
+        h: 32,
+        note: 'obstacle',
+      },
+      { key: 'coin', path: '/assets/sprites/kenney-platformer/coin_gold.png', w: 32, h: 32, note: 'collectible coin' },
+      {
+        key: 'bgSky',
+        path: '/assets/sprites/kenney-platformer/background_solid_sky.png',
+        w: 128,
+        h: 128,
+        note: 'sky background',
+      },
+      { key: 'star', path: '/assets/sprites/common/star.png', w: 16, h: 16, note: 'star pickup' },
+      { key: 'particle', path: '/assets/sprites/common/particle.png', w: 8, h: 8 },
+    ],
+    sounds: [],
+  },
   flappy: {
     sprites: [
       {

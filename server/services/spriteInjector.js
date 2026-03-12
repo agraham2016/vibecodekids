@@ -30,9 +30,9 @@ const spritePathCache = new Map();
  * @returns {Promise<string>} The code with sprites injected (or original if no changes needed)
  */
 export async function injectSprites(code, genre) {
-  if (!code || !genre) return code;
+  if (!code) return code;
 
-  const spriteLoads = await getSpriteLoadsForGenre(genre);
+  const spriteLoads = await getSpriteLoadsForGenre(genre || 'common');
   if (spriteLoads.length === 0) return code;
 
   const invalidPathCount = await countInvalidSpritePaths(code, spriteLoads);
@@ -68,8 +68,15 @@ async function getSpriteLoadsForGenre(genre) {
   if (templateLoads.length > 0) return templateLoads;
 
   const manifest = ASSET_MANIFEST[genre];
-  if (!manifest || !manifest.sprites) return [];
-  return manifest.sprites.map((s) => ({ key: s.key, path: s.path }));
+  if (manifest && manifest.sprites && manifest.sprites.length > 0) {
+    return manifest.sprites.map((s) => ({ key: s.key, path: s.path }));
+  }
+
+  const common = ASSET_MANIFEST.common;
+  if (common && common.sprites) {
+    return common.sprites.map((s) => ({ key: s.key, path: s.path }));
+  }
+  return [];
 }
 
 async function extractTemplateSpriteLoads(genre) {
