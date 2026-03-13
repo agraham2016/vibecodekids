@@ -157,10 +157,216 @@ export const GENRE_KEYWORDS = {
  * @returns {string|null} - Genre type or null if no match
  */
 export function detectGameGenre(message) {
-  const lower = message.toLowerCase();
+  const lower = (message || '').toLowerCase();
   for (const [type, keywords] of Object.entries(GENRE_KEYWORDS)) {
     if (keywords.some((kw) => lower.includes(kw))) {
       return type;
+    }
+  }
+  return null;
+}
+
+export const GENRE_FAMILY_KEYWORDS = {
+  obbyPlatform3d: [
+    'obby',
+    'roblox',
+    'parkour',
+    '3d obstacle course',
+    'roblox obby',
+    'obstacle course 3d',
+    'checkpoint platformer',
+  ],
+  explorationAdventure3d: [
+    'open map explorer',
+    'open world explorer',
+    '3d adventure',
+    '3d treasure hunt',
+    '3d mystery adventure',
+    '3d quest adventure',
+    '3d escape room',
+    'open map',
+  ],
+  racingDriving3d: [
+    '3d racing',
+    'stunt driving',
+    'monster truck',
+    'hover racer',
+    'drift racing',
+    'stunt racer',
+    'endless road racer',
+    '3d car',
+  ],
+  survivalCraft3d: [
+    'survival crafting',
+    'survival crafting game',
+    'gather and build',
+    'gather-and-build',
+    'island survival',
+    'zombie survival',
+    'wilderness survival',
+    'crafting adventure',
+    'mine and build',
+    'mine-and-build',
+    'resource scavenger',
+    'day night survival',
+    'day/night survival',
+    'shelter builder',
+  ],
+  sandboxBuilder3d: [
+    'block builder',
+    'city builder',
+    'base builder',
+    'sandbox world',
+    'park builder',
+    'house builder',
+    'island builder',
+    'defense base builder',
+    'craft and build',
+    'craft-and-build',
+    'world creator',
+    'house designer',
+  ],
+  socialParty3d: [
+    'tag game',
+    'hide and seek',
+    'hide-and-seek',
+    'capture the flag',
+    'party mini games',
+    'party mini-games',
+    'last player standing',
+    'last-player-standing',
+    'team challenge',
+    'co-op puzzle',
+    'coop puzzle',
+    'social hangout',
+    'battle mini games',
+    'battle mini-games',
+    'race and compete',
+    'race-and-compete',
+  ],
+  platformAction: [
+    'endless runner',
+    'platformer',
+    'side scrolling action',
+    'side-scrolling action',
+    'wave survival',
+    'boss battle',
+    'dodge and survive',
+    'dodge-and-survive',
+    'physics destruction',
+    'obstacle course',
+  ],
+  topDownAction: [
+    'top down action',
+    'top-down action',
+    'maze escape',
+    'treasure hunt',
+    'top down adventure',
+    'top-down adventure',
+    'quest adventure',
+    'mystery adventure',
+    'detective game',
+    'story choice adventure',
+    'escape room',
+    'hidden object',
+  ],
+  racingArcade: [
+    'simple racing',
+    'kart racer',
+    'bike racer',
+    'boat racer',
+    'hover racer',
+    'drift racing',
+    'stunt driving game',
+    'monster truck racer',
+    'racing with power ups',
+    'racing with power-ups',
+  ],
+  puzzleCasual: [
+    'matching game',
+    'memory card',
+    'shape sorting',
+    'pattern repeat',
+    'tile puzzle',
+    'logic puzzle',
+    'physics puzzle',
+    'switch puzzle',
+    'lever puzzle',
+    'word puzzle',
+    'trivia',
+    'quiz game',
+  ],
+  simLite: [
+    'pet care',
+    'animal shelter',
+    'baby care',
+    'school day simulator',
+    'life simulator',
+    'fashion game',
+    'dress up',
+    'dress-up',
+    'character creator',
+    'restaurant simulator',
+    'job simulator',
+  ],
+  builderTycoonLite: [
+    'lemonade stand',
+    'shop tycoon',
+    'restaurant tycoon',
+    'theme park tycoon',
+    'zoo tycoon',
+    'farm tycoon',
+    'hotel tycoon',
+    'bakery tycoon',
+    'car wash tycoon',
+    'business sim',
+    'mall sim',
+    'city business',
+  ],
+  strategyDefenseLite: [
+    'tower defense',
+    'base defense',
+    'castle defense',
+    'team strategy battler',
+    'resource collection strategy',
+    'army tactics',
+    'survival strategy',
+    'defense vs waves',
+    'grid strategy',
+    'capture the zone',
+  ],
+  rpgProgressionLite: [
+    'dungeon crawler',
+    'creature collector',
+    'creature battle',
+    'monster taming',
+    'fantasy rpg',
+    'action rpg',
+    'turn based battle',
+    'turn-based battle',
+    'loot collector',
+    'upgrade quest',
+    'hero training',
+  ],
+  sportsSkill: [
+    'soccer',
+    'basketball',
+    'mini golf',
+    'skateboarding',
+    'snowboarding',
+    'bowling',
+    'dodgeball',
+    'fishing game',
+    'archery',
+    'trick shot',
+  ],
+};
+
+export function detectGenreFamily(message) {
+  const lower = (message || '').toLowerCase();
+  for (const [family, keywords] of Object.entries(GENRE_FAMILY_KEYWORDS)) {
+    if (keywords.some((kw) => lower.includes(kw))) {
+      return family;
     }
   }
   return null;
@@ -175,8 +381,9 @@ DO NOT ADD THREE.JS SCRIPT TAGS — Three.js r128, GLTFLoader, and OrbitControls
 SCENE SETUP ORDER (prevents black screen):
 1. Create scene, camera, renderer, lights, ground plane, sky color FIRST
 2. Start the requestAnimationFrame render loop IMMEDIATELY
-3. THEN call loader.load() for GLB models — they appear when loaded
-4. EVERY loader.load() MUST have an error callback that creates a colored fallback mesh
+3. ONLY call loader.load() if prompt context provides working local GLB paths
+4. If no working GLB paths are provided, build the world from geometry instead of inventing /assets/models/*.glb URLs
+5. EVERY loader.load() MUST have an error callback that creates a colored fallback mesh
 
 MOVEMENT CONTROLS - USE ARROW KEYS (not WASD):
 - ArrowUp = move FORWARD (the direction the camera faces)
@@ -539,6 +746,13 @@ export const MULTIPLAYER_KEYWORDS = [
   'challenge a friend',
   'invite a friend',
   'room code',
+  'tag game',
+  'hide and seek',
+  'hide-and-seek',
+  'capture the flag',
+  'co-op puzzle',
+  'coop puzzle',
+  'team challenge',
   'fighting',
   'battle',
   'sports game',

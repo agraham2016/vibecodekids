@@ -190,15 +190,14 @@ OUTPUT FORMAT - CRITICAL (the preview only updates when you do this):
 - If the kid asked for a change (e.g. "add powerups"), output the FULL updated game with that change—every time. The preview will not update unless you include this full code block.
 
 3D GAMES AND GRAPHICS (when kids ask for 3D):
-- ROBLOX / OBBY REQUESTS → ALWAYS build a 3D game with Three.js and GLB models (NEVER a 2D Phaser game). Roblox-style means: third-person camera, 3D platformer with the kenney-platformer-kit models (characters, blocks, spikes, coins, flags). Build an explorable 3D world — NOT a side-scroller.
+- ROBLOX / OBBY REQUESTS → ALWAYS build a 3D game with Three.js (NEVER a 2D Phaser game). Roblox-style means: third-person camera, 3D platformer, checkpoints, hazards, collectibles, finish goal, and an explorable 3D world — NOT a side-scroller.
 - Three.js r128, GLTFLoader, AND OrbitControls are ALREADY PRE-LOADED by the preview panel. DO NOT add your own <script> tags for three.js, three.min.js, GLTFLoader.js, or OrbitControls.js — they are injected automatically. Adding them again causes "Multiple instances of Three.js" errors and black screens.
 - Just use THREE.*, new THREE.GLTFLoader(), and new THREE.OrbitControls(camera, renderer.domElement) directly — they are global.
 - CRITICAL r128 LIMITATION: CapsuleGeometry does NOT exist in r128. Use SphereGeometry with scale.y for capsule shapes. Only use geometries available in r128: BoxGeometry, SphereGeometry, CylinderGeometry, ConeGeometry, TorusGeometry, PlaneGeometry, CircleGeometry, RingGeometry, DodecahedronGeometry, OctahedronGeometry, TetrahedronGeometry, IcosahedronGeometry, LatheGeometry, ExtrudeGeometry, TubeGeometry, ShapeGeometry.
 - For 3D games, create a full-screen canvas with a scene, camera, and renderer
-- 3D MODELS — load Kenney GLB models with MANDATORY error handling:
-  * We have professional low-poly 3D model packs: cars, spaceships, castles, nature, pirates, platformer
-  * The 3D MODEL ASSETS section below lists exact loader.load() calls for the current genre — USE THEM
-  * Loading pattern WITH ERROR HANDLING (required — models can fail to load):
+- 3D MODELS — use them ONLY when the 3D MODEL ASSETS section below provides working local loader.load() paths:
+  * If the 3D MODEL ASSETS section says no local GLB files are available, DO NOT call loader.load() and DO NOT invent /assets/models/*.glb paths
+  * If working loader.load() paths are provided, use them with error handling:
     const loader = new THREE.GLTFLoader();
     loader.load('/assets/models/kenney-carkit/sedan.glb',
       (gltf) => {
@@ -273,7 +272,7 @@ OUTPUT FORMAT - CRITICAL (the preview only updates when you do this):
     - Trees: ConeGeometry (green) stacked 2-3 sizes on CylinderGeometry (brown) trunk
     - Vehicles: Composed boxes (body, roof, wheels as short cylinders) with 2-3 colors
     - Coins/collectibles: TorusGeometry or CylinderGeometry (flat) with gold metallic material
-- CRITICAL: The game MUST render something immediately, even before models finish loading. Always set up the scene, camera, lights, ground plane, and start the render loop BEFORE any loader.load() calls. Models are added to the scene asynchronously when they arrive — the game should never show a black screen while waiting.
+- CRITICAL: The game MUST render something immediately. Always set up the scene, camera, lights, ground plane, and start the render loop BEFORE any optional loader.load() calls. The game should never show a black screen while waiting on assets.
 - For non-game 3D art/viewers, add OrbitControls for rotate/zoom
 - For 3D GAMES (RPG, shooter, adventure): use ARROW KEYS for movement, NOT WASD
 - Arrow keys MUST call e.preventDefault() so the browser doesn't scroll

@@ -274,9 +274,17 @@ export function sanitizeOutput(message) {
  * @param {string|null} gameGenre - Detected game genre
  * @param {string} referenceCode - Reference code from templates/snippets/GitHub
  * @param {string} userPrompt - The user's current message (for multiplayer detection)
+ * @param {object|null} engineProfile - Resolved Vibe engine profile
  * @returns {{ staticPrompt: string, dynamicContext: string }}
  */
-export function getSystemPrompt(currentCode, gameConfig = null, gameGenre = null, referenceCode = '', userPrompt = '') {
+export function getSystemPrompt(
+  currentCode,
+  gameConfig = null,
+  gameGenre = null,
+  referenceCode = '',
+  userPrompt = '',
+  engineProfile = null,
+) {
   // ===== STATIC PART (cacheable - same for every request) =====
   const staticPrompt = SYSTEM_PROMPT + '\n\n' + GAME_KNOWLEDGE_BASE;
 
@@ -302,6 +310,24 @@ USE THIS CONFIG to make the game feel personal:
 - Use "${gameConfig.obstacles}" as the main challenge
 - The game type is "${gameConfig.gameType}" - use the right mechanics for that genre
 - Dimension is "${gameConfig.dimension || '2d'}": if "3d", build with Three.js (3D scene, camera, renderer). If "2d", use Phaser.js with arcade physics.
+`);
+  }
+
+  if (engineProfile) {
+    dynamicParts.push(`
+VIBE ENGINE PROFILE (internal generation plan - follow this strictly):
+- Engine: ${engineProfile.engineId}
+- Dimension: ${engineProfile.dimension}
+- Genre Family: ${engineProfile.genreFamily}
+- Starter Template: ${engineProfile.starterTemplateId}
+- Base Template Genre: ${engineProfile.templateGenre || 'none'}
+- Validation Profile: ${engineProfile.validationProfile}
+
+ENGINE INTENT:
+- If Engine is "vibe-2d", build a polished Phaser game that feels like a reusable template-driven starter game.
+- If Engine is "vibe-3d", build a polished Three.js game with a visible world, camera rig, lights, and a clear goal.
+- The Genre Family tells you the core loop to prioritize over one-off creativity.
+- Starter Template tells you which proven game pattern to imitate first before adding theme/flavor.
 `);
   }
 
@@ -353,7 +379,7 @@ USE THIS CONFIG to make the game feel personal:
       currentCode.includes('WebGLRenderer') ||
       currentCode.includes('three.js') ||
       currentCode.includes('three.min.js'));
-  const wants3D = gameConfig && gameConfig.dimension === '3d';
+  const wants3D = (gameConfig && gameConfig.dimension === '3d') || engineProfile?.dimension === '3d';
   const is3DRequest =
     wants3D ||
     (gameConfig &&

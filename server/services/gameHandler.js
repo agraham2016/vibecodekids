@@ -52,6 +52,8 @@ import { DEBUG_MAX_CLAUDE_ATTEMPTS } from '../config/index.js';
 import { resolveReferences } from './referenceResolver.js';
 import { detectGameGenre } from '../prompts/index.js';
 import { injectSprites } from './spriteInjector.js';
+import { resolveEngineProfile } from './engineRegistry.js';
+import { validateEngineOutput } from './engineValidators.js';
 
 // ========== MODE DETECTION HELPERS ==========
 
@@ -326,6 +328,7 @@ function resolveTargetModel(mode, lastModelUsed) {
 async function handleSingleModel({ prompt, currentCode, conversationHistory, gameConfig, image, userId, targetModel }) {
   // Detect genre for reference resolution
   const genre = gameConfig?.gameType || detectGameGenre(prompt || '') || null;
+  const requestedEngineProfile = resolveEngineProfile({ prompt, genre, gameConfig });
   const isNewGame =
     !currentCode ||
     currentCode.includes('Tell me what you want to create') ||
@@ -348,6 +351,12 @@ async function handleSingleModel({ prompt, currentCode, conversationHistory, gam
     const refs = await resolveReferences({ prompt, genre, gameConfig, isNewGame });
     referenceCode = refs.referenceCode;
     referenceSources = refs.sources;
+    if (refs.engineProfile) {
+      referenceSources = [
+        ...referenceSources,
+        `profile:${refs.engineProfile.engineId}:${refs.engineProfile.genreFamily}`,
+      ];
+    }
   } catch (err) {
     console.error('⚠️ Reference resolution failed (continuing without):', err.message);
   }
@@ -359,7 +368,14 @@ async function handleSingleModel({ prompt, currentCode, conversationHistory, gam
   // Combine reference code with pattern hint
   const fullReferenceCode = referenceCode + patternHintText;
 
-  const { staticPrompt, dynamicContext } = getSystemPrompt(currentCode, gameConfig, genre, fullReferenceCode, prompt);
+  const { staticPrompt, dynamicContext } = getSystemPrompt(
+    currentCode,
+    gameConfig,
+    genre,
+    fullReferenceCode,
+    prompt,
+    requestedEngineProfile,
+  );
   const personalityWrapper = getPersonalityWrapper(targetModel);
   const maxTokens = calculateMaxTokens(currentCode);
 
@@ -457,8 +473,26 @@ async function handleSingleModel({ prompt, currentCode, conversationHistory, gam
   }
 
   // Post-process: inject Kenney sprites if the AI used generateTexture instead
-  if (code && genre) {
-    code = await injectSprites(code, genre);
+  if (code && requestedEngineProfile.engineId === 'vibe-2d') {
+    code = await injectSprites(code, requestedEngineProfile.templateGenre || genre);
+  }
+
+  if (code) {
+    const engineValidation = validateEngineOutput(code, requestedEngineProfile);
+    if (engineValidation.warnings.length > 0) {
+      console.log(
+        `🧪 Engine validation warnings (${requestedEngineProfile.validationProfile}): ${engineValidation.warnings.join(', ')}`,
+      );
+    }
+    if (!engineValidation.safe) {
+      console.warn(
+        `⚠️ Engine validation failed (${requestedEngineProfile.validationProfile}): ${engineValidation.violations.join(', ')}`,
+      );
+      code = null;
+      assistantText =
+        "I got the idea started, but the game engine setup didn't finish cleanly. Ask me to try again and I'll rebuild it! 🎮";
+      wasTruncated = false;
+    }
   }
 
   // Store pattern success if we got code and this was an iteration pattern

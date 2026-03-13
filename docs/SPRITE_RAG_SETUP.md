@@ -57,3 +57,21 @@ Options:
 - `--dry-run` - Scan and log only
 - `--limit=N` - Ingest at most N sprites
 - `--skip-copy` - Insert metadata only (files already in place)
+
+## Step 5: Index Local Uploaded Sprite Packs
+
+If you already uploaded sprite folders into `public/assets/sprites`, index those too so
+freeform prompts can retrieve them through Postgres search:
+
+```bash
+# Dry-run first
+npm run db:ingest-local-sprites -- --dry-run
+
+# Insert/update local uploaded sprite metadata in Postgres
+npm run db:ingest-local-sprites
+```
+
+Notes:
+- Safe to run multiple times (`ON CONFLICT DO UPDATE`)
+- Uses top-level sprite folder names like `platformer`, `shooter`, `rpg`, `pet-sim`, etc. to infer genres
+- Uses filenames like `player`, `enemy`, `coin`, `food`, `tower`, `goal`, etc. to infer semantic roles/tags

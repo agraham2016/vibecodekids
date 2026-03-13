@@ -25,6 +25,7 @@ import {
 } from '../assets/assetManifest.js';
 import { searchSprites } from './spriteSearch.js';
 import { USE_POSTGRES } from '../config/index.js';
+import { resolveEngineProfile } from './engineRegistry.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -78,7 +79,7 @@ async function matchKnownRepo(prompt) {
 /**
  * Genre-to-template mapping.
  */
-const GENRE_TEMPLATE_MAP = {
+const LEGACY_TEMPLATE_MAP = {
   racing: 'racing.html',
   'street-racing': 'racing.html',
   driving: 'racing.html',
@@ -140,22 +141,23 @@ const GENRE_TEMPLATE_MAP = {
   rise: 'flappy.html',
   balloon: 'flappy.html',
   'balloon-pop': 'flappy.html',
-  roblox: 'platformer.html',
-  obby: 'platformer.html',
+  roblox: 'obby.html',
+  obby: 'obby.html',
+  'open-map-explorer': 'open-map-explorer.html',
+  'survival-crafting-game': 'survival-crafting-game.html',
 };
 
 /**
  * Load a built-in template by genre.
  * Returns the HTML string or null.
  */
-async function loadTemplate(genre) {
-  const filename = GENRE_TEMPLATE_MAP[genre];
+async function loadTemplate(filename, genreLabel) {
   if (!filename) return null;
 
   try {
     const filepath = path.join(TEMPLATES_DIR, filename);
     const content = await fs.readFile(filepath, 'utf-8');
-    return { filename, content };
+    return { filename, content, genreLabel };
   } catch {
     return null;
   }
@@ -174,7 +176,7 @@ async function loadTemplate(genre) {
  * @param {string|null} params.genre - Detected game genre
  * @param {object|null} params.gameConfig - Survey config
  * @param {boolean} params.isNewGame - Whether this is a brand-new game (no existing code)
- * @returns {Promise<{ referenceCode: string, sources: string[], totalChars: number }>}
+ * @returns {Promise<{ referenceCode: string, sources: string[], totalChars: number, engineProfile: object|null }>}
  */
 export async function resolveReferences({ prompt, genre, gameConfig, isNewGame }) {
   const sources = [];
@@ -183,10 +185,14 @@ export async function resolveReferences({ prompt, genre, gameConfig, isNewGame }
 
   // Use genre from gameConfig if available
   const effectiveGenre = genre || gameConfig?.gameType || null;
+  const engineProfile = resolveEngineProfile({ prompt, genre: effectiveGenre, gameConfig });
+  const referenceGenre = engineProfile.templateGenre || effectiveGenre;
+  const templateFile = engineProfile.templateFile || LEGACY_TEMPLATE_MAP[referenceGenre] || null;
 
   console.log(
-    `🔎 Resolving references: genre="${effectiveGenre}", isNew=${isNewGame}, prompt="${(prompt || '').slice(0, 60)}..."`,
+    `🔎 Resolving references: genre="${effectiveGenre}", family="${engineProfile.genreFamily}", engine="${engineProfile.engineId}", isNew=${isNewGame}, prompt="${(prompt || '').slice(0, 60)}..."`,
   );
+  sources.push(`engine:${engineProfile.engineId}:${engineProfile.genreFamily}`);
 
   // ===== 1. CHECK FOR GITHUB URL IN PROMPT =====
   const githubRef = detectGitHubUrl(prompt);
@@ -222,26 +228,26 @@ export async function resolveReferences({ prompt, genre, gameConfig, isNewGame }
   }
 
   // ===== 3. INJECT SPRITE ASSET LIST FOR GENRE (highest priority — injected first) =====
-  if (effectiveGenre) {
+  if (referenceGenre) {
     let assetBlock = '';
     if (USE_POSTGRES) {
       try {
         const sprites = await searchSprites({
           prompt,
-          genre: effectiveGenre,
-          roles: ['player', 'enemy', 'collectible', 'background'],
+          genre: referenceGenre,
+          roles: ['player', 'enemy', 'collectible', 'background', 'other'],
         });
         if (sprites && sprites.length > 0) {
-          assetBlock = formatAssetsFromSearch(sprites, effectiveGenre);
-          sources.push(`assets:search:${effectiveGenre}`);
+          assetBlock = formatAssetsFromSearch(sprites, referenceGenre);
+          sources.push(`assets:search:${referenceGenre}`);
         }
       } catch (err) {
         console.error('⚠️ Sprite search failed (using manifest):', err.message);
       }
     }
     if (!assetBlock) {
-      assetBlock = formatAssetsForPrompt(effectiveGenre);
-      if (assetBlock) sources.push(`assets:${effectiveGenre}`);
+      assetBlock = formatAssetsForPrompt(referenceGenre);
+      if (assetBlock) sources.push(`assets:${referenceGenre}`);
     }
     if (assetBlock && assetBlock.length <= charBudget) {
       parts.push(assetBlock);
@@ -262,10 +268,16 @@ export async function resolveReferences({ prompt, genre, gameConfig, isNewGame }
     lowerPrompt.includes('three.js') ||
     gameConfig?.dimension === '3d';
 
-  if (isNewGame && effectiveGenre && !force3D) {
-    const template = await loadTemplate(effectiveGenre);
+  if (isNewGame && templateFile) {
+    const template = await loadTemplate(
+      templateFile,
+      engineProfile.starterTemplateId || referenceGenre || engineProfile.genreFamily,
+    );
     if (template) {
-      const chunk = formatTemplateReference(template, effectiveGenre);
+      const chunk = formatTemplateReference(
+        template,
+        template.genreLabel || referenceGenre || engineProfile.genreFamily,
+      );
       if (chunk.length <= charBudget) {
         parts.push(chunk);
         charBudget -= chunk.length;
@@ -278,13 +290,15 @@ export async function resolveReferences({ prompt, genre, gameConfig, isNewGame }
 
   // ===== 5. INJECT 3D MODEL LIST (when prompt mentions 3D or genre has 3D models) =====
   {
-    const implies3D = force3D || effectiveGenre === 'parking';
+    const implies3D = force3D || engineProfile.dimension === '3d' || referenceGenre === 'parking';
 
     let modelKey = null;
-    if (effectiveGenre) {
-      const modelGenre3D = effectiveGenre + '-3d';
-      modelKey = MODEL_MANIFEST[effectiveGenre]
-        ? effectiveGenre
+    if (engineProfile.modelPackHint) {
+      modelKey = engineProfile.modelPackHint;
+    } else if (referenceGenre) {
+      const modelGenre3D = referenceGenre + '-3d';
+      modelKey = MODEL_MANIFEST[referenceGenre]
+        ? referenceGenre
         : MODEL_MANIFEST[modelGenre3D]
           ? modelGenre3D
           : implies3D
@@ -305,7 +319,7 @@ export async function resolveReferences({ prompt, genre, gameConfig, isNewGame }
   }
 
   // ===== 6. LOAD RELEVANT SNIPPETS =====
-  const snippets = getRelevantSnippets(effectiveGenre, prompt);
+  const snippets = getRelevantSnippets(referenceGenre || effectiveGenre, prompt);
   for (const snippet of snippets) {
     if (snippet.content.length > charBudget) continue;
     parts.push(formatSnippetReference(snippet));
@@ -316,7 +330,7 @@ export async function resolveReferences({ prompt, genre, gameConfig, isNewGame }
   // ===== BUILD FINAL REFERENCE STRING =====
   if (parts.length === 0) {
     console.log('🔎 No reference material found for this request');
-    return { referenceCode: '', sources: [], totalChars: 0 };
+    return { referenceCode: '', sources, totalChars: 0, engineProfile };
   }
 
   const referenceCode = [
@@ -328,7 +342,7 @@ export async function resolveReferences({ prompt, genre, gameConfig, isNewGame }
   const totalChars = referenceCode.length;
   console.log(`📚 Reference resolved: ${sources.length} sources, ${totalChars} chars (${sources.join(', ')})`);
 
-  return { referenceCode, sources, totalChars };
+  return { referenceCode, sources, totalChars, engineProfile };
 }
 
 // ========== FORMATTING HELPERS ==========

@@ -71,6 +71,41 @@ const SYNONYMS = {
   fish: 'fish',
   tank: 'tank',
   plane: 'plane',
+  soccer: 'sports',
+  football: 'sports',
+  basketball: 'sports',
+  tennis: 'sports',
+  pet: 'pet',
+  pets: 'pet',
+  puppy: 'dog',
+  kitty: 'cat',
+  breakout: 'brick',
+  arkanoid: 'brick',
+  bubbles: 'bubble',
+  rhythm: 'beat',
+  music: 'beat',
+  song: 'beat',
+};
+
+const GENRE_HINT_TERMS = {
+  platformer: ['platform', 'jump'],
+  'endless-runner': ['runner', 'speed'],
+  racing: ['vehicle', 'road'],
+  'street-racing': ['vehicle', 'road'],
+  shooter: ['space', 'laser'],
+  'top-down-shooter': ['space', 'laser'],
+  rpg: ['adventure', 'quest'],
+  puzzle: ['match', 'brain'],
+  clicker: ['tap', 'idle'],
+  'tower-defense': ['tower', 'path'],
+  sports: ['sports', 'ball', 'score'],
+  'pet-sim': ['pet', 'care'],
+  frogger: ['road', 'crossing'],
+  flappy: ['bird', 'arcade'],
+  snake: ['arcade', 'food'],
+  'brick-breaker': ['brick', 'arcade'],
+  'bubble-shooter': ['bubble', 'match'],
+  rhythm: ['beat', 'music'],
 };
 
 /**
@@ -102,6 +137,12 @@ export function extractPromptTerms(prompt) {
   return terms;
 }
 
+function getSearchTerms(prompt, genre) {
+  const promptTerms = extractPromptTerms(prompt || '');
+  const seedTerms = GENRE_HINT_TERMS[genre] || [];
+  return [...new Set([...promptTerms, ...seedTerms])].slice(0, 10);
+}
+
 /**
  * Search sprites by genre, roles, and prompt-derived terms.
  * Role-balanced: fetches up to limitPerRole per role (player, enemy, collectible, background)
@@ -118,15 +159,17 @@ export function extractPromptTerms(prompt) {
 export async function searchSprites({
   prompt,
   genre,
-  roles = ['player', 'enemy', 'collectible', 'background'],
+  roles = ['player', 'enemy', 'collectible', 'background', 'other'],
   limitPerRole = SPRITE_SEARCH_LIMIT_PER_ROLE,
   maxTotal = SPRITE_SEARCH_MAX_TOTAL,
 }) {
   if (!USE_POSTGRES || !genre) return null;
 
-  const terms = extractPromptTerms(prompt || '');
-  const rolesOrder = ['player', 'enemy', 'collectible', 'background'];
-  const rolesArr = Array.isArray(roles) ? roles.filter((r) => rolesOrder.includes(r)) : rolesOrder;
+  const terms = getSearchTerms(prompt || '', genre);
+  const likeTerms = terms.map((term) => `%${term}%`);
+  const rolesOrder = ['player', 'enemy', 'collectible', 'background', 'other'];
+  const requestedRoles = Array.isArray(roles) ? roles : rolesOrder;
+  const rolesArr = [...new Set([...requestedRoles.filter((r) => rolesOrder.includes(r)), 'other'])];
 
   try {
     const { getPool } = await import('./db.js');
@@ -140,10 +183,12 @@ export async function searchSprites({
         return pool.query(
           `SELECT id, path, w, h, tags, roles, genres, note
            FROM sprites
-           WHERE genres @> ARRAY[$1] AND $4 = ANY(roles) AND tags && $2
+           WHERE genres @> ARRAY[$1]
+             AND $4 = ANY(roles)
+             AND (tags && $2 OR path ILIKE ANY($5) OR COALESCE(note, '') ILIKE ANY($5))
            ORDER BY (SELECT COUNT(*) FROM unnest(tags) t WHERE t = ANY($2)) DESC NULLS LAST, created_at
            LIMIT $3`,
-          [genre, terms, limitPerRole, r],
+          [genre, terms, limitPerRole, r, likeTerms],
         );
       }
       return pool.query(

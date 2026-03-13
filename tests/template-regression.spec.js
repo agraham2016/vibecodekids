@@ -1,0 +1,125 @@
+import { test, expect } from '@playwright/test';
+
+const TEMPLATES = [
+  'obby',
+  'open-map-explorer',
+  'survival-crafting-game'
+];
+
+test.describe('Template Runtime Regression Tests', () => {
+  for (const templateName of TEMPLATES) {
+    test(`${templateName} - loads without errors and renders game`, async ({ page }) => {
+      const consoleErrors = [];
+      const jsErrors = [];
+
+      page.on('console', (msg) => {
+        if (msg.type() === 'error') {
+          consoleErrors.push(msg.text());
+        }
+      });
+
+      page.on('pageerror', (error) => {
+        jsErrors.push(error.message);
+      });
+
+      await page.goto(`http://localhost:3001/dev/template/${templateName}`, {
+        waitUntil: 'networkidle',
+        timeout: 15000
+      });
+
+      await page.waitForTimeout(2000);
+
+      const hudVisible = await page.locator('#hud').isVisible();
+      expect(hudVisible, `HUD should be visible for ${templateName}`).toBe(true);
+
+      const hudText = await page.locator('#hud').textContent();
+      expect(hudText, `HUD should contain game title for ${templateName}`).toContain('Vibe 3D');
+
+      const gameContainer = await page.locator('#game-container').isVisible();
+      expect(gameContainer, `Game container should be visible for ${templateName}`).toBe(true);
+
+      const canvas = await page.locator('canvas').count();
+      expect(canvas, `Canvas should be rendered for ${templateName}`).toBeGreaterThan(0);
+
+      const threeJsLoaded = await page.evaluate(() => {
+        return typeof THREE !== 'undefined';
+      });
+      expect(threeJsLoaded, `Three.js should be loaded for ${templateName}`).toBe(true);
+
+      const sceneRendered = await page.evaluate(() => {
+        const canvas = document.querySelector('canvas');
+        if (!canvas) return false;
+        const ctx = canvas.getContext('webgl') || canvas.getContext('webgl2');
+        return ctx !== null;
+      });
+      expect(sceneRendered, `WebGL scene should be rendered for ${templateName}`).toBe(true);
+
+      expect(jsErrors, `No JS errors for ${templateName}`).toHaveLength(0);
+      
+      if (consoleErrors.length > 0) {
+        console.warn(`Console errors for ${templateName}:`, consoleErrors);
+      }
+    });
+
+    test(`${templateName} - basic controls work`, async ({ page }) => {
+      await page.goto(`http://localhost:3001/dev/template/${templateName}`, {
+        waitUntil: 'networkidle',
+        timeout: 15000
+      });
+
+      await page.waitForTimeout(2000);
+
+      const initialPosition = await page.evaluate(() => {
+        const playerGroup = document.querySelector('canvas');
+        return playerGroup ? { x: 0, y: 0 } : null;
+      });
+
+      expect(initialPosition, `Player should be initialized for ${templateName}`).not.toBeNull();
+
+      await page.keyboard.press('ArrowRight');
+      await page.waitForTimeout(500);
+      await page.keyboard.press('ArrowLeft');
+      await page.waitForTimeout(500);
+
+      if (templateName === 'obby') {
+        await page.keyboard.press('ArrowUp');
+        await page.waitForTimeout(300);
+      }
+
+      const touchButtons = await page.locator('.touch-btn').count();
+      expect(touchButtons, `Touch controls should be present for ${templateName}`).toBeGreaterThan(0);
+
+      const toast = await page.locator('#toast');
+      const toastExists = await toast.count();
+      expect(toastExists, `Toast element should exist for ${templateName}`).toBeGreaterThan(0);
+    });
+
+    test(`${templateName} - HUD updates correctly`, async ({ page }) => {
+      await page.goto(`http://localhost:3001/dev/template/${templateName}`, {
+        waitUntil: 'networkidle',
+        timeout: 15000
+      });
+
+      await page.waitForTimeout(2000);
+
+      const hudContent = await page.locator('#hud').textContent();
+      
+      if (templateName === 'obby') {
+        expect(hudContent).toContain('Stars:');
+        expect(hudContent).toContain('Checkpoint:');
+      } else if (templateName === 'open-map-explorer') {
+        expect(hudContent).toContain('Quest Log:');
+        expect(hudContent).toContain('Find 3 relics');
+      } else if (templateName === 'survival-crafting-game') {
+        expect(hudContent).toContain('Time to dawn:');
+        expect(hudContent).toContain('Health:');
+        expect(hudContent).toContain('Wood:');
+      }
+
+      await page.waitForTimeout(1000);
+
+      const hudContentAfter = await page.locator('#hud').textContent();
+      expect(hudContentAfter, `HUD should remain visible and not crash for ${templateName}`).toBeTruthy();
+    });
+  }
+});

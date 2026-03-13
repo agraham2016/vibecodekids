@@ -1,5 +1,13 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { GameConfig, GameType } from '../types';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { GameConfig, StarterTemplateId } from '../types';
+import {
+  STARTER_TEMPLATES,
+  THEMES_BY_FAMILY,
+  CHARACTERS_BY_FAMILY,
+  CHALLENGES_BY_FAMILY,
+  VISUAL_STYLES,
+  getStarterTemplateById,
+} from '../config/gameCatalog';
 import './GameSurvey.css';
 
 interface GameSurveyProps {
@@ -8,275 +16,6 @@ interface GameSurveyProps {
 
 // ========== SURVEY DATA ==========
 
-const GAME_TYPES = [
-  { value: 'racing', icon: '🏎️', label: 'Racing' },
-  { value: 'shooter', icon: '🚀', label: 'Space Blaster' },
-  { value: 'platformer', icon: '🦘', label: 'Platformer' },
-  { value: 'frogger', icon: '🐸', label: 'Frogger' },
-  { value: 'puzzle', icon: '🧩', label: 'Puzzle' },
-  { value: 'clicker', icon: '👆', label: 'Clicker' },
-  { value: 'rpg', icon: '⚔️', label: 'RPG' },
-  { value: 'treasure-diver', icon: '🤿', label: 'Treasure Diver' },
-  { value: 'trash-sorter', icon: '♻️', label: 'Trash Sorter' },
-  { value: 'fruit-slice', icon: '🍉', label: 'Fruit Slice' },
-  { value: 'tower-stack', icon: '🏗️', label: 'Tower Stack' },
-  { value: 'find-the-friend', icon: '🔍', label: 'Find the Friend' },
-];
-
-const THEMES: Record<string, { icon: string; label: string; value: string }[]> = {
-  racing: [
-    { icon: '🚀', label: 'Space', value: 'space' },
-    { icon: '🏙️', label: 'City', value: 'city' },
-    { icon: '🌊', label: 'Underwater', value: 'underwater' },
-    { icon: '🌴', label: 'Jungle', value: 'jungle' },
-    { icon: '🏜️', label: 'Desert', value: 'desert' },
-  ],
-  shooter: [
-    { icon: '🌌', label: 'Space', value: 'space' },
-    { icon: '🧟', label: 'Zombie', value: 'zombie' },
-    { icon: '🤖', label: 'Robot', value: 'robot' },
-    { icon: '🐉', label: 'Fantasy', value: 'fantasy' },
-    { icon: '🌊', label: 'Ocean', value: 'ocean' },
-  ],
-  platformer: [
-    { icon: '🍄', label: 'Mushroom World', value: 'mushroom' },
-    { icon: '🏰', label: 'Castle', value: 'castle' },
-    { icon: '🌌', label: 'Space', value: 'space' },
-    { icon: '🍬', label: 'Candy Land', value: 'candy' },
-    { icon: '🌋', label: 'Volcano', value: 'volcano' },
-  ],
-  frogger: [
-    { icon: '🏙️', label: 'Busy Street', value: 'city' },
-    { icon: '🌊', label: 'River', value: 'river' },
-    { icon: '🚀', label: 'Space', value: 'space' },
-    { icon: '🌴', label: 'Jungle', value: 'jungle' },
-    { icon: '❄️', label: 'Ice World', value: 'ice' },
-  ],
-  puzzle: [
-    { icon: '🐾', label: 'Animals', value: 'animals' },
-    { icon: '🌌', label: 'Space', value: 'space' },
-    { icon: '🍕', label: 'Food', value: 'food' },
-    { icon: '🎃', label: 'Spooky', value: 'spooky' },
-    { icon: '🌈', label: 'Rainbow', value: 'rainbow' },
-  ],
-  clicker: [
-    { icon: '🍪', label: 'Cookie/Food', value: 'food' },
-    { icon: '💰', label: 'Money', value: 'money' },
-    { icon: '🚀', label: 'Space', value: 'space' },
-    { icon: '🧙', label: 'Magic', value: 'magic' },
-    { icon: '🏭', label: 'Factory', value: 'factory' },
-  ],
-  rpg: [
-    { icon: '🌲', label: 'Enchanted Forest', value: 'forest' },
-    { icon: '🏰', label: 'Castle Kingdom', value: 'castle' },
-    { icon: '🌌', label: 'Space', value: 'space' },
-    { icon: '🌊', label: 'Underwater', value: 'underwater' },
-    { icon: '🏜️', label: 'Desert', value: 'desert' },
-  ],
-  'treasure-diver': [
-    { icon: '🌊', label: 'Ocean', value: 'ocean' },
-    { icon: '🏝️', label: 'Tropical', value: 'tropical' },
-    { icon: '🧊', label: 'Arctic', value: 'arctic' },
-    { icon: '🌋', label: 'Volcanic', value: 'volcanic' },
-  ],
-  'trash-sorter': [
-    { icon: '🏫', label: 'School', value: 'school' },
-    { icon: '🏠', label: 'Home', value: 'home' },
-    { icon: '🏭', label: 'Factory', value: 'factory' },
-    { icon: '🌳', label: 'Park', value: 'park' },
-  ],
-  'fruit-slice': [
-    { icon: '🍉', label: 'Fruit Stand', value: 'fruit-stand' },
-    { icon: '🍬', label: 'Candy', value: 'candy' },
-    { icon: '🌌', label: 'Space', value: 'space' },
-    { icon: '🎃', label: 'Spooky', value: 'spooky' },
-  ],
-  'tower-stack': [
-    { icon: '🏙️', label: 'City', value: 'city' },
-    { icon: '🌌', label: 'Space', value: 'space' },
-    { icon: '🍬', label: 'Candy', value: 'candy' },
-    { icon: '❄️', label: 'Ice', value: 'ice' },
-  ],
-  'find-the-friend': [
-    { icon: '🏞️', label: 'Park', value: 'park' },
-    { icon: '🏰', label: 'Castle', value: 'castle' },
-    { icon: '🌲', label: 'Forest', value: 'forest' },
-    { icon: '🌊', label: 'Beach', value: 'beach' },
-  ],
-};
-
-const CHARACTERS: Record<string, { icon: string; label: string; value: string }[]> = {
-  racing: [
-    { icon: '🏎️', label: 'Race Car', value: 'race car' },
-    { icon: '🚀', label: 'Spaceship', value: 'spaceship' },
-    { icon: '🏍️', label: 'Motorcycle', value: 'motorcycle' },
-    { icon: '🦄', label: 'Unicorn', value: 'unicorn' },
-    { icon: '🤖', label: 'Robot', value: 'robot' },
-  ],
-  shooter: [
-    { icon: '🚀', label: 'Spaceship', value: 'spaceship' },
-    { icon: '🦸', label: 'Hero', value: 'hero' },
-    { icon: '🤖', label: 'Mech', value: 'mech' },
-    { icon: '🧙', label: 'Wizard', value: 'wizard' },
-    { icon: '🐱‍👤', label: 'Ninja', value: 'ninja' },
-  ],
-  platformer: [
-    { icon: '🦊', label: 'Fox', value: 'fox' },
-    { icon: '🤖', label: 'Robot', value: 'robot' },
-    { icon: '🧑‍🚀', label: 'Astronaut', value: 'astronaut' },
-    { icon: '🐱', label: 'Cat', value: 'cat' },
-    { icon: '🦸', label: 'Hero', value: 'hero' },
-  ],
-  frogger: [
-    { icon: '🐸', label: 'Frog', value: 'frog' },
-    { icon: '🐔', label: 'Chicken', value: 'chicken' },
-    { icon: '🐢', label: 'Turtle', value: 'turtle' },
-    { icon: '🦄', label: 'Unicorn', value: 'unicorn' },
-    { icon: '🐱', label: 'Cat', value: 'cat' },
-  ],
-  puzzle: [
-    { icon: '🃏', label: 'Cards', value: 'cards' },
-    { icon: '💎', label: 'Gems', value: 'gems' },
-    { icon: '🎨', label: 'Colors', value: 'colors' },
-    { icon: '🧩', label: 'Shapes', value: 'shapes' },
-    { icon: '⭐', label: 'Stars', value: 'stars' },
-  ],
-  clicker: [
-    { icon: '🍪', label: 'Cookie', value: 'cookie' },
-    { icon: '💰', label: 'Coins', value: 'coins' },
-    { icon: '⚡', label: 'Energy', value: 'energy' },
-    { icon: '🔮', label: 'Magic Orb', value: 'magic orb' },
-    { icon: '🌟', label: 'Stars', value: 'stars' },
-  ],
-  rpg: [
-    { icon: '🧙', label: 'Wizard', value: 'wizard' },
-    { icon: '⚔️', label: 'Knight', value: 'knight' },
-    { icon: '🧝', label: 'Elf', value: 'elf' },
-    { icon: '🦸', label: 'Hero', value: 'hero' },
-    { icon: '🐉', label: 'Dragon Rider', value: 'dragon rider' },
-  ],
-  'treasure-diver': [
-    { icon: '🤿', label: 'Diver', value: 'diver' },
-    { icon: '🐠', label: 'Fish', value: 'fish' },
-    { icon: '🐢', label: 'Turtle', value: 'turtle' },
-    { icon: '🧜', label: 'Mermaid', value: 'mermaid' },
-  ],
-  'trash-sorter': [
-    { icon: '🧒', label: 'Kid Helper', value: 'kid' },
-    { icon: '🤖', label: 'Robot', value: 'robot' },
-    { icon: '🐱', label: 'Cat', value: 'cat' },
-    { icon: '🦸', label: 'Eco Hero', value: 'eco hero' },
-  ],
-  'fruit-slice': [
-    { icon: '🗡️', label: 'Blade', value: 'blade' },
-    { icon: '⚡', label: 'Lightning', value: 'lightning' },
-    { icon: '🌟', label: 'Star', value: 'star' },
-    { icon: '🧙', label: 'Magic Wand', value: 'wand' },
-  ],
-  'tower-stack': [
-    { icon: '🧱', label: 'Bricks', value: 'bricks' },
-    { icon: '🍬', label: 'Candy Blocks', value: 'candy' },
-    { icon: '🧊', label: 'Ice Blocks', value: 'ice' },
-    { icon: '🌈', label: 'Rainbow', value: 'rainbow' },
-  ],
-  'find-the-friend': [
-    { icon: '🐶', label: 'Puppy', value: 'puppy' },
-    { icon: '🐱', label: 'Kitten', value: 'kitten' },
-    { icon: '🐰', label: 'Bunny', value: 'bunny' },
-    { icon: '🧸', label: 'Teddy Bear', value: 'teddy' },
-  ],
-};
-
-const OBSTACLES: Record<string, { icon: string; label: string; value: string }[]> = {
-  racing: [
-    { icon: '🚗', label: 'Cars', value: 'cars' },
-    { icon: '☄️', label: 'Asteroids', value: 'asteroids' },
-    { icon: '🪨', label: 'Rocks', value: 'rocks' },
-    { icon: '🌵', label: 'Cactus', value: 'cactus' },
-    { icon: '💣', label: 'Bombs', value: 'bombs' },
-  ],
-  shooter: [
-    { icon: '👾', label: 'Aliens', value: 'aliens' },
-    { icon: '🧟', label: 'Zombies', value: 'zombies' },
-    { icon: '🤖', label: 'Robots', value: 'robots' },
-    { icon: '🐉', label: 'Dragons', value: 'dragons' },
-    { icon: '☄️', label: 'Meteors', value: 'meteors' },
-  ],
-  platformer: [
-    { icon: '🦇', label: 'Bats', value: 'bats' },
-    { icon: '🌵', label: 'Spikes', value: 'spikes' },
-    { icon: '👻', label: 'Ghosts', value: 'ghosts' },
-    { icon: '🔥', label: 'Fire', value: 'fire' },
-    { icon: '🐍', label: 'Snakes', value: 'snakes' },
-  ],
-  frogger: [
-    { icon: '🚗', label: 'Cars', value: 'cars' },
-    { icon: '🚚', label: 'Trucks', value: 'trucks' },
-    { icon: '🐊', label: 'Crocodiles', value: 'crocodiles' },
-    { icon: '🌊', label: 'Water', value: 'water' },
-    { icon: '🚂', label: 'Trains', value: 'trains' },
-  ],
-  puzzle: [
-    { icon: '⏰', label: 'Time Limit', value: 'time limit' },
-    { icon: '🔒', label: 'Locked Tiles', value: 'locked tiles' },
-    { icon: '💣', label: 'Bombs', value: 'bombs' },
-    { icon: '🌀', label: 'Shuffle', value: 'shuffle' },
-    { icon: '🧊', label: 'Frozen', value: 'frozen pieces' },
-  ],
-  clicker: [
-    { icon: '⏰', label: 'Cooldowns', value: 'cooldowns' },
-    { icon: '💸', label: 'Taxes', value: 'taxes' },
-    { icon: '🐛', label: 'Bugs', value: 'bugs' },
-    { icon: '⚡', label: 'Power Drain', value: 'power drain' },
-    { icon: '🌪️', label: 'Random Events', value: 'random events' },
-  ],
-  rpg: [
-    { icon: '🐺', label: 'Wolves', value: 'wolves' },
-    { icon: '💀', label: 'Skeletons', value: 'skeletons' },
-    { icon: '🧌', label: 'Trolls', value: 'trolls' },
-    { icon: '🐉', label: 'Dragons', value: 'dragons' },
-    { icon: '👻', label: 'Ghosts', value: 'ghosts' },
-  ],
-  'treasure-diver': [
-    { icon: '🪼', label: 'Jellyfish', value: 'jellyfish' },
-    { icon: '🦈', label: 'Sharks', value: 'sharks' },
-    { icon: '🐙', label: 'Octopus', value: 'octopus' },
-    { icon: '🌊', label: 'Currents', value: 'currents' },
-  ],
-  'trash-sorter': [
-    { icon: '⏰', label: 'Speed Up', value: 'speed up' },
-    { icon: '❓', label: 'Mystery Items', value: 'mystery' },
-    { icon: '💣', label: 'Trick Items', value: 'trick items' },
-    { icon: '🌀', label: 'Mixed Up', value: 'mixed up' },
-  ],
-  'fruit-slice': [
-    { icon: '💣', label: 'Bombs', value: 'bombs' },
-    { icon: '🧊', label: 'Ice Cubes', value: 'ice' },
-    { icon: '⏰', label: 'Timer', value: 'timer' },
-    { icon: '🌪️', label: 'Speed Fruit', value: 'speed' },
-  ],
-  'tower-stack': [
-    { icon: '💨', label: 'Wind', value: 'wind' },
-    { icon: '⚡', label: 'Speed Up', value: 'speed' },
-    { icon: '🧊', label: 'Slippery', value: 'slippery' },
-    { icon: '🌀', label: 'Shrinking', value: 'shrinking' },
-  ],
-  'find-the-friend': [
-    { icon: '⏰', label: 'Timer', value: 'timer' },
-    { icon: '🌀', label: 'Decoys', value: 'decoys' },
-    { icon: '🌫️', label: 'Fog', value: 'fog' },
-    { icon: '🔀', label: 'Shuffling', value: 'shuffling' },
-  ],
-};
-
-const VISUAL_STYLES = [
-  { icon: '💜', label: 'Neon Glow', value: 'neon' },
-  { icon: '👾', label: 'Retro Pixel', value: 'retro' },
-  { icon: '🌈', label: 'Cute & Colorful', value: 'cute' },
-  { icon: '🌙', label: 'Dark & Spooky', value: 'spooky' },
-  { icon: '✨', label: 'Clean & Simple', value: 'clean' },
-];
-
 // ========== SURVEY STEPS ==========
 
 type SurveyStep = 'gameType' | 'theme' | 'character' | 'obstacles' | 'visualStyle' | 'done';
@@ -284,7 +23,8 @@ type SurveyStep = 'gameType' | 'theme' | 'character' | 'obstacles' | 'visualStyl
 const STEP_ORDER: SurveyStep[] = ['gameType', 'theme', 'character', 'obstacles', 'visualStyle', 'done'];
 
 const BOT_MESSAGES: Record<string, string> = {
-  gameType: 'Hey there! What kind of game do you want to make today? Pick one or tell me your idea!',
+  gameType:
+    'Hey there! Pick a starter game and I will build around it, or type your own idea and I will choose a great engine path!',
   theme: 'Awesome choice! Where does your game take place?',
   character: 'Cool! Who or what do you control in the game?',
   obstacles: 'Nice! What do you have to dodge or fight?',
@@ -341,12 +81,59 @@ export default function GameSurvey({ onComplete }: GameSurveyProps) {
     };
   }, []);
 
+  const selectedStarter = useMemo(
+    () =>
+      getStarterTemplateById((answers.starterTemplateId || 'platformer') as StarterTemplateId) || STARTER_TEMPLATES[0],
+    [answers.starterTemplateId],
+  );
+
+  const pickStarterFromText = useCallback((value: string) => {
+    const lower = value.toLowerCase();
+    return (
+      STARTER_TEMPLATES.find((template) => {
+        const haystack =
+          `${template.label} ${template.shortLabel} ${template.description} ${template.promptHint}`.toLowerCase();
+        return (
+          haystack.includes(lower) ||
+          lower.includes(template.id.replace(/-/g, ' ')) ||
+          lower.includes(template.shortLabel.toLowerCase())
+        );
+      }) ||
+      (/\b3d\b|\broblox\b|\bobby\b/.test(lower)
+        ? getStarterTemplateById('obby')
+        : /\bsurvival\b|\bcraft\b|\bbuild\b/.test(lower)
+          ? getStarterTemplateById('survival-crafting-game')
+          : /\bpet\b|\banimal\b/.test(lower)
+            ? getStarterTemplateById('pet-care-simulator')
+            : /\brace\b|\bracing\b|\bcar\b/.test(lower)
+              ? getStarterTemplateById('simple-racing')
+              : /\bmaze\b|\bescape\b|\bdetective\b|\bmystery\b/.test(lower)
+                ? getStarterTemplateById('maze-escape')
+                : STARTER_TEMPLATES[0])
+    );
+  }, []);
+
   const advanceStep = (userAnswer: string, configKey: keyof GameConfig, configValue: string) => {
     // Add user answer to chat
     const newHistory = [...chatHistory, { role: 'user' as const, text: userAnswer }];
 
     // Update answers
-    const newAnswers = { ...answers, [configKey]: configValue };
+    let newAnswers: Partial<GameConfig> = { ...answers, [configKey]: configValue };
+    if (configKey === 'gameType') {
+      const starter = getStarterTemplateById(configValue as StarterTemplateId) || pickStarterFromText(userAnswer);
+      newAnswers = {
+        ...newAnswers,
+        gameType: starter.id,
+        engineId: starter.engineId,
+        genreFamily: starter.genreFamily,
+        starterTemplateId: starter.id,
+        dimension: starter.dimension,
+        theme: answers.theme || starter.defaultTheme,
+        character: answers.character || starter.defaultCharacter,
+        obstacles: answers.obstacles || starter.defaultObstacle,
+        customNotes: starter.id === configValue ? answers.customNotes || '' : userAnswer,
+      };
+    }
     setAnswers(newAnswers);
     setFreeText('');
     setIsAnimating(true);
@@ -364,14 +151,21 @@ export default function GameSurvey({ onComplete }: GameSurveyProps) {
 
       // If we reached 'done', complete the survey
       if (nextStep === 'done') {
+        const starter =
+          getStarterTemplateById(
+            (newAnswers.starterTemplateId || newAnswers.gameType || 'platformer') as StarterTemplateId,
+          ) || STARTER_TEMPLATES[0];
         const finalConfig: GameConfig = {
-          gameType: (newAnswers.gameType || 'platformer') as GameType,
-          dimension: '2d',
-          theme: newAnswers.theme || 'space',
-          character: newAnswers.character || 'hero',
-          obstacles: newAnswers.obstacles || 'enemies',
+          gameType: (newAnswers.gameType || starter.id) as GameConfig['gameType'],
+          engineId: newAnswers.engineId || starter.engineId,
+          genreFamily: newAnswers.genreFamily || starter.genreFamily,
+          starterTemplateId: (newAnswers.starterTemplateId || starter.id) as StarterTemplateId,
+          dimension: newAnswers.dimension || starter.dimension,
+          theme: newAnswers.theme || starter.defaultTheme,
+          character: newAnswers.character || starter.defaultCharacter,
+          obstacles: newAnswers.obstacles || starter.defaultObstacle,
           visualStyle: newAnswers.visualStyle || 'neon',
-          customNotes: '',
+          customNotes: newAnswers.customNotes || '',
         };
         // Small delay so the kid sees the "building" message
         setTimeout(() => onComplete(finalConfig), 1000);
@@ -419,16 +213,20 @@ export default function GameSurvey({ onComplete }: GameSurveyProps) {
 
   // Get options for current step
   const getCurrentOptions = () => {
-    const gameType = answers.gameType || 'racing';
+    const family = selectedStarter.genreFamily;
     switch (step) {
       case 'gameType':
-        return GAME_TYPES;
+        return STARTER_TEMPLATES.map((template) => ({
+          icon: template.icon,
+          label: `${template.label} (${template.dimension.toUpperCase()})`,
+          value: template.id,
+        }));
       case 'theme':
-        return THEMES[gameType] || THEMES.racing;
+        return THEMES_BY_FAMILY[family];
       case 'character':
-        return CHARACTERS[gameType] || CHARACTERS.racing;
+        return CHARACTERS_BY_FAMILY[family];
       case 'obstacles':
-        return OBSTACLES[gameType] || OBSTACLES.racing;
+        return CHALLENGES_BY_FAMILY[family];
       case 'visualStyle':
         return VISUAL_STYLES;
       default:
@@ -514,7 +312,8 @@ export default function GameSurvey({ onComplete }: GameSurveyProps) {
         <div className="survey-building">
           <div className="building-spinner" />
           <p>
-            Building your {answers.theme} {answers.gameType} game...
+            Building your {answers.theme} {selectedStarter.shortLabel} with{' '}
+            {selectedStarter.engineId === 'vibe-3d' ? 'Vibe 3D' : 'Vibe 2D'}...
           </p>
         </div>
       )}

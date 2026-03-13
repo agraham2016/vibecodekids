@@ -6,6 +6,38 @@
 
 ---
 
+## PART 0: VIBE ENGINE ROLLOUT
+
+`Vibe 2D Engine` and `Vibe 3D Engine` are now the organizing layer for template growth.
+Templates should be grouped into engine families rather than added as isolated one-offs.
+
+### Vibe 2D starter families
+
+- `platformAction` — platformer, endless runner
+- `topDownAction` — maze escape, top-down adventure
+- `puzzleCasual` — matching game, memory cards
+- `racingArcade` — simple racing
+- `simLite` — pet care simulator, fishing game
+- `builderTycoonLite` — lemonade stand tycoon, farming game
+- `strategyDefenseLite` — tower defense
+- `rpgProgressionLite` — dungeon crawler, creature collector
+
+### Vibe 3D starter families
+
+- `obbyPlatform3d` — obby
+- `explorationAdventure3d` — open map explorer
+- `racingDriving3d` — stunt racer 3D
+- `survivalCraft3d` — survival crafting game
+- `sandboxBuilder3d` — house builder
+
+### Hero rollout order
+
+1. Upgrade the strongest existing 2D starters first.
+2. Add reusable family modules before adding more one-off templates.
+3. Build real 3D hero templates so `Vibe 3D` stops depending on prompt-only generation.
+
+---
+
 ## PART 1: EXISTING TEMPLATES (DO NOT DUPLICATE)
 
 These 18 templates already exist in `server/templates/`:

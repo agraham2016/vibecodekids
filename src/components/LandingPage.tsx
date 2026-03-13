@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { trackPageView, trackCtaClick } from '../lib/marketingEvents';
+import { LONG_TERM_FAMILY_SHOWCASE, STARTER_TEMPLATES } from '../config/gameCatalog';
 import './LandingPage.css';
 
 interface LandingPageProps {
@@ -16,6 +17,17 @@ interface FeaturedGame {
   genre?: string;
 }
 
+const GAME_TEMPLATES = STARTER_TEMPLATES.map((template) => ({
+  title: template.label,
+  genre: template.engineId === 'vibe-3d' ? 'Vibe 3D' : 'Vibe 2D',
+  description: template.description,
+  gradient: template.gradient,
+  emoji: template.icon,
+  dimension: template.dimension.toUpperCase(),
+  family: template.genreFamily,
+}));
+
+const ENGINE_FAMILY_SHOWCASE = LONG_TERM_FAMILY_SHOWCASE;
 const SHOWCASE_NAMES = [
   'Mia',
   'Jayden',
@@ -338,7 +350,49 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
           </section>
         )}
 
-        {/* ── 6. Founder Story ── */}
+        {/* ── 6. Template Grid (existing) ── */}
+        <section className="template-showcase">
+          <h2 className="section-heading">Vibe 2D + Vibe 3D Starter Lineup</h2>
+          <p className="section-subheading">
+            Start with a polished engine path, then remix it into something totally yours
+          </p>
+          <div className="scratch-examples">
+            {ENGINE_FAMILY_SHOWCASE.map((family) => (
+              <div key={family.family} className="scratch-card">
+                <span className="scratch-card-icon" aria-hidden="true">
+                  {family.engineId === 'vibe-3d' ? '🧊' : '🧠'}
+                </span>
+                <span className="scratch-card-quote">
+                  <strong>{family.label}:</strong> {family.examples.join(', ')}
+                </span>
+              </div>
+            ))}
+          </div>
+          <div className="template-grid">
+            {GAME_TEMPLATES.map((tmpl) => (
+              <button
+                key={tmpl.title}
+                className="template-card"
+                onClick={() => handleCta(`template-${tmpl.genre}`, 'templates')}
+              >
+                <div className="template-card-bg" style={{ background: tmpl.gradient }}>
+                  <span className="template-card-emoji" aria-hidden="true">
+                    {tmpl.emoji}
+                  </span>
+                </div>
+                <div className="template-card-info">
+                  <span className="template-card-genre">
+                    {tmpl.genre} · {tmpl.dimension}
+                  </span>
+                  <span className="template-card-title">{tmpl.title}</span>
+                  <span className="template-card-desc">{tmpl.description}</span>
+                </div>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        {/* ── 7. Founder Story ── */}
         <section className="founder-story-section">
           <h2 className="section-heading">A Better Middle Path for AI</h2>
           <p className="section-subheading">
@@ -383,7 +437,7 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
           </div>
         </section>
 
-        {/* ── 7. Start With A Playable Game ── */}
+        {/* ── 8. Start With A Playable Game ── */}
         <section className="scratch-section">
           <h2 className="scratch-title">Start With a Playable Game. Then Make It Yours.</h2>
           <p className="scratch-subtitle">

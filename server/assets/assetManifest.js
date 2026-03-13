@@ -4,79 +4,170 @@
  * The reference resolver injects the relevant subset into the AI prompt.
  */
 
+import { existsSync, readdirSync } from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { SPRITE_ASSET_MAX_CHARS } from '../config/index.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const PUBLIC_DIR = path.join(__dirname, '..', '..', 'public');
+const SPRITES_DIR = path.join(PUBLIC_DIR, 'assets', 'sprites');
+
+function assetUrlToPublicPath(assetUrl) {
+  return path.join(
+    PUBLIC_DIR,
+    String(assetUrl || '')
+      .replace(/^\/+/, '')
+      .replace(/\//g, path.sep),
+  );
+}
+
+function collectSampleSpritePaths(dirPath, relativePrefix, depth = 0, max = 4) {
+  if (!existsSync(dirPath) || depth > 2) return [];
+
+  const entries = readdirSync(dirPath, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name));
+  const files = [];
+
+  for (const entry of entries) {
+    const fullPath = path.join(dirPath, entry.name);
+    const relativePath = `${relativePrefix}/${entry.name}`.replace(/\\/g, '/');
+    if (entry.isFile() && /\.(png|jpg|jpeg|webp)$/i.test(entry.name)) {
+      files.push(relativePath);
+      if (files.length >= max) return files;
+    }
+  }
+
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue;
+    const nested = collectSampleSpritePaths(
+      path.join(dirPath, entry.name),
+      `${relativePrefix}/${entry.name}`,
+      depth + 1,
+      max - files.length,
+    );
+    files.push(...nested);
+    if (files.length >= max) break;
+  }
+
+  return files;
+}
+
+function discoverSpritePacks() {
+  if (!existsSync(SPRITES_DIR)) return {};
+
+  const packs = {};
+  for (const entry of readdirSync(SPRITES_DIR, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+    const packName = entry.name;
+    const basePath = `/assets/sprites/${packName}`;
+    const samplePaths = collectSampleSpritePaths(path.join(SPRITES_DIR, packName), basePath);
+    if (samplePaths.length > 0) {
+      packs[packName] = { basePath, samplePaths };
+    }
+  }
+  return packs;
+}
+
+const DISCOVERED_SPRITE_PACKS = discoverSpritePacks();
+const DISCOVERED_PACK_ALIASES = {
+  'top-down-shooter': ['shooter'],
+  'brick-breaker': ['brick-breaker', 'puzzle'],
+  'bubble-shooter': ['bubble-shooter', 'puzzle'],
+  'tower-defense': ['tower-defense'],
+  'pet-sim': ['pet-sim'],
+  'endless-runner': ['endless-runner', 'platformer'],
+};
+
+function getRelevantDiscoveredPacks(genre) {
+  const requested = [genre, ...(DISCOVERED_PACK_ALIASES[genre] || [])].filter(Boolean);
+  return requested
+    .filter((name, index) => requested.indexOf(name) === index)
+    .map((name) => [name, DISCOVERED_SPRITE_PACKS[name]])
+    .filter(([, pack]) => !!pack);
+}
+
+function getAvailableModels(entry) {
+  if (!entry?.models?.length) return [];
+  return entry.models.filter((model) => existsSync(assetUrlToPublicPath(model.path)));
+}
+
+function hasRequiredSiblingTextures(models) {
+  if (!models.length) return false;
+  return models.some((model) => {
+    const modelDir = path.dirname(assetUrlToPublicPath(model.path));
+    return existsSync(path.join(modelDir, 'Textures', 'colormap.png'));
+  });
+}
 
 export const ASSET_MANIFEST = {
   platformer: {
     sprites: [
-      { key: 'player', path: '/assets/sprites/kenney-platformer/character_green_idle.png', w: 32, h: 32 },
-      { key: 'playerJump', path: '/assets/sprites/kenney-platformer/character_green_jump.png', w: 32, h: 32 },
-      { key: 'playerWalkA', path: '/assets/sprites/kenney-platformer/character_green_walk_a.png', w: 32, h: 32 },
-      { key: 'playerWalkB', path: '/assets/sprites/kenney-platformer/character_green_walk_b.png', w: 32, h: 32 },
-      { key: 'ground', path: '/assets/sprites/kenney-platformer/terrain_grass_block.png', w: 32, h: 32 },
-      { key: 'platform', path: '/assets/sprites/kenney-platformer/block_plank.png', w: 32, h: 32 },
-      { key: 'coin', path: '/assets/sprites/kenney-platformer/coin_gold.png', w: 32, h: 32 },
-      { key: 'enemy', path: '/assets/sprites/kenney-platformer/slime_normal_rest.png', w: 32, h: 32 },
+      {
+        key: 'player',
+        path: '/assets/sprites/platformer/player.png',
+        w: 48,
+        h: 48,
+        note: 'uploaded platformer player',
+      },
+      { key: 'enemy', path: '/assets/sprites/platformer/enemy.png', w: 48, h: 48, note: 'uploaded platformer enemy' },
+      { key: 'coin', path: '/assets/sprites/platformer/coin.png', w: 32, h: 32, note: 'uploaded platformer coin' },
+      { key: 'platform', path: '/assets/sprites/platformer/platform.png', w: 96, h: 24, note: 'uploaded platform' },
+      {
+        key: 'tiles',
+        path: '/assets/sprites/platformer/tiles.png',
+        w: 128,
+        h: 128,
+        note: 'uploaded tilesheet for terrain variety',
+      },
       { key: 'bgSky', path: '/assets/sprites/kenney-platformer/background_solid_sky.png', w: 128, h: 128 },
-      { key: 'bgHills', path: '/assets/sprites/kenney-platformer/background_color_hills.png', w: 128, h: 128 },
     ],
     sounds: [],
   },
   'endless-runner': {
     sprites: [
-      { key: 'player', path: '/assets/sprites/kenney-platformer/character_green_idle.png', w: 32, h: 32 },
-      { key: 'playerJump', path: '/assets/sprites/kenney-platformer/character_green_jump.png', w: 32, h: 32 },
-      { key: 'ground', path: '/assets/sprites/kenney-platformer/terrain_grass_block.png', w: 32, h: 32 },
-      { key: 'obstacle', path: '/assets/sprites/kenney-platformer/slime_normal_rest.png', w: 32, h: 32 },
-      { key: 'coin', path: '/assets/sprites/kenney-platformer/coin_gold.png', w: 32, h: 32 },
+      {
+        key: 'player',
+        path: '/assets/sprites/endless-runner/player.png',
+        w: 48,
+        h: 48,
+        note: 'uploaded endless runner player',
+      },
+      {
+        key: 'ground',
+        path: '/assets/sprites/endless-runner/ground.png',
+        w: 128,
+        h: 32,
+        note: 'uploaded running ground',
+      },
+      { key: 'obstacle', path: '/assets/sprites/endless-runner/obstacle.png', w: 40, h: 48, note: 'uploaded obstacle' },
+      { key: 'coin', path: '/assets/sprites/endless-runner/coin.png', w: 28, h: 28, note: 'uploaded coin' },
       { key: 'bgSky', path: '/assets/sprites/kenney-platformer/background_solid_sky.png', w: 128, h: 128 },
     ],
     sounds: [],
   },
   racing: {
     sprites: [
-      {
-        key: 'car-player',
-        path: '/assets/sprites/kenney-racing/Cars/car_blue_1.png',
-        w: 48,
-        h: 80,
-        note: 'top-down blue car',
-      },
+      { key: 'car-player', path: '/assets/sprites/racing/car-player.png', w: 48, h: 80, note: 'uploaded player car' },
       {
         key: 'car-obstacle',
-        path: '/assets/sprites/kenney-racing/Cars/car_red_1.png',
+        path: '/assets/sprites/racing/car-obstacle.png',
         w: 48,
         h: 80,
-        note: 'top-down red car',
+        note: 'uploaded obstacle car',
       },
-      { key: 'car-green', path: '/assets/sprites/kenney-racing/Cars/car_green_1.png', w: 48, h: 80 },
-      { key: 'car-yellow', path: '/assets/sprites/kenney-racing/Cars/car_yellow_1.png', w: 48, h: 80 },
-      { key: 'oil', path: '/assets/sprites/kenney-racing/Objects/oil.png', w: 32, h: 32 },
+      { key: 'road', path: '/assets/sprites/racing/road.png', w: 128, h: 128, note: 'uploaded road strip' },
       { key: 'cone', path: '/assets/sprites/kenney-racing/Objects/cone_straight.png', w: 16, h: 24 },
-      { key: 'barrier', path: '/assets/sprites/kenney-racing/Objects/barrier_red.png', w: 48, h: 16 },
-      { key: 'tires', path: '/assets/sprites/kenney-racing/Objects/tires_red.png', w: 32, h: 32 },
     ],
     sounds: [],
   },
   shooter: {
     sprites: [
-      {
-        key: 'ship',
-        path: '/assets/sprites/kenney-space-shooter/playerShip1_blue.png',
-        w: 64,
-        h: 64,
-        note: 'player spaceship',
-      },
-      { key: 'enemy1', path: '/assets/sprites/kenney-space-shooter/Enemies/enemyRed1.png', w: 48, h: 48 },
-      { key: 'enemy2', path: '/assets/sprites/kenney-space-shooter/Enemies/enemyBlack2.png', w: 48, h: 48 },
-      { key: 'enemy3', path: '/assets/sprites/kenney-space-shooter/Enemies/enemyGreen3.png', w: 48, h: 48 },
-      { key: 'ufo', path: '/assets/sprites/kenney-space-shooter/ufoRed.png', w: 48, h: 48 },
-      { key: 'laser', path: '/assets/sprites/kenney-space-shooter/Lasers/laserBlue01.png', w: 8, h: 32 },
-      { key: 'laserEnemy', path: '/assets/sprites/kenney-space-shooter/Lasers/laserRed01.png', w: 8, h: 32 },
-      { key: 'meteor', path: '/assets/sprites/kenney-space-shooter/Meteors/meteorBrown_big1.png', w: 64, h: 64 },
-      { key: 'meteorSmall', path: '/assets/sprites/kenney-space-shooter/Meteors/meteorBrown_small1.png', w: 24, h: 24 },
-      { key: 'powerup', path: '/assets/sprites/kenney-space-shooter/Power-ups/powerupBlue_shield.png', w: 24, h: 24 },
-      { key: 'star', path: '/assets/sprites/kenney-space-shooter/Effects/star1.png', w: 16, h: 16 },
+      { key: 'ship', path: '/assets/sprites/shooter/ship.png', w: 64, h: 64, note: 'uploaded player ship' },
+      { key: 'enemy', path: '/assets/sprites/shooter/enemy.png', w: 48, h: 48, note: 'uploaded enemy ship' },
+      { key: 'bullet', path: '/assets/sprites/shooter/bullet.png', w: 12, h: 28, note: 'uploaded bullet' },
+      { key: 'explosion', path: '/assets/sprites/shooter/explosion.png', w: 64, h: 64, note: 'uploaded explosion' },
+      { key: 'star', path: '/assets/sprites/common/star.png', w: 16, h: 16 },
     ],
     sounds: [],
   },
@@ -93,12 +184,10 @@ export const ASSET_MANIFEST = {
   },
   frogger: {
     sprites: [
-      { key: 'frog', path: '/assets/sprites/kenney-animals/Round/frog.png', w: 64, h: 64, note: 'round cartoon frog' },
-      { key: 'car0', path: '/assets/sprites/kenney-racing/Cars/car_red_small_1.png', w: 32, h: 48 },
-      { key: 'car1', path: '/assets/sprites/kenney-racing/Cars/car_blue_small_3.png', w: 32, h: 48 },
-      { key: 'car2', path: '/assets/sprites/kenney-racing/Cars/car_green_1.png', w: 32, h: 48 },
-      { key: 'truck', path: '/assets/sprites/kenney-racing/Cars/car_yellow_1.png', w: 32, h: 48 },
-      { key: 'log', path: '/assets/sprites/frogger/log.png', w: 96, h: 32 },
+      { key: 'frog', path: '/assets/sprites/frogger/frog.png', w: 48, h: 48, note: 'uploaded frogger frog' },
+      { key: 'car', path: '/assets/sprites/frogger/car.png', w: 48, h: 48, note: 'uploaded frogger car' },
+      { key: 'truck', path: '/assets/sprites/frogger/truck.png', w: 64, h: 48, note: 'uploaded frogger truck' },
+      { key: 'log', path: '/assets/sprites/frogger/log.png', w: 96, h: 32, note: 'uploaded frogger log' },
     ],
     sounds: [],
   },
@@ -144,37 +233,10 @@ export const ASSET_MANIFEST = {
   },
   rpg: {
     sprites: [
-      {
-        key: 'hero',
-        path: '/assets/sprites/kenney-tiny-dungeon/tile_0096.png',
-        w: 16,
-        h: 16,
-        note: 'knight character',
-      },
-      { key: 'npc', path: '/assets/sprites/kenney-tiny-dungeon/tile_0097.png', w: 16, h: 16, note: 'townsperson' },
-      {
-        key: 'skeleton',
-        path: '/assets/sprites/kenney-tiny-dungeon/tile_0110.png',
-        w: 16,
-        h: 16,
-        note: 'skeleton enemy',
-      },
-      { key: 'slime', path: '/assets/sprites/kenney-tiny-dungeon/tile_0111.png', w: 16, h: 16, note: 'slime enemy' },
-      {
-        key: 'wallStone',
-        path: '/assets/sprites/kenney-tiny-dungeon/tile_0001.png',
-        w: 16,
-        h: 16,
-        note: 'stone wall tile',
-      },
-      {
-        key: 'floorWood',
-        path: '/assets/sprites/kenney-tiny-dungeon/tile_0000.png',
-        w: 16,
-        h: 16,
-        note: 'wood floor tile',
-      },
-      { key: 'chest', path: '/assets/sprites/kenney-tiny-dungeon/tile_0089.png', w: 16, h: 16, note: 'treasure chest' },
+      { key: 'hero', path: '/assets/sprites/rpg/hero.png', w: 32, h: 32, note: 'uploaded RPG hero' },
+      { key: 'npc', path: '/assets/sprites/rpg/npc.png', w: 32, h: 32, note: 'uploaded RPG NPC' },
+      { key: 'wall', path: '/assets/sprites/rpg/wall.png', w: 32, h: 32, note: 'uploaded RPG wall' },
+      { key: 'treasure', path: '/assets/sprites/rpg/treasure.png', w: 32, h: 32, note: 'uploaded RPG treasure' },
       { key: 'heart', path: '/assets/sprites/common/heart.png', w: 16, h: 16 },
     ],
     sounds: [],
@@ -217,22 +279,16 @@ export const ASSET_MANIFEST = {
   },
   flappy: {
     sprites: [
-      {
-        key: 'bird',
-        path: '/assets/sprites/kenney-animals/Round/parrot.png',
-        w: 64,
-        h: 64,
-        note: 'round cartoon parrot',
-      },
+      { key: 'bird', path: '/assets/sprites/flappy/bird.png', w: 48, h: 48, note: 'uploaded flappy bird' },
       { key: 'pipe', path: '/assets/sprites/flappy/pipe.png', w: 52, h: 320 },
     ],
     sounds: [],
   },
   snake: {
     sprites: [
-      { key: 'snakeHead', path: '/assets/sprites/kenney-animals/Round/snake.png', w: 64, h: 64 },
-      { key: 'apple', path: '/assets/sprites/kenney-food/tile_0000.png', w: 64, h: 64, note: 'food pickup' },
-      { key: 'star', path: '/assets/sprites/common/star.png', w: 16, h: 16 },
+      { key: 'snakeHead', path: '/assets/sprites/snake/head.png', w: 32, h: 32, note: 'uploaded snake head' },
+      { key: 'snakeBody', path: '/assets/sprites/snake/body.png', w: 32, h: 32, note: 'uploaded snake body' },
+      { key: 'food', path: '/assets/sprites/snake/food.png', w: 32, h: 32, note: 'uploaded snake food' },
     ],
     sounds: [],
   },
@@ -289,106 +345,56 @@ export const ASSET_MANIFEST = {
   },
   clicker: {
     sprites: [
-      {
-        key: 'gem',
-        path: '/assets/sprites/kenney-puzzle/element_blue_diamond_glossy.png',
-        w: 48,
-        h: 48,
-        note: 'clickable gem',
-      },
-      { key: 'sparkle', path: '/assets/sprites/common/star.png', w: 16, h: 16 },
+      { key: 'gem', path: '/assets/sprites/clicker/gem.png', w: 64, h: 64, note: 'uploaded clickable gem' },
+      { key: 'sparkle', path: '/assets/sprites/clicker/sparkle.png', w: 24, h: 24, note: 'uploaded click sparkle' },
       { key: 'particle', path: '/assets/sprites/common/particle.png', w: 8, h: 8 },
     ],
     sounds: [],
   },
   'tower-defense': {
     sprites: [
-      {
-        key: 'towerBase',
-        path: '/assets/sprites/kenney-tower-defense/towerDefense_tile180.png',
-        w: 64,
-        h: 64,
-        note: 'tower base',
-      },
-      {
-        key: 'towerGun',
-        path: '/assets/sprites/kenney-tower-defense/towerDefense_tile249.png',
-        w: 64,
-        h: 64,
-        note: 'tower weapon',
-      },
-      {
-        key: 'enemy',
-        path: '/assets/sprites/kenney-tower-defense/towerDefense_tile245.png',
-        w: 64,
-        h: 64,
-        note: 'enemy creep',
-      },
-      {
-        key: 'pathTile',
-        path: '/assets/sprites/kenney-tower-defense/towerDefense_tile024.png',
-        w: 64,
-        h: 64,
-        note: 'path dirt',
-      },
-      {
-        key: 'grassTile',
-        path: '/assets/sprites/kenney-tower-defense/towerDefense_tile001.png',
-        w: 64,
-        h: 64,
-        note: 'grass tile',
-      },
+      { key: 'tower', path: '/assets/sprites/tower-defense/tower.png', w: 48, h: 48, note: 'uploaded tower' },
+      { key: 'enemy', path: '/assets/sprites/tower-defense/enemy.png', w: 40, h: 40, note: 'uploaded enemy creep' },
+      { key: 'bullet', path: '/assets/sprites/tower-defense/bullet.png', w: 16, h: 16, note: 'uploaded projectile' },
+      { key: 'pathTile', path: '/assets/sprites/tower-defense/path.png', w: 64, h: 64, note: 'uploaded path tile' },
     ],
     sounds: [],
   },
   fighting: {
     sprites: [
-      {
-        key: 'fighter',
-        path: '/assets/sprites/kenney-sports/Blue/characterBlue (1).png',
-        w: 64,
-        h: 64,
-        note: 'blue fighter',
-      },
-      {
-        key: 'enemy',
-        path: '/assets/sprites/kenney-sports/Red/characterRed (1).png',
-        w: 64,
-        h: 64,
-        note: 'red opponent',
-      },
-      { key: 'star', path: '/assets/sprites/common/star.png', w: 16, h: 16 },
+      { key: 'fighter', path: '/assets/sprites/fighting/fighter.png', w: 64, h: 64, note: 'uploaded fighter' },
+      { key: 'enemy', path: '/assets/sprites/fighting/enemy.png', w: 64, h: 64, note: 'uploaded opponent' },
+      { key: 'punch', path: '/assets/sprites/fighting/punch.png', w: 32, h: 32, note: 'uploaded attack effect' },
     ],
     sounds: [],
   },
   sports: {
     sprites: [
-      { key: 'player', path: '/assets/sprites/kenney-sports/Blue/characterBlue (1).png', w: 64, h: 64 },
-      { key: 'opponent', path: '/assets/sprites/kenney-sports/Red/characterRed (1).png', w: 64, h: 64 },
-      { key: 'ball', path: '/assets/sprites/kenney-sports/Elements/element (1).png', w: 32, h: 32 },
+      { key: 'player', path: '/assets/sprites/sports/player.png', w: 64, h: 64, note: 'uploaded sports player' },
+      { key: 'opponent', path: '/assets/sprites/sports/opponent.png', w: 64, h: 64, note: 'uploaded sports opponent' },
+      { key: 'ball', path: '/assets/sprites/sports/ball.png', w: 32, h: 32, note: 'uploaded ball' },
+      { key: 'goal', path: '/assets/sprites/sports/goal.png', w: 96, h: 64, note: 'uploaded goal' },
     ],
     sounds: [],
   },
   'brick-breaker': {
     sprites: [
       { key: 'paddle', path: '/assets/sprites/brick-breaker/paddle.png', w: 80, h: 16 },
-      { key: 'ball', path: '/assets/sprites/kenney-puzzle/ballBlue.png', w: 16, h: 16 },
-      { key: 'brickBlue', path: '/assets/sprites/kenney-puzzle/element_blue_rectangle_glossy.png', w: 48, h: 24 },
-      { key: 'brickRed', path: '/assets/sprites/kenney-puzzle/element_red_rectangle_glossy.png', w: 48, h: 24 },
-      { key: 'brickGreen', path: '/assets/sprites/kenney-puzzle/element_green_rectangle_glossy.png', w: 48, h: 24 },
-      { key: 'brickPurple', path: '/assets/sprites/kenney-puzzle/element_purple_rectangle_glossy.png', w: 48, h: 24 },
-      { key: 'brickYellow', path: '/assets/sprites/kenney-puzzle/element_yellow_rectangle_glossy.png', w: 48, h: 24 },
+      { key: 'ball', path: '/assets/sprites/brick-breaker/ball.png', w: 16, h: 16 },
+      { key: 'brick', path: '/assets/sprites/brick-breaker/brick.png', w: 48, h: 24, note: 'uploaded brick' },
       { key: 'powerup', path: '/assets/sprites/brick-breaker/powerup.png', w: 24, h: 24 },
     ],
     sounds: [],
   },
   'bubble-shooter': {
     sprites: [
-      { key: 'bubbleBlue', path: '/assets/sprites/kenney-puzzle/element_blue_square_glossy.png', w: 32, h: 32 },
-      { key: 'bubbleRed', path: '/assets/sprites/kenney-puzzle/element_red_square_glossy.png', w: 32, h: 32 },
-      { key: 'bubbleGreen', path: '/assets/sprites/kenney-puzzle/element_green_square_glossy.png', w: 32, h: 32 },
-      { key: 'bubblePurple', path: '/assets/sprites/kenney-puzzle/element_purple_polygon_glossy.png', w: 32, h: 32 },
-      { key: 'bubbleYellow', path: '/assets/sprites/kenney-puzzle/element_yellow_polygon_glossy.png', w: 32, h: 32 },
+      {
+        key: 'bubbles',
+        path: '/assets/sprites/bubble-shooter/bubbles.png',
+        w: 128,
+        h: 128,
+        note: 'uploaded bubble sheet',
+      },
       { key: 'arrow', path: '/assets/sprites/bubble-shooter/arrow.png', w: 16, h: 64 },
     ],
     sounds: [],
@@ -405,12 +411,10 @@ export const ASSET_MANIFEST = {
   },
   'pet-sim': {
     sprites: [
-      { key: 'pet0', path: '/assets/sprites/kenney-animals/Round/dog.png', w: 64, h: 64, note: 'dog' },
-      { key: 'pet1', path: '/assets/sprites/kenney-animals/Round/rabbit.png', w: 64, h: 64, note: 'rabbit' },
-      { key: 'pet2', path: '/assets/sprites/kenney-animals/Round/chick.png', w: 64, h: 64, note: 'chick' },
-      { key: 'pet3', path: '/assets/sprites/kenney-animals/Round/panda.png', w: 64, h: 64, note: 'panda' },
-      { key: 'heart', path: '/assets/sprites/common/heart.png', w: 16, h: 16 },
-      { key: 'star', path: '/assets/sprites/common/star.png', w: 16, h: 16 },
+      { key: 'pet', path: '/assets/sprites/pet-sim/pet.png', w: 64, h: 64, note: 'uploaded pet' },
+      { key: 'food', path: '/assets/sprites/pet-sim/food.png', w: 32, h: 32, note: 'uploaded food' },
+      { key: 'toy', path: '/assets/sprites/pet-sim/toy.png', w: 32, h: 32, note: 'uploaded toy' },
+      { key: 'heart', path: '/assets/sprites/pet-sim/heart.png', w: 24, h: 24, note: 'uploaded mood heart' },
     ],
     sounds: [],
   },
@@ -544,34 +548,8 @@ export const ASSET_MANIFEST = {
   },
   rhythm: {
     sprites: [
-      {
-        key: 'noteBlue',
-        path: '/assets/sprites/kenney-puzzle/element_blue_diamond_glossy.png',
-        w: 48,
-        h: 48,
-        note: 'blue note',
-      },
-      {
-        key: 'noteRed',
-        path: '/assets/sprites/kenney-puzzle/element_red_diamond_glossy.png',
-        w: 48,
-        h: 48,
-        note: 'red note',
-      },
-      {
-        key: 'noteGreen',
-        path: '/assets/sprites/kenney-puzzle/element_green_diamond_glossy.png',
-        w: 48,
-        h: 48,
-        note: 'green note',
-      },
-      {
-        key: 'notePurple',
-        path: '/assets/sprites/kenney-puzzle/element_purple_diamond_glossy.png',
-        w: 48,
-        h: 48,
-        note: 'purple note',
-      },
+      { key: 'arrows', path: '/assets/sprites/rhythm/arrows.png', w: 128, h: 128, note: 'uploaded rhythm arrow sheet' },
+      { key: 'target', path: '/assets/sprites/rhythm/target.png', w: 128, h: 32, note: 'uploaded rhythm target lane' },
       { key: 'particle', path: '/assets/sprites/common/particle.png', w: 8, h: 8 },
       { key: 'star', path: '/assets/sprites/common/star.png', w: 16, h: 16 },
     ],
@@ -801,6 +779,18 @@ export function formatAssetsForPrompt(genre) {
     lines.push(`    Example: ${info.example}`);
   }
 
+  const discoveredPacks = getRelevantDiscoveredPacks(genre);
+  if (discoveredPacks.length > 0) {
+    lines.push('');
+    lines.push('UPLOADED LOCAL SPRITE PACKS FOR THIS GENRE (prefer these when they fit):');
+    for (const [packName, pack] of discoveredPacks) {
+      lines.push(`  ${packName}: ${pack.basePath}`);
+      for (const sample of pack.samplePaths) {
+        lines.push(`    sample: ${sample}`);
+      }
+    }
+  }
+
   return lines.join('\n');
 }
 
@@ -1004,24 +994,31 @@ export const EXTRA_MODEL_PACKS = {
  * Format 3D model assets for injection into the AI prompt.
  */
 export function formatModelsForPrompt(genre) {
-  const genreModels = MODEL_MANIFEST[genre] || MODEL_MANIFEST[genre + '-3d'];
-  const common = MODEL_MANIFEST['common-3d'];
+  const rawGenreModels = MODEL_MANIFEST[genre] || MODEL_MANIFEST[genre + '-3d'];
+  const genreModels = getAvailableModels(rawGenreModels);
+  const commonModels = getAvailableModels(MODEL_MANIFEST['common-3d']);
+  const genreTexturesReady = hasRequiredSiblingTextures(genreModels);
+  const commonTexturesReady = hasRequiredSiblingTextures(commonModels);
 
   const lines = ['═══════════════════════════════════════════════════════════════'];
-  lines.push('3D MODEL ASSETS — MANDATORY: load GLB models with GLTFLoader');
+  lines.push('3D ASSET GUIDANCE');
   lines.push('═══════════════════════════════════════════════════════════════');
   lines.push('');
-  lines.push('GLTFLoader is pre-loaded. Use new THREE.GLTFLoader() to load models.');
-  lines.push('ONLY use paths listed below — NEVER invent .glb paths. Wrong paths return 404.');
-  lines.push('DO NOT build everything from BoxGeometry — use real 3D models!');
-  lines.push('ALWAYS add lights (AmbientLight + DirectionalLight) so models are visible.');
+  lines.push(
+    'Three.js helpers are pre-loaded. Always render a working scene immediately with camera, lights, and gameplay first.',
+  );
+  lines.push('If working local GLB paths are listed below, you may load them with GLTFLoader and an error callback.');
+  lines.push(
+    'If no GLB paths are listed below, DO NOT invent /assets/models/*.glb paths. Build polished geometry-based art instead.',
+  );
+  lines.push('Always add lights (AmbientLight + DirectionalLight) so meshes are visible.');
   lines.push('');
 
-  if (genreModels && genreModels.models.length > 0) {
+  if (genreModels.length > 0 && genreTexturesReady) {
     lines.push(`COPY THIS MODEL LOADING CODE for ${genre}:`);
     lines.push('```');
     lines.push('const loader = new THREE.GLTFLoader();');
-    for (const m of genreModels.models) {
+    for (const m of genreModels) {
       lines.push(`loader.load('${m.path}', (gltf) => {`);
       lines.push(`  const ${m.key} = gltf.scene;`);
       lines.push(`  ${m.key}.scale.set(${m.scale}, ${m.scale}, ${m.scale});`);
@@ -1032,18 +1029,30 @@ export function formatModelsForPrompt(genre) {
     lines.push('');
   }
 
-  if (common && common.models.length > 0) {
+  if (commonModels.length > 0 && commonTexturesReady) {
     lines.push('Common 3D models (nature props for any scene):');
-    for (const m of common.models) {
+    for (const m of commonModels) {
       lines.push(`  loader.load('${m.path}', ...);  // ${m.note}`);
     }
     lines.push('');
   }
 
-  lines.push('EXTRA 3D PACKS — more models available:');
-  for (const [pack, info] of Object.entries(EXTRA_MODEL_PACKS)) {
-    lines.push(`  ${pack}: ${info.note}`);
-    lines.push(`    Example: ${info.example}`);
+  if ((genreModels.length === 0 || !genreTexturesReady) && (commonModels.length === 0 || !commonTexturesReady)) {
+    lines.push('No production-safe local GLB model set is available for this workspace right now.');
+    lines.push(
+      'Some .glb files may exist, but their required sibling textures are missing or incomplete, so loading them can cause 404/decode errors.',
+    );
+    lines.push(
+      'Use composed geometry instead: BoxGeometry, SphereGeometry, CylinderGeometry, ConeGeometry, TorusGeometry, PlaneGeometry.',
+    );
+    lines.push('Build characters and props from multiple meshes with MeshStandardMaterial color variation.');
+    lines.push('');
+  } else {
+    lines.push('EXTRA 3D PACKS — more models available:');
+    for (const [pack, info] of Object.entries(EXTRA_MODEL_PACKS)) {
+      lines.push(`  ${pack}: ${info.note}`);
+      lines.push(`    Example: ${info.example}`);
+    }
   }
 
   return lines.join('\n');

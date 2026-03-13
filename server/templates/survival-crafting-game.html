@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { overflow: hidden; font-family: Arial, sans-serif; background: #93c5fd; touch-action: none; }
+    #game-container { width: 100vw; height: 100vh; }
+    #hud {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      z-index: 10;
+      background: rgba(15, 23, 42, 0.72);
+      color: white;
+      border-radius: 18px;
+      padding: 14px 16px;
+      line-height: 1.45;
+      min-width: 250px;
+      font-size: 15px;
+    }
+    #action-bar {
+      position: fixed;
+      right: 16px;
+      bottom: 24px;
+      z-index: 12;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .action-btn {
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 2px solid rgba(255,255,255,0.2);
+      background: rgba(15, 23, 42, 0.82);
+      color: white;
+      font-weight: bold;
+      min-width: 170px;
+      text-align: left;
+    }
+    #toast {
+      position: fixed;
+      left: 50%;
+      top: 20px;
+      transform: translateX(-50%);
+      z-index: 11;
+      background: rgba(2, 132, 199, 0.92);
+      color: white;
+      border-radius: 999px;
+      padding: 11px 18px;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      pointer-events: none;
+    }
+    #toast.visible { opacity: 1; }
+    #overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      background: rgba(15, 23, 42, 0.7);
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      color: white;
+    }
+    #overlay.visible { display: flex; }
+    .card {
+      background: rgba(15, 23, 42, 0.96);
+      border-radius: 24px;
+      padding: 28px;
+      max-width: 470px;
+      text-align: center;
+    }
+    .card h1 { margin-bottom: 10px; font-size: 30px; }
+    .card p { margin-bottom: 16px; line-height: 1.5; }
+    .card button {
+      padding: 12px 18px;
+      border-radius: 999px;
+      border: 0;
+      background: #bef264;
+      color: #365314;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .touch-btn {
+      position: fixed;
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.5);
+      background: rgba(255,255,255,0.24);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 25px;
+      z-index: 12;
+      user-select: none;
+    }
+    #up-btn { left: 92px; bottom: 112px; }
+    #left-btn { left: 22px; bottom: 42px; }
+    #down-btn { left: 92px; bottom: 42px; }
+    #right-btn { left: 162px; bottom: 42px; }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+</head>
+<body>
+  <div id="game-container"></div>
+  <div id="hud"></div>
+  <div id="toast"></div>
+  <div id="action-bar">
+    <button id="gather-btn" class="action-btn">Gather nearby resource</button>
+    <button id="campfire-btn" class="action-btn">Build campfire (3 wood, 2 stone)</button>
+    <button id="shelter-btn" class="action-btn">Build shelter (4 wood, 1 stone)</button>
+  </div>
+  <div id="overlay">
+    <div class="card">
+      <h1 id="overlay-title"></h1>
+      <p id="overlay-text"></p>
+      <button id="restart-btn">Play Again</button>
+    </div>
+  </div>
+  <div id="up-btn" class="touch-btn">&uarr;</div>
+  <div id="left-btn" class="touch-btn">&larr;</div>
+  <div id="down-btn" class="touch-btn">&darr;</div>
+  <div id="right-btn" class="touch-btn">&rarr;</div>
+  <script>
+    (function () {
+      var scene, camera, renderer, clock, sun, ambient;
+      var hud = document.getElementById('hud');
+      var overlay = document.getElementById('overlay');
+      var overlayTitle = document.getElementById('overlay-title');
+      var overlayText = document.getElementById('overlay-text');
+      var toast = document.getElementById('toast');
+      var keys = { up: false, down: false, left: false, right: false };
+      var resourceNodes = [];
+      var structures = { campfire: null, shelter: null };
+      var state = {
+        wood: 0,
+        stone: 0,
+        berries: 0,
+        health: 100,
+        timeLeft: 95,
+        campfireBuilt: false,
+        shelterBuilt: false,
+        finished: false
+      };
+      var player = {
+        mesh: new THREE.Group(),
+        position: new THREE.Vector3(0, 0, 0),
+        facing: new THREE.Vector3(0, 0, 1)
+      };
+      var campLocation = new THREE.Vector3(0, 0, 0);
+
+      function showToast(text) {
+        toast.textContent = text;
+        toast.classList.add('visible');
+        clearTimeout(showToast._timer);
+        showToast._timer = setTimeout(function () {
+          toast.classList.remove('visible');
+        }, 1500);
+      }
+
+      function endGame(title, text) {
+        state.finished = true;
+        overlayTitle.textContent = title;
+        overlayText.textContent = text;
+        overlay.classList.add('visible');
+      }
+
+      function addTree(x, z) {
+        var trunk = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.35, 0.5, 2.4, 10),
+          new THREE.MeshStandardMaterial({ color: 0x854d0e, roughness: 0.95 })
+        );
+        trunk.position.set(x, 1.2, z);
+        var leaves = new THREE.Mesh(
+          new THREE.ConeGeometry(1.6, 3.3, 10),
+          new THREE.MeshStandardMaterial({ color: 0x15803d, roughness: 0.95 })
+        );
+        leaves.position.set(x, 3.4, z);
+        scene.add(trunk);
+        scene.add(leaves);
+      }
+
+      function addRock(x, z, scale) {
+        var rock = new THREE.Mesh(
+          new THREE.DodecahedronGeometry(scale, 0),
+          new THREE.MeshStandardMaterial({ color: 0x71717a, roughness: 0.9 })
+        );
+        rock.position.set(x, scale * 0.7, z);
+        scene.add(rock);
+      }
+
+      function addBerryBush(x, z) {
+        var bush = new THREE.Mesh(
+          new THREE.SphereGeometry(1.1, 12, 12),
+          new THREE.MeshStandardMaterial({ color: 0x16a34a, roughness: 0.95 })
+        );
+        bush.position.set(x, 1, z);
+        scene.add(bush);
+      }
+
+      function addResource(type, x, z) {
+        var mesh;
+        if (type === 'wood') {
+          mesh = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.35, 0.35, 2.2, 8),
+            new THREE.MeshStandardMaterial({ color: 0x92400e, roughness: 0.8 })
+          );
+          mesh.rotation.z = Math.PI / 2;
+          mesh.position.set(x, 0.45, z);
+        } else if (type === 'stone') {
+          mesh = new THREE.Mesh(
+            new THREE.DodecahedronGeometry(0.85, 0),
+            new THREE.MeshStandardMaterial({ color: 0x94a3b8, roughness: 0.95 })
+          );
+          mesh.position.set(x, 0.8, z);
+        } else {
+          mesh = new THREE.Mesh(
+            new THREE.SphereGeometry(0.7, 12, 12),
+            new THREE.MeshStandardMaterial({ color: 0xdc2626, roughness: 0.4 })
+          );
+          mesh.position.set(x, 1.1, z);
+        }
+        mesh.castShadow = true;
+        scene.add(mesh);
+        resourceNodes.push({
+          type: type,
+          mesh: mesh,
+          amount: type === 'berries' ? 2 : 1,
+          collected: false,
+          position: new THREE.Vector3(x, 0, z)
+        });
+      }
+
+      function addPlayer() {
+        var body = new THREE.Mesh(
+          THREE.CapsuleGeometry ? new THREE.CapsuleGeometry(0.45, 0.9, 8, 16) : new THREE.SphereGeometry(0.6, 16, 16),
+          new THREE.MeshStandardMaterial({ color: 0x60a5fa, roughness: 0.45 })
+        );
+        body.position.y = 1.05;
+        body.castShadow = true;
+        player.mesh.add(body);
+
+        scene.add(player.mesh);
+      }
+
+      function createWorld() {
+        var ground = new THREE.Mesh(
+          new THREE.PlaneGeometry(160, 160),
+          new THREE.MeshStandardMaterial({ color: 0x65a30d, roughness: 0.95 })
+        );
+        ground.rotation.x = -Math.PI / 2;
+        ground.receiveShadow = true;
+        scene.add(ground);
+
+        var clearing = new THREE.Mesh(
+          new THREE.CircleGeometry(9, 32),
+          new THREE.MeshStandardMaterial({ color: 0xa3e635, roughness: 0.95 })
+        );
+        clearing.rotation.x = -Math.PI / 2;
+        clearing.position.y = 0.03;
+        scene.add(clearing);
+
+        [-26, -18, -8, 14, 26, 34].forEach(function (x, index) {
+          addTree(x, -28 + index * 9);
+          addTree(x + 4, 16 - index * 6);
+        });
+        addRock(-24, 18, 2.2);
+        addRock(22, -18, 2.8);
+        addRock(36, 20, 2);
+        addBerryBush(-12, -18);
+        addBerryBush(18, 26);
+        addBerryBush(30, 6);
+
+        addResource('wood', -18, -8);
+        addResource('wood', 14, -12);
+        addResource('wood', 24, 10);
+        addResource('wood', -28, 18);
+        addResource('wood', 4, 28);
+        addResource('stone', -6, 20);
+        addResource('stone', 28, -22);
+        addResource('stone', 34, 16);
+        addResource('berries', -14, -18);
+        addResource('berries', 18, 26);
+        addResource('berries', 30, 6);
+      }
+
+      function buildCampfire() {
+        if (state.campfireBuilt) {
+          showToast('Campfire already built.');
+          return;
+        }
+        if (state.wood < 3 || state.stone < 2) {
+          showToast('Need 3 wood and 2 stone.');
+          return;
+        }
+        state.wood -= 3;
+        state.stone -= 2;
+        state.campfireBuilt = true;
+
+        var stones = new THREE.Mesh(
+          new THREE.TorusGeometry(1.4, 0.32, 8, 14),
+          new THREE.MeshStandardMaterial({ color: 0x71717a, roughness: 0.95 })
+        );
+        stones.rotation.x = Math.PI / 2;
+        stones.position.set(campLocation.x, 0.35, campLocation.z);
+        var flame = new THREE.Mesh(
+          new THREE.ConeGeometry(0.8, 2.2, 12),
+          new THREE.MeshStandardMaterial({ color: 0xfb923c, emissive: 0xf97316, emissiveIntensity: 0.5 })
+        );
+        flame.position.set(campLocation.x, 1.5, campLocation.z);
+        scene.add(stones);
+        scene.add(flame);
+        structures.campfire = { stones: stones, flame: flame };
+        showToast('Campfire built! Night will be safer.');
+      }
+
+      function buildShelter() {
+        if (state.shelterBuilt) {
+          showToast('Shelter already built.');
+          return;
+        }
+        if (state.wood < 4 || state.stone < 1) {
+          showToast('Need 4 wood and 1 stone.');
+          return;
+        }
+        state.wood -= 4;
+        state.stone -= 1;
+        state.shelterBuilt = true;
+
+        var floor = new THREE.Mesh(
+          new THREE.BoxGeometry(5, 0.5, 4),
+          new THREE.MeshStandardMaterial({ color: 0x92400e, roughness: 0.8 })
+        );
+        floor.position.set(campLocation.x + 6, 0.25, campLocation.z);
+        var roof = new THREE.Mesh(
+          new THREE.ConeGeometry(3.8, 2.5, 4),
+          new THREE.MeshStandardMaterial({ color: 0x84cc16, roughness: 0.85 })
+        );
+        roof.position.set(campLocation.x + 6, 3.1, campLocation.z);
+        roof.rotation.y = Math.PI / 4;
+        scene.add(floor);
+        scene.add(roof);
+        structures.shelter = { floor: floor, roof: roof };
+        showToast('Shelter built! Hold on until dawn.');
+      }
+
+      function gatherNearbyResource() {
+        if (state.finished) return;
+        var nearest = null;
+        var nearestDistance = 999;
+        resourceNodes.forEach(function (node) {
+          if (node.collected) return;
+          var distance = player.position.distanceTo(node.position);
+          if (distance < nearestDistance) {
+            nearest = node;
+            nearestDistance = distance;
+          }
+        });
+        if (!nearest || nearestDistance > 4) {
+          showToast('Move closer to a resource.');
+          return;
+        }
+        nearest.collected = true;
+        scene.remove(nearest.mesh);
+        state[nearest.type] += nearest.amount;
+        showToast('Gathered ' + nearest.type + ' +' + nearest.amount);
+      }
+
+      function updateHud() {
+        var phase = state.timeLeft > 45 ? 'Day' : state.timeLeft > 20 ? 'Dusk' : 'Night';
+        var nearby = resourceNodes
+          .filter(function (node) { return !node.collected && player.position.distanceTo(node.position) < 4; })
+          .map(function (node) { return node.type; })[0] || 'none';
+        hud.innerHTML =
+          '<strong>Vibe 3D Survival</strong><br>' +
+          'Time to dawn: ' + Math.ceil(state.timeLeft) + 's (' + phase + ')<br>' +
+          'Health: ' + Math.max(0, Math.round(state.health)) + '<br>' +
+          'Wood: ' + state.wood + ' | Stone: ' + state.stone + ' | Berries: ' + state.berries + '<br>' +
+          'Nearby: ' + nearby + '<br>' +
+          (state.shelterBuilt ? 'Shelter ready for the night' : 'Build shelter before dawn');
+      }
+
+      function updatePlayer(delta) {
+        var moveX = 0;
+        var moveZ = 0;
+        if (keys.left) moveX -= 1;
+        if (keys.right) moveX += 1;
+        if (keys.up) moveZ -= 1;
+        if (keys.down) moveZ += 1;
+        var direction = new THREE.Vector3(moveX, 0, moveZ);
+        if (direction.lengthSq() > 0) {
+          direction.normalize();
+          player.position.addScaledVector(direction, 12 * delta);
+          player.position.x = Math.max(-54, Math.min(54, player.position.x));
+          player.position.z = Math.max(-54, Math.min(54, player.position.z));
+          player.facing.lerp(direction, 0.18);
+          player.mesh.rotation.y = Math.atan2(player.facing.x, player.facing.z);
+        }
+        player.mesh.position.set(player.position.x, 0, player.position.z);
+      }
+
+      function updateCamera() {
+        var offset = new THREE.Vector3(player.facing.x * -8.5, 6, player.facing.z * -8.5);
+        var desired = player.position.clone().add(offset);
+        camera.position.lerp(desired, 0.08);
+        camera.lookAt(player.position.x, 1.5, player.position.z);
+      }
+
+      function updateDayNight() {
+        var t = Math.max(0, state.timeLeft) / 95;
+        scene.background = new THREE.Color().lerpColors(new THREE.Color(0x0f172a), new THREE.Color(0x93c5fd), t);
+        sun.intensity = 0.2 + t * 0.9;
+        ambient.intensity = 0.25 + t * 0.65;
+        if (structures.campfire) {
+          structures.campfire.flame.material.emissiveIntensity = t < 0.4 ? 1 : 0.4;
+        }
+      }
+
+      function updateSurvival(delta) {
+        if (state.finished) return;
+        state.timeLeft -= delta;
+        updateDayNight();
+
+        if (state.timeLeft < 20) {
+          var drain = state.shelterBuilt ? 0.4 : state.campfireBuilt ? 1.5 : 3.6;
+          state.health -= drain * delta;
+        }
+
+        if (player.position.distanceTo(campLocation) < 4 && state.berries > 0 && state.health < 92) {
+          state.berries -= delta > 0 ? 0.08 : 0;
+          state.health = Math.min(100, state.health + 6 * delta);
+        }
+
+        if (state.health <= 0) {
+          endGame('Night Got You', 'You needed more supplies or a safer camp. Try building earlier.');
+          return;
+        }
+        if (state.timeLeft <= 0) {
+          if (state.shelterBuilt) {
+            endGame('You Survived!', 'Your camp held through the night. Great gather-build-survive run.');
+          } else {
+            endGame('No Shelter Built', 'You made it close to dawn, but the stormy night needed a shelter.');
+          }
+        }
+      }
+
+      function setupScene() {
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x93c5fd);
+        camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 220);
+        camera.position.set(0, 6, 10);
+        renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        document.getElementById('game-container').appendChild(renderer.domElement);
+
+        ambient = new THREE.AmbientLight(0xffffff, 0.8);
+        scene.add(ambient);
+        sun = new THREE.DirectionalLight(0xffffff, 1.05);
+        sun.position.set(26, 32, 18);
+        sun.castShadow = true;
+        scene.add(sun);
+
+        createWorld();
+        addPlayer();
+      }
+
+      function bindControls() {
+        document.addEventListener('keydown', function (event) {
+          var key = event.key.toLowerCase();
+          if (key === 'arrowup' || key === 'w') keys.up = true;
+          if (key === 'arrowdown' || key === 's') keys.down = true;
+          if (key === 'arrowleft' || key === 'a') keys.left = true;
+          if (key === 'arrowright' || key === 'd') keys.right = true;
+          if (key === 'e') gatherNearbyResource();
+          if (key === '1') buildCampfire();
+          if (key === '2') buildShelter();
+        });
+        document.addEventListener('keyup', function (event) {
+          var key = event.key.toLowerCase();
+          if (key === 'arrowup' || key === 'w') keys.up = false;
+          if (key === 'arrowdown' || key === 's') keys.down = false;
+          if (key === 'arrowleft' || key === 'a') keys.left = false;
+          if (key === 'arrowright' || key === 'd') keys.right = false;
+        });
+        [['up-btn', 'up'], ['down-btn', 'down'], ['left-btn', 'left'], ['right-btn', 'right']].forEach(function (entry) {
+          var button = document.getElementById(entry[0]);
+          var direction = entry[1];
+          button.addEventListener('touchstart', function (event) { event.preventDefault(); keys[direction] = true; });
+          button.addEventListener('touchend', function (event) { event.preventDefault(); keys[direction] = false; });
+          button.addEventListener('mousedown', function () { keys[direction] = true; });
+          button.addEventListener('mouseup', function () { keys[direction] = false; });
+          button.addEventListener('mouseleave', function () { keys[direction] = false; });
+        });
+        document.getElementById('gather-btn').addEventListener('click', gatherNearbyResource);
+        document.getElementById('campfire-btn').addEventListener('click', buildCampfire);
+        document.getElementById('shelter-btn').addEventListener('click', buildShelter);
+        document.getElementById('restart-btn').addEventListener('click', function () {
+          window.location.reload();
+        });
+        window.addEventListener('resize', function () {
+          camera.aspect = window.innerWidth / window.innerHeight;
+          camera.updateProjectionMatrix();
+          renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+      }
+
+      function animate() {
+        requestAnimationFrame(animate);
+        var delta = Math.min(clock.getDelta(), 0.03);
+        updatePlayer(delta);
+        updateSurvival(delta);
+        updateCamera();
+        updateHud();
+        renderer.render(scene, camera);
+      }
+
+      if (typeof THREE === 'undefined') {
+        hud.textContent = 'Three.js failed to load.';
+        return;
+      }
+
+      clock = new THREE.Clock();
+      setupScene();
+      bindControls();
+      showToast('Gather supplies, build your camp, and survive the night.');
+      animate();
+    })();
+  </script>
+</body>
+</html>

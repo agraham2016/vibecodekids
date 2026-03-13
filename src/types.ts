@@ -6,7 +6,46 @@ export interface Message {
   timestamp: Date;
 }
 
-// Game configuration from the onboarding survey
+export type EngineId = 'vibe-2d' | 'vibe-3d';
+
+export type GenreFamily =
+  | 'platformAction'
+  | 'topDownAction'
+  | 'racingArcade'
+  | 'puzzleCasual'
+  | 'simLite'
+  | 'builderTycoonLite'
+  | 'strategyDefenseLite'
+  | 'rpgProgressionLite'
+  | 'sportsSkill'
+  | 'obbyPlatform3d'
+  | 'explorationAdventure3d'
+  | 'racingDriving3d'
+  | 'survivalCraft3d'
+  | 'sandboxBuilder3d'
+  | 'socialParty3d';
+
+export type StarterTemplateId =
+  | 'endless-runner'
+  | 'maze-escape'
+  | 'matching-game'
+  | 'platformer'
+  | 'obby'
+  | 'simple-racing'
+  | 'top-down-adventure'
+  | 'pet-care-simulator'
+  | 'lemonade-stand-tycoon'
+  | 'tower-defense'
+  | 'dungeon-crawler'
+  | 'farming-game'
+  | 'fishing-game'
+  | 'creature-collector'
+  | 'survival-crafting-game'
+  | 'open-map-explorer'
+  | 'stunt-racer-3d'
+  | 'house-builder';
+
+// Game configuration from the onboarding survey or starter selector
 export type GameType =
   | 'racing'
   | 'shooter'
@@ -19,10 +58,14 @@ export type GameType =
   | 'trash-sorter'
   | 'fruit-slice'
   | 'tower-stack'
-  | 'find-the-friend';
+  | 'find-the-friend'
+  | StarterTemplateId;
 
 export interface GameConfig {
   gameType: GameType;
+  engineId?: EngineId;
+  genreFamily?: GenreFamily;
+  starterTemplateId?: StarterTemplateId;
   dimension: '2d' | '3d'; // 2D (DOM/Canvas) or 3D (Three.js)
   theme: string; // "space", "underwater", "jungle", etc.
   character: string; // "rocket ship", "unicorn", "ninja", etc.

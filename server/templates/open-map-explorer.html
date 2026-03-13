@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { overflow: hidden; background: #93c5fd; font-family: Arial, sans-serif; touch-action: none; }
+    #game-container { width: 100vw; height: 100vh; }
+    #hud {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      z-index: 10;
+      color: white;
+      background: rgba(15, 23, 42, 0.7);
+      border-radius: 18px;
+      padding: 14px 16px;
+      min-width: 260px;
+      line-height: 1.45;
+      font-size: 15px;
+    }
+    #nav-chip {
+      position: fixed;
+      top: 18px;
+      right: 18px;
+      z-index: 10;
+      color: white;
+      background: rgba(2, 132, 199, 0.86);
+      border-radius: 999px;
+      padding: 10px 14px;
+      font-weight: bold;
+      font-size: 14px;
+    }
+    #toast {
+      position: fixed;
+      left: 50%;
+      bottom: 110px;
+      transform: translateX(-50%);
+      z-index: 11;
+      background: rgba(30, 41, 59, 0.9);
+      color: white;
+      border-radius: 999px;
+      padding: 12px 18px;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      pointer-events: none;
+    }
+    #toast.visible { opacity: 1; }
+    #win-screen {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      align-items: center;
+      justify-content: center;
+      background: rgba(15, 23, 42, 0.68);
+      color: white;
+      padding: 24px;
+    }
+    #win-screen.visible { display: flex; }
+    .card {
+      background: rgba(15, 23, 42, 0.96);
+      padding: 28px;
+      border-radius: 24px;
+      max-width: 460px;
+      text-align: center;
+    }
+    .card h1 { margin-bottom: 10px; font-size: 32px; }
+    .card p { margin-bottom: 16px; line-height: 1.5; }
+    .card button {
+      padding: 12px 18px;
+      border-radius: 999px;
+      border: 0;
+      background: #67e8f9;
+      color: #083344;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .touch-btn {
+      position: fixed;
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.5);
+      background: rgba(255,255,255,0.26);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+      z-index: 12;
+      user-select: none;
+    }
+    #up-btn { left: 90px; bottom: 108px; }
+    #left-btn { left: 20px; bottom: 38px; }
+    #down-btn { left: 90px; bottom: 38px; }
+    #right-btn { left: 160px; bottom: 38px; }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+</head>
+<body>
+  <div id="game-container"></div>
+  <div id="hud"></div>
+  <div id="nav-chip"></div>
+  <div id="toast"></div>
+  <div id="win-screen">
+    <div class="card">
+      <h1>Adventure Complete!</h1>
+      <p>You explored the island, found every relic, checked the tower, and made it back to the ancient gate.</p>
+      <button id="restart-btn">Explore Again</button>
+    </div>
+  </div>
+  <div id="up-btn" class="touch-btn">&uarr;</div>
+  <div id="left-btn" class="touch-btn">&larr;</div>
+  <div id="down-btn" class="touch-btn">&darr;</div>
+  <div id="right-btn" class="touch-btn">&rarr;</div>
+  <script>
+    (function () {
+      var scene, camera, renderer, clock;
+      var hud = document.getElementById('hud');
+      var navChip = document.getElementById('nav-chip');
+      var toast = document.getElementById('toast');
+      var winScreen = document.getElementById('win-screen');
+      var keys = { up: false, down: false, left: false, right: false };
+      var relics = [];
+      var worldMarkers = [];
+      var currentTarget = null;
+      var quests = {
+        relics: 0,
+        towerVisited: false,
+        returnToGate: false
+      };
+      var finished = false;
+      var player = {
+        mesh: new THREE.Group(),
+        position: new THREE.Vector3(0, 0, 0),
+        facing: new THREE.Vector3(0, 0, 1)
+      };
+      var landmarks = {
+        gate: new THREE.Vector3(0, 0, 0),
+        tower: new THREE.Vector3(42, 0, -34)
+      };
+
+      function showToast(text) {
+        toast.textContent = text;
+        toast.classList.add('visible');
+        clearTimeout(showToast._timer);
+        showToast._timer = setTimeout(function () {
+          toast.classList.remove('visible');
+        }, 1700);
+      }
+
+      function addGround() {
+        var ground = new THREE.Mesh(
+          new THREE.PlaneGeometry(180, 180, 12, 12),
+          new THREE.MeshStandardMaterial({ color: 0x65a30d, roughness: 0.95 })
+        );
+        ground.rotation.x = -Math.PI / 2;
+        ground.receiveShadow = true;
+        scene.add(ground);
+
+        var water = new THREE.Mesh(
+          new THREE.RingGeometry(95, 130, 64),
+          new THREE.MeshStandardMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.85, roughness: 0.3 })
+        );
+        water.rotation.x = -Math.PI / 2;
+        water.position.y = -0.2;
+        scene.add(water);
+      }
+
+      function addRock(x, z, scale) {
+        var rock = new THREE.Mesh(
+          new THREE.DodecahedronGeometry(scale, 0),
+          new THREE.MeshStandardMaterial({ color: 0x78716c, roughness: 0.9 })
+        );
+        rock.position.set(x, scale * 0.7, z);
+        rock.castShadow = true;
+        scene.add(rock);
+      }
+
+      function addTree(x, z) {
+        var trunk = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.35, 0.5, 2.6, 10),
+          new THREE.MeshStandardMaterial({ color: 0x854d0e, roughness: 0.95 })
+        );
+        trunk.position.set(x, 1.3, z);
+        var leaves = new THREE.Mesh(
+          new THREE.ConeGeometry(1.7, 3.5, 10),
+          new THREE.MeshStandardMaterial({ color: 0x15803d, roughness: 0.9 })
+        );
+        leaves.position.set(x, 3.6, z);
+        scene.add(trunk);
+        scene.add(leaves);
+      }
+
+      function addBeacon(position, color) {
+        var beam = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.25, 0.6, 9, 8),
+          new THREE.MeshBasicMaterial({ color: color, transparent: true, opacity: 0.3 })
+        );
+        beam.position.copy(position);
+        beam.position.y = 4.5;
+        scene.add(beam);
+        return beam;
+      }
+
+      function addRelic(x, z, name) {
+        var chest = new THREE.Mesh(
+          new THREE.BoxGeometry(1.5, 1, 1.2),
+          new THREE.MeshStandardMaterial({ color: 0xb45309, roughness: 0.6 })
+        );
+        chest.position.set(x, 0.5, z);
+        chest.castShadow = true;
+        var relic = new THREE.Mesh(
+          new THREE.OctahedronGeometry(0.45, 0),
+          new THREE.MeshStandardMaterial({ color: 0xa5f3fc, emissive: 0x22d3ee, emissiveIntensity: 0.45 })
+        );
+        relic.position.set(x, 1.5, z);
+        scene.add(chest);
+        scene.add(relic);
+        relics.push({
+          name: name,
+          chest: chest,
+          gem: relic,
+          taken: false,
+          position: new THREE.Vector3(x, 0, z),
+          beam: addBeacon(new THREE.Vector3(x, 0, z), 0x67e8f9)
+        });
+      }
+
+      function addGate() {
+        var left = new THREE.Mesh(new THREE.BoxGeometry(1.5, 6, 1.5), new THREE.MeshStandardMaterial({ color: 0xcbd5e1 }));
+        var right = left.clone();
+        var top = new THREE.Mesh(new THREE.BoxGeometry(8, 1.3, 1.5), new THREE.MeshStandardMaterial({ color: 0xe2e8f0 }));
+        left.position.set(-3, 3, 0);
+        right.position.set(3, 3, 0);
+        top.position.set(0, 6.3, 0);
+        scene.add(left);
+        scene.add(right);
+        scene.add(top);
+        worldMarkers.push({ name: 'Ancient Gate', position: landmarks.gate, beam: addBeacon(landmarks.gate, 0xfacc15) });
+      }
+
+      function addTower() {
+        var tower = new THREE.Mesh(
+          new THREE.CylinderGeometry(3.2, 3.8, 12, 12),
+          new THREE.MeshStandardMaterial({ color: 0x94a3b8, roughness: 0.9 })
+        );
+        tower.position.set(landmarks.tower.x, 6, landmarks.tower.z);
+        tower.castShadow = true;
+        scene.add(tower);
+        worldMarkers.push({ name: 'Sky Tower', position: landmarks.tower, beam: addBeacon(landmarks.tower, 0xf472b6) });
+      }
+
+      function addPlayer() {
+        var body = new THREE.Mesh(
+          THREE.CapsuleGeometry ? new THREE.CapsuleGeometry(0.45, 0.9, 8, 16) : new THREE.SphereGeometry(0.6, 16, 16),
+          new THREE.MeshStandardMaterial({ color: 0xf97316, roughness: 0.45 })
+        );
+        body.position.y = 1.05;
+        body.castShadow = true;
+        player.mesh.add(body);
+
+        var shadow = new THREE.Mesh(
+          new THREE.CircleGeometry(0.8, 20),
+          new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.18 })
+        );
+        shadow.rotation.x = -Math.PI / 2;
+        shadow.position.y = 0.02;
+        player.mesh.add(shadow);
+
+        scene.add(player.mesh);
+      }
+
+      function populateWorld() {
+        addGround();
+        addGate();
+        addTower();
+        addRelic(-32, -12, 'Moon Relic');
+        addRelic(28, 26, 'Forest Relic');
+        addRelic(54, -6, 'Sun Relic');
+
+        [-44, -30, -18, 16, 30, 40, 56].forEach(function (x, index) {
+          addTree(x, -20 + index * 8);
+          addTree(x + 6, 14 - index * 5);
+        });
+        addRock(-20, 22, 2.4);
+        addRock(12, -30, 3);
+        addRock(58, 18, 2);
+      }
+
+      function updateTarget() {
+        if (quests.relics < relics.length) {
+          currentTarget = relics.filter(function (relic) { return !relic.taken; })[0];
+          return;
+        }
+        if (!quests.towerVisited) {
+          currentTarget = { name: 'Sky Tower', position: landmarks.tower };
+          return;
+        }
+        currentTarget = { name: 'Ancient Gate', position: landmarks.gate };
+      }
+
+      function updateHud() {
+        updateTarget();
+        var questLines = [
+          (quests.relics === relics.length ? '[]' : '[ ]') + ' Find 3 relics (' + quests.relics + '/3)',
+          (quests.towerVisited ? '[]' : '[ ]') + ' Visit the Sky Tower',
+          (finished ? '[]' : '[ ]') + ' Return to the Ancient Gate'
+        ];
+        hud.innerHTML =
+          '<strong>Vibe 3D Explorer</strong><br>' +
+          'WASD or arrows to move<br>' +
+          'Quest Log:<br>' +
+          questLines.join('<br>');
+
+        if (currentTarget) {
+          var pos = currentTarget.position || currentTarget.position === 0 ? currentTarget.position : currentTarget.position;
+          var dx = pos.x - player.position.x;
+          var dz = pos.z - player.position.z;
+          var distance = Math.round(Math.sqrt(dx * dx + dz * dz));
+          var angle = Math.atan2(dx, dz);
+          var compass = angle > -0.78 && angle < 0.78 ? 'N' : angle >= 0.78 && angle < 2.35 ? 'E' : angle <= -0.78 && angle > -2.35 ? 'W' : 'S';
+          navChip.textContent = 'Target: ' + currentTarget.name + ' - ' + distance + 'm - ' + compass;
+        }
+      }
+
+      function collectRelics() {
+        relics.forEach(function (relic) {
+          if (!relic.taken && player.position.distanceTo(relic.position) < 2.2) {
+            relic.taken = true;
+            quests.relics += 1;
+            scene.remove(relic.gem);
+            scene.remove(relic.beam);
+            showToast('You found the ' + relic.name + '!');
+          }
+        });
+      }
+
+      function checkLandmarks() {
+        if (!quests.towerVisited && player.position.distanceTo(landmarks.tower) < 5) {
+          quests.towerVisited = true;
+          showToast('Sky Tower reached! Head back to the gate.');
+        }
+        if (quests.relics === relics.length && quests.towerVisited && player.position.distanceTo(landmarks.gate) < 5 && !finished) {
+          finished = true;
+          winScreen.classList.add('visible');
+        }
+      }
+
+      function updatePlayer(delta) {
+        if (finished) return;
+        var moveX = 0;
+        var moveZ = 0;
+        if (keys.left) moveX -= 1;
+        if (keys.right) moveX += 1;
+        if (keys.up) moveZ -= 1;
+        if (keys.down) moveZ += 1;
+        var direction = new THREE.Vector3(moveX, 0, moveZ);
+        if (direction.lengthSq() > 0) {
+          direction.normalize();
+          player.position.addScaledVector(direction, 13 * delta);
+          player.position.x = Math.max(-70, Math.min(70, player.position.x));
+          player.position.z = Math.max(-70, Math.min(70, player.position.z));
+          player.facing.lerp(direction, 0.18);
+          player.mesh.rotation.y = Math.atan2(player.facing.x, player.facing.z);
+        }
+        player.mesh.position.set(player.position.x, 0, player.position.z);
+      }
+
+      function updateCamera() {
+        var offset = new THREE.Vector3(player.facing.x * -8, 6.2, player.facing.z * -8);
+        var desired = player.position.clone().add(offset);
+        camera.position.lerp(desired, 0.08);
+        camera.lookAt(player.position.x, 1.5, player.position.z);
+      }
+
+      function animateBeacons(elapsed) {
+        relics.forEach(function (relic, index) {
+          if (!relic.taken) {
+            relic.gem.rotation.y += 0.03;
+            relic.gem.position.y = 1.5 + Math.sin(elapsed * 2 + index) * 0.2;
+            relic.beam.material.opacity = 0.22 + Math.sin(elapsed * 2 + index) * 0.08;
+          }
+        });
+        worldMarkers.forEach(function (marker, index) {
+          marker.beam.material.opacity = 0.16 + Math.sin(elapsed * 1.5 + index) * 0.05;
+        });
+      }
+
+      function setupScene() {
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x93c5fd);
+        scene.fog = new THREE.Fog(0x93c5fd, 55, 150);
+        camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 260);
+        camera.position.set(0, 6, 10);
+        renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        document.getElementById('game-container').appendChild(renderer.domElement);
+
+        scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+        var sun = new THREE.DirectionalLight(0xffffff, 1);
+        sun.position.set(24, 30, 12);
+        sun.castShadow = true;
+        scene.add(sun);
+
+        populateWorld();
+        addPlayer();
+      }
+
+      function bindControls() {
+        document.addEventListener('keydown', function (event) {
+          var key = event.key.toLowerCase();
+          if (key === 'arrowup' || key === 'w') keys.up = true;
+          if (key === 'arrowdown' || key === 's') keys.down = true;
+          if (key === 'arrowleft' || key === 'a') keys.left = true;
+          if (key === 'arrowright' || key === 'd') keys.right = true;
+        });
+        document.addEventListener('keyup', function (event) {
+          var key = event.key.toLowerCase();
+          if (key === 'arrowup' || key === 'w') keys.up = false;
+          if (key === 'arrowdown' || key === 's') keys.down = false;
+          if (key === 'arrowleft' || key === 'a') keys.left = false;
+          if (key === 'arrowright' || key === 'd') keys.right = false;
+        });
+        [['up-btn', 'up'], ['down-btn', 'down'], ['left-btn', 'left'], ['right-btn', 'right']].forEach(function (entry) {
+          var button = document.getElementById(entry[0]);
+          var direction = entry[1];
+          button.addEventListener('touchstart', function (event) { event.preventDefault(); keys[direction] = true; });
+          button.addEventListener('touchend', function (event) { event.preventDefault(); keys[direction] = false; });
+          button.addEventListener('mousedown', function () { keys[direction] = true; });
+          button.addEventListener('mouseup', function () { keys[direction] = false; });
+          button.addEventListener('mouseleave', function () { keys[direction] = false; });
+        });
+        document.getElementById('restart-btn').addEventListener('click', function () {
+          window.location.reload();
+        });
+        window.addEventListener('resize', function () {
+          camera.aspect = window.innerWidth / window.innerHeight;
+          camera.updateProjectionMatrix();
+          renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+      }
+
+      function animate() {
+        requestAnimationFrame(animate);
+        var delta = Math.min(clock.getDelta(), 0.03);
+        var elapsed = clock.elapsedTime;
+        updatePlayer(delta);
+        collectRelics();
+        checkLandmarks();
+        animateBeacons(elapsed);
+        updateCamera();
+        updateHud();
+        renderer.render(scene, camera);
+      }
+
+      if (typeof THREE === 'undefined') {
+        hud.textContent = 'Three.js failed to load.';
+        return;
+      }
+
+      clock = new THREE.Clock();
+      setupScene();
+      bindControls();
+      showToast('Find the relics, visit the tower, then return to the gate.');
+      animate();
+    })();
+  </script>
+</body>
+</html>

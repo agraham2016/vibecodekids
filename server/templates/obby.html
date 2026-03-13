@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { overflow: hidden; background: linear-gradient(180deg, #7dd3fc 0%, #e0f2fe 100%); font-family: Arial, sans-serif; touch-action: none; }
+    #game-container { width: 100vw; height: 100vh; }
+    #hud {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: rgba(15, 23, 42, 0.68);
+      color: #fff;
+      z-index: 10;
+      font-size: 15px;
+      line-height: 1.4;
+      min-width: 230px;
+    }
+    #toast {
+      position: fixed;
+      top: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 12px 18px;
+      border-radius: 999px;
+      background: rgba(37, 99, 235, 0.92);
+      color: #fff;
+      z-index: 11;
+      font-weight: bold;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      pointer-events: none;
+    }
+    #toast.visible { opacity: 1; }
+    #win-screen {
+      display: none;
+      position: fixed;
+      inset: 0;
+      align-items: center;
+      justify-content: center;
+      background: rgba(15, 23, 42, 0.66);
+      color: #fff;
+      z-index: 20;
+      text-align: center;
+      padding: 24px;
+    }
+    #win-screen.visible { display: flex; }
+    .win-card {
+      background: rgba(30, 41, 59, 0.95);
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      border-radius: 24px;
+      padding: 28px;
+      max-width: 420px;
+    }
+    .win-card h1 { font-size: 34px; margin-bottom: 10px; }
+    .win-card p { margin-bottom: 16px; line-height: 1.5; }
+    .win-card button {
+      padding: 12px 18px;
+      border: 0;
+      border-radius: 999px;
+      background: #38bdf8;
+      color: #082f49;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .touch-btn {
+      position: fixed;
+      bottom: 22px;
+      width: 68px;
+      height: 68px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.28);
+      color: #fff;
+      border: 2px solid rgba(255,255,255,0.45);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      z-index: 12;
+      user-select: none;
+    }
+    #left-btn { left: 20px; }
+    #right-btn { left: 100px; }
+    #jump-btn { right: 22px; }
+    @media (min-width: 900px) {
+      .touch-btn { opacity: 0.35; }
+    }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+</head>
+<body>
+  <div id="game-container"></div>
+  <div id="hud"></div>
+  <div id="toast"></div>
+  <div id="win-screen">
+    <div class="win-card">
+      <h1>You Win!</h1>
+      <p>You cleared the obby, collected the stars, and reached the finish flag.</p>
+      <button id="restart-btn">Play Again</button>
+    </div>
+  </div>
+  <div id="left-btn" class="touch-btn">&larr;</div>
+  <div id="right-btn" class="touch-btn">&rarr;</div>
+  <div id="jump-btn" class="touch-btn">&uarr;</div>
+  <script>
+    (function () {
+      var scene, camera, renderer, clock;
+      var container = document.getElementById('game-container');
+      var hud = document.getElementById('hud');
+      var toast = document.getElementById('toast');
+      var winScreen = document.getElementById('win-screen');
+      var restartBtn = document.getElementById('restart-btn');
+      var platforms = [];
+      var hazards = [];
+      var checkpoints = [];
+      var collectibles = [];
+      var movingPlatforms = [];
+      var goal = null;
+      var playerGroup = new THREE.Group();
+      var playerBody = new THREE.Mesh(
+        THREE.CapsuleGeometry ? new THREE.CapsuleGeometry(0.45, 0.8, 8, 16) : new THREE.SphereGeometry(0.5, 16, 16),
+        new THREE.MeshStandardMaterial({ color: 0x38bdf8, roughness: 0.5, metalness: 0.05 })
+      );
+      var velocity = new THREE.Vector3();
+      var spawnPoint = new THREE.Vector3(0, 2.5, 0);
+      var activeCheckpoint = 0;
+      var score = 0;
+      var totalCollectibles = 3;
+      var finished = false;
+      var keys = { left: false, right: false, up: false };
+
+      function showToast(text) {
+        toast.textContent = text;
+        toast.classList.add('visible');
+        clearTimeout(showToast._timer);
+        showToast._timer = setTimeout(function () {
+          toast.classList.remove('visible');
+        }, 1600);
+      }
+
+      function makeBox(sizeX, sizeY, sizeZ, color) {
+        return new THREE.Mesh(
+          new THREE.BoxGeometry(sizeX, sizeY, sizeZ),
+          new THREE.MeshStandardMaterial({ color: color, roughness: 0.7, metalness: 0.05 })
+        );
+      }
+
+      function addPlatform(x, y, z, sx, sy, sz, color) {
+        var mesh = makeBox(sx, sy, sz, color || 0x4ade80);
+        mesh.position.set(x, y, z);
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        scene.add(mesh);
+        platforms.push({ mesh: mesh, size: { x: sx, y: sy, z: sz } });
+        return mesh;
+      }
+
+      function addHazard(x, y, z, sx, sy, sz) {
+        var mesh = makeBox(sx, sy, sz, 0xef4444);
+        mesh.position.set(x, y, z);
+        scene.add(mesh);
+        hazards.push({ mesh: mesh, size: { x: sx, y: sy, z: sz } });
+      }
+
+      function addCheckpoint(x, y, z, label) {
+        var pole = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.08, 0.08, 2.2, 10),
+          new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.4 })
+        );
+        pole.position.set(x, y + 1.1, z);
+        var flag = new THREE.Mesh(
+          new THREE.BoxGeometry(1.2, 0.7, 0.08),
+          new THREE.MeshStandardMaterial({ color: 0xf59e0b, roughness: 0.4 })
+        );
+        flag.position.set(x + 0.65, y + 1.65, z);
+        scene.add(pole);
+        scene.add(flag);
+        checkpoints.push({ x: x, y: y, z: z, label: label, flag: flag });
+      }
+
+      function addCollectible(x, y, z) {
+        var gem = new THREE.Mesh(
+          new THREE.OctahedronGeometry(0.45, 0),
+          new THREE.MeshStandardMaterial({ color: 0xfef08a, emissive: 0xfacc15, emissiveIntensity: 0.35, roughness: 0.2 })
+        );
+        gem.position.set(x, y, z);
+        scene.add(gem);
+        collectibles.push({ mesh: gem, taken: false });
+      }
+
+      function addGoal(x, y, z) {
+        var pole = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.1, 0.1, 3, 10),
+          new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.4 })
+        );
+        pole.position.set(x, y + 1.5, z);
+        var flag = new THREE.Mesh(
+          new THREE.BoxGeometry(1.6, 1, 0.1),
+          new THREE.MeshStandardMaterial({ color: 0x22c55e, roughness: 0.4 })
+        );
+        flag.position.set(x + 0.85, y + 2.1, z);
+        scene.add(pole);
+        scene.add(flag);
+        goal = { x: x, y: y, z: z, flag: flag };
+      }
+
+      function addMovingPlatform(x, y, z, sx, sy, sz, travel) {
+        var mesh = addPlatform(x, y, z, sx, sy, sz, 0xa78bfa);
+        movingPlatforms.push({
+          mesh: mesh,
+          originX: x,
+          travel: travel,
+          size: { x: sx, y: sy, z: sz }
+        });
+      }
+
+      function createFallbackPlayer() {
+        playerBody.castShadow = true;
+        playerBody.position.y = 0.95;
+        playerGroup.add(playerBody);
+
+        var eyeWhite = new THREE.MeshStandardMaterial({ color: 0xffffff });
+        var eyePupil = new THREE.MeshStandardMaterial({ color: 0x111827 });
+        [-0.16, 0.16].forEach(function (x) {
+          var white = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 8), eyeWhite);
+          white.position.set(x, 1.25, 0.4);
+          var pupil = new THREE.Mesh(new THREE.SphereGeometry(0.04, 8, 8), eyePupil);
+          pupil.position.set(x, 1.25, 0.47);
+          playerGroup.add(white);
+          playerGroup.add(pupil);
+        });
+      }
+
+      function createCourse() {
+        addPlatform(0, 0, 0, 8, 1, 8, 0x4ade80);
+        addCheckpoint(0, 0.5, 0, 'Start');
+        addPlatform(7, 1, -3, 5, 1, 5, 0x60a5fa);
+        addPlatform(14, 2.2, -6, 5, 1, 5, 0xf59e0b);
+        addMovingPlatform(22, 3.4, -2, 5, 1, 5, 4.5);
+        addPlatform(30, 5, -6, 6, 1, 6, 0x34d399);
+        addCheckpoint(30, 5.5, -6, 'Middle');
+        addHazard(11, 0.15, -3, 2.2, 0.3, 2.2);
+        addHazard(18, 0.15, -5, 3, 0.3, 3);
+        addHazard(26, 0.15, -1, 3, 0.3, 3);
+        addPlatform(38, 6.6, -2, 5, 1, 5, 0xf472b6);
+        addPlatform(46, 8, -6, 5, 1, 5, 0x2dd4bf);
+        addPlatform(54, 10, -2, 5, 1, 5, 0x38bdf8);
+        addPlatform(62, 11.5, -6, 6, 1, 6, 0x22c55e);
+        addCheckpoint(62, 12, -6, 'Top');
+        addPlatform(70, 13, -2, 5, 1, 5, 0x818cf8);
+        addPlatform(78, 14.5, -6, 8, 1, 8, 0xfacc15);
+        addGoal(78, 15, -6);
+        addCollectible(14, 4.3, -6);
+        addCollectible(38, 8.6, -2);
+        addCollectible(62, 14.2, -6);
+      }
+
+      function setupScene() {
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x7dd3fc);
+        scene.fog = new THREE.Fog(0x7dd3fc, 50, 160);
+
+        camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 300);
+        camera.position.set(0, 6, 12);
+
+        renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        container.appendChild(renderer.domElement);
+
+        scene.add(new THREE.AmbientLight(0xffffff, 0.72));
+        var sun = new THREE.DirectionalLight(0xffffff, 0.9);
+        sun.position.set(22, 35, 18);
+        sun.castShadow = true;
+        scene.add(sun);
+
+        var skyFloor = new THREE.Mesh(
+          new THREE.PlaneGeometry(240, 240),
+          new THREE.MeshStandardMaterial({ color: 0xbfdbfe, roughness: 0.85 })
+        );
+        skyFloor.rotation.x = -Math.PI / 2;
+        skyFloor.position.y = -1.8;
+        scene.add(skyFloor);
+
+        for (var i = 0; i < 10; i++) {
+          var cloud = new THREE.Mesh(
+            new THREE.SphereGeometry(1.7 + Math.random(), 10, 10),
+            new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1 })
+          );
+          cloud.position.set(-15 + i * 10, 18 + Math.random() * 5, -20 - Math.random() * 25);
+          cloud.scale.set(1.8, 0.8, 1.2);
+          scene.add(cloud);
+        }
+
+        createFallbackPlayer();
+        playerGroup.position.copy(spawnPoint);
+        scene.add(playerGroup);
+        createCourse();
+      }
+
+      function resetPlayer() {
+        velocity.set(0, 0, 0);
+        playerGroup.position.set(spawnPoint.x, spawnPoint.y, spawnPoint.z);
+      }
+
+      function respawnAtCheckpoint() {
+        var cp = checkpoints[activeCheckpoint] || checkpoints[0];
+        spawnPoint.set(cp.x, cp.y + 2, cp.z);
+        resetPlayer();
+        showToast(cp.label + ' checkpoint!');
+      }
+
+      function updateCheckpointProgress() {
+        for (var i = 0; i < checkpoints.length; i++) {
+          var cp = checkpoints[i];
+          if (playerGroup.position.distanceTo(new THREE.Vector3(cp.x, cp.y + 1, cp.z)) < 2.3 && i > activeCheckpoint) {
+            activeCheckpoint = i;
+            respawnAtCheckpoint();
+          }
+        }
+      }
+
+      function isInsideBox(pos, item) {
+        var p = item.mesh.position;
+        var s = item.size;
+        return (
+          Math.abs(pos.x - p.x) <= s.x * 0.5 + 0.45 &&
+          Math.abs(pos.y - p.y) <= s.y * 0.5 + 1.0 &&
+          Math.abs(pos.z - p.z) <= s.z * 0.5 + 0.45
+        );
+      }
+
+      function resolvePlatformCollision(nextX, nextZ, delta) {
+        var landed = false;
+        for (var i = 0; i < platforms.length; i++) {
+          var platform = platforms[i];
+          var top = platform.mesh.position.y + platform.size.y * 0.5;
+          var inXZ =
+            Math.abs(nextX - platform.mesh.position.x) <= platform.size.x * 0.5 + 0.35 &&
+            Math.abs(nextZ - platform.mesh.position.z) <= platform.size.z * 0.5 + 0.35;
+          if (!inXZ) continue;
+          var fallingOntoTop = velocity.y <= 0 && playerGroup.position.y >= top + 0.6 && playerGroup.position.y + velocity.y * delta <= top + 1.4;
+          if (fallingOntoTop) {
+            playerGroup.position.y = top + 1.4;
+            velocity.y = 0;
+            landed = true;
+          }
+        }
+        return landed;
+      }
+
+      function collectStars() {
+        for (var i = 0; i < collectibles.length; i++) {
+          var gem = collectibles[i];
+          if (!gem.taken && playerGroup.position.distanceTo(gem.mesh.position) < 1.6) {
+            gem.taken = true;
+            score += 1;
+            scene.remove(gem.mesh);
+            showToast('Star collected! ' + score + '/' + totalCollectibles);
+          }
+        }
+      }
+
+      function hitHazard() {
+        for (var i = 0; i < hazards.length; i++) {
+          if (isInsideBox(playerGroup.position, hazards[i])) {
+            resetPlayer();
+            showToast('Ouch! Back to checkpoint.');
+            return true;
+          }
+        }
+        if (playerGroup.position.y < -4) {
+          resetPlayer();
+          showToast('You fell! Try again.');
+          return true;
+        }
+        return false;
+      }
+
+      function checkGoal() {
+        if (finished || !goal) return;
+        var goalPos = new THREE.Vector3(goal.x, goal.y + 1.2, goal.z);
+        if (playerGroup.position.distanceTo(goalPos) < 2.2) {
+          if (score < totalCollectibles) {
+            showToast('Grab all ' + totalCollectibles + ' stars first!');
+            return;
+          }
+          finished = true;
+          winScreen.classList.add('visible');
+        }
+      }
+
+      function updateMovingPlatforms(elapsed) {
+        for (var i = 0; i < movingPlatforms.length; i++) {
+          var moving = movingPlatforms[i];
+          moving.mesh.position.x = moving.originX + Math.sin(elapsed * 1.1 + i) * moving.travel;
+        }
+      }
+
+      function updateCamera() {
+        var target = new THREE.Vector3(playerGroup.position.x, playerGroup.position.y + 2.5, playerGroup.position.z + 8.5);
+        camera.position.lerp(target, 0.08);
+        camera.lookAt(playerGroup.position.x, playerGroup.position.y + 1.2, playerGroup.position.z - 7);
+      }
+
+      function updateHud() {
+        hud.innerHTML =
+          '<strong>Vibe 3D Obby</strong><br>' +
+          'Stars: ' + score + '/' + totalCollectibles + '<br>' +
+          'Checkpoint: ' + (activeCheckpoint + 1) + '/' + checkpoints.length + '<br>' +
+          'Arrow keys to move, jump with Up';
+      }
+
+      function animate() {
+        requestAnimationFrame(animate);
+        if (!scene) return;
+        var delta = Math.min(clock.getDelta(), 0.03);
+        var elapsed = clock.elapsedTime;
+
+        updateMovingPlatforms(elapsed);
+
+        if (!finished) {
+          var move = 0;
+          if (keys.left) move -= 1;
+          if (keys.right) move += 1;
+          velocity.x = move * 7.5;
+          velocity.y -= 22 * delta;
+
+          var nextX = playerGroup.position.x + velocity.x * delta;
+          var nextZ = playerGroup.position.z - 4.8 * delta;
+          if (!keys.left && !keys.right) nextZ = playerGroup.position.z - 4.0 * delta;
+
+          var onPlatform = resolvePlatformCollision(nextX, nextZ, delta);
+          if (!onPlatform) {
+            playerGroup.position.y += velocity.y * delta;
+          }
+
+          playerGroup.position.x = nextX;
+          playerGroup.position.z = nextZ;
+          playerGroup.rotation.y = move !== 0 ? -move * 0.4 : 0;
+
+          collectStars();
+          updateCheckpointProgress();
+          if (!hitHazard()) checkGoal();
+        }
+
+        updateCamera();
+        updateHud();
+        renderer.render(scene, camera);
+      }
+
+      function setKey(dir, value) {
+        if (dir === 'left') keys.left = value;
+        if (dir === 'right') keys.right = value;
+        if (dir === 'up') {
+          keys.up = value;
+          if (value && Math.abs(velocity.y) < 0.001) {
+            velocity.y = 10.5;
+          }
+        }
+      }
+
+      function bindControls() {
+        document.addEventListener('keydown', function (event) {
+          if (event.key === 'ArrowLeft') { setKey('left', true); event.preventDefault(); }
+          if (event.key === 'ArrowRight') { setKey('right', true); event.preventDefault(); }
+          if (event.key === 'ArrowUp' || event.key === ' ') { setKey('up', true); event.preventDefault(); }
+        });
+        document.addEventListener('keyup', function (event) {
+          if (event.key === 'ArrowLeft') setKey('left', false);
+          if (event.key === 'ArrowRight') setKey('right', false);
+          if (event.key === 'ArrowUp' || event.key === ' ') setKey('up', false);
+        });
+        [['left-btn', 'left'], ['right-btn', 'right'], ['jump-btn', 'up']].forEach(function (entry) {
+          var button = document.getElementById(entry[0]);
+          var key = entry[1];
+          button.addEventListener('touchstart', function (event) { event.preventDefault(); setKey(key, true); });
+          button.addEventListener('touchend', function (event) { event.preventDefault(); setKey(key, false); });
+          button.addEventListener('mousedown', function () { setKey(key, true); });
+          button.addEventListener('mouseup', function () { setKey(key, false); });
+          button.addEventListener('mouseleave', function () { setKey(key, false); });
+        });
+        restartBtn.addEventListener('click', function () {
+          window.location.reload();
+        });
+        window.addEventListener('resize', function () {
+          camera.aspect = window.innerWidth / window.innerHeight;
+          camera.updateProjectionMatrix();
+          renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+      }
+
+      if (typeof THREE === 'undefined') {
+        hud.textContent = 'Three.js failed to load.';
+        return;
+      }
+
+      clock = new THREE.Clock();
+      setupScene();
+      bindControls();
+      showToast('Reach the finish flag after collecting all stars!');
+      animate();
+    })();
+  </script>
+</body>
+</html>

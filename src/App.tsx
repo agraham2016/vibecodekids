@@ -19,6 +19,7 @@ import { getTutorialStatus, welcomedKey } from './components/tutorialUtils';
 import TipsModal from './components/TipsModal';
 import { getVariant } from './lib/abVariant';
 import type { User, MembershipUsage, TierInfo, AIMode, GameConfig } from './types';
+import { getStarterTemplateById } from './config/gameCatalog';
 import './App.css';
 
 function App() {
@@ -175,8 +176,12 @@ function App() {
 
   const handleGameSurveyComplete = useCallback(
     (config: GameConfig) => {
+      const starter = getStarterTemplateById(config.starterTemplateId || config.gameType);
       const dimensionLabel = config.dimension === '3d' ? '3D' : '2D';
-      const prompt = `Make me a ${dimensionLabel} ${config.theme} ${config.gameType} game where I control a ${config.character} and dodge ${config.obstacles}! Use a ${config.visualStyle} visual style.`;
+      const engineLabel = config.engineId === 'vibe-3d' ? 'Vibe 3D' : 'Vibe 2D';
+      const starterLabel = starter?.label || config.gameType;
+      const notes = config.customNotes ? ` Extra idea: ${config.customNotes}.` : '';
+      const prompt = `Make me a ${dimensionLabel} ${config.theme} ${starterLabel} game with the ${engineLabel} engine style. I control a ${config.character}. The main challenge is ${config.obstacles}. Use a ${config.visualStyle} visual style.${notes}`;
       setShowGameSurvey(false);
       localStorage.setItem(welcomedKey(user?.id), '1');
       handleSendMessage(prompt, undefined, undefined, config);
