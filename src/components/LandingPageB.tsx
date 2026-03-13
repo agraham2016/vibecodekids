@@ -249,22 +249,22 @@ export default function LandingPageB({ onLoginClick, onSignupClick }: LandingPag
           </div>
           <h1 className="hero-headline">Teach kids to create with AI, not just consume it.</h1>
           <p className="hero-subtitle">
-            Turn your child's game ideas into real playable games in minutes. Try it right now with guided creative AI
-            built for beginners.
+            Pick a game type or describe your own idea. VibeCode Kidz matches it to the right game engine so you can
+            play a first version fast and keep improving it with AI.
           </p>
 
           <div className="hero-features">
             <div className="feature">
               <span className="feature-icon">💬</span>
-              <span>Create with AI</span>
+              <span>Pick or Describe</span>
             </div>
             <div className="feature">
               <span className="feature-icon">🤖</span>
-              <span>Build in Minutes</span>
+              <span>Playable Fast</span>
             </div>
             <div className="feature">
               <span className="feature-icon">🎮</span>
-              <span>Play and Share</span>
+              <span>Make It Yours</span>
             </div>
           </div>
 
@@ -280,8 +280,11 @@ export default function LandingPageB({ onLoginClick, onSignupClick }: LandingPag
 
         {/* Try It Now Section */}
         <section ref={tryItRef} className="tryit-section" id="try-it">
-          <h2 className="section-heading">Make a Game Right Now</h2>
-          <p className="section-subheading">Simple enough for beginners. Exciting enough to share.</p>
+          <h2 className="section-heading">Pick It or Describe It</h2>
+          <p className="section-subheading">
+            Choose a starter or type your own game idea. VibeCode Kidz will match the right engine and build a playable
+            first version.
+          </p>
 
           {/* Signup Gate Modal */}
           {phase === 'gated' && (
@@ -318,7 +321,7 @@ export default function LandingPageB({ onLoginClick, onSignupClick }: LandingPag
             <input
               className="tryit-input"
               type="text"
-              placeholder="Or describe your own game..."
+              placeholder="Describe your game idea..."
               value={customPrompt}
               onChange={(e) => setCustomPrompt(e.target.value)}
               onKeyDown={(e) => {
@@ -402,26 +405,26 @@ export default function LandingPageB({ onLoginClick, onSignupClick }: LandingPag
         {/* How It Works — reused from Landing A */}
         <section className="how-it-works" id="how-it-works">
           <h2 className="section-heading">How It Works</h2>
-          <p className="section-subheading">A guided, creative way for kids to use AI productively.</p>
+          <p className="section-subheading">A guided way to go from idea to playable game.</p>
           <div className="steps-row">
             <div className="step-card">
               <div className="step-number">1</div>
-              <h3 className="step-title">Describe Your Game</h3>
-              <p className="step-desc">
-                Tell the AI what you want in plain English — no adult coding workflow required.
-              </p>
+              <h3 className="step-title">Pick It or Describe It</h3>
+              <p className="step-desc">Choose a game type or tell the AI what you want in plain English.</p>
             </div>
             <div className="step-connector" />
             <div className="step-card">
               <div className="step-number">2</div>
-              <h3 className="step-title">AI Builds It</h3>
-              <p className="step-desc">Guided AI helps turn that idea into a real playable game fast.</p>
+              <h3 className="step-title">Get the Right Engine</h3>
+              <p className="step-desc">
+                VibeCode Kidz matches your request to the best game engine and builds a playable starting point.
+              </p>
             </div>
             <div className="step-connector" />
             <div className="step-card">
               <div className="step-number">3</div>
-              <h3 className="step-title">Play &amp; Share</h3>
-              <p className="step-desc">Play it, improve it, and share it when you are ready.</p>
+              <h3 className="step-title">Customize and Make It Yours</h3>
+              <p className="step-desc">Keep changing the game with vibe coding until it feels original and personal.</p>
             </div>
           </div>
         </section>

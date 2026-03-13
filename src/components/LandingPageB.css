@@ -325,17 +325,47 @@
 
 /* ─── Mobile adjustments ─── */
 
+@media (max-width: 768px) {
+  .tryit-section {
+    padding: 48px 0 28px;
+  }
+
+  .tryit-presets {
+    margin-bottom: 16px;
+  }
+
+  .tryit-input-row {
+    margin-bottom: 10px;
+  }
+
+  .tryit-result {
+    margin-top: 16px;
+  }
+
+  .tryit-ai-message {
+    margin-bottom: 12px;
+    font-size: 0.92rem;
+  }
+}
+
 @media (max-width: 600px) {
+  .tryit-section {
+    padding: 42px 0 24px;
+  }
+
   .tryit-input-row {
     flex-direction: column;
+    gap: 8px;
   }
 
   .tryit-go-btn {
     width: 100%;
+    padding: 13px 18px;
   }
 
   .tryit-presets {
     gap: 8px;
+    margin-bottom: 16px;
   }
 
   .tryit-preset-btn {
@@ -345,15 +375,27 @@
 
   .tryit-preview-wrapper {
     aspect-ratio: 3 / 4;
+    border-radius: 14px;
   }
 
   .tryit-feedback-bar {
     bottom: 8px;
     right: 8px;
-    padding: 4px 10px;
+    gap: 4px;
+    padding: 4px 8px;
+  }
+
+  .tryit-feedback-label {
+    display: none;
+  }
+
+  .tryit-thumb-btn {
+    width: 32px;
+    height: 32px;
   }
 
   .tryit-gate-modal {
     padding: 28px 20px;
+    width: calc(100% - 28px);
   }
 }
