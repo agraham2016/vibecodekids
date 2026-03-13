@@ -113,6 +113,8 @@ export default function GameSurvey({ onComplete }: GameSurveyProps) {
     );
   }, []);
 
+  const fallbackStarter = STARTER_TEMPLATES[0]!;
+
   const advanceStep = (userAnswer: string, configKey: keyof GameConfig, configValue: string) => {
     // Add user answer to chat
     const newHistory = [...chatHistory, { role: 'user' as const, text: userAnswer }];
@@ -120,7 +122,8 @@ export default function GameSurvey({ onComplete }: GameSurveyProps) {
     // Update answers
     let newAnswers: Partial<GameConfig> = { ...answers, [configKey]: configValue };
     if (configKey === 'gameType') {
-      const starter = getStarterTemplateById(configValue as StarterTemplateId) || pickStarterFromText(userAnswer);
+      const starter =
+        getStarterTemplateById(configValue as StarterTemplateId) || pickStarterFromText(userAnswer) || fallbackStarter;
       newAnswers = {
         ...newAnswers,
         gameType: starter.id,
@@ -154,7 +157,7 @@ export default function GameSurvey({ onComplete }: GameSurveyProps) {
         const starter =
           getStarterTemplateById(
             (newAnswers.starterTemplateId || newAnswers.gameType || 'platformer') as StarterTemplateId,
-          ) || STARTER_TEMPLATES[0];
+          ) || fallbackStarter;
         const finalConfig: GameConfig = {
           gameType: (newAnswers.gameType || starter.id) as GameConfig['gameType'],
           engineId: newAnswers.engineId || starter.engineId,
