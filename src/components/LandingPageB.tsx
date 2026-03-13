@@ -247,21 +247,24 @@ export default function LandingPageB({ onLoginClick, onSignupClick }: LandingPag
           <div className="hero-logo">
             <img src="/images/logo.png?v=3" alt="VibeCode Kidz" className="hero-logo-img" />
           </div>
-          <h1 className="hero-headline">Your kid describes a game. AI builds it.</h1>
-          <p className="hero-subtitle">Try it right now — no signup needed.</p>
+          <h1 className="hero-headline">Teach kids to create with AI, not just consume it.</h1>
+          <p className="hero-subtitle">
+            Turn your child's game ideas into real playable games in minutes. Try it right now with guided creative AI
+            built for beginners.
+          </p>
 
           <div className="hero-features">
             <div className="feature">
               <span className="feature-icon">💬</span>
-              <span>Describe It</span>
+              <span>Create with AI</span>
             </div>
             <div className="feature">
               <span className="feature-icon">🤖</span>
-              <span>AI Builds It</span>
+              <span>Build in Minutes</span>
             </div>
             <div className="feature">
               <span className="feature-icon">🎮</span>
-              <span>Play It Instantly</span>
+              <span>Play and Share</span>
             </div>
           </div>
 
@@ -278,7 +281,7 @@ export default function LandingPageB({ onLoginClick, onSignupClick }: LandingPag
         {/* Try It Now Section */}
         <section ref={tryItRef} className="tryit-section" id="try-it">
           <h2 className="section-heading">Make a Game Right Now</h2>
-          <p className="section-subheading">Pick a starter or describe your own — AI does the rest</p>
+          <p className="section-subheading">Simple enough for beginners. Exciting enough to share.</p>
 
           {/* Signup Gate Modal */}
           {phase === 'gated' && (
@@ -399,32 +402,34 @@ export default function LandingPageB({ onLoginClick, onSignupClick }: LandingPag
         {/* How It Works — reused from Landing A */}
         <section className="how-it-works" id="how-it-works">
           <h2 className="section-heading">How It Works</h2>
-          <p className="section-subheading">From idea to playable game in under a minute</p>
+          <p className="section-subheading">A guided, creative way for kids to use AI productively.</p>
           <div className="steps-row">
             <div className="step-card">
               <div className="step-number">1</div>
               <h3 className="step-title">Describe Your Game</h3>
-              <p className="step-desc">Tell the AI what you want in plain English — any game you can imagine.</p>
+              <p className="step-desc">
+                Tell the AI what you want in plain English — no adult coding workflow required.
+              </p>
             </div>
             <div className="step-connector" />
             <div className="step-card">
               <div className="step-number">2</div>
               <h3 className="step-title">AI Builds It</h3>
-              <p className="step-desc">Watch your game come to life in seconds with real, working code.</p>
+              <p className="step-desc">Guided AI helps turn that idea into a real playable game fast.</p>
             </div>
             <div className="step-connector" />
             <div className="step-card">
               <div className="step-number">3</div>
               <h3 className="step-title">Play &amp; Share</h3>
-              <p className="step-desc">Test it instantly, tweak it with more prompts, and publish to the Arcade.</p>
+              <p className="step-desc">Play it, improve it, and share it when you are ready.</p>
             </div>
           </div>
         </section>
 
         {/* For Parents */}
         <section className="for-parents" id="parents">
-          <h2 className="section-heading">Built for Kids. Trusted by Parents.</h2>
-          <p className="section-subheading">Safety, education, and transparency are built into everything we do</p>
+          <h2 className="section-heading">Creative Screen Time, Not Passive Screen Time</h2>
+          <p className="section-subheading">A safer, simpler middle path for AI in education.</p>
           <div className="parent-grid">
             <div className="parent-card">
               <span className="parent-card-icon">&#128737;&#65039;</span>
@@ -436,18 +441,17 @@ export default function LandingPageB({ onLoginClick, onSignupClick }: LandingPag
             </div>
             <div className="parent-card">
               <span className="parent-card-icon">&#129504;</span>
-              <h3>Real Coding Skills</h3>
+              <h3>Create With AI, Not Just Consume It</h3>
               <p>
-                Kids learn game design, computational thinking, and can view and edit the real source code behind every
-                game.
+                Kids use AI to make, test, and improve their own games. It is creative screen time with a real output.
               </p>
             </div>
             <div className="parent-card">
               <span className="parent-card-icon">&#9989;</span>
-              <h3>Kid-Friendly Content Only</h3>
+              <h3>Built for Beginners</h3>
               <p>
-                AI content moderation ensures all games stay E-rated. Swords and spells are fine — graphic violence is
-                not.
+                VibeCode Kidz removes the barriers that make adult AI and game-building tools too complicated for many
+                kids.
               </p>
             </div>
             <div className="parent-card">
@@ -464,7 +468,7 @@ export default function LandingPageB({ onLoginClick, onSignupClick }: LandingPag
         {/* Pricing */}
         <section className="pricing-section" id="pricing">
           <h2 className="section-heading">Simple, Affordable Plans</h2>
-          <p className="section-subheading">Start free. Upgrade when you're ready.</p>
+          <p className="section-subheading">Start free. Build fast. Upgrade when you're ready.</p>
           <div className="pricing-grid">
             <div className="price-card">
               <h3 className="price-card-name">Free Trial</h3>
@@ -519,8 +523,8 @@ export default function LandingPageB({ onLoginClick, onSignupClick }: LandingPag
 
         {/* Final CTA */}
         <section className="final-cta-section">
-          <h2>Ready to start vibecoding?</h2>
-          <p>Your child's next favorite game is one sentence away.</p>
+          <h2>Ready to help your child create with AI?</h2>
+          <p>Start free to save, remix, and share the games they build.</p>
           <button className="section-cta" onClick={() => handleCta('section-cta', 'final')}>
             Get Started Free
           </button>

@@ -601,21 +601,24 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
           <div className="hero-logo">
             <img src="/images/logo.png?v=3" alt="VibeCode Kidz" className="hero-logo-img" />
           </div>
-          <h1 className="hero-headline">Your kid describes a game. AI builds it.</h1>
-          <p className="hero-subtitle">No coding needed. Just imagination.</p>
+          <h1 className="hero-headline">Teach kids to create with AI, not just consume it.</h1>
+          <p className="hero-subtitle">
+            VibeCode Kidz turns your child's game ideas into real playable games in minutes, with guided creative screen
+            time parents can trust.
+          </p>
 
           <div className="hero-features">
             <div className="feature">
               <span className="feature-icon">💬</span>
-              <span>Chat with AI</span>
+              <span>Create with AI</span>
             </div>
             <div className="feature">
               <span className="feature-icon">🎮</span>
-              <span>Make Games</span>
+              <span>Build in Minutes</span>
             </div>
             <div className="feature">
               <span className="feature-icon">🏆</span>
-              <span>Share &amp; Play</span>
+              <span>Share &amp; Inspire</span>
             </div>
           </div>
 
@@ -628,30 +631,37 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
             </button>
           </div>
 
-          <p className="hero-note">Start your free 30-day trial — 3 games and 10 prompts/day</p>
+          <p className="hero-note">Start your free 30-day trial and turn passive screen time into creative momentum.</p>
         </section>
 
         {/* ── 3. How It Works ── */}
         <section className="how-it-works" id="how-it-works">
           <h2 className="section-heading">How It Works</h2>
-          <p className="section-subheading">From idea to playable game in under a minute</p>
+          <p className="section-subheading">A simpler, safer way for kids to use AI productively</p>
           <div className="steps-row">
             <div className="step-card">
               <div className="step-number">1</div>
               <h3 className="step-title">Describe Your Game</h3>
-              <p className="step-desc">Tell the AI what you want in plain English — any game you can imagine.</p>
+              <p className="step-desc">
+                Kids describe the game they want in plain English, without having to learn adult coding workflows first.
+              </p>
             </div>
             <div className="step-connector" />
             <div className="step-card">
               <div className="step-number">2</div>
               <h3 className="step-title">AI Builds It</h3>
-              <p className="step-desc">Watch your game come to life in seconds with real, working code.</p>
+              <p className="step-desc">
+                Guided AI turns that idea into a real playable game fast, so kids can create before they get stuck in
+                setup.
+              </p>
             </div>
             <div className="step-connector" />
             <div className="step-card">
               <div className="step-number">3</div>
               <h3 className="step-title">Play &amp; Share</h3>
-              <p className="step-desc">Test it instantly, tweak it with more prompts, and publish to the Arcade.</p>
+              <p className="step-desc">
+                Play it, improve it, and share it to the Arcade so friends can try it and get inspired to build too.
+              </p>
             </div>
           </div>
         </section>
@@ -659,7 +669,7 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
         {/* ── 4. Live Demo (existing) ── */}
         <section className="live-demo-section">
           <h2 className="section-heading">See It In Action</h2>
-          <p className="section-subheading">Describe a game. Watch it come to life.</p>
+          <p className="section-subheading">From first idea to playable game in minutes.</p>
 
           <div className="demo-tabs">
             {DEMO_SCENARIOS.map((s, i) => (
@@ -745,8 +755,11 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
         {/* ── 5. Real Games Showcase ── */}
         {featuredGames.length > 0 && (
           <section className="games-showcase">
-            <h2 className="section-heading">Games Built by Kids Like You</h2>
-            <p className="section-subheading">Real games created on VibeCode Kidz — playable right now</p>
+            <h2 className="section-heading">Make It. Share It. Inspire the Next Creator.</h2>
+            <p className="section-subheading">
+              Kids build a game, share it to the Arcade, and let friends play it free. That is how one game idea can
+              spark the next one.
+            </p>
             <div className="showcase-game-grid">
               {featuredGames.map((game, i) => (
                 <a
@@ -790,10 +803,47 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
           </section>
         )}
 
-        {/* ── 6. Template Grid (existing) ── */}
+        {/* ── 6. Founder Story ── */}
+        <section className="founder-story-section">
+          <h2 className="section-heading">A Better Middle Path for AI</h2>
+          <p className="section-subheading">
+            We built VibeCode Kidz after seeing two extremes: schools trying to block AI entirely, and kids getting
+            dropped into powerful tools built for adults.
+          </p>
+          <div className="founder-story-card">
+            <p>
+              VibeCode Kidz is the middle path: a safe, creative, guided way for kids to use AI productively. Instead of
+              just consuming content, they can turn ideas into real games, build confidence quickly, and share what they
+              made with friends and family.
+            </p>
+          </div>
+          <div className="parent-grid founder-pillars">
+            <div className="parent-card">
+              <span className="parent-card-icon">🧭</span>
+              <h3>Guided, Not Overwhelming</h3>
+              <p>
+                Kids can start creating right away without having to navigate tools and workflows designed for adults.
+              </p>
+            </div>
+            <div className="parent-card">
+              <span className="parent-card-icon">✨</span>
+              <h3>Creative, Not Passive</h3>
+              <p>
+                AI becomes a tool for making, testing, and learning instead of just watching, scrolling, or consuming.
+              </p>
+            </div>
+            <div className="parent-card">
+              <span className="parent-card-icon">🛡️</span>
+              <h3>Safe, Not Reckless</h3>
+              <p>Parent controls, kid-friendly content rules, and moderated sharing are built into the experience.</p>
+            </div>
+          </div>
+        </section>
+
+        {/* ── 7. Template Grid (existing) ── */}
         <section className="template-showcase">
           <h2 className="section-heading">31 Game Types to Vibecode</h2>
-          <p className="section-subheading">Pick a template or describe something totally new</p>
+          <p className="section-subheading">Simple enough for beginners. Exciting enough to share.</p>
           <div className="template-grid">
             {GAME_TEMPLATES.map((tmpl) => (
               <button
@@ -817,16 +867,17 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
           </div>
         </section>
 
-        {/* ── 7. Vibecode From Scratch (existing) ── */}
+        {/* ── 8. Vibecode From Scratch (existing) ── */}
         <section className="scratch-section">
           <div className="scratch-divider">
             <span className="scratch-divider-line" />
             <span className="scratch-divider-text">OR</span>
             <span className="scratch-divider-line" />
           </div>
-          <h2 className="scratch-title">Vibecode Something From Scratch</h2>
+          <h2 className="scratch-title">Turn Big Ideas Into Playable Games Fast</h2>
           <p className="scratch-subtitle">
-            Don't see what you want? Just describe it. Your AI buddy will vibecode any game you can imagine.
+            Most game-building tools ask kids to learn code, setup, and deployment before they can make anything.
+            VibeCode Kidz removes those barriers so they can start creating right away.
           </p>
           <div className="scratch-examples">
             {[
@@ -858,40 +909,43 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
             ))}
           </div>
           <div className="scratch-bottom">
-            <p className="scratch-hint">Type anything you want — the only limit is your imagination</p>
+            <p className="scratch-hint">
+              From first spark to playable game, AI helps close the gap between idea and reality.
+            </p>
             <button className="section-cta" onClick={() => handleCta('section-cta', 'scratch')}>
               Start Vibecoding — Free
             </button>
           </div>
         </section>
 
-        {/* ── 8. For Parents ── */}
+        {/* ── 9. For Parents ── */}
         <section className="for-parents" id="parents">
-          <h2 className="section-heading">Built for Kids. Trusted by Parents.</h2>
-          <p className="section-subheading">Safety, education, and transparency are built into everything we do</p>
+          <h2 className="section-heading">Creative Screen Time Parents Can Feel Good About</h2>
+          <p className="section-subheading">
+            VibeCode Kidz is a guided middle path for AI in education: creative, safe, and built for beginners.
+          </p>
           <div className="parent-grid">
             <div className="parent-card">
               <span className="parent-card-icon">🛡️</span>
               <h3>Safe &amp; COPPA Compliant</h3>
               <p>
-                Parental consent for under-13 users, minimal data collection, and full compliance with children's
-                privacy law.
+                Parental consent for under-13 users, minimal data collection, and kid-friendly guardrails are built in
+                from the start.
               </p>
             </div>
             <div className="parent-card">
               <span className="parent-card-icon">🧠</span>
-              <h3>Real Coding Skills</h3>
+              <h3>Create With AI, Not Just Consume It</h3>
               <p>
-                Kids learn game design, computational thinking, and can view and edit the real source code behind every
-                game.
+                Kids use AI to make, test, and improve their own games. It is creative screen time with a real outcome.
               </p>
             </div>
             <div className="parent-card">
               <span className="parent-card-icon">✅</span>
-              <h3>Kid-Friendly Content Only</h3>
+              <h3>Built for Beginners</h3>
               <p>
-                AI content moderation ensures all games stay E-rated. Swords and spells are fine — graphic violence is
-                not.
+                We built VibeCode Kidz for kids who want to make games, but are not ready for adult AI coding tools and
+                complex workflows.
               </p>
             </div>
             <div className="parent-card">
@@ -905,7 +959,7 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
           </div>
         </section>
 
-        {/* ── 9. Pricing ── */}
+        {/* ── 10. Pricing ── */}
         <section className="pricing-section" id="pricing">
           <h2 className="section-heading">Simple, Affordable Plans</h2>
           <p className="section-subheading">Start free. Upgrade when you're ready.</p>
@@ -961,7 +1015,7 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
           </p>
         </section>
 
-        {/* ── 10. FAQ ── */}
+        {/* ── 11. FAQ ── */}
         <section className="faq-section" id="faq">
           <h2 className="section-heading">Frequently Asked Questions</h2>
           <div className="faq-list">
@@ -988,17 +1042,17 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
           </div>
         </section>
 
-        {/* ── 11. Final CTA ── */}
+        {/* ── 12. Final CTA ── */}
         <section className="final-cta-section">
-          <h2>Ready to start vibecoding?</h2>
-          <p>Your child's next favorite game is one sentence away.</p>
+          <h2>What if your child could build and share a game today?</h2>
+          <p>Start free and give them a creative, guided way to use AI.</p>
           <button className="section-cta" onClick={() => handleCta('section-cta', 'final')}>
             Get Started Free
           </button>
         </section>
       </div>
 
-      {/* ── 12. Full Footer ── */}
+      {/* ── 13. Full Footer ── */}
       <footer className="landing-footer-full">
         <div className="footer-inner">
           <div className="footer-col">

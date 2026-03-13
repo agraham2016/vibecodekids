@@ -87,6 +87,38 @@
 }
 
 /* ═══════════════════════════════════════════════
+   Founder Story
+   ═══════════════════════════════════════════════ */
+
+.founder-story-section {
+  width: 100%;
+  text-align: center;
+  padding: 60px 0;
+}
+
+.founder-story-card {
+  max-width: 900px;
+  margin: 0 auto 24px;
+  padding: 28px 32px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
+}
+
+.founder-story-card p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 1rem;
+  line-height: 1.8;
+}
+
+.founder-pillars {
+  grid-template-columns: repeat(3, 1fr);
+  max-width: 1000px;
+}
+
+/* ═══════════════════════════════════════════════
    1. Sticky Nav Bar
    ═══════════════════════════════════════════════ */
 
