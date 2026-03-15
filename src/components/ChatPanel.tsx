@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import type { AIModel, AIMode } from '../types';
 import type { ChatMessage } from '../hooks/useChat';
+import { STARTER_TEMPLATES } from '../config/gameCatalog';
 import TipsModal from './TipsModal';
 import './ChatPanel.css';
 
@@ -82,195 +83,16 @@ function getModelInfo(model: AIModel | null | undefined) {
   return info || null;
 }
 
-const GAME_STARTERS = [
-  {
-    genre: 'Platformer',
-    emoji: '🏃',
-    label: 'Jump & Run',
-    prompt: 'Make me a platformer game where I jump across platforms and collect coins!',
-  },
-  {
-    genre: 'Space Blaster',
-    emoji: '🚀',
-    label: 'Space Blaster',
-    prompt: 'Make me a space blaster game where I blast aliens and dodge enemy fire!',
-  },
-  {
-    genre: 'Racing',
-    emoji: '🏎️',
-    label: 'Speed Racer',
-    prompt: 'Make me a racing game where I dodge traffic and race to the finish!',
-  },
-  {
-    genre: 'Frogger',
-    emoji: '🐸',
-    label: 'Road Crosser',
-    prompt: 'Make me a frogger game where I hop across busy roads and rivers to get home!',
-  },
-  {
-    genre: 'Puzzle',
-    emoji: '💎',
-    label: 'Gem Match',
-    prompt: 'Make me a puzzle game where I match colorful gems to score big!',
-  },
-  {
-    genre: 'Clicker',
-    emoji: '👆',
-    label: 'Tap Frenzy',
-    prompt: 'Make me a clicker game where I tap a gem to earn points and buy upgrades!',
-  },
-  {
-    genre: 'RPG',
-    emoji: '⚔️',
-    label: 'Adventure Quest',
-    prompt: 'Make me an RPG adventure game where I explore, find treasure, and talk to NPCs!',
-  },
-  {
-    genre: 'Runner',
-    emoji: '🏃‍♂️',
-    label: 'Endless Runner',
-    prompt: 'Make me an endless runner game where I run, jump over obstacles, and collect coins!',
-  },
-  {
-    genre: 'Strategy',
-    emoji: '🏰',
-    label: 'Tower Defense',
-    prompt: 'Make me a tower defense game where I place towers to stop waves of enemies!',
-  },
-  {
-    genre: 'Fighting',
-    emoji: '🥊',
-    label: "Beat 'Em Up",
-    prompt: 'Make me a fighting game where I punch and kick enemies in waves!',
-  },
-  {
-    genre: 'Classic',
-    emoji: '🐍',
-    label: 'Snake',
-    prompt: 'Make me a snake game where I eat food and grow longer without hitting my tail!',
-  },
-  {
-    genre: 'Sports',
-    emoji: '⚽',
-    label: 'Soccer',
-    prompt: 'Make me a soccer game where I play against an AI opponent and try to score goals!',
-  },
-  {
-    genre: 'Arcade',
-    emoji: '🧱',
-    label: 'Brick Breaker',
-    prompt: 'Make me a brick breaker game with a paddle, bouncing ball, and colorful bricks to smash!',
-  },
-  {
-    genre: 'Casual',
-    emoji: '🐦',
-    label: 'Flappy Bird',
-    prompt: 'Make me a flappy bird game where I tap to fly through pipes!',
-  },
-  {
-    genre: 'Puzzle',
-    emoji: '🫧',
-    label: 'Bubble Pop',
-    prompt: 'Make me a bubble shooter game where I aim and pop matching colored bubbles!',
-  },
-  {
-    genre: 'Puzzle',
-    emoji: '🟦',
-    label: 'Block Stack',
-    prompt: 'Make me a falling blocks game like Tetris where I stack pieces and clear lines!',
-  },
-  {
-    genre: 'Music',
-    emoji: '🎵',
-    label: 'Rhythm Beats',
-    prompt: 'Make me a rhythm game where I tap arrows to the beat of the music!',
-  },
-  {
-    genre: 'Sim',
-    emoji: '🐾',
-    label: 'Pet Buddy',
-    prompt: 'Make me a virtual pet game where I feed, play with, and take care of a cute pet!',
-  },
-  {
-    genre: 'Arcade',
-    emoji: '🏓',
-    label: 'Paddle Bounce',
-    prompt: 'Make me a pong game where I use a paddle to bounce the ball and play against the computer!',
-  },
-  {
-    genre: 'Arcade',
-    emoji: '🍎',
-    label: 'Catch & Dodge',
-    prompt: 'Make me a catching game where I move a basket to catch good things and dodge the bad ones!',
-  },
-  {
-    genre: 'Arcade',
-    emoji: '👊',
-    label: 'Whack-a-Mole',
-    prompt: 'Make me a whack-a-mole game where I tap the targets before they disappear!',
-  },
-  {
-    genre: 'Puzzle',
-    emoji: '🃏',
-    label: 'Memory Match',
-    prompt: 'Make me a memory game where I flip cards to find matching pairs!',
-  },
-  {
-    genre: 'Arcade',
-    emoji: '👻',
-    label: 'Maze Chase',
-    prompt: 'Make me a maze game like Pac-Man where I collect dots and avoid the ghosts!',
-  },
-  {
-    genre: 'Action',
-    emoji: '🎯',
-    label: 'Top-Down Shooter',
-    prompt: 'Make me a top-down shooter game where I move in all directions and shoot enemies!',
-  },
-  {
-    genre: 'Casual',
-    emoji: '🎣',
-    label: 'Simple Fishing',
-    prompt: 'Make me a fishing game where I cast my line and reel in fish!',
-  },
-  {
-    genre: 'Puzzle',
-    emoji: '🔮',
-    label: 'Simon Says',
-    prompt: 'Make me a Simon Says game where I watch and repeat the colored pattern!',
-  },
-  {
-    genre: 'Action',
-    emoji: '🤿',
-    label: 'Treasure Diver',
-    prompt: 'Make me a treasure diver game where I swim underwater to collect gems and dodge jellyfish!',
-  },
-  {
-    genre: 'Reflex',
-    emoji: '♻️',
-    label: 'Trash Sorter',
-    prompt:
-      'Make me a trash sorter game where items slide by on a conveyor and I sort them into recycle, compost, and trash bins!',
-  },
-  {
-    genre: 'Arcade',
-    emoji: '🍉',
-    label: 'Fruit Slice',
-    prompt: 'Make me a fruit slicing game where I tap fruit flying across the screen to slice it, but avoid the bombs!',
-  },
-  {
-    genre: 'Precision',
-    emoji: '🏗️',
-    label: 'Tower Stack',
-    prompt: 'Make me a tower stacking game where blocks slide back and forth and I tap to drop them perfectly!',
-  },
-  {
-    genre: 'Seek',
-    emoji: '🔍',
-    label: 'Find the Friend',
-    prompt: 'Make me a hidden object game where I search the scene to find a hidden friend before time runs out!',
-  },
-];
+const GAME_STARTERS = STARTER_TEMPLATES.map((template) => ({
+  genre: template.id,
+  emoji: template.icon,
+  label: `${template.shortLabel}${template.dimension === '3d' ? ' 3D' : ''}`,
+  prompt: `Make me a ${template.dimension.toUpperCase()} ${template.label} game with the ${
+    template.engineId === 'vibe-3d' ? 'Vibe 3D' : 'Vibe 2D'
+  } engine style. The theme is ${template.defaultTheme}. I control a ${template.defaultCharacter}. The main challenge is ${
+    template.defaultObstacle
+  }.`,
+}));
 
 export default function ChatPanel({
   messages,
