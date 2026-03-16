@@ -328,7 +328,7 @@ function resolveTargetModel(mode, lastModelUsed) {
 async function handleSingleModel({ prompt, currentCode, conversationHistory, gameConfig, image, userId, targetModel }) {
   // Detect genre for reference resolution
   const genre = gameConfig?.gameType || detectGameGenre(prompt || '') || null;
-  const requestedEngineProfile = resolveEngineProfile({ prompt, genre, gameConfig });
+  const requestedEngineProfile = resolveEngineProfile({ prompt, genre, gameConfig, currentCode });
   const isNewGame =
     !currentCode ||
     currentCode.includes('Tell me what you want to create') ||
@@ -348,7 +348,7 @@ async function handleSingleModel({ prompt, currentCode, conversationHistory, gam
   let referenceCode = '';
   let referenceSources = [];
   try {
-    const refs = await resolveReferences({ prompt, genre, gameConfig, isNewGame });
+    const refs = await resolveReferences({ prompt, genre, gameConfig, isNewGame, currentCode });
     referenceCode = refs.referenceCode;
     referenceSources = refs.sources;
     if (refs.engineProfile) {

@@ -403,9 +403,36 @@ export function getFamilyProfile(genreFamily) {
   return ENGINE_FAMILY_PROFILES[genreFamily] || null;
 }
 
-export function resolveEngineProfile({ prompt = '', genre = null, gameConfig = null } = {}) {
+function inferFamilyFromCode(currentCode = '') {
+  const code = String(currentCode || '');
+  if (!code) return null;
+
+  if (/THREE\.Scene|THREE\.PerspectiveCamera|new\s+THREE\./i.test(code)) {
+    if (/checkpoint|finish|goal/i.test(code)) return 'obbyPlatform3d';
+    if (/health|hunger|day|night|shelter|campfire/i.test(code)) return 'survivalCraft3d';
+    if (/road|track|car|boost|drift|lap|steer/i.test(code)) return 'racingDriving3d';
+    if (/build|place|materials|inventory/i.test(code)) return 'sandboxBuilder3d';
+    if (/VibeMultiplayer|players|room/i.test(code)) return 'socialParty3d';
+    return 'explorationAdventure3d';
+  }
+
+  if (/Phaser\.Game/i.test(code)) {
+    if (/tower|wave/i.test(code)) return 'strategyDefenseLite';
+    if (/quest|xp|level|inventory/i.test(code)) return 'rpgProgressionLite';
+    if (/mood|energy|pet|harvest/i.test(code)) return 'simLite';
+    if (/moves|match|card|timer|grid/i.test(code)) return 'puzzleCasual';
+    if (/race|car|road|boost/i.test(code)) return 'racingArcade';
+    if (/setVelocityY|gravity|platform/i.test(code)) return 'platformAction';
+    return 'topDownAction';
+  }
+
+  return null;
+}
+
+export function resolveEngineProfile({ prompt = '', genre = null, gameConfig = null, currentCode = null } = {}) {
   const promptText = String(prompt || '');
   const detectedFamily = detectGenreFamily(promptText);
+  const codeDetectedFamily = inferFamilyFromCode(currentCode);
   const normalizedRequestedType = normalizeGameType(
     gameConfig?.starterTemplateId || gameConfig?.gameType || genre || detectGameGenre(promptText) || '',
   );
@@ -415,6 +442,7 @@ export function resolveEngineProfile({ prompt = '', genre = null, gameConfig = n
     gameConfig?.genreFamily ||
     detectedFamily ||
     starterBlueprint?.family ||
+    codeDetectedFamily ||
     GENRE_FAMILY_BY_GAME_TYPE[normalizedRequestedType] ||
     (gameConfig?.dimension === '3d' ? 'obbyPlatform3d' : 'platformAction');
 

@@ -176,16 +176,17 @@ async function loadTemplate(filename, genreLabel) {
  * @param {string|null} params.genre - Detected game genre
  * @param {object|null} params.gameConfig - Survey config
  * @param {boolean} params.isNewGame - Whether this is a brand-new game (no existing code)
+ * @param {string|null} params.currentCode - Existing game code for engine context on edits
  * @returns {Promise<{ referenceCode: string, sources: string[], totalChars: number, engineProfile: object|null }>}
  */
-export async function resolveReferences({ prompt, genre, gameConfig, isNewGame }) {
+export async function resolveReferences({ prompt, genre, gameConfig, isNewGame, currentCode = null }) {
   const sources = [];
   const parts = [];
   let charBudget = REFERENCE_MAX_CHARS;
 
   // Use genre from gameConfig if available
   const effectiveGenre = genre || gameConfig?.gameType || null;
-  const engineProfile = resolveEngineProfile({ prompt, genre: effectiveGenre, gameConfig });
+  const engineProfile = resolveEngineProfile({ prompt, genre: effectiveGenre, gameConfig, currentCode });
   const referenceGenre = engineProfile.templateGenre || effectiveGenre;
   const templateFile = engineProfile.templateFile || LEGACY_TEMPLATE_MAP[referenceGenre] || null;
 
