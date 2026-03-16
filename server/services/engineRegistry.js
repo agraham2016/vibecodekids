@@ -875,8 +875,8 @@ export function resolveEngineProfile({ prompt = '', genre = null, gameConfig = n
   const normalizedRequestedType = normalizeGameType(
     gameConfig?.starterTemplateId ||
       gameConfig?.gameType ||
-      genre ||
       promptStarterId ||
+      genre ||
       detectGameGenre(promptText) ||
       '',
   );

@@ -14,6 +14,18 @@ import { UI_COMPONENTS_SNIPPET } from './ui-components.js';
 import { CAMERA_SYSTEMS_SNIPPET } from './camera-systems.js';
 import { SPRITE_LOADER_SNIPPET } from './sprite-loader.js';
 
+const GENRE_SNIPPET_ALIASES = {
+  'crystal-defense': ['tower-defense'],
+  'village-quest': ['rpg'],
+  'trick-shot-arena': ['sports'],
+  'fishing-game': ['fishing', 'sports'],
+  'simple-racing': ['racing'],
+  'maze-escape': ['maze'],
+  'top-down-adventure': ['maze'],
+  'pet-care-simulator': ['pet-sim'],
+  'lemonade-stand-tycoon': ['clicker'],
+};
+
 /**
  * Each snippet has:
  * - content: The code string to inject
@@ -179,12 +191,15 @@ export const SNIPPET_LIBRARY = [
 export function getRelevantSnippets(genre, prompt) {
   const lower = (prompt || '').toLowerCase();
   const matched = [];
+  const genreCandidates = [genre, ...(GENRE_SNIPPET_ALIASES[genre] || [])].filter(
+    (name, index, list) => !!name && list.indexOf(name) === index,
+  );
 
   for (const snippet of SNIPPET_LIBRARY) {
     let score = 0;
 
     // Genre match
-    if (genre && snippet.genres.includes(genre)) score += 2;
+    if (genreCandidates.some((candidate) => snippet.genres.includes(candidate))) score += 2;
 
     // Keyword match
     for (const kw of snippet.keywords) {

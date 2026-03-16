@@ -70,6 +70,17 @@ function discoverSpritePacks() {
 }
 
 const DISCOVERED_SPRITE_PACKS = discoverSpritePacks();
+const ASSET_GENRE_ALIASES = {
+  'crystal-defense': ['tower-defense'],
+  'village-quest': ['rpg'],
+  'trick-shot-arena': ['sports'],
+  'simple-racing': ['racing'],
+  'maze-escape': ['maze'],
+  'top-down-adventure': ['maze'],
+  'pet-care-simulator': ['pet-sim'],
+  'lemonade-stand-tycoon': ['clicker'],
+  'fishing-game': ['fishing', 'sports'],
+};
 const DISCOVERED_PACK_ALIASES = {
   'top-down-shooter': ['shooter'],
   'brick-breaker': ['brick-breaker', 'puzzle'],
@@ -79,10 +90,14 @@ const DISCOVERED_PACK_ALIASES = {
   'endless-runner': ['endless-runner', 'platformer'],
 };
 
+function getAssetGenreCandidates(genre) {
+  return [genre, ...(ASSET_GENRE_ALIASES[genre] || []), ...(DISCOVERED_PACK_ALIASES[genre] || [])].filter(
+    (name, index, list) => !!name && list.indexOf(name) === index,
+  );
+}
+
 function getRelevantDiscoveredPacks(genre) {
-  const requested = [genre, ...(DISCOVERED_PACK_ALIASES[genre] || [])].filter(Boolean);
-  return requested
-    .filter((name, index) => requested.indexOf(name) === index)
+  return getAssetGenreCandidates(genre)
     .map((name) => [name, DISCOVERED_SPRITE_PACKS[name]])
     .filter(([, pack]) => !!pack);
 }
@@ -678,7 +693,10 @@ export function formatAssetsFromSearch(sprites, genre, maxChars = SPRITE_ASSET_M
  * Format an asset list for injection into the AI prompt.
  */
 export function formatAssetsForPrompt(genre) {
-  const genreAssets = ASSET_MANIFEST[genre];
+  const assetGenreCandidates = getAssetGenreCandidates(genre);
+  const resolvedAssetGenre =
+    assetGenreCandidates.find((candidate) => ASSET_MANIFEST[candidate]?.sprites?.length > 0) || genre;
+  const genreAssets = ASSET_MANIFEST[resolvedAssetGenre];
   const common = ASSET_MANIFEST.common;
 
   let lines = ['═══════════════════════════════════════════════════════════════'];
@@ -693,6 +711,9 @@ export function formatAssetsForPrompt(genre) {
 
   if (genreAssets && genreAssets.sprites.length > 0) {
     lines.push(`⬇️⬇️⬇️ YOUR preload() MUST CONTAIN THESE EXACT LINES for ${genre}: ⬇️⬇️⬇️`);
+    if (resolvedAssetGenre !== genre) {
+      lines.push(`// Asset pack fallback: using verified ${resolvedAssetGenre} sprites for this ${genre} starter.`);
+    }
     lines.push('```');
     lines.push('preload() {');
     for (const s of genreAssets.sprites) {
