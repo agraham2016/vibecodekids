@@ -148,24 +148,101 @@
         }
 
         makeTextures() {
-          var gfx = this.make.graphics({ x: 0, y: 0, add: false });
+          var scene = this;
 
-          gfx.fillStyle(0x0f172a, 1);
-          gfx.fillCircle(18, 18, 16);
-          gfx.fillStyle(0xf8fafc, 1);
-          gfx.fillCircle(14, 14, 4);
-          gfx.fillCircle(22, 14, 4);
-          gfx.generateTexture('shooter-token', 36, 36);
-          gfx.clear();
+          function createCanvasTexture(key, width, height, drawFn) {
+            var canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            var ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, width, height);
+            ctx.imageSmoothingEnabled = true;
+            drawFn(ctx, width, height);
+            scene.textures.addCanvas(key, canvas);
+          }
 
-          gfx.fillStyle(0xf97316, 1);
-          gfx.fillCircle(12, 12, 11);
-          gfx.lineStyle(2, 0x7c2d12, 0.8);
-          gfx.strokeCircle(12, 12, 11);
-          gfx.lineBetween(1, 12, 23, 12);
-          gfx.lineBetween(12, 1, 12, 23);
-          gfx.generateTexture('ball-token', 24, 24);
-          gfx.destroy();
+          createCanvasTexture('shooter-token', 40, 40, function(ctx, width, height) {
+            ctx.save();
+            ctx.globalAlpha = 0.18;
+            ctx.fillStyle = '#0f172a';
+            ctx.beginPath();
+            ctx.ellipse(width / 2, height - 6, 11, 4, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+
+            var hoodie = ctx.createLinearGradient(0, 6, 0, height - 6);
+            hoodie.addColorStop(0, '#334155');
+            hoodie.addColorStop(1, '#0f172a');
+            ctx.fillStyle = hoodie;
+            ctx.beginPath();
+            ctx.arc(width / 2, 20, 15, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = '#020617';
+            ctx.stroke();
+
+            ctx.fillStyle = '#f8fafc';
+            ctx.beginPath();
+            ctx.arc(15, 16, 3.5, 0, Math.PI * 2);
+            ctx.arc(25, 16, 3.5, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#0f172a';
+            ctx.beginPath();
+            ctx.arc(16, 17, 1.5, 0, Math.PI * 2);
+            ctx.arc(26, 17, 1.5, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.strokeStyle = '#38bdf8';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(width / 2, 20, 12, Math.PI * 0.15, Math.PI * 0.85, true);
+            ctx.stroke();
+
+            ctx.fillStyle = 'rgba(255,255,255,0.22)';
+            ctx.beginPath();
+            ctx.arc(24, 10, 4, 0, Math.PI * 2);
+            ctx.fill();
+          });
+
+          createCanvasTexture('ball-token', 28, 28, function(ctx, width, height) {
+            ctx.save();
+            ctx.globalAlpha = 0.16;
+            ctx.fillStyle = '#7c2d12';
+            ctx.beginPath();
+            ctx.ellipse(width / 2, height - 5, 8, 3, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+
+            var ballGradient = ctx.createRadialGradient(10, 8, 2, 14, 14, 12);
+            ballGradient.addColorStop(0, '#fdba74');
+            ballGradient.addColorStop(1, '#ea580c');
+            ctx.fillStyle = ballGradient;
+            ctx.beginPath();
+            ctx.arc(14, 14, 11, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = '#7c2d12';
+            ctx.stroke();
+
+            ctx.strokeStyle = 'rgba(124,45,18,0.95)';
+            ctx.lineWidth = 1.8;
+            ctx.beginPath();
+            ctx.arc(14, 14, 10.2, Math.PI * 0.18, Math.PI * 1.82);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(3, 14);
+            ctx.quadraticCurveTo(14, 9, 25, 14);
+            ctx.moveTo(14, 3);
+            ctx.quadraticCurveTo(9, 14, 14, 25);
+            ctx.stroke();
+
+            ctx.fillStyle = 'rgba(255,255,255,0.26)';
+            ctx.beginPath();
+            ctx.arc(10, 8, 3, 0, Math.PI * 2);
+            ctx.fill();
+          });
         }
 
         drawCourt() {

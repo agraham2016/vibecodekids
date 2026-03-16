@@ -366,7 +366,8 @@ ENGINE INTENT:
     (currentCode.includes('Phaser.Game') ||
       currentCode.includes('Phaser.AUTO') ||
       currentCode.includes('phaser.min.js'));
-  if (isPhaserCode) {
+  const is2DEngineRequest = engineProfile?.engineId === 'vibe-2d' || gameConfig?.dimension === '2d';
+  if (isPhaserCode || is2DEngineRequest) {
     dynamicParts.push(PHASER_GAME_RULES);
   }
 

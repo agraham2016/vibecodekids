@@ -13,6 +13,7 @@ import { AI_ENEMIES_SNIPPET } from './ai-enemies.js';
 import { UI_COMPONENTS_SNIPPET } from './ui-components.js';
 import { CAMERA_SYSTEMS_SNIPPET } from './camera-systems.js';
 import { SPRITE_LOADER_SNIPPET } from './sprite-loader.js';
+import { CANVAS_FALLBACK_ART_SNIPPET } from './canvas-fallback-art.js';
 
 const GENRE_SNIPPET_ALIASES = {
   'crystal-defense': ['tower-defense'],
@@ -34,6 +35,26 @@ const GENRE_SNIPPET_ALIASES = {
  * - charCount: Approximate size (for budget tracking)
  */
 export const SNIPPET_LIBRARY = [
+  {
+    name: 'canvas-fallback-art',
+    content: CANVAS_FALLBACK_ART_SNIPPET,
+    genres: [
+      'platformer',
+      'rpg',
+      'sports',
+      'tower-defense',
+      'puzzle',
+      'clicker',
+      'pet-sim',
+      'racing',
+      'shooter',
+      'maze',
+      'fishing',
+      'endless-runner',
+    ],
+    keywords: ['canvas', 'procedural', 'draw', 'texture', 'gradient', 'shadow', 'outline', 'shape'],
+    charCount: CANVAS_FALLBACK_ART_SNIPPET.length,
+  },
   {
     name: 'physics-2d',
     content: PHYSICS_2D_SNIPPET,

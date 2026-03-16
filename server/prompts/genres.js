@@ -828,6 +828,12 @@ PHASER 2D GAME - IMPORTANT RULES:
 - When an AVAILABLE SPRITE & SOUND ASSETS section is provided in the reference material, USE THOSE ASSETS with this.load.image() and this.load.audio() exactly as shown. These are real files hosted on the server.
 - When NO asset list is provided, or the theme doesn't match any provided assets, generate textures procedurally in preload() using this.make.graphics() + generateTexture()
 - NEVER make up image file paths (like 'apple.png', 'banana.png') — either use the provided asset paths or generate procedurally
+- If procedural art is required, make it look intentional: use layered silhouettes, a limited palette, one outline, one highlight, and one soft shadow instead of flat single-color shapes
+- Match the procedural texture resolution to the final display size so the art does not blur when stretched
+- Prefer circles, rounded rects, arcs, quadratic curves, and bezier curves over boxy placeholder rectangles for characters and props
+- For richer gradients, shadows, or curved details, you may draw once to an offscreen canvas in preload() and register it with this.textures.addCanvas(key, canvas)
+- Cache procedural art once in preload() and reuse the texture key in create(); do not redraw expensive art every frame
+- Use ctx.save()/ctx.restore() or the Phaser-graphics equivalent to keep transforms, alpha, and shadow settings from leaking into the next shape
 - ALWAYS use arcade physics for movement and collision — never write custom collision math
 - Use this.physics.add.collider() for solid walls/platforms, this.physics.add.overlap() for triggers
 - Clean up off-screen objects to prevent memory leaks: check bounds and call destroy()

@@ -151,44 +151,199 @@
         }
 
         makeTextures() {
-          var gfx = this.make.graphics({ x: 0, y: 0, add: false });
+          var scene = this;
 
-          gfx.fillStyle(0x60a5fa, 1);
-          gfx.fillCircle(14, 14, 14);
-          gfx.fillStyle(0xf8fafc, 1);
-          gfx.fillCircle(10, 10, 4);
-          gfx.fillCircle(18, 10, 4);
-          gfx.generateTexture('hero-token', 28, 28);
-          gfx.clear();
+          function createCanvasTexture(key, width, height, drawFn) {
+            var canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            var ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, width, height);
+            ctx.imageSmoothingEnabled = true;
+            drawFn(ctx, width, height);
+            scene.textures.addCanvas(key, canvas);
+          }
 
-          gfx.fillStyle(0xef4444, 1);
-          gfx.fillCircle(10, 10, 10);
-          gfx.fillStyle(0x166534, 1);
-          gfx.fillRect(9, 0, 2, 8);
-          gfx.generateTexture('apple-token', 20, 20);
-          gfx.clear();
+          createCanvasTexture('hero-token', 32, 32, function(ctx, width, height) {
+            ctx.save();
+            ctx.globalAlpha = 0.18;
+            ctx.fillStyle = '#1e3a8a';
+            ctx.beginPath();
+            ctx.ellipse(width / 2, height - 5, 9, 3.5, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
 
-          gfx.fillStyle(0xf59e0b, 1);
-          gfx.fillRect(8, 0, 8, 20);
-          gfx.fillStyle(0xfef3c7, 1);
-          gfx.fillCircle(12, 6, 6);
-          gfx.generateTexture('lantern-token', 24, 24);
-          gfx.clear();
+            var cloak = ctx.createLinearGradient(0, 4, 0, height - 4);
+            cloak.addColorStop(0, '#93c5fd');
+            cloak.addColorStop(1, '#2563eb');
+            ctx.fillStyle = cloak;
+            ctx.beginPath();
+            ctx.arc(width / 2, 16, 12, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = '#1d4ed8';
+            ctx.stroke();
 
-          gfx.fillStyle(0xfacc15, 1);
-          gfx.fillCircle(14, 14, 10);
-          gfx.lineStyle(3, 0xffffff, 0.8);
-          gfx.strokeCircle(14, 14, 10);
-          gfx.generateTexture('charm-token', 28, 28);
-          gfx.clear();
+            ctx.fillStyle = '#f8fafc';
+            ctx.beginPath();
+            ctx.arc(12, 12, 3, 0, Math.PI * 2);
+            ctx.arc(20, 12, 3, 0, Math.PI * 2);
+            ctx.fill();
 
-          gfx.fillStyle(0x8b5cf6, 1);
-          gfx.fillRoundedRect(0, 2, 28, 24, 6);
-          gfx.fillStyle(0xf8fafc, 1);
-          gfx.fillCircle(10, 10, 3);
-          gfx.fillCircle(18, 10, 3);
-          gfx.generateTexture('npc-token', 28, 28);
-          gfx.destroy();
+            ctx.fillStyle = '#0f172a';
+            ctx.beginPath();
+            ctx.arc(13, 13, 1.3, 0, Math.PI * 2);
+            ctx.arc(21, 13, 1.3, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.strokeStyle = '#fef3c7';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(9, 22);
+            ctx.quadraticCurveTo(16, 27, 23, 22);
+            ctx.stroke();
+          });
+
+          createCanvasTexture('apple-token', 24, 24, function(ctx) {
+            ctx.save();
+            ctx.globalAlpha = 0.16;
+            ctx.fillStyle = '#14532d';
+            ctx.beginPath();
+            ctx.ellipse(12, 20, 6, 2.5, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+
+            var apple = ctx.createRadialGradient(9, 7, 2, 12, 12, 10);
+            apple.addColorStop(0, '#fca5a5');
+            apple.addColorStop(1, '#dc2626');
+            ctx.fillStyle = apple;
+            ctx.beginPath();
+            ctx.arc(12, 12, 9, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.strokeStyle = '#991b1b';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+
+            ctx.fillStyle = '#166534';
+            ctx.fillRect(11, 1, 2, 7);
+            ctx.beginPath();
+            ctx.ellipse(16, 5, 4, 2.5, -0.6, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = 'rgba(255,255,255,0.26)';
+            ctx.beginPath();
+            ctx.arc(9, 8, 2.5, 0, Math.PI * 2);
+            ctx.fill();
+          });
+
+          createCanvasTexture('lantern-token', 28, 28, function(ctx) {
+            ctx.save();
+            ctx.globalAlpha = 0.14;
+            ctx.fillStyle = '#78350f';
+            ctx.beginPath();
+            ctx.ellipse(14, 24, 7, 2.5, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+
+            ctx.strokeStyle = '#92400e';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(10, 5);
+            ctx.lineTo(10, 20);
+            ctx.lineTo(18, 20);
+            ctx.lineTo(18, 5);
+            ctx.stroke();
+
+            var glow = ctx.createRadialGradient(14, 10, 2, 14, 12, 10);
+            glow.addColorStop(0, '#fef3c7');
+            glow.addColorStop(1, '#f59e0b');
+            ctx.fillStyle = glow;
+            ctx.fillRect(10.5, 6, 7, 12);
+
+            ctx.strokeStyle = '#fef3c7';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(11, 5);
+            ctx.quadraticCurveTo(14, 1, 17, 5);
+            ctx.stroke();
+          });
+
+          createCanvasTexture('charm-token', 32, 32, function(ctx) {
+            ctx.save();
+            ctx.globalAlpha = 0.16;
+            ctx.fillStyle = '#713f12';
+            ctx.beginPath();
+            ctx.ellipse(16, 26, 8, 3, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+
+            var charm = ctx.createRadialGradient(12, 10, 2, 16, 16, 11);
+            charm.addColorStop(0, '#fde68a');
+            charm.addColorStop(1, '#facc15');
+            ctx.fillStyle = charm;
+            ctx.beginPath();
+            ctx.moveTo(16, 5);
+            ctx.lineTo(21, 11);
+            ctx.lineTo(27, 16);
+            ctx.lineTo(21, 21);
+            ctx.lineTo(16, 27);
+            ctx.lineTo(11, 21);
+            ctx.lineTo(5, 16);
+            ctx.lineTo(11, 11);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.strokeStyle = '#f8fafc';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            ctx.fillStyle = 'rgba(255,255,255,0.34)';
+            ctx.beginPath();
+            ctx.arc(12, 11, 3, 0, Math.PI * 2);
+            ctx.fill();
+          });
+
+          createCanvasTexture('npc-token', 32, 32, function(ctx, width, height) {
+            ctx.save();
+            ctx.globalAlpha = 0.18;
+            ctx.fillStyle = '#581c87';
+            ctx.beginPath();
+            ctx.ellipse(width / 2, height - 5, 9, 3.5, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+
+            var robe = ctx.createLinearGradient(0, 4, 0, height - 4);
+            robe.addColorStop(0, '#c4b5fd');
+            robe.addColorStop(1, '#7c3aed');
+            ctx.fillStyle = robe;
+            ctx.beginPath();
+            ctx.roundRect(4, 5, 24, 22, 7);
+            ctx.fill();
+
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = '#6d28d9';
+            ctx.stroke();
+
+            ctx.fillStyle = '#f8fafc';
+            ctx.beginPath();
+            ctx.arc(12, 13, 2.8, 0, Math.PI * 2);
+            ctx.arc(20, 13, 2.8, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#312e81';
+            ctx.beginPath();
+            ctx.arc(13, 14, 1.2, 0, Math.PI * 2);
+            ctx.arc(21, 14, 1.2, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.strokeStyle = '#ede9fe';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(11, 20);
+            ctx.quadraticCurveTo(16, 23, 21, 20);
+            ctx.stroke();
+          });
         }
 
         drawVillage() {
