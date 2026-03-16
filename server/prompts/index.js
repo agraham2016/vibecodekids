@@ -301,6 +301,7 @@ GAME CONFIG (from the kid's survey answers - use these to personalize the game):
 - Player Character: ${gameConfig.character}
 - Obstacles/Enemies: ${gameConfig.obstacles}
 - Visual Style: ${gameConfig.visualStyle}
+${gameConfig.selectionReason ? `- Selection Reason: ${gameConfig.selectionReason}` : ''}
 ${gameConfig.customNotes ? `- Custom Notes: ${gameConfig.customNotes}` : ''}
 
 USE THIS CONFIG to make the game feel personal:
@@ -322,12 +323,22 @@ VIBE ENGINE PROFILE (internal generation plan - follow this strictly):
 - Starter Template: ${engineProfile.starterTemplateId}
 - Base Template Genre: ${engineProfile.templateGenre || 'none'}
 - Validation Profile: ${engineProfile.validationProfile}
+- Core Systems: ${(engineProfile.coreSystems || []).join(', ') || 'none'}
+- Safe Edit Surfaces: ${(engineProfile.safeEditSurfaces || []).join(', ') || 'none'}
+- Runtime Shape: ${engineProfile.architecture?.runtimeShape || 'none'}
+- Input Model: ${engineProfile.architecture?.inputModel || 'none'}
+- Camera Model: ${engineProfile.architecture?.cameraModel || 'none'}
+- HUD Contract: ${engineProfile.architecture?.hudContract || 'none'}
+- Failure Contract: ${engineProfile.architecture?.failureContract || 'none'}
+- Asset Strategy: ${engineProfile.architecture?.assetStrategy || 'none'}
 
 ENGINE INTENT:
 - If Engine is "vibe-2d", build a polished Phaser game that feels like a reusable template-driven starter game.
 - If Engine is "vibe-3d", build a polished Three.js game with a visible world, camera rig, lights, and a clear goal.
 - The Genre Family tells you the core loop to prioritize over one-off creativity.
 - Starter Template tells you which proven game pattern to imitate first before adding theme/flavor.
+- Preserve the core systems listed above, and focus requested changes on the safe edit surfaces before rewriting the whole game loop.
+- Respect the runtime, input, camera, HUD, failure, and asset contracts listed above so the game feels like the intended engine family.
 `);
   }
 

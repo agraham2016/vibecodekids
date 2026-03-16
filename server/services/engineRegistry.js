@@ -5,6 +5,32 @@ export const ENGINE_IDS = {
   VIBE_3D: 'vibe-3d',
 };
 
+const DIMENSION_ARCHITECTURE_DEFAULTS = {
+  '2d': {
+    runtimeShape: 'single-scene Phaser arcade loop',
+    inputModel: 'keyboard plus touch buttons with fast arcade response',
+    cameraModel: 'fixed board or light follow camera',
+    hudContract: 'always-visible HUD with score, progress, and current objective',
+    failureContract: 'quick fail or win feedback with an easy restart flow',
+    assetStrategy: 'prefer verified local sprite packs and simple reusable scene dressing',
+  },
+  '3d': {
+    runtimeShape: 'single-world Three.js scene with a visible play space',
+    inputModel: 'keyboard plus touch controls with clear movement affordances',
+    cameraModel: 'follow, chase, or orbit camera that keeps the goal readable',
+    hudContract: 'mission HUD with progress, status, and contextual action feedback',
+    failureContract: 'clear overlay or toast feedback with reset or replay affordance',
+    assetStrategy: 'geometry-first scenes with verified local models only when safely available',
+  },
+};
+
+function createArchitecture(dimension, overrides = {}) {
+  return {
+    ...DIMENSION_ARCHITECTURE_DEFAULTS[dimension],
+    ...overrides,
+  };
+}
+
 export const ENGINE_FAMILY_PROFILES = {
   platformAction: {
     engineId: ENGINE_IDS.VIBE_2D,
@@ -14,6 +40,14 @@ export const ENGINE_FAMILY_PROFILES = {
     heroTemplateIds: ['platformer', 'endless-runner'],
     starterTemplateIds: ['platformer', 'endless-runner'],
     validationProfile: 'vibe-2d-platform-action',
+    coreSystems: ['movement', 'jump arc', 'hazards', 'collectibles', 'goal feedback'],
+    safeEditSurfaces: ['theme swap', 'player skin', 'enemy skin', 'difficulty tuning', 'level dressing'],
+    architecture: createArchitecture('2d', {
+      inputModel: 'left, right, and jump controls with responsive airborne tuning',
+      cameraModel: 'side-follow camera or stable side-view framing',
+      hudContract: 'progress HUD with score, collectible count, and goal feedback',
+      failureContract: 'fall or hit feedback with instant retry or checkpoint restart',
+    }),
   },
   topDownAction: {
     engineId: ENGINE_IDS.VIBE_2D,
@@ -23,6 +57,14 @@ export const ENGINE_FAMILY_PROFILES = {
     heroTemplateIds: ['maze-escape', 'top-down-adventure'],
     starterTemplateIds: ['maze-escape', 'top-down-adventure'],
     validationProfile: 'vibe-2d-top-down',
+    coreSystems: ['8-way movement', 'collision hooks', 'collectibles', 'objective HUD', 'enemy pressure'],
+    safeEditSurfaces: ['theme swap', 'maze layout', 'enemy count', 'collectible type', 'objective text'],
+    architecture: createArchitecture('2d', {
+      inputModel: '4-way or 8-way movement with immediate stop-start control',
+      cameraModel: 'top-down framing with the player always readable in play space',
+      hudContract: 'objective HUD with status, threats, and collection progress',
+      failureContract: 'clear caught or success state with quick restart and objective reset',
+    }),
   },
   racingArcade: {
     engineId: ENGINE_IDS.VIBE_2D,
@@ -32,6 +74,14 @@ export const ENGINE_FAMILY_PROFILES = {
     heroTemplateIds: ['simple-racing', 'racing'],
     starterTemplateIds: ['simple-racing', 'racing'],
     validationProfile: 'vibe-2d-racing',
+    coreSystems: ['lane motion', 'traffic pacing', 'boost tuning', 'score HUD', 'crash reset'],
+    safeEditSurfaces: ['car skin', 'track theme', 'traffic density', 'speed tuning', 'boost behavior'],
+    architecture: createArchitecture('2d', {
+      inputModel: 'lane swap or steering input with optional boost button',
+      cameraModel: 'fixed race framing with fast forward readability',
+      hudContract: 'speed and survival HUD with score or distance progress',
+      failureContract: 'crash feedback with immediate replay loop',
+    }),
   },
   puzzleCasual: {
     engineId: ENGINE_IDS.VIBE_2D,
@@ -41,6 +91,15 @@ export const ENGINE_FAMILY_PROFILES = {
     heroTemplateIds: ['matching-game', 'memory-card-game'],
     starterTemplateIds: ['matching-game', 'memory-card-game'],
     validationProfile: 'vibe-2d-puzzle',
+    coreSystems: ['board state', 'clear objective', 'move counter', 'feedback effects', 'win state'],
+    safeEditSurfaces: ['tile art', 'board colors', 'difficulty curve', 'goal text', 'power-up rewards'],
+    architecture: createArchitecture('2d', {
+      runtimeShape: 'single-board Phaser puzzle loop',
+      inputModel: 'tap or click interactions on a readable board state',
+      cameraModel: 'fixed full-board framing',
+      hudContract: 'moves, timer, goal, and reward feedback visible at all times',
+      failureContract: 'clean win or lose state with replay and board reset',
+    }),
   },
   simLite: {
     engineId: ENGINE_IDS.VIBE_2D,
@@ -50,6 +109,15 @@ export const ENGINE_FAMILY_PROFILES = {
     heroTemplateIds: ['pet-care-simulator', 'farming-game'],
     starterTemplateIds: ['pet-care-simulator', 'farming-game', 'fishing-game'],
     validationProfile: 'vibe-2d-sim',
+    coreSystems: ['resource loop', 'needs meter', 'progression HUD', 'time pacing', 'reward feedback'],
+    safeEditSurfaces: ['theme swap', 'pet crop skin', 'resource values', 'task list', 'shop rewards'],
+    architecture: createArchitecture('2d', {
+      runtimeShape: 'single-scene management loop with repeated task cadence',
+      inputModel: 'tap or click task selection with simple movement if needed',
+      cameraModel: 'fixed management view with all key tasks visible',
+      hudContract: 'resource, mood, task, and upgrade HUD with positive feedback',
+      failureContract: 'soft-failure pressure with recovery loop and easy retry',
+    }),
   },
   builderTycoonLite: {
     engineId: ENGINE_IDS.VIBE_2D,
@@ -59,6 +127,15 @@ export const ENGINE_FAMILY_PROFILES = {
     heroTemplateIds: ['lemonade-stand-tycoon', 'farming-game'],
     starterTemplateIds: ['lemonade-stand-tycoon', 'farming-game'],
     validationProfile: 'vibe-2d-tycoon',
+    coreSystems: ['economy loop', 'upgrade pacing', 'customer or order feedback', 'profit HUD', 'reward cadence'],
+    safeEditSurfaces: ['theme swap', 'shop art', 'upgrade costs', 'order mix', 'customer pacing'],
+    architecture: createArchitecture('2d', {
+      runtimeShape: 'single-scene economy loop with upgrades and repeat actions',
+      inputModel: 'tap, click, or light drag interactions for selling and upgrading',
+      cameraModel: 'fixed storefront or management framing',
+      hudContract: 'money, goals, and upgrade options always readable',
+      failureContract: 'soft setback or missed goal feedback with continued play',
+    }),
   },
   strategyDefenseLite: {
     engineId: ENGINE_IDS.VIBE_2D,
@@ -68,6 +145,15 @@ export const ENGINE_FAMILY_PROFILES = {
     heroTemplateIds: ['tower-defense'],
     starterTemplateIds: ['tower-defense'],
     validationProfile: 'vibe-2d-defense',
+    coreSystems: ['lane routing', 'tower placement', 'wave pacing', 'currency loop', 'base defense feedback'],
+    safeEditSurfaces: ['theme swap', 'tower skins', 'wave pacing', 'currency tuning', 'enemy mix'],
+    architecture: createArchitecture('2d', {
+      runtimeShape: 'single-map defense loop with recurring waves',
+      inputModel: 'tap or click placement with simple wave start interactions',
+      cameraModel: 'fixed battlefield overview',
+      hudContract: 'wave, cash, health, and tower choices visible together',
+      failureContract: 'base-hit feedback with replay and wave restart',
+    }),
   },
   rpgProgressionLite: {
     engineId: ENGINE_IDS.VIBE_2D,
@@ -77,6 +163,14 @@ export const ENGINE_FAMILY_PROFILES = {
     heroTemplateIds: ['dungeon-crawler', 'creature-collector'],
     starterTemplateIds: ['dungeon-crawler', 'creature-collector'],
     validationProfile: 'vibe-2d-rpg',
+    coreSystems: ['exploration loop', 'combat or encounter pressure', 'quest text', 'reward progression', 'status HUD'],
+    safeEditSurfaces: ['theme swap', 'party art', 'quest copy', 'enemy roster', 'reward tuning'],
+    architecture: createArchitecture('2d', {
+      inputModel: 'top-down movement with simple action or interaction input',
+      cameraModel: 'top-down exploration framing',
+      hudContract: 'health, xp, quest, and reward state kept readable',
+      failureContract: 'battle or quest setback with safe restart or checkpoint reset',
+    }),
   },
   sportsSkill: {
     engineId: ENGINE_IDS.VIBE_2D,
@@ -86,6 +180,14 @@ export const ENGINE_FAMILY_PROFILES = {
     heroTemplateIds: ['fishing-game', 'sports'],
     starterTemplateIds: ['fishing-game'],
     validationProfile: 'vibe-2d-sports',
+    coreSystems: ['precision input', 'clear score target', 'round pacing', 'reward feedback', 'retry loop'],
+    safeEditSurfaces: ['theme swap', 'athlete gear', 'target mix', 'timing difficulty', 'goal text'],
+    architecture: createArchitecture('2d', {
+      inputModel: 'timed button or pointer input with readable accuracy feedback',
+      cameraModel: 'fixed skill-challenge framing',
+      hudContract: 'score, timer, and target state visible throughout the round',
+      failureContract: 'round-end summary with quick replay',
+    }),
   },
   obbyPlatform3d: {
     engineId: ENGINE_IDS.VIBE_3D,
@@ -96,6 +198,14 @@ export const ENGINE_FAMILY_PROFILES = {
     starterTemplateIds: ['obby'],
     modelPackHint: 'platformer-3d',
     validationProfile: 'vibe-3d-obby',
+    coreSystems: ['movement rig', 'camera rig', 'checkpoints', 'hazards', 'finish goal'],
+    safeEditSurfaces: ['world theme', 'platform shapes', 'hazard pacing', 'collectibles', 'checkpoint spacing'],
+    architecture: createArchitecture('3d', {
+      inputModel: 'move, steer camera, and jump with touch fallback',
+      cameraModel: 'third-person follow camera tuned for jumps and landings',
+      hudContract: 'checkpoint, collectible, and finish-goal HUD',
+      failureContract: 'respawn at checkpoint with visible recovery feedback',
+    }),
   },
   explorationAdventure3d: {
     engineId: ENGINE_IDS.VIBE_3D,
@@ -106,6 +216,14 @@ export const ENGINE_FAMILY_PROFILES = {
     starterTemplateIds: ['open-map-explorer'],
     modelPackHint: 'rpg-3d',
     validationProfile: 'vibe-3d-exploration',
+    coreSystems: ['movement rig', 'camera rig', 'landmarks', 'quest HUD', 'discovery loop'],
+    safeEditSurfaces: ['biome theme', 'landmark art', 'quest text', 'collectibles', 'travel pacing'],
+    architecture: createArchitecture('3d', {
+      inputModel: 'move-and-look controls with clear interaction affordances',
+      cameraModel: 'third-person or trailing exploration camera',
+      hudContract: 'quest log, discovery progress, and waypoint feedback',
+      failureContract: 'soft fail states with return-to-goal or replay prompt',
+    }),
   },
   racingDriving3d: {
     engineId: ENGINE_IDS.VIBE_3D,
@@ -116,6 +234,14 @@ export const ENGINE_FAMILY_PROFILES = {
     starterTemplateIds: ['stunt-racer-3d'],
     modelPackHint: 'racing-3d',
     validationProfile: 'vibe-3d-racing',
+    coreSystems: ['driving rig', 'chase camera', 'track readability', 'boost system', 'finish feedback'],
+    safeEditSurfaces: ['car body style', 'track theme', 'ramp layout', 'boost values', 'traffic obstacles'],
+    architecture: createArchitecture('3d', {
+      inputModel: 'accelerate, steer, and boost controls with touch pedals fallback',
+      cameraModel: 'chase camera that keeps track direction and stunts readable',
+      hudContract: 'speed, boost, checkpoint, and finish progress HUD',
+      failureContract: 'crash or finish overlay with immediate replay',
+    }),
   },
   survivalCraft3d: {
     engineId: ENGINE_IDS.VIBE_3D,
@@ -126,6 +252,14 @@ export const ENGINE_FAMILY_PROFILES = {
     starterTemplateIds: ['survival-crafting-game'],
     modelPackHint: 'common-3d',
     validationProfile: 'vibe-3d-survival',
+    coreSystems: ['movement rig', 'resource loop', 'build loop', 'survival HUD', 'night pressure'],
+    safeEditSurfaces: ['biome theme', 'resource types', 'recipe costs', 'enemy pressure', 'day-night timing'],
+    architecture: createArchitecture('3d', {
+      inputModel: 'move, look, gather, and build actions with clear touch affordances',
+      cameraModel: 'third-person survival camera with build-space readability',
+      hudContract: 'health, resources, time pressure, and build options visible together',
+      failureContract: 'night or health loss feedback with restart or rebuild path',
+    }),
   },
   sandboxBuilder3d: {
     engineId: ENGINE_IDS.VIBE_3D,
@@ -136,6 +270,15 @@ export const ENGINE_FAMILY_PROFILES = {
     starterTemplateIds: ['house-builder'],
     modelPackHint: 'common-3d',
     validationProfile: 'vibe-3d-builder',
+    coreSystems: ['movement rig', 'placement cursor', 'materials inventory', 'build goals', 'undo reset flow'],
+    safeEditSurfaces: ['block palette', 'lot theme', 'blueprint targets', 'material counts', 'room props'],
+    architecture: createArchitecture('3d', {
+      runtimeShape: 'single-lot 3D builder loop with placement and review phases',
+      inputModel: 'move, place, remove, and cycle build parts with touch support',
+      cameraModel: 'builder camera that keeps cursor, lot, and blueprint readable',
+      hudContract: 'build mode, material counts, and blueprint progress HUD',
+      failureContract: 'undo, remove, and reset affordances instead of harsh fail states',
+    }),
   },
   socialParty3d: {
     engineId: ENGINE_IDS.VIBE_3D,
@@ -146,6 +289,14 @@ export const ENGINE_FAMILY_PROFILES = {
     starterTemplateIds: ['social-hangout-game'],
     modelPackHint: 'common-3d',
     validationProfile: 'vibe-3d-social',
+    coreSystems: ['movement rig', 'social hub loop', 'mini-goal prompts', 'room feedback', 'round restart flow'],
+    safeEditSurfaces: ['hub theme', 'mini-game prompts', 'avatar styling', 'round pacing', 'activity mix'],
+    architecture: createArchitecture('3d', {
+      inputModel: 'move-and-look controls plus simple interaction prompts',
+      cameraModel: 'third-person social camera with readable nearby interactions',
+      hudContract: 'room state, player prompts, and round goals visible at a glance',
+      failureContract: 'round-end or disconnect recovery with return-to-hub flow',
+    }),
   },
 };
 
@@ -289,7 +440,8 @@ export const TEMPLATE_BLUEPRINTS = {
     id: 'stunt-racer-3d',
     label: 'Stunt Racer',
     family: 'racingDriving3d',
-    sourceTemplateGenre: 'parking',
+    sourceTemplateGenre: null,
+    templateFile: 'stunt-racer-3d.html',
     dimension: '3d',
   },
   'survival-crafting-game': {
@@ -340,6 +492,9 @@ const GAME_TYPE_ALIASES = {
   'top-down-adventure-game': 'top-down-adventure',
   'open-map-adventure': 'open-map-explorer',
   'survival-crafting': 'survival-crafting-game',
+  'stunt-racer': 'stunt-racer-3d',
+  'stunt-racing': 'stunt-racer-3d',
+  'drift-racer': 'stunt-racer-3d',
   'house-designer': 'house-builder',
 };
 
@@ -403,26 +558,40 @@ export function getFamilyProfile(genreFamily) {
   return ENGINE_FAMILY_PROFILES[genreFamily] || null;
 }
 
+export function getFamilyArchitecture(genreFamily) {
+  return ENGINE_FAMILY_PROFILES[genreFamily]?.architecture || null;
+}
+
 function inferFamilyFromCode(currentCode = '') {
   const code = String(currentCode || '');
   if (!code) return null;
 
   if (/THREE\.Scene|THREE\.PerspectiveCamera|new\s+THREE\./i.test(code)) {
-    if (/checkpoint|finish|goal/i.test(code)) return 'obbyPlatform3d';
     if (/health|hunger|day|night|shelter|campfire/i.test(code)) return 'survivalCraft3d';
-    if (/road|track|car|boost|drift|lap|steer/i.test(code)) return 'racingDriving3d';
-    if (/build|place|materials|inventory/i.test(code)) return 'sandboxBuilder3d';
+    if (/\bbuild\b|\bplace\b|\bmaterials\b|\binventory\b|blueprint|buildMode/i.test(code)) {
+      return 'sandboxBuilder3d';
+    }
     if (/VibeMultiplayer|players|room/i.test(code)) return 'socialParty3d';
+    if (/\broad\b|\btrack\b|\bcar\b|\bboost\b|\bdrift\b|\blap\b|\bsteer\b|sedan|suv|vehicle/i.test(code)) {
+      return 'racingDriving3d';
+    }
+    if (/\bquest\b|\bobjective\b|\brelic\b|\blandmark\b|towerVisited|questLog/i.test(code)) {
+      return 'explorationAdventure3d';
+    }
+    if (/checkpoint|finish|goal/i.test(code)) return 'obbyPlatform3d';
     return 'explorationAdventure3d';
   }
 
   if (/Phaser\.Game/i.test(code)) {
     if (/tower|wave/i.test(code)) return 'strategyDefenseLite';
-    if (/quest|xp|level|inventory/i.test(code)) return 'rpgProgressionLite';
-    if (/mood|energy|pet|harvest/i.test(code)) return 'simLite';
-    if (/moves|match|card|timer|grid/i.test(code)) return 'puzzleCasual';
-    if (/race|car|road|boost/i.test(code)) return 'racingArcade';
-    if (/setVelocityY|gravity|platform/i.test(code)) return 'platformAction';
+    if (/\brace\b|\bcar\b|\broad\b|\bboost\b/i.test(code)) return 'racingArcade';
+    if (/\bquest\b|\bxp\b|\blevel\b|\binventory\b/i.test(code)) return 'rpgProgressionLite';
+    if (/\bmood\b|\benergy\b|\bpet\b|\bharvest\b/i.test(code)) return 'simLite';
+    if (/\bmoves\b|\bmatch\b|\bcard\b|\btimer\b|\bgrid\b/i.test(code)) return 'puzzleCasual';
+    if (/ghost|maze|dotsTotal|collectDot|setVelocity\(vx,\s*vy\)|setVelocity\([^,]+,\s*[^)]+\)/i.test(code)) {
+      return 'topDownAction';
+    }
+    if (/setVelocityY|touching\.down|setGravityY|staticGroup\(\)|jump/i.test(code)) return 'platformAction';
     return 'topDownAction';
   }
 
@@ -484,5 +653,8 @@ export function resolveEngineProfile({ prompt = '', genre = null, gameConfig = n
     label: familyProfile.label,
     heroTemplateIds: familyProfile.heroTemplateIds,
     modelPackHint: familyProfile.modelPackHint || null,
+    coreSystems: familyProfile.coreSystems || [],
+    safeEditSurfaces: familyProfile.safeEditSurfaces || [],
+    architecture: familyProfile.architecture || null,
   };
 }

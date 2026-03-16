@@ -1,6 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { trackPageView, trackCtaClick } from '../lib/marketingEvents';
-import { LONG_TERM_FAMILY_SHOWCASE, STARTER_TEMPLATES } from '../config/gameCatalog';
+import {
+  ENGINE_SELECTION_GUIDE,
+  LONG_TERM_FAMILY_SHOWCASE,
+  STARTER_TEMPLATES,
+  getStarterFamilyGuide,
+} from '../config/gameCatalog';
 import './LandingPage.css';
 
 interface LandingPageProps {
@@ -21,6 +26,8 @@ const GAME_TEMPLATES = STARTER_TEMPLATES.map((template) => ({
   title: template.label,
   genre: template.engineId === 'vibe-3d' ? 'Vibe 3D' : 'Vibe 2D',
   description: template.description,
+  familyLabel: getStarterFamilyGuide(template.genreFamily).label,
+  bestFor: getStarterFamilyGuide(template.genreFamily).bestFor,
   gradient: template.gradient,
   emoji: template.icon,
   dimension: template.dimension.toUpperCase(),
@@ -28,6 +35,7 @@ const GAME_TEMPLATES = STARTER_TEMPLATES.map((template) => ({
 }));
 
 const ENGINE_FAMILY_SHOWCASE = LONG_TERM_FAMILY_SHOWCASE;
+const LANDING_ENGINE_GUIDES = Object.values(ENGINE_SELECTION_GUIDE);
 const SHOWCASE_NAMES = [
   'Mia',
   'Jayden',
@@ -236,8 +244,8 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
           </div>
           <h1 className="hero-headline">Teach kids to create with AI, not just consume it.</h1>
           <p className="hero-subtitle">
-            Pick a game type or describe your own idea. VibeCode Kidz matches it to the right game engine so your child
-            can start with a playable game fast and customize it through vibe coding.
+            Pick a Vibe 2D or Vibe 3D starter, or describe your own idea. VibeCode Kidz matches it to the right game
+            engine so your child can start with a playable game fast and customize it through vibe coding.
           </p>
 
           <div className="hero-features">
@@ -356,6 +364,15 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
           <p className="section-subheading">
             Start with a polished engine path, then remix it into something totally yours
           </p>
+          <div className="landing-engine-guide-grid">
+            {LANDING_ENGINE_GUIDES.map((engine) => (
+              <div key={engine.label} className="landing-engine-guide-card">
+                <span className="landing-engine-guide-label">{engine.label}</span>
+                <strong>{engine.runtimeSummary}</strong>
+                <span>{engine.architectureReason}</span>
+              </div>
+            ))}
+          </div>
           <div className="scratch-examples">
             {ENGINE_FAMILY_SHOWCASE.map((family) => (
               <div key={family.family} className="scratch-card">
@@ -386,6 +403,8 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
                   </span>
                   <span className="template-card-title">{tmpl.title}</span>
                   <span className="template-card-desc">{tmpl.description}</span>
+                  <span className="template-card-family">{tmpl.familyLabel}</span>
+                  <span className="template-card-bestfor">{tmpl.bestFor}</span>
                 </div>
               </button>
             ))}

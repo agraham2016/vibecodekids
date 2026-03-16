@@ -1,7 +1,14 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import type { AIModel, AIMode } from '../types';
+import type { AIModel, AIMode, GameConfig } from '../types';
 import type { ChatMessage } from '../hooks/useChat';
-import { STARTER_TEMPLATES } from '../config/gameCatalog';
+import {
+  ENGINE_SELECTION_GUIDE,
+  STARTERS_BY_ENGINE,
+  STARTER_TEMPLATES,
+  getStarterTemplateById,
+  getStarterFamilyGuide,
+  getStarterRecommendationReason,
+} from '../config/gameCatalog';
 import TipsModal from './TipsModal';
 import './ChatPanel.css';
 
@@ -51,7 +58,8 @@ declare global {
 
 interface ChatPanelProps {
   messages: ChatMessage[];
-  onSendMessage: (content: string, image?: string, modeOverride?: AIMode) => void;
+  activeGameConfig?: GameConfig | null;
+  onSendMessage: (content: string, image?: string, modeOverride?: AIMode, gameConfig?: GameConfig | null) => void;
   onFeedback?: (
     messageId: string,
     outcome: 'thumbsUp' | 'thumbsDown',
@@ -94,8 +102,42 @@ const GAME_STARTERS = STARTER_TEMPLATES.map((template) => ({
   }.`,
 }));
 
+function toStarterGameConfig(template: (typeof STARTER_TEMPLATES)[number]): GameConfig {
+  return {
+    gameType: template.id,
+    engineId: template.engineId,
+    genreFamily: template.genreFamily,
+    starterTemplateId: template.id,
+    selectionReason: getStarterRecommendationReason(template, false),
+    dimension: template.dimension,
+    theme: template.defaultTheme,
+    character: template.defaultCharacter,
+    obstacles: template.defaultObstacle,
+    visualStyle: 'neon',
+    customNotes: '',
+  };
+}
+
+const GAME_STARTER_GROUPS = [
+  {
+    engineId: 'vibe-2d',
+    label: 'Vibe 2D',
+    description: ENGINE_SELECTION_GUIDE['vibe-2d'].runtimeSummary,
+    architectureReason: ENGINE_SELECTION_GUIDE['vibe-2d'].architectureReason,
+    starters: STARTERS_BY_ENGINE['vibe-2d'],
+  },
+  {
+    engineId: 'vibe-3d',
+    label: 'Vibe 3D',
+    description: ENGINE_SELECTION_GUIDE['vibe-3d'].runtimeSummary,
+    architectureReason: ENGINE_SELECTION_GUIDE['vibe-3d'].architectureReason,
+    starters: STARTERS_BY_ENGINE['vibe-3d'],
+  },
+];
+
 export default function ChatPanel({
   messages,
+  activeGameConfig,
   onSendMessage,
   onFeedback,
   isLoading,
@@ -117,6 +159,11 @@ export default function ChatPanel({
   const [showTipsModal, setShowTipsModal] = useState(false);
   const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(null);
   const [expandedAlternate, setExpandedAlternate] = useState<string | null>(null);
+  const activeStarter = activeGameConfig
+    ? getStarterTemplateById(activeGameConfig.starterTemplateId || activeGameConfig.gameType)
+    : null;
+  const activeEngineGuide = activeGameConfig?.engineId ? ENGINE_SELECTION_GUIDE[activeGameConfig.engineId] : null;
+  const activeFamilyGuide = activeGameConfig?.genreFamily ? getStarterFamilyGuide(activeGameConfig.genreFamily) : null;
 
   // Detect GitHub URL in input
   const hasGitHubUrl = /github\.com\/[^\s]+/i.test(input);
@@ -388,6 +435,19 @@ export default function ChatPanel({
         <span className="model-indicator-status">is helping you build</span>
       </div>
 
+      {messages.length > 0 && activeGameConfig && activeEngineGuide && activeFamilyGuide && (
+        <div className="active-game-config">
+          <div className="active-game-config-row">
+            <span className="game-config-badge">{activeEngineGuide.label}</span>
+            <span className="game-config-badge">{activeFamilyGuide.label}</span>
+            {activeStarter && <span className="game-config-badge">{activeStarter.label}</span>}
+          </div>
+          <p className="active-game-config-copy">
+            {activeGameConfig.selectionReason || `${activeFamilyGuide.bestFor} ${activeEngineGuide.iterationSweetSpot}`}
+          </p>
+        </div>
+      )}
+
       {/* ===== MESSAGES ===== */}
       <div className="panel-content chat-messages" role="log" aria-live="polite">
         {messages.length === 0 ? (
@@ -419,23 +479,39 @@ export default function ChatPanel({
 
             {/* Game template starters */}
             <div className="game-starters">
-              <p className="game-starters-label">Or pick a game to start building:</p>
-              <div className="game-starters-grid">
-                {GAME_STARTERS.map((g, idx) => (
-                  <button
-                    key={`${g.genre}-${idx}`}
-                    className="game-starter-btn"
-                    onClick={() => onSendMessage(g.prompt)}
-                    disabled={isLoading}
-                    aria-label={`Build a ${g.label} game`}
-                  >
-                    <span className="game-starter-emoji" aria-hidden="true">
-                      {g.emoji}
-                    </span>
-                    <span className="game-starter-label">{g.label}</span>
-                  </button>
-                ))}
-              </div>
+              <p className="game-starters-label">Or pick a starter engine path:</p>
+              {GAME_STARTER_GROUPS.map((group) => (
+                <div key={group.engineId} className="game-starter-group">
+                  <p className="game-starter-group-title">{group.label}</p>
+                  <p className="game-starter-group-copy">{group.description}</p>
+                  <p className="game-starter-group-copy game-starter-group-reason">{group.architectureReason}</p>
+                  <div className="game-starters-grid">
+                    {group.starters.map((starter, idx) => {
+                      const gameStarter = GAME_STARTERS.find((entry) => entry.genre === starter.id);
+                      if (!gameStarter) return null;
+                      return (
+                        <button
+                          key={`${group.engineId}-${starter.id}-${idx}`}
+                          className="game-starter-btn"
+                          onClick={() =>
+                            onSendMessage(gameStarter.prompt, undefined, undefined, toStarterGameConfig(starter))
+                          }
+                          disabled={isLoading}
+                          aria-label={`Build a ${starter.label} game`}
+                        >
+                          <span className="game-starter-emoji" aria-hidden="true">
+                            {starter.icon}
+                          </span>
+                          <span className="game-starter-label">{starter.shortLabel}</span>
+                          <span className="game-starter-copy">
+                            {getStarterFamilyGuide(starter.genreFamily).bestFor}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         ) : (

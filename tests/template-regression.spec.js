@@ -3,7 +3,9 @@ import { test, expect } from '@playwright/test';
 const TEMPLATES = [
   'obby',
   'open-map-explorer',
-  'survival-crafting-game'
+  'survival-crafting-game',
+  'stunt-racer-3d',
+  'house-builder',
 ];
 
 test.describe('Template Runtime Regression Tests', () => {
@@ -86,7 +88,7 @@ test.describe('Template Runtime Regression Tests', () => {
         await page.waitForTimeout(300);
       }
 
-      const touchButtons = await page.locator('.touch-btn').count();
+      const touchButtons = await page.locator('.touch-btn, .action-btn').count();
       expect(touchButtons, `Touch controls should be present for ${templateName}`).toBeGreaterThan(0);
 
       const toast = await page.locator('#toast');
@@ -114,6 +116,14 @@ test.describe('Template Runtime Regression Tests', () => {
         expect(hudContent).toContain('Time to dawn:');
         expect(hudContent).toContain('Health:');
         expect(hudContent).toContain('Wood:');
+      } else if (templateName === 'stunt-racer-3d') {
+        expect(hudContent).toContain('Checkpoint:');
+        expect(hudContent).toContain('Stunt Score:');
+        expect(hudContent).toContain('Boost:');
+      } else if (templateName === 'house-builder') {
+        expect(hudContent).toContain('Materials - Wood:');
+        expect(hudContent).toContain('Blueprint - Walls:');
+        expect(hudContent).toContain('Mode:');
       }
 
       await page.waitForTimeout(1000);

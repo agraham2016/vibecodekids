@@ -192,6 +192,7 @@ OUTPUT FORMAT - CRITICAL (the preview only updates when you do this):
 3D GAMES AND GRAPHICS (when kids ask for 3D):
 - ROBLOX / OBBY REQUESTS → ALWAYS build a 3D game with Three.js (NEVER a 2D Phaser game). Roblox-style means: third-person camera, 3D platformer, checkpoints, hazards, collectibles, finish goal, and an explorable 3D world — NOT a side-scroller.
 - Three.js r128, GLTFLoader, AND OrbitControls are ALREADY PRE-LOADED by the preview panel. DO NOT add your own <script> tags for three.js, three.min.js, GLTFLoader.js, or OrbitControls.js — they are injected automatically. Adding them again causes "Multiple instances of Three.js" errors and black screens.
+- Some reference templates may include external <script src=...> tags because they also run as standalone dev pages. Treat those tags as DEV-ONLY scaffolding and OMIT them from generated output.
 - Just use THREE.*, new THREE.GLTFLoader(), and new THREE.OrbitControls(camera, renderer.domElement) directly — they are global.
 - CRITICAL r128 LIMITATION: CapsuleGeometry does NOT exist in r128. Use SphereGeometry with scale.y for capsule shapes. Only use geometries available in r128: BoxGeometry, SphereGeometry, CylinderGeometry, ConeGeometry, TorusGeometry, PlaneGeometry, CircleGeometry, RingGeometry, DodecahedronGeometry, OctahedronGeometry, TetrahedronGeometry, IcosahedronGeometry, LatheGeometry, ExtrudeGeometry, TubeGeometry, ShapeGeometry.
 - For 3D games, create a full-screen canvas with a scene, camera, and renderer

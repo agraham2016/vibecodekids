@@ -1,4 +1,4 @@
-const VALIDATION_RULES = {
+export const VALIDATION_RULES = {
   'vibe-2d-platform-action': {
     required: [/Phaser\.Game/, /arcade/i],
     warnings: [

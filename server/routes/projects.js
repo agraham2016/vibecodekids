@@ -39,7 +39,15 @@ export default function createProjectsRouter(sessions) {
       const userId = session.userId;
       let displayName = session.displayName;
 
-      const { title, code, isPublic = false, category = 'other', multiplayer = false, thumbnail } = req.body;
+      const {
+        title,
+        code,
+        isPublic = false,
+        category = 'other',
+        multiplayer = false,
+        thumbnail,
+        gameConfig = null,
+      } = req.body;
 
       if (!code || !title) {
         return res.status(400).json({ error: 'Title and code are required' });
@@ -136,6 +144,7 @@ export default function createProjectsRouter(sessions) {
         pendingParentApproval,
         multiplayer: allowMultiplayer,
         category: category || 'other',
+        gameConfig,
         thumbnail: validThumb,
         createdAt: new Date().toISOString(),
         views: 0,
@@ -176,7 +185,7 @@ export default function createProjectsRouter(sessions) {
       const session = await sessions.get(token);
       if (!session) return res.status(401).json({ error: 'Session expired. Please log in again.' });
 
-      const { projectId, title, code, category = 'other', autoSave = false } = req.body;
+      const { projectId, title, code, category = 'other', autoSave = false, gameConfig } = req.body;
       if (!code) return res.status(400).json({ error: 'No code to save' });
 
       const projectTitle = title || 'My Project';
@@ -232,6 +241,9 @@ export default function createProjectsRouter(sessions) {
           existing.title = projectTitle;
           existing.code = code;
           existing.category = category;
+          if (gameConfig !== undefined) {
+            existing.gameConfig = gameConfig;
+          }
           existing.updatedAt = now;
 
           // Re-scan if project is public — revert to private if scan fails
@@ -267,6 +279,7 @@ export default function createProjectsRouter(sessions) {
         title: projectTitle,
         code,
         category,
+        gameConfig: gameConfig ?? null,
         creatorName: session.displayName,
         userId: session.userId,
         isPublic: false,
@@ -309,7 +322,7 @@ export default function createProjectsRouter(sessions) {
         if (!project.isPublic) {
           return res.status(404).json({ error: 'Project not found' });
         }
-        const { userId: _uid, ageMode: _am, parentEmail: _pe, ...safeProject } = project;
+        const { userId: _uid, ageMode: _am, parentEmail: _pe, gameConfig: _gc, ...safeProject } = project;
         return res.json(safeProject);
       }
 

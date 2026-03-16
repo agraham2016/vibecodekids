@@ -1,8 +1,10 @@
 import { useState } from 'react';
+import type { GameConfig } from '../types';
 import './ShareModal.css';
 
 interface ShareModalProps {
   code: string;
+  gameConfig?: GameConfig | null;
   onClose: () => void;
   authToken?: string | null;
   userDisplayName?: string;
@@ -21,7 +23,14 @@ const CATEGORIES = [
   { id: 'other', label: '🎮 Other', emoji: '🎮' },
 ];
 
-export default function ShareModal({ code, onClose, authToken, userDisplayName, thumbnail }: ShareModalProps) {
+export default function ShareModal({
+  code,
+  gameConfig,
+  onClose,
+  authToken,
+  userDisplayName,
+  thumbnail,
+}: ShareModalProps) {
   const [title, setTitle] = useState('');
   const [creatorName, setCreatorName] = useState(userDisplayName || '');
   const [category, setCategory] = useState('arcade');
@@ -53,6 +62,7 @@ export default function ShareModal({ code, onClose, authToken, userDisplayName, 
         body: JSON.stringify({
           title: title.trim(),
           code,
+          gameConfig: gameConfig ?? null,
           creatorName: creatorName.trim() || 'Anonymous Creator',
           isPublic,
           multiplayer,

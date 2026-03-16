@@ -145,6 +145,8 @@ const LEGACY_TEMPLATE_MAP = {
   obby: 'obby.html',
   'open-map-explorer': 'open-map-explorer.html',
   'survival-crafting-game': 'survival-crafting-game.html',
+  'stunt-racer-3d': 'stunt-racer-3d.html',
+  'house-builder': 'house-builder.html',
 };
 
 /**
@@ -278,6 +280,7 @@ export async function resolveReferences({ prompt, genre, gameConfig, isNewGame, 
       const chunk = formatTemplateReference(
         template,
         template.genreLabel || referenceGenre || engineProfile.genreFamily,
+        engineProfile,
       );
       if (chunk.length <= charBudget) {
         parts.push(chunk);
@@ -364,7 +367,11 @@ function formatGitHubReference(owner, repo, result, description) {
     .join('\n');
 }
 
-function formatTemplateReference(template, genre) {
+function stripExternalScripts(content) {
+  return String(content || '').replace(/<script[^>]+src=["'][^"']+["'][^>]*>\s*<\/script>\s*/gi, '');
+}
+
+function formatPhaserTemplateReference(template, genre) {
   return [
     `// ══════════════════════════════════════════════════════════`,
     `// BUILT-IN TEMPLATE: ${genre} (${template.filename})`,
@@ -378,6 +385,29 @@ function formatTemplateReference(template, genre) {
     '',
     template.content,
   ].join('\n');
+}
+
+function formatThreeTemplateReference(template, genre) {
+  const sanitizedContent = stripExternalScripts(template.content);
+  return [
+    `// ══════════════════════════════════════════════════════════`,
+    `// BUILT-IN TEMPLATE: ${genre} (${template.filename})`,
+    `// THIS TEMPLATE IS A THREE.JS STARTER FOR VIBE 3D FAMILIES.`,
+    `// Keep the world/camera/HUD structure, but DO NOT copy external <script src=...> tags into generated output.`,
+    `// In the preview panel, Three.js helpers are already injected. Use THREE.*, GLTFLoader, and OrbitControls directly.`,
+    `// Preserve these patterns when adapting it: visible world, camera rig, lights, HUD, touch controls, restart flow.`,
+    `// Retheme the geometry, objectives, and interactions without collapsing it into a blank scene.`,
+    `// ══════════════════════════════════════════════════════════`,
+    '',
+    sanitizedContent,
+  ].join('\n');
+}
+
+function formatTemplateReference(template, genre, engineProfile) {
+  if (engineProfile?.dimension === '3d') {
+    return formatThreeTemplateReference(template, genre);
+  }
+  return formatPhaserTemplateReference(template, genre);
 }
 
 function formatSnippetReference(snippet) {

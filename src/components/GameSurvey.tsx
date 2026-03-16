@@ -1,12 +1,16 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { GameConfig, StarterTemplateId } from '../types';
 import {
+  ENGINE_SELECTION_GUIDE,
   STARTER_TEMPLATES,
+  STARTERS_BY_ENGINE,
   THEMES_BY_FAMILY,
   CHARACTERS_BY_FAMILY,
   CHALLENGES_BY_FAMILY,
   VISUAL_STYLES,
   getStarterTemplateById,
+  getStarterRecommendationReason,
+  getStarterFamilyGuide,
 } from '../config/gameCatalog';
 import './GameSurvey.css';
 
@@ -124,12 +128,14 @@ export default function GameSurvey({ onComplete }: GameSurveyProps) {
     if (configKey === 'gameType') {
       const starter =
         getStarterTemplateById(configValue as StarterTemplateId) || pickStarterFromText(userAnswer) || fallbackStarter;
+      const wasInferred = starter.id !== configValue;
       newAnswers = {
         ...newAnswers,
         gameType: starter.id,
         engineId: starter.engineId,
         genreFamily: starter.genreFamily,
         starterTemplateId: starter.id,
+        selectionReason: getStarterRecommendationReason(starter, wasInferred),
         dimension: starter.dimension,
         theme: answers.theme || starter.defaultTheme,
         character: answers.character || starter.defaultCharacter,
@@ -147,6 +153,9 @@ export default function GameSurvey({ onComplete }: GameSurveyProps) {
 
     // Add bot response after a brief delay
     setTimeout(() => {
+      if (configKey === 'gameType') {
+        newHistory.push({ role: 'bot', text: newAnswers.selectionReason || '' });
+      }
       newHistory.push({ role: 'bot', text: BOT_MESSAGES[nextStep] });
       setChatHistory(newHistory);
       setStep(nextStep);
@@ -163,6 +172,7 @@ export default function GameSurvey({ onComplete }: GameSurveyProps) {
           engineId: newAnswers.engineId || starter.engineId,
           genreFamily: newAnswers.genreFamily || starter.genreFamily,
           starterTemplateId: (newAnswers.starterTemplateId || starter.id) as StarterTemplateId,
+          selectionReason: newAnswers.selectionReason || getStarterRecommendationReason(starter, false),
           dimension: newAnswers.dimension || starter.dimension,
           theme: newAnswers.theme || starter.defaultTheme,
           character: newAnswers.character || starter.defaultCharacter,
@@ -276,17 +286,80 @@ export default function GameSurvey({ onComplete }: GameSurveyProps) {
       {step !== 'done' && (
         <div className="survey-options-area">
           <div className="survey-option-grid">
-            {getCurrentOptions().map((opt) => (
-              <button
-                key={opt.value}
-                className="survey-option-btn"
-                onClick={() => handleOptionClick(opt)}
-                disabled={isAnimating}
-              >
-                <span className="survey-option-icon">{opt.icon}</span>
-                <span className="survey-option-label">{opt.label}</span>
-              </button>
-            ))}
+            {step === 'gameType' ? (
+              <>
+                <div className="survey-engine-group">
+                  <div className="survey-engine-heading">Vibe 2D Starters</div>
+                  <div className="survey-engine-subheading">{ENGINE_SELECTION_GUIDE['vibe-2d'].runtimeSummary}</div>
+                  <div className="survey-engine-guide-card">
+                    <strong>{ENGINE_SELECTION_GUIDE['vibe-2d'].architectureReason}</strong>
+                    <span>{ENGINE_SELECTION_GUIDE['vibe-2d'].iterationSweetSpot}</span>
+                  </div>
+                  <div className="survey-engine-grid">
+                    {STARTERS_BY_ENGINE['vibe-2d'].map((template) => (
+                      <button
+                        key={template.id}
+                        className="survey-option-btn survey-option-btn-engine"
+                        onClick={() =>
+                          handleOptionClick({ icon: template.icon, label: template.label, value: template.id })
+                        }
+                        disabled={isAnimating}
+                      >
+                        <span className="survey-option-icon">{template.icon}</span>
+                        <span className="survey-option-text">
+                          <span className="survey-option-label">{template.label}</span>
+                          <span className="survey-option-copy">
+                            {getStarterFamilyGuide(template.genreFamily).bestFor}
+                          </span>
+                        </span>
+                        <span className="survey-option-meta">Vibe 2D</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="survey-engine-group">
+                  <div className="survey-engine-heading">Vibe 3D Starters</div>
+                  <div className="survey-engine-subheading">{ENGINE_SELECTION_GUIDE['vibe-3d'].runtimeSummary}</div>
+                  <div className="survey-engine-guide-card">
+                    <strong>{ENGINE_SELECTION_GUIDE['vibe-3d'].architectureReason}</strong>
+                    <span>{ENGINE_SELECTION_GUIDE['vibe-3d'].iterationSweetSpot}</span>
+                  </div>
+                  <div className="survey-engine-grid">
+                    {STARTERS_BY_ENGINE['vibe-3d'].map((template) => (
+                      <button
+                        key={template.id}
+                        className="survey-option-btn survey-option-btn-engine"
+                        onClick={() =>
+                          handleOptionClick({ icon: template.icon, label: template.label, value: template.id })
+                        }
+                        disabled={isAnimating}
+                      >
+                        <span className="survey-option-icon">{template.icon}</span>
+                        <span className="survey-option-text">
+                          <span className="survey-option-label">{template.label}</span>
+                          <span className="survey-option-copy">
+                            {getStarterFamilyGuide(template.genreFamily).bestFor}
+                          </span>
+                        </span>
+                        <span className="survey-option-meta">Vibe 3D</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </>
+            ) : (
+              getCurrentOptions().map((opt) => (
+                <button
+                  key={opt.value}
+                  className="survey-option-btn"
+                  onClick={() => handleOptionClick(opt)}
+                  disabled={isAnimating}
+                >
+                  <span className="survey-option-icon">{opt.icon}</span>
+                  <span className="survey-option-label">{opt.label}</span>
+                </button>
+              ))
+            )}
           </div>
 
           {/* Free text input */}

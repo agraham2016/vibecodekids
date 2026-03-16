@@ -60,13 +60,26 @@
 /* Current Project Indicator */
 .pp-current {
   display: flex;
-  align-items: center;
-  gap: 6px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
   padding: 8px 16px;
   background: rgba(139, 92, 246, 0.15);
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   font-size: 0.75rem;
   color: rgba(255, 255, 255, 0.8);
+}
+
+.pp-current-main {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pp-current-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
 .pp-current-dot {
@@ -222,6 +235,50 @@
   overflow: hidden;
   text-overflow: ellipsis;
   font-size: 0.78rem;
+}
+
+.pp-item-engine-tag {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.pp-item-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.pp-item-engine-tag.engine-2d {
+  background: rgba(139, 92, 246, 0.18);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  color: #c4b5fd;
+}
+
+.pp-item-engine-tag.engine-3d {
+  background: rgba(59, 130, 246, 0.18);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  color: #93c5fd;
+}
+
+.pp-item-family-tag {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(236, 72, 153, 0.15);
+  border: 1px solid rgba(236, 72, 153, 0.24);
+  color: #f9a8d4;
+  font-size: 0.58rem;
+  font-weight: 700;
+  line-height: 1.2;
 }
 
 .pp-item-meta {

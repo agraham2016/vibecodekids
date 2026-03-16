@@ -547,6 +547,8 @@ export default function createAuthRouter(sessions) {
           id: p.id,
           title: p.title,
           category: p.category,
+          engineId: p.gameConfig?.engineId || null,
+          genreFamily: p.gameConfig?.genreFamily || null,
           isPublic: p.isPublic,
           createdAt: p.createdAt,
           views: p.views || 0,

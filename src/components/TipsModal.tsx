@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { ENGINE_SELECTION_GUIDE, STARTER_TEMPLATES, getStarterFamilyGuide } from '../config/gameCatalog';
 import { tutorialKey } from './tutorialUtils';
 import './TipsModal.css';
 
@@ -78,39 +79,14 @@ const SCENARIOS = [
   { when: 'You want to start over', say: 'Click the Reset button in the sidebar, then describe your new game' },
 ];
 
-const GAME_TEMPLATES = [
-  { emoji: '🏃', name: 'Jump & Run', desc: 'Classic platformer with jumping and collecting' },
-  { emoji: '🚀', name: 'Space Blaster', desc: 'Shoot enemies in space' },
-  { emoji: '🏎️', name: 'Racing', desc: 'Speed through tracks and dodge obstacles' },
-  { emoji: '🐸', name: 'Frogger', desc: 'Cross roads and rivers safely' },
-  { emoji: '🧩', name: 'Puzzle', desc: 'Match, sort, or solve challenges' },
-  { emoji: '👆', name: 'Clicker', desc: 'Tap to earn and upgrade' },
-  { emoji: '⚔️', name: 'RPG', desc: 'Explore worlds and battle enemies' },
-  { emoji: '🐍', name: 'Snake', desc: 'Grow longer without hitting yourself' },
-  { emoji: '🏓', name: 'Pong', desc: 'Bounce the ball past your opponent' },
-  { emoji: '🧱', name: 'Breakout', desc: 'Smash bricks with a bouncing ball' },
-  { emoji: '🦕', name: 'Dino Run', desc: 'Jump over cacti endlessly' },
-  { emoji: '🔫', name: 'Tower Defense', desc: 'Place towers to stop waves of enemies' },
-  { emoji: '🎯', name: 'Aim Trainer', desc: 'Click targets to improve your aim' },
-  { emoji: '🃏', name: 'Memory Match', desc: 'Flip cards to find matching pairs' },
-  { emoji: '📝', name: 'Trivia', desc: 'Answer questions and score points' },
-  { emoji: '🏀', name: 'Sports', desc: 'Basketball, soccer, or any sport' },
-  { emoji: '🧟', name: 'Survival', desc: 'Stay alive as long as possible' },
-  { emoji: '🐦', name: 'Flappy', desc: 'Tap to fly through gaps' },
-  { emoji: '🚗', name: 'Parking', desc: 'Park cars without crashing' },
-  { emoji: '🔮', name: 'Idle', desc: 'Automate and watch numbers grow' },
-  { emoji: '🌍', name: 'Geography', desc: 'Learn countries, flags, and capitals' },
-  { emoji: '🧮', name: 'Math', desc: 'Solve math problems in a game' },
-  { emoji: '📚', name: 'Word', desc: 'Spelling, typing, or word search' },
-  { emoji: '🔬', name: 'Science', desc: 'Experiments and science challenges' },
-  { emoji: '🎵', name: 'Music', desc: 'Make beats or play instruments' },
-  { emoji: '💃', name: 'Dance', desc: 'Hit arrows to the beat' },
-  { emoji: '🤿', name: 'Treasure Diver', desc: 'Dive deep and collect treasure' },
-  { emoji: '♻️', name: 'Trash Sorter', desc: 'Sort recycling and learn about waste' },
-  { emoji: '🍉', name: 'Fruit Slice', desc: 'Swipe to slice flying fruit' },
-  { emoji: '🏗️', name: 'Tower Stack', desc: 'Stack blocks as high as you can' },
-  { emoji: '🔍', name: 'Find the Friend', desc: 'Hidden object search game' },
-];
+const GAME_TEMPLATES = STARTER_TEMPLATES.map((template) => ({
+  emoji: template.icon,
+  name: template.label,
+  desc: `${template.engineId === 'vibe-3d' ? 'Vibe 3D' : 'Vibe 2D'} - ${template.description}`,
+  bestFor: getStarterFamilyGuide(template.genreFamily).bestFor,
+}));
+
+const ENGINE_GUIDE = Object.values(ENGINE_SELECTION_GUIDE);
 
 const STUDIO_TOOLS = [
   {
@@ -120,8 +96,8 @@ const STUDIO_TOOLS = [
   },
   {
     icon: '🎓',
-    name: 'Ask Claude / Ask Grok',
-    desc: 'Switch between two different AI models. Claude is great at following instructions. Grok is more creative and wild.',
+    name: 'Ask Claude / Coach GPT',
+    desc: 'Switch between two AI buddies. Claude follows directions carefully, and Coach GPT pushes gameplay ideas.',
   },
   {
     icon: '🤝',
@@ -278,7 +254,18 @@ export default function TipsModal({ isOpen, userId, onClose, onReplayTutorial }:
           {/* Tab 3: What Can I Make */}
           {activeTab === 'create' && (
             <div className="tips-tab-content">
-              <p className="tab-intro">31 game types to choose from, plus art, animations, stories, tools, and more!</p>
+              <p className="tab-intro">
+                Pick from shared Vibe 2D and Vibe 3D starters, then remix them into your own game idea.
+              </p>
+              <div className="engine-guide-grid">
+                {ENGINE_GUIDE.map((engine) => (
+                  <div key={engine.label} className="engine-guide-card">
+                    <strong>{engine.label}</strong>
+                    <span>{engine.runtimeSummary}</span>
+                    <span>{engine.iterationSweetSpot}</span>
+                  </div>
+                ))}
+              </div>
               <div className="templates-grid">
                 {GAME_TEMPLATES.map((t, i) => (
                   <div key={i} className="template-card">
@@ -286,6 +273,7 @@ export default function TipsModal({ isOpen, userId, onClose, onReplayTutorial }:
                     <div className="template-info">
                       <strong>{t.name}</strong>
                       <span>{t.desc}</span>
+                      <span className="template-best-for">{t.bestFor}</span>
                     </div>
                   </div>
                 ))}

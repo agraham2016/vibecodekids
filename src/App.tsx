@@ -43,6 +43,7 @@ function App() {
     updateCode,
     restoreVersion,
     setGeneratedCode,
+    setProjectGameConfig,
   } = useProjects(!!user, user?.id ?? null, logout);
 
   // UI state
@@ -58,6 +59,7 @@ function App() {
   const [tutorialActive, setTutorialActive] = useState(false);
   const [tutorialStartStep, setTutorialStartStep] = useState(1);
   const [showLearnModal, setShowLearnModal] = useState(false);
+  const activeGameConfig: GameConfig | null = currentProject.gameConfig ?? null;
 
   // Mobile/tablet navigation
   const [mobileTab, setMobileTab] = useState<'chat' | 'game' | 'projects'>('chat');
@@ -180,9 +182,12 @@ function App() {
 
   const handleSendMessage = useCallback(
     async (content: string, image?: string, modeOverride?: AIMode, gameConfig?: GameConfig | null) => {
+      if (gameConfig) {
+        setProjectGameConfig(gameConfig);
+      }
       await sendMessage(content, image, code, gameConfig ?? null, modeOverride);
     },
-    [sendMessage, code],
+    [sendMessage, code, setProjectGameConfig],
   );
 
   // Handle using alternate code from critic/side-by-side view
@@ -217,8 +222,9 @@ function App() {
       const dimensionLabel = config.dimension === '3d' ? '3D' : '2D';
       const engineLabel = config.engineId === 'vibe-3d' ? 'Vibe 3D' : 'Vibe 2D';
       const starterLabel = starter?.label || config.gameType;
+      const selectionReason = config.selectionReason ? ` Match reason: ${config.selectionReason}` : '';
       const notes = config.customNotes ? ` Extra idea: ${config.customNotes}.` : '';
-      const prompt = `Make me a ${dimensionLabel} ${config.theme} ${starterLabel} game with the ${engineLabel} engine style. I control a ${config.character}. The main challenge is ${config.obstacles}. Use a ${config.visualStyle} visual style.${notes}`;
+      const prompt = `Make me a ${dimensionLabel} ${config.theme} ${starterLabel} game with the ${engineLabel} engine style. I control a ${config.character}. The main challenge is ${config.obstacles}. Use a ${config.visualStyle} visual style.${selectionReason}${notes}`;
       setShowGameSurvey(false);
       localStorage.setItem(welcomedKey(user?.id), '1');
       handleSendMessage(prompt, undefined, undefined, config);
@@ -329,6 +335,7 @@ function App() {
       {showShareModal && (
         <ShareModal
           code={code}
+          gameConfig={activeGameConfig}
           onClose={() => setShowShareModal(false)}
           authToken={token}
           userDisplayName={user.displayName}
@@ -452,6 +459,7 @@ function App() {
             isLoadingProjects={isLoadingProjects}
             currentProjectId={currentProject.id}
             projectName={currentProject.name}
+            currentProjectGameConfig={currentProject.gameConfig ?? null}
             onLoadProject={(id) => {
               handleLoadProject(id);
               setDrawerOpen(false);
@@ -480,6 +488,7 @@ function App() {
         >
           <ChatPanel
             messages={messages}
+            activeGameConfig={activeGameConfig}
             onSendMessage={handleSendMessage}
             onFeedback={sendFeedback}
             isLoading={isLoading}

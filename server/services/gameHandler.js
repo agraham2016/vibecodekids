@@ -398,23 +398,51 @@ async function handleSingleModel({ prompt, currentCode, conversationHistory, gam
   ];
   const messages = trimConversationHistory(rawMessages, 12);
 
+  const requestAssistantText = async (messageList) => {
+    if (targetModel === 'grok') {
+      const fullSystemPrompt = personalityWrapper + '\n\n' + staticPrompt + '\n\n' + dynamicContext;
+      const response = await callGrok(fullSystemPrompt, messageList, maxTokens, userId);
+      return extractOpenAIText(response);
+    }
+    if (targetModel === 'openai') {
+      const fullSystemPrompt = personalityWrapper + '\n\n' + staticPrompt + '\n\n' + dynamicContext;
+      const response = await callOpenAI(fullSystemPrompt, messageList, maxTokens, userId);
+      return extractOpenAIText(response);
+    }
+
+    const fullStaticPrompt = personalityWrapper + '\n\n' + staticPrompt;
+    const response = await callClaude(fullStaticPrompt, dynamicContext, messageList, maxTokens, userId);
+    return response.content[0].text;
+  };
+
+  const applyEnginePostProcessing = async (candidateCode) => {
+    if (!candidateCode) return candidateCode;
+    if (requestedEngineProfile.engineId === 'vibe-2d') {
+      return injectSprites(candidateCode, requestedEngineProfile.templateGenre || genre);
+    }
+    return candidateCode;
+  };
+
+  const buildEngineRepairPrompt = (validation) => `CRITICAL ENGINE REPAIR: The last draft did not satisfy the ${
+    requestedEngineProfile.label
+  } engine contract.
+
+Missing required engine patterns:
+${validation.violations.map((violation) => `- ${violation}`).join('\n')}
+
+Warnings to address if possible:
+${(validation.warnings || []).map((warning) => `- ${warning}`).join('\n') || '- none'}
+
+Regenerate the COMPLETE game code. Keep the same game idea, but make sure the result preserves these core systems: ${
+    (requestedEngineProfile.coreSystems || []).join(', ') || 'game loop, HUD, controls'
+  }.
+
+Only output the full HTML game.`;
+
   let assistantText;
   let wasTruncated = false;
 
-  if (targetModel === 'grok') {
-    const fullSystemPrompt = personalityWrapper + '\n\n' + staticPrompt + '\n\n' + dynamicContext;
-    const response = await callGrok(fullSystemPrompt, messages, maxTokens, userId);
-    assistantText = extractOpenAIText(response);
-  } else if (targetModel === 'openai') {
-    const fullSystemPrompt = personalityWrapper + '\n\n' + staticPrompt + '\n\n' + dynamicContext;
-    const response = await callOpenAI(fullSystemPrompt, messages, maxTokens, userId);
-    assistantText = extractOpenAIText(response);
-  } else {
-    // Claude: use the split prompt system with cache_control
-    const fullStaticPrompt = personalityWrapper + '\n\n' + staticPrompt;
-    const response = await callClaude(fullStaticPrompt, dynamicContext, messages, maxTokens, userId);
-    assistantText = response.content[0].text;
-  }
+  assistantText = await requestAssistantText(messages);
 
   // Extract code from the response
   let code = extractCode(assistantText);
@@ -445,20 +473,7 @@ async function handleSingleModel({ prompt, currentCode, conversationHistory, gam
     ];
     const trimmedFixup = trimConversationHistory(fixupMessages, 12);
     try {
-      let retryText;
-      if (targetModel === 'grok') {
-        const fullSystemPrompt = personalityWrapper + '\n\n' + staticPrompt + '\n\n' + dynamicContext;
-        const retryResponse = await callGrok(fullSystemPrompt, trimmedFixup, maxTokens, userId);
-        retryText = extractOpenAIText(retryResponse);
-      } else if (targetModel === 'openai') {
-        const fullSystemPrompt = personalityWrapper + '\n\n' + staticPrompt + '\n\n' + dynamicContext;
-        const retryResponse = await callOpenAI(fullSystemPrompt, trimmedFixup, maxTokens, userId);
-        retryText = extractOpenAIText(retryResponse);
-      } else {
-        const fullStaticPrompt = personalityWrapper + '\n\n' + staticPrompt;
-        const retryResponse = await callClaude(fullStaticPrompt, dynamicContext, trimmedFixup, maxTokens, userId);
-        retryText = retryResponse.content[0].text;
-      }
+      const retryText = await requestAssistantText(trimmedFixup);
       const retryCode = extractCode(retryText);
       if (retryCode && retryCode.includes('VibeMultiplayer')) {
         console.log('✅ Multiplayer auto-retry succeeded — VibeMultiplayer integrated.');
@@ -473,12 +488,10 @@ async function handleSingleModel({ prompt, currentCode, conversationHistory, gam
   }
 
   // Post-process: inject Kenney sprites if the AI used generateTexture instead
-  if (code && requestedEngineProfile.engineId === 'vibe-2d') {
-    code = await injectSprites(code, requestedEngineProfile.templateGenre || genre);
-  }
+  code = await applyEnginePostProcessing(code);
 
   if (code) {
-    const engineValidation = validateEngineOutput(code, requestedEngineProfile);
+    let engineValidation = validateEngineOutput(code, requestedEngineProfile);
     if (engineValidation.warnings.length > 0) {
       console.log(
         `🧪 Engine validation warnings (${requestedEngineProfile.validationProfile}): ${engineValidation.warnings.join(', ')}`,
@@ -488,10 +501,48 @@ async function handleSingleModel({ prompt, currentCode, conversationHistory, gam
       console.warn(
         `⚠️ Engine validation failed (${requestedEngineProfile.validationProfile}): ${engineValidation.violations.join(', ')}`,
       );
-      code = null;
-      assistantText =
-        "I got the idea started, but the game engine setup didn't finish cleanly. Ask me to try again and I'll rebuild it! 🎮";
-      wasTruncated = false;
+      const repairMessages = trimConversationHistory(
+        [
+          ...messages,
+          { role: 'assistant', content: assistantText },
+          { role: 'user', content: buildEngineRepairPrompt(engineValidation) },
+        ],
+        12,
+      );
+      try {
+        const repairText = await requestAssistantText(repairMessages);
+        const repairedCode = await applyEnginePostProcessing(extractCode(repairText));
+        if (repairedCode) {
+          const repairedValidation = validateEngineOutput(repairedCode, requestedEngineProfile);
+          if (repairedValidation.warnings.length > 0) {
+            console.log(
+              `🧪 Engine repair warnings (${requestedEngineProfile.validationProfile}): ${repairedValidation.warnings.join(', ')}`,
+            );
+          }
+          if (repairedValidation.safe) {
+            console.log(`✅ Engine repair retry succeeded (${requestedEngineProfile.validationProfile}).`);
+            code = repairedCode;
+            assistantText = repairText;
+            engineValidation = repairedValidation;
+          } else {
+            console.warn(
+              `⚠️ Engine repair retry still failed (${requestedEngineProfile.validationProfile}): ${repairedValidation.violations.join(', ')}`,
+            );
+            code = null;
+          }
+        } else {
+          code = null;
+        }
+      } catch (repairErr) {
+        console.error('⚠️ Engine repair retry failed:', repairErr.message);
+        code = null;
+      }
+
+      if (!code) {
+        assistantText =
+          "I got the idea started, but the game engine setup didn't finish cleanly. Ask me to try again and I'll rebuild it! 🎮";
+        wasTruncated = false;
+      }
     }
   }
 

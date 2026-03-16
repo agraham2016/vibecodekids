@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { getVisitorId } from '../lib/abVariant';
 import { trackPageView, trackCtaClick } from '../lib/marketingEvents';
+import { ENGINE_SELECTION_GUIDE, STARTER_TEMPLATES } from '../config/gameCatalog';
 import './LandingPageB.css';
 import './LandingPage.css';
 
@@ -16,24 +17,31 @@ interface Generation {
   thumbs: 'up' | 'down' | null;
 }
 
-const GAME_STARTERS = [
-  { label: 'Platformer', prompt: 'A platformer game with a cat that collects fish' },
-  { label: 'Space Blaster', prompt: 'A space blaster where I blast alien ships' },
-  { label: 'Snake', prompt: 'A classic snake game where I eat apples and grow' },
-  { label: 'Racing', prompt: 'A top-down racing game dodging traffic' },
-  { label: 'Flappy Bird', prompt: 'A flappy bird style game with a dragon' },
-  { label: 'Brick Breaker', prompt: 'A brick breaker game with power-ups' },
-  { label: 'Pong', prompt: 'A pong game where I bounce the ball and play against the computer' },
-  { label: 'Catch & Dodge', prompt: 'A catching game where I move a basket to catch good things and dodge bad ones' },
-  { label: 'Whack-a-Mole', prompt: 'A whack-a-mole game where I tap targets before they disappear' },
-  { label: 'Memory Match', prompt: 'A memory game where I flip cards to find matching pairs' },
-  { label: 'Maze Chase', prompt: 'A maze game like Pac-Man where I collect dots and avoid ghosts' },
-  { label: 'Top-Down Shooter', prompt: 'A top-down shooter where I move in all directions and shoot enemies' },
-  { label: 'Fishing', prompt: 'A fishing game where I cast my line and reel in fish' },
-  { label: 'Simon Says', prompt: 'A Simon Says game where I watch and repeat the colored pattern' },
-];
+const LANDING_STARTER_IDS = [
+  'platformer',
+  'maze-escape',
+  'tower-defense',
+  'pet-care-simulator',
+  'obby',
+  'open-map-explorer',
+  'stunt-racer-3d',
+  'house-builder',
+] as const;
+
+const GAME_STARTERS = LANDING_STARTER_IDS.map((id) => {
+  const template = STARTER_TEMPLATES.find((entry) => entry.id === id)!;
+  return {
+    label: `${template.label}${template.engineId === 'vibe-3d' ? ' - Vibe 3D' : ' - Vibe 2D'}`,
+    prompt: `Make me a ${template.dimension.toUpperCase()} ${template.label} game with the ${
+      template.engineId === 'vibe-3d' ? 'Vibe 3D' : 'Vibe 2D'
+    } engine style. The theme is ${template.defaultTheme}. I control a ${template.defaultCharacter}. The main challenge is ${
+      template.defaultObstacle
+    }.`,
+  };
+});
 
 const MAX_FREE_PROMPTS = 5;
+const LANDING_ENGINE_GUIDES = Object.values(ENGINE_SELECTION_GUIDE);
 
 type Phase = 'idle' | 'loading' | 'playing' | 'gated';
 
@@ -249,8 +257,8 @@ export default function LandingPageB({ onLoginClick, onSignupClick }: LandingPag
           </div>
           <h1 className="hero-headline">Teach kids to create with AI, not just consume it.</h1>
           <p className="hero-subtitle">
-            Pick a game type or describe your own idea. VibeCode Kidz matches it to the right game engine so you can
-            play a first version fast and keep improving it with AI.
+            Pick a Vibe 2D or Vibe 3D starter, or describe your own idea. VibeCode Kidz matches it to the right game
+            engine so you can play a first version fast and keep improving it with AI.
           </p>
 
           <div className="hero-features">
@@ -282,9 +290,18 @@ export default function LandingPageB({ onLoginClick, onSignupClick }: LandingPag
         <section ref={tryItRef} className="tryit-section" id="try-it">
           <h2 className="section-heading">Pick It or Describe It</h2>
           <p className="section-subheading">
-            Choose a starter or type your own game idea. VibeCode Kidz will match the right engine and build a playable
-            first version.
+            Choose a Vibe 2D or Vibe 3D starter, or type your own game idea. VibeCode Kidz will match the right engine
+            and build a playable first version.
           </p>
+          <div className="landing-engine-guide-grid">
+            {LANDING_ENGINE_GUIDES.map((engine) => (
+              <div key={engine.label} className="landing-engine-guide-card">
+                <span className="landing-engine-guide-label">{engine.label}</span>
+                <strong>{engine.runtimeSummary}</strong>
+                <span>{engine.iterationSweetSpot}</span>
+              </div>
+            ))}
+          </div>
 
           {/* Signup Gate Modal */}
           {phase === 'gated' && (

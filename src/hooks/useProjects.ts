@@ -8,7 +8,7 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { api, ApiError, getAuthToken } from '../lib/api';
-import type { Project, UserProject } from '../types';
+import type { GameConfig, Project, UserProject } from '../types';
 
 const AUTO_SAVE_DELAY_MS = 30_000; // 30 seconds after last edit
 
@@ -68,6 +68,7 @@ export function useProjects(isLoggedIn = false, userId: string | null = null, on
     id: 'new',
     name: 'My Awesome Project',
     code: DEFAULT_HTML,
+    gameConfig: null,
     createdAt: new Date(),
     updatedAt: new Date(),
   });
@@ -94,6 +95,7 @@ export function useProjects(isLoggedIn = false, userId: string | null = null, on
         id: 'new',
         name: 'My Awesome Project',
         code: DEFAULT_HTML,
+        gameConfig: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -110,6 +112,7 @@ export function useProjects(isLoggedIn = false, userId: string | null = null, on
         id: 'new',
         name: 'My Awesome Project',
         code: DEFAULT_HTML,
+        gameConfig: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -154,14 +157,19 @@ export function useProjects(isLoggedIn = false, userId: string | null = null, on
 
   const loadProject = useCallback(async (projectId: string) => {
     try {
-      const project = await api.get<{ id: string; title: string; code: string; createdAt: string }>(
-        `/api/projects/${projectId}`,
-      );
+      const project = await api.get<{
+        id: string;
+        title: string;
+        code: string;
+        createdAt: string;
+        gameConfig?: GameConfig | null;
+      }>(`/api/projects/${projectId}`);
       setCode(project.code);
       setCurrentProject({
         id: project.id,
         name: project.title,
         code: project.code,
+        gameConfig: project.gameConfig || null,
         createdAt: new Date(project.createdAt),
         updatedAt: new Date(),
       });
@@ -180,6 +188,7 @@ export function useProjects(isLoggedIn = false, userId: string | null = null, on
       id: 'new',
       name: 'My Awesome Project',
       code: DEFAULT_HTML,
+      gameConfig: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
@@ -228,6 +237,7 @@ export function useProjects(isLoggedIn = false, userId: string | null = null, on
             projectId: currentProject.id,
             title: currentProject.name,
             code,
+            gameConfig: currentProject.gameConfig ?? null,
             category: 'other',
             autoSave: isAuto,
           },
@@ -263,8 +273,21 @@ export function useProjects(isLoggedIn = false, userId: string | null = null, on
         }
       }
     },
-    [code, currentProject.id, currentProject.name, isSaving, fetchUserProjects, userId],
+    [
+      code,
+      currentProject.gameConfig,
+      currentProject.id,
+      currentProject.name,
+      isLoggedIn,
+      isSaving,
+      fetchUserProjects,
+      userId,
+    ],
   );
+
+  const setProjectGameConfig = useCallback((gameConfig: GameConfig | null) => {
+    setCurrentProject((prev) => ({ ...prev, gameConfig }));
+  }, []);
 
   // Helper to reset the auto-save debounce timer.
   // Captures userId at schedule time so a stale timer can't save under a different account.
@@ -361,5 +384,6 @@ export function useProjects(isLoggedIn = false, userId: string | null = null, on
     updateCode,
     restoreVersion,
     setGeneratedCode,
+    setProjectGameConfig,
   };
 }

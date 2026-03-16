@@ -66,6 +66,7 @@ export interface GameConfig {
   engineId?: EngineId;
   genreFamily?: GenreFamily;
   starterTemplateId?: StarterTemplateId;
+  selectionReason?: string; // Why this starter/family was chosen for the idea
   dimension: '2d' | '3d'; // 2D (DOM/Canvas) or 3D (Three.js)
   theme: string; // "space", "underwater", "jungle", etc.
   character: string; // "rocket ship", "unicorn", "ninja", etc.
@@ -93,6 +94,7 @@ export interface Project {
   id: string;
   name: string;
   code: string;
+  gameConfig?: GameConfig | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -102,6 +104,8 @@ export interface UserProject {
   id: string;
   title: string;
   category: string;
+  engineId?: EngineId | null;
+  genreFamily?: GenreFamily | null;
   isPublic: boolean;
   createdAt: string;
   views: number;

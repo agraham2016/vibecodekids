@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { overflow: hidden; background: #020617; font-family: Arial, sans-serif; touch-action: none; }
+    #game-container { width: 100vw; height: 100vh; }
+    #hud {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      z-index: 10;
+      min-width: 255px;
+      padding: 14px 16px;
+      border-radius: 18px;
+      background: rgba(15, 23, 42, 0.78);
+      color: #e2e8f0;
+      line-height: 1.45;
+      font-size: 15px;
+      box-shadow: 0 12px 30px rgba(15, 23, 42, 0.35);
+    }
+    #toast {
+      position: fixed;
+      top: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 20;
+      padding: 12px 18px;
+      border-radius: 999px;
+      background: rgba(14, 165, 233, 0.92);
+      color: #fff;
+      font-weight: bold;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      pointer-events: none;
+    }
+    #toast.visible { opacity: 1; }
+    #overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 25;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: rgba(15, 23, 42, 0.7);
+      color: #fff;
+    }
+    #overlay.visible { display: flex; }
+    .card {
+      width: min(92vw, 430px);
+      padding: 28px;
+      border-radius: 24px;
+      background: rgba(15, 23, 42, 0.96);
+      text-align: center;
+      border: 2px solid rgba(255,255,255,0.15);
+    }
+    .card h1 { margin-bottom: 10px; font-size: 32px; }
+    .card p { margin-bottom: 16px; line-height: 1.5; }
+    .card button {
+      border: 0;
+      border-radius: 999px;
+      padding: 12px 18px;
+      background: #f472b6;
+      color: #fff;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .touch-btn {
+      position: fixed;
+      width: 68px;
+      height: 68px;
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.4);
+      background: rgba(255,255,255,0.18);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      z-index: 15;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    #left-btn { left: 22px; bottom: 40px; }
+    #right-btn { left: 100px; bottom: 40px; }
+    #boost-btn { right: 22px; bottom: 40px; width: 84px; border-radius: 24px; font-size: 16px; font-weight: bold; }
+    @media (min-width: 900px) {
+      .touch-btn { opacity: 0.32; }
+    }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+  <div id="game-container"></div>
+  <div id="hud"></div>
+  <div id="toast"></div>
+  <div id="overlay">
+    <div class="card">
+      <h1>Stunt Complete!</h1>
+      <p> You cleared every checkpoint, landed clean tricks, and blasted through the finish gate. </p>
+      <button id="restart-btn">Race Again</button>
+    </div>
+  </div>
+  <div id="left-btn" class="touch-btn">&larr;</div>
+  <div id="right-btn" class="touch-btn">&rarr;</div>
+  <div id="boost-btn" class="touch-btn">BOOST</div>
+  <script>
+    (function () {
+      var scene, camera, renderer, clock;
+      var container = document.getElementById('game-container');
+      var hud = document.getElementById('hud');
+      var toast = document.getElementById('toast');
+      var overlay = document.getElementById('overlay');
+      var restartBtn = document.getElementById('restart-btn');
+      var checkpoints = [];
+      var boostPads = [];
+      var ramps = [];
+      var particles = [];
+
+      var state = {
+        keys: { left: false, right: false, boost: false },
+        speed: 0,
+        distance: 0,
+        checkpoint: 0,
+        stuntScore: 0,
+        airTime: 0,
+        bestJump: 0,
+        boost: 100,
+        finished: false
+      };
+
+      var carRoot;
+      var carBody;
+      var wheelMeshes = [];
+      var carVelocityY = 0;
+      var carOnGround = true;
+      var jumpStartZ = 0;
+
+      function createCar() {
+        carRoot = new THREE.Group();
+        carRoot.position.set(0, 1, 0);
+
+        var bodyMat = new THREE.MeshStandardMaterial({ color: 0xf472b6, metalness: 0.2, roughness: 0.35, emissive: 0x7c2d92, emissiveIntensity: 0.3 });
+        var base = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.7, 4.6), bodyMat);
+        base.castShadow = true;
+        base.receiveShadow = true;
+        carRoot.add(base);
+
+        var cabin = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.7, 2.1), new THREE.MeshStandardMaterial({ color: 0x38bdf8, metalness: 0.15, roughness: 0.25 }));
+        cabin.position.set(0, 0.62, -0.15);
+        cabin.castShadow = true;
+        carRoot.add(cabin);
+
+        var bumper = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.25, 0.35), new THREE.MeshStandardMaterial({ color: 0xfbbf24, emissive: 0xf59e0b, emissiveIntensity: 0.4 }));
+        bumper.position.set(0, 0.05, -2.45);
+        bumper.castShadow = true;
+        carRoot.add(bumper);
+
+        for (var i = 0; i < 4; i++) {
+          var wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.45, 0.38, 18), new THREE.MeshStandardMaterial({ color: 0x0f172a }));
+          wheel.rotation.z = Math.PI / 2;
+          wheel.castShadow = true;
+          wheel.position.set(i < 2 ? -1.15 : 1.15, -0.35, i % 2 === 0 ? -1.6 : 1.55);
+          wheelMeshes.push(wheel);
+          carRoot.add(wheel);
+        }
+
+        scene.add(carRoot);
+        carBody = base;
+      }
+
+      function showToast(text) {
+        toast.textContent = text;
+        toast.classList.add('visible');
+        clearTimeout(showToast._timer);
+        showToast._timer = setTimeout(function () {
+          toast.classList.remove('visible');
+        }, 1400);
+      }
+
+      function makeLaneStripe(z) {
+        var stripe = new THREE.Mesh(
+          new THREE.BoxGeometry(0.28, 0.04, 2.4),
+          new THREE.MeshBasicMaterial({ color: 0x22d3ee })
+        );
+        stripe.position.set(0, 0.04, z);
+        scene.add(stripe);
+      }
+
+      function makeRamp(z) {
+        var ramp = new THREE.Mesh(
+          new THREE.BoxGeometry(6.5, 1.1, 8),
+          new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.2, roughness: 0.7 })
+        );
+        ramp.position.set(0, 0.55, z);
+        ramp.rotation.x = -0.26;
+        ramp.receiveShadow = true;
+        ramp.castShadow = true;
+        scene.add(ramp);
+        ramps.push(ramp);
+
+        var glow = new THREE.Mesh(
+          new THREE.BoxGeometry(5.5, 0.08, 7.3),
+          new THREE.MeshBasicMaterial({ color: 0xf472b6 })
+        );
+        glow.position.set(0, 1.07, z + 0.25);
+        glow.rotation.x = -0.26;
+        scene.add(glow);
+      }
+
+      function makeCheckpoint(index, z) {
+        var group = new THREE.Group();
+        var ringMat = new THREE.MeshStandardMaterial({ color: 0x38bdf8, emissive: 0x0ea5e9, emissiveIntensity: 0.7 });
+        var left = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 4.2, 12), ringMat);
+        left.position.set(-4.4, 2.1, z);
+        left.castShadow = true;
+        var right = left.clone();
+        right.position.x = 4.4;
+        var top = new THREE.Mesh(new THREE.BoxGeometry(9.2, 0.35, 0.35), ringMat);
+        top.position.set(0, 4.15, z);
+        top.castShadow = true;
+        group.add(left);
+        group.add(right);
+        group.add(top);
+        scene.add(group);
+        checkpoints.push({ index: index, z: z, hit: false, mesh: group });
+      }
+
+      function makeBoostPad(z) {
+        var pad = new THREE.Mesh(
+          new THREE.BoxGeometry(3.4, 0.08, 4),
+          new THREE.MeshStandardMaterial({ color: 0xf97316, emissive: 0xfb923c, emissiveIntensity: 0.7 })
+        );
+        pad.position.set(0, 0.06, z);
+        scene.add(pad);
+        boostPads.push(pad);
+      }
+
+      function makeFinishGate(z) {
+        var poleMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0 });
+        var left = new THREE.Mesh(new THREE.BoxGeometry(0.35, 5, 0.35), poleMat);
+        left.position.set(-5, 2.5, z);
+        var right = left.clone();
+        right.position.x = 5;
+        var banner = new THREE.Mesh(new THREE.BoxGeometry(10.5, 1.2, 0.25), new THREE.MeshStandardMaterial({ color: 0x4f46e5, emissive: 0x312e81, emissiveIntensity: 0.55 }));
+        banner.position.set(0, 4.9, z);
+        scene.add(left);
+        scene.add(right);
+        scene.add(banner);
+        state.finishZ = z;
+      }
+
+      function spawnDust() {
+        var puff = new THREE.Mesh(
+          new THREE.SphereGeometry(0.18, 8, 8),
+          new THREE.MeshBasicMaterial({ color: 0xf8fafc, transparent: true, opacity: 0.55 })
+        );
+        puff.position.copy(carRoot.position);
+        puff.position.y = 0.25;
+        puff.position.x += (Math.random() - 0.5) * 0.6;
+        puff.position.z += 1.8;
+        scene.add(puff);
+        particles.push({ mesh: puff, life: 0.7 });
+      }
+
+      function buildTrack() {
+        var road = new THREE.Mesh(
+          new THREE.BoxGeometry(18, 0.2, 220),
+          new THREE.MeshStandardMaterial({ color: 0x111827, metalness: 0.15, roughness: 0.8 })
+        );
+        road.position.set(0, 0.1, 60);
+        road.receiveShadow = true;
+        scene.add(road);
+
+        var edgeMat = new THREE.MeshBasicMaterial({ color: 0xec4899 });
+        var leftRail = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.2, 220), edgeMat);
+        leftRail.position.set(-9.2, 0.22, 60);
+        var rightRail = leftRail.clone();
+        rightRail.position.x = 9.2;
+        scene.add(leftRail);
+        scene.add(rightRail);
+
+        for (var z = 0; z <= 210; z += 6) {
+          makeLaneStripe(z);
+        }
+
+        makeRamp(40);
+        makeBoostPad(35);
+        makeCheckpoint(1, 52);
+        makeRamp(95);
+        makeBoostPad(84);
+        makeCheckpoint(2, 112);
+        makeRamp(150);
+        makeBoostPad(142);
+        makeCheckpoint(3, 168);
+        makeFinishGate(202);
+
+        for (var i = 0; i < 14; i++) {
+          var tower = new THREE.Mesh(
+            new THREE.BoxGeometry(8, 10 + (i % 4) * 4, 8),
+            new THREE.MeshStandardMaterial({ color: i % 2 === 0 ? 0x1d4ed8 : 0x7c3aed, emissive: 0x312e81, emissiveIntensity: 0.35 })
+          );
+          tower.position.set(i % 2 === 0 ? -20 : 20, tower.geometry.parameters.height / 2, i * 15);
+          tower.castShadow = true;
+          tower.receiveShadow = true;
+          scene.add(tower);
+        }
+      }
+
+      function updateHud() {
+        hud.innerHTML =
+          '<strong>Vibe 3D Stunt Racer</strong><br>' +
+          'Checkpoint: ' + state.checkpoint + ' / 3<br>' +
+          'Speed: ' + Math.round(state.speed * 95) + ' | Boost: ' + Math.round(state.boost) + '<br>' +
+          'Stunt Score: ' + state.stuntScore + ' | Best Jump: ' + state.bestJump.toFixed(1) + 'm<br>' +
+          'Goal: clear checkpoints, hit ramps, land clean, then blast through the finish gate';
+      }
+
+      function resetGame() {
+        state.speed = 0;
+        state.distance = 0;
+        state.checkpoint = 0;
+        state.stuntScore = 0;
+        state.airTime = 0;
+        state.bestJump = 0;
+        state.boost = 100;
+        state.finished = false;
+        carVelocityY = 0;
+        carOnGround = true;
+        carRoot.position.set(0, 1, 0);
+        carRoot.rotation.y = 0;
+        overlay.classList.remove('visible');
+        checkpoints.forEach(function (checkpoint) {
+          checkpoint.hit = false;
+          checkpoint.mesh.visible = true;
+        });
+        updateHud();
+      }
+
+      function finishRace() {
+        state.finished = true;
+        overlay.classList.add('visible');
+      }
+
+      function onKeyChange(isDown, event) {
+        if (event.key === 'ArrowLeft') state.keys.left = isDown;
+        if (event.key === 'ArrowRight') state.keys.right = isDown;
+        if (event.key === 'ArrowUp') state.keys.boost = isDown;
+        if (event.code === 'Space') state.keys.boost = isDown;
+      }
+
+      function bindTouchButton(id, key) {
+        var el = document.getElementById(id);
+        function setState(value, event) {
+          if (event) event.preventDefault();
+          state.keys[key] = value;
+        }
+        ['pointerdown', 'touchstart'].forEach(function (type) {
+          el.addEventListener(type, function (event) { setState(true, event); });
+        });
+        ['pointerup', 'pointercancel', 'pointerleave', 'touchend'].forEach(function (type) {
+          el.addEventListener(type, function (event) { setState(false, event); });
+        });
+      }
+
+      function init() {
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x020617);
+        scene.fog = new THREE.Fog(0x020617, 90, 240);
+
+        camera = new THREE.PerspectiveCamera(58, window.innerWidth / window.innerHeight, 0.1, 500);
+        renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        container.appendChild(renderer.domElement);
+
+        clock = new THREE.Clock();
+
+        scene.add(new THREE.AmbientLight(0xffffff, 0.65));
+        var sun = new THREE.DirectionalLight(0xffffff, 1.1);
+        sun.position.set(16, 28, 12);
+        sun.castShadow = true;
+        scene.add(sun);
+
+        var skyRing = new THREE.Mesh(
+          new THREE.TorusGeometry(110, 1.3, 12, 60),
+          new THREE.MeshBasicMaterial({ color: 0x7c3aed })
+        );
+        skyRing.rotation.x = Math.PI / 2;
+        skyRing.position.z = 100;
+        scene.add(skyRing);
+
+        createCar();
+        buildTrack();
+        updateHud();
+
+        window.addEventListener('resize', onResize);
+        document.addEventListener('keydown', function (event) { onKeyChange(true, event); });
+        document.addEventListener('keyup', function (event) { onKeyChange(false, event); });
+        bindTouchButton('left-btn', 'left');
+        bindTouchButton('right-btn', 'right');
+        bindTouchButton('boost-btn', 'boost');
+        restartBtn.addEventListener('click', resetGame);
+
+        animate();
+      }
+
+      function onResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      }
+
+      function updatePhysics(delta) {
+        if (state.finished) return;
+
+        var turning = state.keys.left ? 1 : state.keys.right ? -1 : 0;
+        var accelerating = true;
+        var boostActive = state.keys.boost && state.boost > 0;
+
+        state.speed += accelerating ? 7.8 * delta : -5.2 * delta;
+        state.speed = Math.max(7, Math.min(state.speed, boostActive ? 28 : 21));
+
+        if (boostActive) {
+          state.speed = Math.min(31, state.speed + 18 * delta);
+          state.boost = Math.max(0, state.boost - 26 * delta);
+        } else {
+          state.boost = Math.min(100, state.boost + 10 * delta);
+        }
+
+        carRoot.position.x += turning * delta * 10.5;
+        carRoot.position.x = Math.max(-6.9, Math.min(6.9, carRoot.position.x));
+        carRoot.rotation.z = THREE.MathUtils.lerp(carRoot.rotation.z, -turning * 0.18, 0.12);
+        carRoot.rotation.y = THREE.MathUtils.lerp(carRoot.rotation.y, -turning * 0.08, 0.14);
+
+        var prevZ = carRoot.position.z;
+        carRoot.position.z += state.speed * delta * 3.2;
+
+        ramps.forEach(function (ramp) {
+          if (Math.abs(carRoot.position.z - ramp.position.z) < 4 && Math.abs(carRoot.position.x) < 4.4 && carOnGround) {
+            carVelocityY = 8.8;
+            carOnGround = false;
+            jumpStartZ = carRoot.position.z;
+          }
+        });
+
+        carVelocityY -= 19 * delta;
+        carRoot.position.y += carVelocityY * delta;
+        if (carRoot.position.y <= 1) {
+          if (!carOnGround) {
+            var jumpDistance = Math.max(0, carRoot.position.z - jumpStartZ);
+            if (state.airTime > 0.35) {
+              var scoreGain = Math.round(state.airTime * 95 + jumpDistance * 1.4);
+              state.stuntScore += scoreGain;
+              state.bestJump = Math.max(state.bestJump, jumpDistance);
+              showToast('Clean landing +' + scoreGain + ' stunt points');
+            }
+          }
+          carRoot.position.y = 1;
+          carVelocityY = 0;
+          carOnGround = true;
+          state.airTime = 0;
+        } else {
+          state.airTime += delta;
+        }
+
+        boostPads.forEach(function (pad) {
+          if (Math.abs(carRoot.position.z - pad.position.z) < 2.4 && Math.abs(carRoot.position.x - pad.position.x) < 2.2) {
+            state.boost = Math.min(100, state.boost + 35 * delta);
+            state.speed = Math.min(32, state.speed + 28 * delta);
+          }
+        });
+
+        checkpoints.forEach(function (checkpoint) {
+          if (!checkpoint.hit && prevZ < checkpoint.z && carRoot.position.z >= checkpoint.z) {
+            checkpoint.hit = true;
+            checkpoint.mesh.visible = false;
+            state.checkpoint += 1;
+            showToast('Checkpoint ' + state.checkpoint + ' / 3');
+          }
+        });
+
+        if (state.checkpoint >= 3 && state.stuntScore >= 180 && carRoot.position.z >= state.finishZ) {
+          finishRace();
+        }
+
+        if (renderer.info.render.frame % 5 === 0 && carOnGround && state.speed > 16) {
+          spawnDust();
+        }
+
+        particles.forEach(function (particle) {
+          particle.life -= delta;
+          particle.mesh.scale.multiplyScalar(1.03);
+          particle.mesh.position.y += delta * 1.1;
+          particle.mesh.material.opacity = Math.max(0, particle.life);
+        });
+        particles = particles.filter(function (particle) {
+          if (particle.life <= 0) {
+            scene.remove(particle.mesh);
+            return false;
+          }
+          return true;
+        });
+
+        wheelMeshes.forEach(function (wheel) {
+          wheel.rotation.x -= state.speed * delta * 0.65;
+        });
+
+        camera.position.x = THREE.MathUtils.lerp(camera.position.x, carRoot.position.x * 0.9, 0.08);
+        camera.position.y = THREE.MathUtils.lerp(camera.position.y, carRoot.position.y + 6.6, 0.08);
+        camera.position.z = THREE.MathUtils.lerp(camera.position.z, carRoot.position.z - 10.5, 0.08);
+        camera.lookAt(carRoot.position.x, carRoot.position.y + 1.1, carRoot.position.z + 11);
+
+        updateHud();
+      }
+
+      function animate() {
+        requestAnimationFrame(animate);
+        var delta = Math.min(clock.getDelta(), 0.05);
+        updatePhysics(delta);
+        renderer.render(scene, camera);
+      }
+
+      init();
+    })();
+  </script>
+</body>
+</html>

@@ -16,6 +16,134 @@ export interface StarterTemplateCard {
   gradient: string;
 }
 
+export interface EngineSelectionGuide {
+  label: string;
+  runtimeSummary: string;
+  iterationSweetSpot: string;
+  assetStrategy: string;
+  architectureReason: string;
+}
+
+export interface StarterFamilyGuide {
+  label: string;
+  bestFor: string;
+  remixFocus: string;
+}
+
+export const ENGINE_SELECTION_GUIDE: Record<EngineId, EngineSelectionGuide> = {
+  'vibe-2d': {
+    label: 'Vibe 2D',
+    runtimeSummary: 'Fast Phaser-based starters built around compact loops, readable HUDs, and quick retries.',
+    iterationSweetSpot: 'Best for theme swaps, pacing tweaks, enemy counts, and arcade rule changes.',
+    assetStrategy: 'Lean on verified sprite packs, simple scenes, and template reuse instead of one-off systems.',
+    architectureReason: 'Use when the idea should feel instantly playable, remixable, and safe to edit in small steps.',
+  },
+  'vibe-3d': {
+    label: 'Vibe 3D',
+    runtimeSummary:
+      'Three.js world starters with movement rigs, camera contracts, visible goals, and touch-friendly controls.',
+    iterationSweetSpot:
+      'Best for biome swaps, route changes, build goals, checkpoint tuning, and camera-safe world remixes.',
+    assetStrategy:
+      'Prefer geometry-first scenes and only use verified local 3D assets when the asset manifest says they are safe.',
+    architectureReason:
+      'Use when the idea needs a readable 3D space, stronger exploration fantasy, or a camera-driven play loop.',
+  },
+};
+
+export const STARTER_FAMILY_GUIDE: Record<GenreFamily, StarterFamilyGuide> = {
+  platformAction: {
+    label: 'Platform Action',
+    bestFor: 'Best for jumping, timing, hazards, and quick retries.',
+    remixFocus: 'Easy to remix with new levels, enemies, collectibles, and boss moments.',
+  },
+  topDownAction: {
+    label: 'Adventure & Maze',
+    bestFor: 'Best for exploring maps, dodging chasers, and finding goals.',
+    remixFocus: 'Easy to remix with new mazes, quests, treasure paths, and stealth twists.',
+  },
+  racingArcade: {
+    label: 'Arcade Racing',
+    bestFor: 'Best for speed, traffic pressure, boosts, and score chasing.',
+    remixFocus: 'Easy to remix with new vehicles, roads, weather, and pace tuning.',
+  },
+  puzzleCasual: {
+    label: 'Puzzle & Brain Games',
+    bestFor: 'Best for matching, memory, timers, and satisfying win states.',
+    remixFocus: 'Easy to remix with new board art, rules, goals, and difficulty curves.',
+  },
+  simLite: {
+    label: 'Sim Lite',
+    bestFor: 'Best for care loops, resources, routines, and cozy progression.',
+    remixFocus: 'Easy to remix with new pets, crops, chores, rewards, and moods.',
+  },
+  builderTycoonLite: {
+    label: 'Tycoon & Builder Lite',
+    bestFor: 'Best for earning, upgrading, serving customers, and growing a shop.',
+    remixFocus: 'Easy to remix with new businesses, upgrade paths, products, and pacing.',
+  },
+  strategyDefenseLite: {
+    label: 'Strategy Defense',
+    bestFor: 'Best for lane planning, tower placement, waves, and base defense.',
+    remixFocus: 'Easy to remix with new towers, enemy mixes, maps, and upgrade costs.',
+  },
+  rpgProgressionLite: {
+    label: 'RPG & Progression',
+    bestFor: 'Best for quests, loot, leveling up, and adventure loops.',
+    remixFocus: 'Easy to remix with new worlds, party members, enemies, and reward arcs.',
+  },
+  sportsSkill: {
+    label: 'Sports & Skill',
+    bestFor: 'Best for timing, aim, rounds, and score targets.',
+    remixFocus: 'Easy to remix with new arenas, challenge rules, equipment, and precision goals.',
+  },
+  obbyPlatform3d: {
+    label: 'Obby & 3D Platform',
+    bestFor: 'Best for jumps, checkpoints, hazards, and readable 3D routes.',
+    remixFocus: 'Easy to remix with new platform shapes, themes, collectibles, and stunt paths.',
+  },
+  explorationAdventure3d: {
+    label: '3D Exploration',
+    bestFor: 'Best for roaming worlds, landmarks, missions, and discovery.',
+    remixFocus: 'Easy to remix with new biomes, relic hunts, routes, and quest goals.',
+  },
+  racingDriving3d: {
+    label: '3D Racing & Driving',
+    bestFor: 'Best for chase cameras, ramps, drifting, and checkpoint races.',
+    remixFocus: 'Easy to remix with new cars, tracks, stunts, boost pads, and obstacle layouts.',
+  },
+  survivalCraft3d: {
+    label: 'Survival & Craft 3D',
+    bestFor: 'Best for gathering, crafting, building, and surviving day-night pressure.',
+    remixFocus: 'Easy to remix with new biomes, resources, recipes, shelters, and creature pressure.',
+  },
+  sandboxBuilder3d: {
+    label: 'Sandbox Builder 3D',
+    bestFor: 'Best for placing parts, shaping spaces, and finishing build goals.',
+    remixFocus: 'Easy to remix with new lots, materials, blueprints, room themes, and build targets.',
+  },
+  socialParty3d: {
+    label: 'Social Party 3D',
+    bestFor: 'Best for hub spaces, mini-goals, friendly competition, and shared play.',
+    remixFocus: 'Easy to remix with new rooms, activities, prompts, and party rounds.',
+  },
+};
+
+export function getStarterFamilyGuide(genreFamily: GenreFamily): StarterFamilyGuide {
+  return STARTER_FAMILY_GUIDE[genreFamily];
+}
+
+export function getStarterRecommendationReason(template: StarterTemplateCard, wasInferred = false): string {
+  const familyGuide = getStarterFamilyGuide(template.genreFamily);
+  const engineGuide = ENGINE_SELECTION_GUIDE[template.engineId];
+
+  if (wasInferred) {
+    return `I matched that to ${template.label} because ${familyGuide.bestFor.toLowerCase()} It fits the ${familyGuide.label} path inside ${engineGuide.label}.`;
+  }
+
+  return `${template.label} uses the ${familyGuide.label} path in ${engineGuide.label}. ${familyGuide.bestFor}`;
+}
+
 export const STARTER_TEMPLATES: StarterTemplateCard[] = [
   {
     id: 'endless-runner',
@@ -288,6 +416,11 @@ export const STARTER_TEMPLATES: StarterTemplateCard[] = [
     gradient: 'linear-gradient(135deg, #c79081 0%, #dfa579 100%)',
   },
 ];
+
+export const STARTERS_BY_ENGINE: Record<EngineId, StarterTemplateCard[]> = {
+  'vibe-2d': STARTER_TEMPLATES.filter((template) => template.engineId === 'vibe-2d'),
+  'vibe-3d': STARTER_TEMPLATES.filter((template) => template.engineId === 'vibe-3d'),
+};
 
 export const LONG_TERM_FAMILY_SHOWCASE: Array<{
   family: GenreFamily;

@@ -1,4 +1,5 @@
-import { UserProject } from '../types';
+import type { GameConfig, UserProject } from '../types';
+import { getStarterFamilyGuide } from '../config/gameCatalog';
 import './ProjectsPanel.css';
 
 interface ProjectsPanelProps {
@@ -6,6 +7,7 @@ interface ProjectsPanelProps {
   isLoadingProjects: boolean;
   currentProjectId: string;
   projectName: string;
+  currentProjectGameConfig?: GameConfig | null;
   onLoadProject: (projectId: string) => void;
   onNewProject: () => void;
   onSave: () => void;
@@ -43,11 +45,17 @@ const CATEGORY_ICONS: Record<string, string> = {
   other: '✨',
 };
 
+const ENGINE_TAGS: Record<string, { label: string; className: string }> = {
+  'vibe-2d': { label: 'Vibe 2D', className: 'engine-2d' },
+  'vibe-3d': { label: 'Vibe 3D', className: 'engine-3d' },
+};
+
 export default function ProjectsPanel({
   userProjects,
   isLoadingProjects,
   currentProjectId,
   projectName,
+  currentProjectGameConfig,
   onLoadProject,
   onNewProject,
   onSave,
@@ -62,6 +70,10 @@ export default function ProjectsPanel({
   username,
   onOpenLearn,
 }: ProjectsPanelProps) {
+  const currentFamilyLabel = currentProjectGameConfig?.genreFamily
+    ? getStarterFamilyGuide(currentProjectGameConfig.genreFamily).label
+    : null;
+
   return (
     <div className="projects-panel">
       {/* Panel Header */}
@@ -81,12 +93,24 @@ export default function ProjectsPanel({
 
       {/* Current Project Indicator */}
       <div className="pp-current">
-        <span className="pp-current-dot">●</span>
-        <span className="pp-current-name">{currentProjectId === 'new' ? 'New Project' : projectName}</span>
-        {hasUnsavedChanges && (
-          <span className="pp-unsaved-dot" title="Unsaved changes">
-            ●
-          </span>
+        <div className="pp-current-main">
+          <span className="pp-current-dot">●</span>
+          <span className="pp-current-name">{currentProjectId === 'new' ? 'New Project' : projectName}</span>
+          {hasUnsavedChanges && (
+            <span className="pp-unsaved-dot" title="Unsaved changes">
+              ●
+            </span>
+          )}
+        </div>
+        {(currentProjectGameConfig?.engineId || currentFamilyLabel) && (
+          <div className="pp-current-tags">
+            {currentProjectGameConfig?.engineId && (
+              <span className={`pp-item-engine-tag ${ENGINE_TAGS[currentProjectGameConfig.engineId]?.className || ''}`}>
+                {ENGINE_TAGS[currentProjectGameConfig.engineId]?.label || currentProjectGameConfig.engineId}
+              </span>
+            )}
+            {currentFamilyLabel && <span className="pp-item-family-tag">{currentFamilyLabel}</span>}
+          </div>
         )}
       </div>
 
@@ -111,6 +135,18 @@ export default function ProjectsPanel({
                 <span className="pp-item-icon">{CATEGORY_ICONS[project.category] || '✨'}</span>
                 <div className="pp-item-info">
                   <span className="pp-item-title">{project.title}</span>
+                  {(project.engineId || project.genreFamily) && (
+                    <div className="pp-item-tags">
+                      {project.engineId && (
+                        <span className={`pp-item-engine-tag ${ENGINE_TAGS[project.engineId]?.className || ''}`}>
+                          {ENGINE_TAGS[project.engineId]?.label || project.engineId}
+                        </span>
+                      )}
+                      {project.genreFamily && (
+                        <span className="pp-item-family-tag">{getStarterFamilyGuide(project.genreFamily).label}</span>
+                      )}
+                    </div>
+                  )}
                   <span className="pp-item-meta">
                     {project.isPublic ? '🌐' : '🔒'} {project.views} views
                   </span>
