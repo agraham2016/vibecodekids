@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react';
 import type { GameConfig, UserProject } from '../types';
 import { getStarterFamilyGuide } from '../config/gameCatalog';
 import './ProjectsPanel.css';
@@ -73,6 +74,21 @@ export default function ProjectsPanel({
   const currentFamilyLabel = currentProjectGameConfig?.genreFamily
     ? getStarterFamilyGuide(currentProjectGameConfig.genreFamily).label
     : null;
+  const [showMoreActions, setShowMoreActions] = useState(false);
+  const moreActionsRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!showMoreActions) return;
+
+    const handlePointerDown = (event: MouseEvent) => {
+      if (!moreActionsRef.current?.contains(event.target as Node)) {
+        setShowMoreActions(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    return () => document.removeEventListener('mousedown', handlePointerDown);
+  }, [showMoreActions]);
 
   return (
     <div className="projects-panel">
@@ -187,26 +203,73 @@ export default function ProjectsPanel({
           <span>🎉</span>
           <span>Share</span>
         </button>
-        {isLoggedIn && (
-          <button className="pp-action-btn" onClick={onOpenVersionHistory} title="Version History">
-            <span>📜</span>
-            <span>History</span>
+        <div className="pp-actions-menu" ref={moreActionsRef}>
+          <button
+            className={`pp-action-btn pp-action-btn-more ${showMoreActions ? 'open' : ''}`}
+            onClick={() => setShowMoreActions((current) => !current)}
+            aria-expanded={showMoreActions}
+            aria-haspopup="menu"
+            title="More actions"
+          >
+            <span>⋯</span>
+            <span>More</span>
           </button>
-        )}
-        <button className="pp-action-btn reset" onClick={onStartOver} title="Start Over">
-          <span>🔄</span>
-          <span>Reset</span>
-        </button>
-        <a href="/gallery" className="pp-action-btn arcade" title="Visit Arcade">
-          <span>🕹️</span>
-          <span>Arcade</span>
-        </a>
-        {onOpenLearn && (
-          <button className="pp-action-btn learn" onClick={onOpenLearn} title="Tips & Tutorial">
-            <span>📖</span>
-            <span>Learn</span>
-          </button>
-        )}
+
+          {showMoreActions && (
+            <div className="pp-actions-dropdown" role="menu" aria-label="More project actions">
+              {isLoggedIn && (
+                <button
+                  className="pp-action-btn pp-action-btn-menu-item"
+                  onClick={() => {
+                    setShowMoreActions(false);
+                    onOpenVersionHistory();
+                  }}
+                  title="Version History"
+                  role="menuitem"
+                >
+                  <span>📜</span>
+                  <span>History</span>
+                </button>
+              )}
+              <button
+                className="pp-action-btn pp-action-btn-menu-item reset"
+                onClick={() => {
+                  setShowMoreActions(false);
+                  onStartOver();
+                }}
+                title="Start Over"
+                role="menuitem"
+              >
+                <span>🔄</span>
+                <span>Reset</span>
+              </button>
+              <a
+                href="/gallery"
+                className="pp-action-btn pp-action-btn-menu-item arcade"
+                title="Visit Arcade"
+                role="menuitem"
+                onClick={() => setShowMoreActions(false)}
+              >
+                <span>🕹️</span>
+                <span>Arcade</span>
+              </a>
+              {onOpenLearn && (
+                <button
+                  className="pp-action-btn pp-action-btn-menu-item learn"
+                  onClick={() => {
+                    setShowMoreActions(false);
+                    onOpenLearn();
+                  }}
+                  title="Tips & Tutorial"
+                  role="menuitem"
+                >
+                  <span>📖</span>
+                  <span>Learn</span>
+                </button>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
