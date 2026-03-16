@@ -107,12 +107,8 @@ function getAvailableModels(entry) {
   return entry.models.filter((model) => existsSync(assetUrlToPublicPath(model.path)));
 }
 
-function hasRequiredSiblingTextures(models) {
-  if (!models.length) return false;
-  return models.some((model) => {
-    const modelDir = path.dirname(assetUrlToPublicPath(model.path));
-    return existsSync(path.join(modelDir, 'Textures', 'colormap.png'));
-  });
+function hasWorkingModelFiles(models) {
+  return models.length > 0;
 }
 
 export const ASSET_MANIFEST = {
@@ -992,7 +988,7 @@ export const EXTRA_MODEL_PACKS = {
   'kenney-castlekit': {
     note: 'Medieval models: castle towers, walls, gates, bridges, catapults, knight figures',
     basePath: '/assets/models/kenney-castlekit/',
-    example: "loader.load('/assets/models/kenney-castlekit/towerSquare.glb', (gltf) => scene.add(gltf.scene));",
+    example: "loader.load('/assets/models/kenney-castlekit/tower-square.glb', (gltf) => scene.add(gltf.scene));",
   },
   'kenney-naturekit': {
     note: 'Nature models: oak/pine trees, rocks, flowers, bushes, mushrooms, fences, logs — great for any outdoor scene',
@@ -1002,12 +998,12 @@ export const EXTRA_MODEL_PACKS = {
   'kenney-platformerkit': {
     note: '3D platformer models: characters, blocks, coins, flags, springs, spikes, moving platforms',
     basePath: '/assets/models/kenney-platformerkit/',
-    example: "loader.load('/assets/models/kenney-platformerkit/character.glb', (gltf) => scene.add(gltf.scene));",
+    example: "loader.load('/assets/models/kenney-platformerkit/character-oobi.glb', (gltf) => scene.add(gltf.scene));",
   },
   'kenney-piratekit': {
     note: 'Pirate models: ships, cannons, treasure chests, barrels, palm trees, docks, lighthouse',
     basePath: '/assets/models/kenney-piratekit/',
-    example: "loader.load('/assets/models/kenney-piratekit/ship_large.glb', (gltf) => scene.add(gltf.scene));",
+    example: "loader.load('/assets/models/kenney-piratekit/ship-large.glb', (gltf) => scene.add(gltf.scene));",
   },
 };
 
@@ -1018,8 +1014,8 @@ export function formatModelsForPrompt(genre) {
   const rawGenreModels = MODEL_MANIFEST[genre] || MODEL_MANIFEST[genre + '-3d'];
   const genreModels = getAvailableModels(rawGenreModels);
   const commonModels = getAvailableModels(MODEL_MANIFEST['common-3d']);
-  const genreTexturesReady = hasRequiredSiblingTextures(genreModels);
-  const commonTexturesReady = hasRequiredSiblingTextures(commonModels);
+  const genreModelsReady = hasWorkingModelFiles(genreModels);
+  const commonModelsReady = hasWorkingModelFiles(commonModels);
 
   const lines = ['═══════════════════════════════════════════════════════════════'];
   lines.push('3D ASSET GUIDANCE');
@@ -1035,7 +1031,7 @@ export function formatModelsForPrompt(genre) {
   lines.push('Always add lights (AmbientLight + DirectionalLight) so meshes are visible.');
   lines.push('');
 
-  if (genreModels.length > 0 && genreTexturesReady) {
+  if (genreModels.length > 0 && genreModelsReady) {
     lines.push(`COPY THIS MODEL LOADING CODE for ${genre}:`);
     lines.push('```');
     lines.push('const loader = new THREE.GLTFLoader();');
@@ -1050,7 +1046,7 @@ export function formatModelsForPrompt(genre) {
     lines.push('');
   }
 
-  if (commonModels.length > 0 && commonTexturesReady) {
+  if (commonModels.length > 0 && commonModelsReady) {
     lines.push('Common 3D models (nature props for any scene):');
     for (const m of commonModels) {
       lines.push(`  loader.load('${m.path}', ...);  // ${m.note}`);
@@ -1058,13 +1054,10 @@ export function formatModelsForPrompt(genre) {
     lines.push('');
   }
 
-  if ((genreModels.length === 0 || !genreTexturesReady) && (commonModels.length === 0 || !commonTexturesReady)) {
+  if ((genreModels.length === 0 || !genreModelsReady) && (commonModels.length === 0 || !commonModelsReady)) {
     lines.push('No production-safe local GLB model set is available for this workspace right now.');
     lines.push(
-      'Some .glb files may exist, but their required sibling textures are missing or incomplete, so loading them can cause 404/decode errors.',
-    );
-    lines.push(
-      'Use composed geometry instead: BoxGeometry, SphereGeometry, CylinderGeometry, ConeGeometry, TorusGeometry, PlaneGeometry.',
+      'Do not invent /assets/models/*.glb paths. Use composed geometry instead: BoxGeometry, SphereGeometry, CylinderGeometry, ConeGeometry, TorusGeometry, PlaneGeometry.',
     );
     lines.push('Build characters and props from multiple meshes with MeshStandardMaterial color variation.');
     lines.push('');

@@ -52,6 +52,7 @@ import { DEBUG_MAX_CLAUDE_ATTEMPTS } from '../config/index.js';
 import { resolveReferences } from './referenceResolver.js';
 import { detectGameGenre } from '../prompts/index.js';
 import { injectSprites } from './spriteInjector.js';
+import { injectModels } from './modelInjector.js';
 import { resolveEngineProfile } from './engineRegistry.js';
 import { validateEngineOutput } from './engineValidators.js';
 
@@ -419,6 +420,9 @@ async function handleSingleModel({ prompt, currentCode, conversationHistory, gam
     if (!candidateCode) return candidateCode;
     if (requestedEngineProfile.engineId === 'vibe-2d') {
       return injectSprites(candidateCode, requestedEngineProfile.templateGenre || genre);
+    }
+    if (requestedEngineProfile.engineId === 'vibe-3d') {
+      return injectModels(candidateCode, requestedEngineProfile);
     }
     return candidateCode;
   };

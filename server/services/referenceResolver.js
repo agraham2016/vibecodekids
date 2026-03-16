@@ -231,7 +231,7 @@ export async function resolveReferences({ prompt, genre, gameConfig, isNewGame, 
   }
 
   // ===== 3. INJECT SPRITE ASSET LIST FOR GENRE (highest priority — injected first) =====
-  if (referenceGenre) {
+  if (referenceGenre && engineProfile.dimension !== '3d') {
     let assetBlock = '';
     if (USE_POSTGRES) {
       try {
@@ -270,6 +270,24 @@ export async function resolveReferences({ prompt, genre, gameConfig, isNewGame, 
     lowerPrompt.includes('3d') ||
     lowerPrompt.includes('three.js') ||
     gameConfig?.dimension === '3d';
+  const is3DEngineRequest = force3D || engineProfile.dimension === '3d';
+
+  const modelReference = buildModelReference({
+    engineProfile,
+    referenceGenre,
+    force3D,
+  });
+  if (is3DEngineRequest && modelReference.block) {
+    if (modelReference.block.length <= charBudget) {
+      parts.push(modelReference.block);
+      charBudget -= modelReference.block.length;
+      sources.push(modelReference.source);
+    } else {
+      console.warn(
+        `⚠️ Model guidance DROPPED — ${modelReference.block.length} chars exceeds remaining budget of ${charBudget}`,
+      );
+    }
+  }
 
   if (isNewGame && templateFile) {
     const template = await loadTemplate(
@@ -292,33 +310,16 @@ export async function resolveReferences({ prompt, genre, gameConfig, isNewGame, 
     }
   }
 
-  // ===== 5. INJECT 3D MODEL LIST (when prompt mentions 3D or genre has 3D models) =====
-  {
-    const implies3D = force3D || engineProfile.dimension === '3d' || referenceGenre === 'parking';
-
-    let modelKey = null;
-    if (engineProfile.modelPackHint) {
-      modelKey = engineProfile.modelPackHint;
-    } else if (referenceGenre) {
-      const modelGenre3D = referenceGenre + '-3d';
-      modelKey = MODEL_MANIFEST[referenceGenre]
-        ? referenceGenre
-        : MODEL_MANIFEST[modelGenre3D]
-          ? modelGenre3D
-          : implies3D
-            ? 'common-3d'
-            : null;
-    } else if (implies3D) {
-      modelKey = 'common-3d';
-    }
-
-    if (modelKey) {
-      const modelBlock = formatModelsForPrompt(modelKey);
-      if (modelBlock && modelBlock.length <= charBudget) {
-        parts.push(modelBlock);
-        charBudget -= modelBlock.length;
-        sources.push(`models:${modelKey}`);
-      }
+  // ===== 5. INJECT 3D MODEL LIST (after template for non-3D requests) =====
+  if (!is3DEngineRequest && modelReference.block) {
+    if (modelReference.block.length <= charBudget) {
+      parts.push(modelReference.block);
+      charBudget -= modelReference.block.length;
+      sources.push(modelReference.source);
+    } else {
+      console.warn(
+        `⚠️ Model guidance DROPPED — ${modelReference.block.length} chars exceeds remaining budget of ${charBudget}`,
+      );
     }
   }
 
@@ -347,6 +348,35 @@ export async function resolveReferences({ prompt, genre, gameConfig, isNewGame, 
   console.log(`📚 Reference resolved: ${sources.length} sources, ${totalChars} chars (${sources.join(', ')})`);
 
   return { referenceCode, sources, totalChars, engineProfile };
+}
+
+function buildModelReference({ engineProfile, referenceGenre, force3D }) {
+  const implies3D = force3D || engineProfile.dimension === '3d' || referenceGenre === 'parking';
+
+  let modelKey = null;
+  if (engineProfile.modelPackHint) {
+    modelKey = engineProfile.modelPackHint;
+  } else if (referenceGenre) {
+    const modelGenre3D = referenceGenre + '-3d';
+    modelKey = MODEL_MANIFEST[referenceGenre]
+      ? referenceGenre
+      : MODEL_MANIFEST[modelGenre3D]
+        ? modelGenre3D
+        : implies3D
+          ? 'common-3d'
+          : null;
+  } else if (implies3D) {
+    modelKey = 'common-3d';
+  }
+
+  if (!modelKey) {
+    return { block: '', source: null };
+  }
+
+  return {
+    block: formatModelsForPrompt(modelKey),
+    source: `models:${modelKey}`,
+  };
 }
 
 // ========== FORMATTING HELPERS ==========

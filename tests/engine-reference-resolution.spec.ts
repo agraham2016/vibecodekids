@@ -32,6 +32,8 @@ test.describe('Engine reference resolution', () => {
       genre: 'open-map-explorer',
       expectedStarter: 'relic-hunt-3d',
       expectedTemplate: 'template:relic-hunt-3d.html',
+      expectedModelSource: 'models:rpg-3d',
+      expectedModelHint: '/assets/models/kenney-castlekit/tower-square.glb',
     },
   ];
 
@@ -52,6 +54,12 @@ test.describe('Engine reference resolution', () => {
       }
       if (scenario.expectedAssetHint) {
         expect(result.referenceCode.toLowerCase()).toContain(scenario.expectedAssetHint);
+      }
+      if (scenario.expectedModelSource) {
+        expect(result.sources).toContain(scenario.expectedModelSource);
+      }
+      if (scenario.expectedModelHint) {
+        expect(result.referenceCode.toLowerCase()).toContain(scenario.expectedModelHint);
       }
     });
   }
