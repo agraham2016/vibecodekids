@@ -73,6 +73,55 @@ jobs:
           path: playwright-report/
           retention-days: 14
 
+  engine-benchmarks:
+    name: Engine Benchmark Suite
+    runs-on: ubuntu-latest
+    needs: [safety-tests, lint]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Get Playwright version
+        id: pw-version
+        run: echo "version=$(npx playwright --version | awk '{print $2}')" >> $GITHUB_OUTPUT
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        id: pw-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ steps.pw-version.outputs.version }}-chromium
+
+      - name: Install Playwright browsers
+        if: steps.pw-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
+
+      - name: Install Playwright system deps (if cached)
+        if: steps.pw-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
+
+      - name: Build frontend
+        run: npm run build
+
+      - name: Run engine benchmark suite
+        run: npm run test:benchmarks
+
+      - name: Generate engine benchmark report
+        run: npm run benchmark:report
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: engine-benchmark-report
+          path: test-results/engine-benchmarks/
+          retention-days: 14
+
   lint:
     name: Lint & Type Check
     runs-on: ubuntu-latest

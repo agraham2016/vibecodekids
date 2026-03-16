@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(180deg, #1e1b4b 0%, #312e81 50%, #0f172a 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      touch-action: none;
+    }
+    #game-shell {
+      position: relative;
+      width: 800px;
+      max-width: 100vw;
+      max-height: 100vh;
+    }
+    #game-container {
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 18px 48px rgba(15, 23, 42, 0.45);
+    }
+    #hud {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 20;
+      min-width: 250px;
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: rgba(15, 23, 42, 0.82);
+      color: #f8fafc;
+      line-height: 1.45;
+      font-size: 14px;
+    }
+    #overlay {
+      display: none;
+      position: absolute;
+      inset: 0;
+      z-index: 25;
+      align-items: center;
+      justify-content: center;
+      background: rgba(15, 23, 42, 0.72);
+    }
+    #overlay.visible { display: flex; }
+    .card {
+      width: min(90vw, 420px);
+      padding: 24px;
+      border-radius: 24px;
+      background: rgba(15, 23, 42, 0.96);
+      color: white;
+      text-align: center;
+      border: 2px solid rgba(255,255,255,0.12);
+    }
+    .card h1 { margin-bottom: 10px; }
+    .card p { margin-bottom: 16px; line-height: 1.5; }
+    .card button {
+      border: 0;
+      border-radius: 999px;
+      padding: 12px 18px;
+      background: #67e8f9;
+      color: #0f172a;
+      font-weight: bold;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div id="game-shell">
+    <div id="game-container"></div>
+    <div id="hud"></div>
+    <div id="overlay">
+      <div class="card">
+        <h1 id="overlay-title">Crystal Safe!</h1>
+        <p id="overlay-copy">Your guardians held the lanes and protected the crystal core.</p>
+        <button id="restart-btn">Defend Again</button>
+      </div>
+    </div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.86.0/dist/phaser.min.js" crossorigin="anonymous"></script>
+  <script>
+    (function () {
+      var hud = document.getElementById('hud');
+      var overlay = document.getElementById('overlay');
+      var overlayTitle = document.getElementById('overlay-title');
+      var overlayCopy = document.getElementById('overlay-copy');
+      var restartBtn = document.getElementById('restart-btn');
+
+      function showOverlay(title, copy) {
+        overlayTitle.textContent = title;
+        overlayCopy.textContent = copy;
+        overlay.classList.add('visible');
+      }
+
+      restartBtn.addEventListener('click', function () {
+        window.location.reload();
+      });
+
+      class CrystalDefenseScene extends Phaser.Scene {
+        constructor() {
+          super('CrystalDefenseScene');
+        }
+
+        create() {
+          this.energy = 90;
+          this.crystalHp = 12;
+          this.wave = 0;
+          this.maxWave = 4;
+          this.waveActive = false;
+          this.gameEnded = false;
+          this.guardianCost = 25;
+          this.padRows = [190, 300, 410];
+          this.spawnX = 40;
+          this.goalX = 740;
+          this.padXs = [170, 300, 430, 560];
+          this.guardians = [];
+          this.enemies = [];
+          this.bolts = [];
+
+          this.makeTextures();
+          this.drawBoard();
+          this.createPads();
+          this.createCrystal();
+          this.createUi();
+          this.updateHud();
+        }
+
+        makeTextures() {
+          var gfx = this.make.graphics({ x: 0, y: 0, add: false });
+
+          gfx.fillStyle(0x22d3ee, 1);
+          gfx.fillCircle(18, 18, 16);
+          gfx.lineStyle(4, 0xa5f3fc, 0.9);
+          gfx.strokeCircle(18, 18, 12);
+          gfx.generateTexture('guardian-orb', 36, 36);
+          gfx.clear();
+
+          gfx.fillStyle(0xf97316, 1);
+          gfx.fillRoundedRect(2, 6, 36, 24, 10);
+          gfx.lineStyle(3, 0xffedd5, 0.65);
+          gfx.strokeRoundedRect(2, 6, 36, 24, 10);
+          gfx.generateTexture('enemy-slime', 40, 36);
+          gfx.clear();
+
+          gfx.fillStyle(0xfacc15, 1);
+          gfx.fillCircle(8, 8, 8);
+          gfx.generateTexture('guardian-bolt', 16, 16);
+          gfx.clear();
+
+          gfx.fillStyle(0xc084fc, 1);
+          gfx.fillTriangle(24, 0, 48, 24, 24, 48);
+          gfx.fillTriangle(24, 0, 0, 24, 24, 48);
+          gfx.lineStyle(4, 0xf5d0fe, 0.8);
+          gfx.strokeTriangle(24, 0, 48, 24, 24, 48);
+          gfx.strokeTriangle(24, 0, 0, 24, 24, 48);
+          gfx.generateTexture('crystal-core', 48, 48);
+          gfx.destroy();
+        }
+
+        drawBoard() {
+          this.cameras.main.setBackgroundColor('#1e1b4b');
+
+          var bg = this.add.graphics();
+          bg.fillStyle(0x1e1b4b, 1);
+          bg.fillRect(0, 0, 800, 560);
+
+          for (var i = 0; i < this.padRows.length; i++) {
+            bg.fillStyle(0x312e81, 0.9);
+            bg.fillRoundedRect(30, this.padRows[i] - 30, 690, 60, 18);
+            bg.lineStyle(4, 0x4338ca, 0.7);
+            bg.strokeRoundedRect(30, this.padRows[i] - 30, 690, 60, 18);
+          }
+
+          bg.fillStyle(0x0f172a, 0.88);
+          bg.fillRoundedRect(0, 0, 800, 72, 0);
+
+          var laneLabels = ['North Lane', 'Middle Lane', 'South Lane'];
+          for (var lane = 0; lane < this.padRows.length; lane++) {
+            this.add.text(32, this.padRows[lane] - 58, laneLabels[lane], {
+              fontFamily: 'Arial',
+              fontSize: '16px',
+              color: '#c4b5fd',
+            });
+          }
+        }
+
+        createPads() {
+          var self = this;
+          this.padRows.forEach(function (y, laneIndex) {
+            self.padXs.forEach(function (x) {
+              var pad = self.add.circle(x, y, 21, 0x1f2937, 0.95).setStrokeStyle(3, 0x67e8f9, 0.35);
+              pad.laneIndex = laneIndex;
+              pad.occupied = false;
+              pad.setInteractive({ useHandCursor: true });
+              pad.on('pointerdown', function () {
+                self.placeGuardian(pad);
+              });
+              self.add.circle(x, y, 8, 0x67e8f9, 0.28);
+            });
+          });
+        }
+
+        createCrystal() {
+          this.crystal = this.add.image(this.goalX, 300, 'crystal-core');
+          this.crystalGlow = this.add.circle(this.goalX, 300, 38, 0xc084fc, 0.15);
+          this.add.text(678, 336, 'Crystal Core', {
+            fontFamily: 'Arial',
+            fontSize: '16px',
+            color: '#f5d0fe',
+          });
+        }
+
+        createUi() {
+          var self = this;
+          this.startText = this.add.text(620, 22, '[START WAVE]', {
+            fontFamily: 'Arial',
+            fontSize: '22px',
+            color: '#67e8f9',
+            fontStyle: 'bold',
+          }).setInteractive({ useHandCursor: true });
+
+          this.startText.on('pointerdown', function () {
+            self.startWave();
+          });
+          this.startText.on('pointerover', function () {
+            self.startText.setColor('#ffffff');
+          });
+          this.startText.on('pointerout', function () {
+            self.startText.setColor('#67e8f9');
+          });
+
+          this.toastText = this.add.text(400, 96, '', {
+            fontFamily: 'Arial',
+            fontSize: '18px',
+            color: '#fef3c7',
+            backgroundColor: '#0f172a',
+            padding: { x: 12, y: 8 },
+          }).setOrigin(0.5).setVisible(false);
+        }
+
+        showToast(text) {
+          var self = this;
+          this.toastText.setText(text).setVisible(true);
+          if (this.toastTimer) this.toastTimer.remove(false);
+          this.toastTimer = this.time.delayedCall(1200, function () {
+            self.toastText.setVisible(false);
+          });
+        }
+
+        placeGuardian(pad) {
+          if (this.gameEnded) return;
+          if (pad.occupied) {
+            this.showToast('That guardian pad is already filled.');
+            return;
+          }
+          if (this.energy < this.guardianCost) {
+            this.showToast('You need more energy to place a guardian.');
+            return;
+          }
+
+          this.energy -= this.guardianCost;
+          pad.occupied = true;
+          pad.fillColor = 0x0f172a;
+          pad.setStrokeStyle(3, 0x22d3ee, 0.9);
+
+          var guardian = this.add.image(pad.x, pad.y, 'guardian-orb');
+          guardian.laneIndex = pad.laneIndex;
+          guardian.cooldown = 0;
+          this.guardians.push(guardian);
+          this.updateHud();
+        }
+
+        startWave() {
+          if (this.gameEnded || this.waveActive) return;
+          if (this.wave >= this.maxWave) return;
+
+          this.wave += 1;
+          this.waveActive = true;
+          this.enemiesToSpawn = 5 + this.wave * 2;
+          this.spawnedThisWave = 0;
+          this.showToast('Wave ' + this.wave + ' is coming in!');
+
+          var self = this;
+          this.spawnTimer = this.time.addEvent({
+            delay: 700,
+            repeat: this.enemiesToSpawn - 1,
+            callback: function () {
+              self.spawnEnemy();
+            },
+          });
+          this.updateHud();
+        }
+
+        spawnEnemy() {
+          var laneIndex = Phaser.Math.Between(0, this.padRows.length - 1);
+          var enemy = this.add.image(this.spawnX, this.padRows[laneIndex], 'enemy-slime');
+          enemy.laneIndex = laneIndex;
+          enemy.hp = 16 + this.wave * 4;
+          enemy.speed = 34 + this.wave * 6;
+          this.enemies.push(enemy);
+          this.spawnedThisWave += 1;
+        }
+
+        fireBolt(guardian, enemy) {
+          var bolt = this.add.image(guardian.x + 10, guardian.y, 'guardian-bolt');
+          bolt.target = enemy;
+          bolt.damage = 8;
+          this.bolts.push(bolt);
+        }
+
+        updateGuardians(deltaSeconds) {
+          for (var i = 0; i < this.guardians.length; i++) {
+            var guardian = this.guardians[i];
+            guardian.rotation += deltaSeconds * 1.8;
+            guardian.cooldown -= deltaSeconds;
+
+            var target = null;
+            var bestDistance = Infinity;
+            for (var j = 0; j < this.enemies.length; j++) {
+              var enemy = this.enemies[j];
+              if (enemy.laneIndex !== guardian.laneIndex) continue;
+              var distance = Phaser.Math.Distance.Between(guardian.x, guardian.y, enemy.x, enemy.y);
+              if (enemy.x > guardian.x && distance < bestDistance) {
+                target = enemy;
+                bestDistance = distance;
+              }
+            }
+
+            if (target && guardian.cooldown <= 0) {
+              guardian.cooldown = 0.55;
+              this.fireBolt(guardian, target);
+            }
+          }
+        }
+
+        updateEnemies(deltaSeconds) {
+          for (var i = this.enemies.length - 1; i >= 0; i--) {
+            var enemy = this.enemies[i];
+            enemy.x += enemy.speed * deltaSeconds;
+            enemy.y += Math.sin(this.time.now / 140 + i) * 0.08;
+
+            if (enemy.x >= this.goalX - 24) {
+              enemy.destroy();
+              this.enemies.splice(i, 1);
+              this.crystalHp -= 1;
+              this.flashCrystal();
+              if (this.crystalHp <= 0) {
+                this.endGame(false);
+                return;
+              }
+              this.updateHud();
+            }
+          }
+        }
+
+        updateBolts(deltaSeconds) {
+          for (var i = this.bolts.length - 1; i >= 0; i--) {
+            var bolt = this.bolts[i];
+            if (!bolt.target || !bolt.target.active) {
+              bolt.destroy();
+              this.bolts.splice(i, 1);
+              continue;
+            }
+
+            var angle = Phaser.Math.Angle.Between(bolt.x, bolt.y, bolt.target.x, bolt.target.y);
+            bolt.x += Math.cos(angle) * 360 * deltaSeconds;
+            bolt.y += Math.sin(angle) * 360 * deltaSeconds;
+
+            if (Phaser.Math.Distance.Between(bolt.x, bolt.y, bolt.target.x, bolt.target.y) < 14) {
+              bolt.target.hp -= bolt.damage;
+              if (bolt.target.hp <= 0) {
+                this.energy += 8;
+                this.makeBurst(bolt.target.x, bolt.target.y);
+                this.removeEnemy(bolt.target);
+                this.updateHud();
+              }
+              bolt.destroy();
+              this.bolts.splice(i, 1);
+            }
+          }
+        }
+
+        removeEnemy(enemy) {
+          for (var i = 0; i < this.enemies.length; i++) {
+            if (this.enemies[i] === enemy) {
+              enemy.destroy();
+              this.enemies.splice(i, 1);
+              break;
+            }
+          }
+        }
+
+        makeBurst(x, y) {
+          for (var i = 0; i < 6; i++) {
+            var spark = this.add.circle(x, y, 3, 0xfacc15, 0.9);
+            var angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
+            var distance = Phaser.Math.Between(12, 28);
+            this.tweens.add({
+              targets: spark,
+              x: x + Math.cos(angle) * distance,
+              y: y + Math.sin(angle) * distance,
+              alpha: 0,
+              duration: 280,
+              onComplete: function (tween, targets) {
+                targets[0].destroy();
+              },
+            });
+          }
+        }
+
+        flashCrystal() {
+          this.tweens.add({
+            targets: [this.crystal, this.crystalGlow],
+            alpha: 0.25,
+            yoyo: true,
+            duration: 120,
+            repeat: 1,
+          });
+        }
+
+        updateHud() {
+          var status = this.waveActive ? 'Wave active' : this.wave >= this.maxWave ? 'All waves cleared' : 'Build and press START WAVE';
+          hud.innerHTML =
+            '<strong>Vibe 2D Crystal Defense</strong><br>' +
+            'Energy: ' + this.energy + ' | Crystal HP: ' + this.crystalHp + '<br>' +
+            'Wave: ' + this.wave + '/' + this.maxWave + ' | Guardians: ' + this.guardians.length + '<br>' +
+            'Status: ' + status;
+        }
+
+        endGame(won) {
+          if (this.gameEnded) return;
+          this.gameEnded = true;
+          this.waveActive = false;
+          if (this.spawnTimer) this.spawnTimer.remove(false);
+
+          if (won) {
+            showOverlay('Crystal Safe!', 'Your guardians held every lane and protected the crystal core.');
+          } else {
+            showOverlay('Crystal Shattered!', 'Too many enemies reached the core. Remix your guardian layout and try again.');
+          }
+          this.updateHud();
+        }
+
+        update(time, delta) {
+          if (this.gameEnded) return;
+
+          var deltaSeconds = delta / 1000;
+          this.updateGuardians(deltaSeconds);
+          this.updateEnemies(deltaSeconds);
+          this.updateBolts(deltaSeconds);
+
+          if (this.waveActive && this.spawnedThisWave === this.enemiesToSpawn && this.enemies.length === 0) {
+            this.waveActive = false;
+            if (this.wave >= this.maxWave) {
+              this.endGame(true);
+            } else {
+              this.energy += 18;
+              this.showToast('Wave cleared! Build more guardians.');
+              this.updateHud();
+            }
+          }
+        }
+      }
+
+      new Phaser.Game({
+        type: Phaser.AUTO,
+        width: 800,
+        height: 560,
+        parent: 'game-container',
+        backgroundColor: '#1e1b4b',
+        scene: [CrystalDefenseScene],
+      });
+    })();
+  </script>
+</body>
+</html>

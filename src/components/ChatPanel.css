@@ -289,25 +289,26 @@
 }
 
 .active-game-config {
-  margin: 10px 16px 0;
-  padding: 12px 14px;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.09);
+  margin: 8px 16px 0;
+  padding: 8px 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .active-game-config-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 8px;
+  align-items: center;
+  gap: 6px;
 }
 
-.active-game-config-copy {
-  margin: 0;
-  color: rgba(255, 255, 255, 0.68);
-  font-size: 0.76rem;
-  line-height: 1.45;
+.active-game-config-label {
+  color: rgba(255, 255, 255, 0.52);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 /* ========== CHAT MESSAGES ========== */

@@ -436,15 +436,18 @@ export default function ChatPanel({
       </div>
 
       {messages.length > 0 && activeGameConfig && activeEngineGuide && activeFamilyGuide && (
-        <div className="active-game-config">
+        <div
+          className="active-game-config"
+          title={
+            activeGameConfig.selectionReason || `${activeFamilyGuide.bestFor} ${activeEngineGuide.iterationSweetSpot}`
+          }
+        >
           <div className="active-game-config-row">
+            <span className="active-game-config-label">Path</span>
             <span className="game-config-badge">{activeEngineGuide.label}</span>
             <span className="game-config-badge">{activeFamilyGuide.label}</span>
             {activeStarter && <span className="game-config-badge">{activeStarter.label}</span>}
           </div>
-          <p className="active-game-config-copy">
-            {activeGameConfig.selectionReason || `${activeFamilyGuide.bestFor} ${activeEngineGuide.iterationSweetSpot}`}
-          </p>
         </div>
       )}
 

@@ -36,12 +36,16 @@ export type StarterTemplateId =
   | 'pet-care-simulator'
   | 'lemonade-stand-tycoon'
   | 'tower-defense'
+  | 'crystal-defense'
   | 'dungeon-crawler'
+  | 'village-quest'
   | 'farming-game'
   | 'fishing-game'
+  | 'trick-shot-arena'
   | 'creature-collector'
   | 'survival-crafting-game'
   | 'open-map-explorer'
+  | 'relic-hunt-3d'
   | 'stunt-racer-3d'
   | 'house-builder';
 

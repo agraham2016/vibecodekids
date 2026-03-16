@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #1d4ed8 0%, #4f46e5 50%, #7c3aed 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      touch-action: none;
+    }
+    #shell {
+      position: relative;
+      width: 800px;
+      max-width: 100vw;
+      max-height: 100vh;
+    }
+    #game-container {
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 18px 48px rgba(15, 23, 42, 0.45);
+    }
+    #hud {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 20;
+      min-width: 270px;
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: rgba(15, 23, 42, 0.84);
+      color: #f8fafc;
+      line-height: 1.45;
+      font-size: 14px;
+    }
+    #toast {
+      position: absolute;
+      top: 88px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 22;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.92);
+      color: #fff;
+      padding: 10px 14px;
+      font-weight: bold;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      pointer-events: none;
+    }
+    #toast.visible { opacity: 1; }
+    #overlay {
+      display: none;
+      position: absolute;
+      inset: 0;
+      z-index: 25;
+      align-items: center;
+      justify-content: center;
+      background: rgba(15, 23, 42, 0.72);
+    }
+    #overlay.visible { display: flex; }
+    .card {
+      width: min(90vw, 430px);
+      padding: 24px;
+      border-radius: 24px;
+      background: rgba(15, 23, 42, 0.96);
+      color: white;
+      text-align: center;
+      border: 2px solid rgba(255,255,255,0.12);
+    }
+    .card h1 { margin-bottom: 10px; }
+    .card p { margin-bottom: 16px; line-height: 1.5; }
+    .card button {
+      border: 0;
+      border-radius: 999px;
+      padding: 12px 18px;
+      background: #fde68a;
+      color: #111827;
+      font-weight: bold;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div id="shell">
+    <div id="game-container"></div>
+    <div id="hud"></div>
+    <div id="toast"></div>
+    <div id="overlay">
+      <div class="card">
+        <h1 id="overlay-title">Village Saved!</h1>
+        <p id="overlay-copy">You finished the mayor's quests, leveled up, and helped the whole town.</p>
+        <button id="restart-btn">Quest Again</button>
+      </div>
+    </div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.86.0/dist/phaser.min.js" crossorigin="anonymous"></script>
+  <script>
+    (function () {
+      var hud = document.getElementById('hud');
+      var toast = document.getElementById('toast');
+      var overlay = document.getElementById('overlay');
+      var restartBtn = document.getElementById('restart-btn');
+
+      function showToast(text) {
+        toast.textContent = text;
+        toast.classList.add('visible');
+        clearTimeout(showToast._timer);
+        showToast._timer = setTimeout(function () {
+          toast.classList.remove('visible');
+        }, 1500);
+      }
+
+      restartBtn.addEventListener('click', function () {
+        window.location.reload();
+      });
+
+      class VillageQuestScene extends Phaser.Scene {
+        constructor() {
+          super('VillageQuestScene');
+        }
+
+        create() {
+          this.storyProgress = 0;
+          this.questLog = [
+            { id: 'apples', label: 'Collect 3 apples for the baker', done: false },
+            { id: 'lanterns', label: 'Light 2 lanterns for the mayor', done: false },
+            { id: 'gift', label: 'Bring the thank-you charm home', done: false },
+          ];
+          this.appleCount = 0;
+          this.lanternCount = 0;
+          this.level = 1;
+          this.xp = 0;
+          this.hp = 5;
+          this.gameEnded = false;
+          this.speed = 165;
+
+          this.makeTextures();
+          this.drawVillage();
+          this.createPlayer();
+          this.createQuestObjects();
+          this.createNpcs();
+          this.cursors = this.input.keyboard.createCursorKeys();
+          this.updateHud();
+        }
+
+        makeTextures() {
+          var gfx = this.make.graphics({ x: 0, y: 0, add: false });
+
+          gfx.fillStyle(0x60a5fa, 1);
+          gfx.fillCircle(14, 14, 14);
+          gfx.fillStyle(0xf8fafc, 1);
+          gfx.fillCircle(10, 10, 4);
+          gfx.fillCircle(18, 10, 4);
+          gfx.generateTexture('hero-token', 28, 28);
+          gfx.clear();
+
+          gfx.fillStyle(0xef4444, 1);
+          gfx.fillCircle(10, 10, 10);
+          gfx.fillStyle(0x166534, 1);
+          gfx.fillRect(9, 0, 2, 8);
+          gfx.generateTexture('apple-token', 20, 20);
+          gfx.clear();
+
+          gfx.fillStyle(0xf59e0b, 1);
+          gfx.fillRect(8, 0, 8, 20);
+          gfx.fillStyle(0xfef3c7, 1);
+          gfx.fillCircle(12, 6, 6);
+          gfx.generateTexture('lantern-token', 24, 24);
+          gfx.clear();
+
+          gfx.fillStyle(0xfacc15, 1);
+          gfx.fillCircle(14, 14, 10);
+          gfx.lineStyle(3, 0xffffff, 0.8);
+          gfx.strokeCircle(14, 14, 10);
+          gfx.generateTexture('charm-token', 28, 28);
+          gfx.clear();
+
+          gfx.fillStyle(0x8b5cf6, 1);
+          gfx.fillRoundedRect(0, 2, 28, 24, 6);
+          gfx.fillStyle(0xf8fafc, 1);
+          gfx.fillCircle(10, 10, 3);
+          gfx.fillCircle(18, 10, 3);
+          gfx.generateTexture('npc-token', 28, 28);
+          gfx.destroy();
+        }
+
+        drawVillage() {
+          this.cameras.main.setBackgroundColor('#7dd3fc');
+
+          var bg = this.add.graphics();
+          bg.fillStyle(0x86efac, 1);
+          bg.fillRect(0, 0, 800, 560);
+          bg.fillStyle(0x93c5fd, 1);
+          bg.fillRect(0, 0, 800, 120);
+
+          bg.fillStyle(0xd6d3d1, 1);
+          bg.fillRoundedRect(80, 248, 640, 64, 28);
+          bg.fillRoundedRect(360, 90, 80, 380, 20);
+
+          this.drawHouse(110, 150, 0xf59e0b);
+          this.drawHouse(580, 150, 0xf97316);
+          this.drawHouse(110, 370, 0x10b981);
+          this.drawHouse(580, 370, 0x3b82f6);
+
+          this.add.text(318, 38, 'Storybook Village', {
+            fontFamily: 'Arial',
+            fontSize: '24px',
+            color: '#1e293b',
+          });
+        }
+
+        drawHouse(x, y, roofColor) {
+          var g = this.add.graphics();
+          g.fillStyle(0xf5f5f4, 1);
+          g.fillRoundedRect(x, y, 110, 84, 12);
+          g.fillStyle(roofColor, 1);
+          g.fillTriangle(x - 8, y + 10, x + 55, y - 34, x + 118, y + 10);
+          g.fillStyle(0x92400e, 1);
+          g.fillRect(x + 44, y + 44, 22, 40);
+        }
+
+        createPlayer() {
+          this.player = this.physics.add.image(400, 280, 'hero-token');
+          this.player.setCircle(12);
+          this.player.setCollideWorldBounds(true);
+        }
+
+        createQuestObjects() {
+          this.apples = this.physics.add.staticGroup();
+          [[184, 118], [624, 116], [186, 434]].forEach(function (pos) {
+            this.apples.create(pos[0], pos[1], 'apple-token');
+          }, this);
+
+          this.lanterns = this.physics.add.staticGroup();
+          [[398, 156], [398, 404]].forEach(function (pos) {
+            var lantern = this.lanterns.create(pos[0], pos[1], 'lantern-token');
+            lantern.lit = false;
+            lantern.setTint(0x64748b);
+          }, this);
+
+          this.charm = this.physics.add.staticImage(642, 432, 'charm-token');
+          this.charm.setVisible(false);
+          this.charm.body.enable = false;
+
+          this.physics.add.overlap(this.player, this.apples, this.collectApple, null, this);
+          this.physics.add.overlap(this.player, this.lanterns, this.lightLantern, null, this);
+          this.physics.add.overlap(this.player, this.charm, this.collectCharm, null, this);
+        }
+
+        createNpcs() {
+          this.npcs = this.physics.add.staticGroup();
+
+          this.mayor = this.npcs.create(402, 254, 'npc-token');
+          this.mayor.message = 'Mayor: Help the village and you will grow stronger.';
+
+          this.baker = this.npcs.create(168, 242, 'npc-token');
+          this.baker.message = 'Baker: I need 3 apples for the morning pies.';
+
+          this.guard = this.npcs.create(636, 242, 'npc-token');
+          this.guard.message = 'Guard: Light the lanterns so the road stays safe tonight.';
+
+          this.physics.add.overlap(this.player, this.npcs, this.talkNpc, null, this);
+        }
+
+        talkNpc(player, npc) {
+          if (this.gameEnded) return;
+          showToast(npc.message);
+        }
+
+        collectApple(player, apple) {
+          apple.destroy();
+          this.appleCount += 1;
+          this.gainXp(10);
+          if (this.appleCount >= 3 && !this.questLog[0].done) {
+            this.finishQuest(0, 'Baker quest done!');
+          } else {
+            showToast('Apple found! ' + this.appleCount + '/3');
+          }
+          this.updateHud();
+        }
+
+        lightLantern(player, lantern) {
+          if (lantern.lit) return;
+          lantern.lit = true;
+          lantern.setTint(0xfde68a);
+          this.lanternCount += 1;
+          this.gainXp(12);
+          if (this.lanternCount >= 2 && !this.questLog[1].done) {
+            this.finishQuest(1, 'Lantern quest done!');
+          } else {
+            showToast('Lantern lit! ' + this.lanternCount + '/2');
+          }
+          this.updateHud();
+        }
+
+        collectCharm() {
+          this.charm.setVisible(false);
+          this.charm.body.enable = false;
+          if (!this.questLog[2].done) {
+            this.finishQuest(2, 'You found the thank-you charm!');
+          }
+          this.updateHud();
+        }
+
+        finishQuest(index, message) {
+          this.questLog[index].done = true;
+          this.storyProgress += 1;
+          this.gainXp(18);
+          showToast(message);
+
+          if (this.questLog[0].done && this.questLog[1].done && !this.questLog[2].done) {
+            this.charm.setVisible(true);
+            this.charm.body.enable = true;
+            showToast('The mayor revealed a charm near the blue house!');
+          }
+
+          if (this.storyProgress >= this.questLog.length) {
+            this.endGame();
+          }
+        }
+
+        gainXp(amount) {
+          this.xp += amount;
+          if (this.xp >= this.level * 30) {
+            this.xp = this.xp - this.level * 30;
+            this.level += 1;
+            showToast('Level up! You are now level ' + this.level + '.');
+          }
+        }
+
+        updateHud() {
+          var lines = this.questLog.map(function (quest) {
+            return (quest.done ? '[x] ' : '[ ] ') + quest.label;
+          });
+
+          hud.innerHTML =
+            '<strong>Vibe 2D Village Quest</strong><br>' +
+            'HP: ' + this.hp + ' | Level: ' + this.level + ' | XP: ' + this.xp + '<br>' +
+            'Quest Log:<br>' + lines.join('<br>');
+        }
+
+        endGame() {
+          this.gameEnded = true;
+          overlay.classList.add('visible');
+        }
+
+        update() {
+          if (this.gameEnded) return;
+
+          this.player.setVelocity(0);
+          if (this.cursors.left.isDown) this.player.setVelocityX(-this.speed);
+          else if (this.cursors.right.isDown) this.player.setVelocityX(this.speed);
+          if (this.cursors.up.isDown) this.player.setVelocityY(-this.speed);
+          else if (this.cursors.down.isDown) this.player.setVelocityY(this.speed);
+
+          if (this.player.body.velocity.length() > this.speed) {
+            this.player.body.velocity.normalize().scale(this.speed);
+          }
+        }
+      }
+
+      new Phaser.Game({
+        type: Phaser.AUTO,
+        width: 800,
+        height: 560,
+        parent: 'game-container',
+        backgroundColor: '#7dd3fc',
+        physics: {
+          default: 'arcade',
+          arcade: { gravity: { y: 0 }, debug: false },
+        },
+        scene: [VillageQuestScene],
+      });
+    })();
+  </script>
+</body>
+</html>

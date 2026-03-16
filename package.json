@@ -31,6 +31,8 @@
     "test:game3": "npx playwright test game-builder-bot --headed --grep=\"Game 3\"",
     "test:game4": "npx playwright test game-builder-bot --headed --grep=\"Game 4\"",
     "test:game5": "npx playwright test game-builder-bot --headed --grep=\"Game 5\"",
+    "test:benchmarks": "npx playwright test \"tests/engine-benchmark-pack.spec.ts\" \"tests/engine-benchmark-output.spec.ts\" \"tests/engine-integrity.spec.ts\"",
+    "benchmark:report": "npx playwright test \"tests/engine-benchmark-report.spec.ts\" --reporter=line",
     "test:report": "npx playwright show-report",
     "lint": "eslint src/ server/",
     "lint:fix": "eslint src/ server/ --fix",

@@ -65,8 +65,12 @@ test.describe('Vibe engine integrity', () => {
       { templateFile: 'puzzle.html', family: 'puzzleCasual', dimension: '2d' },
       { templateFile: 'racing.html', family: 'racingArcade', dimension: '2d' },
       { templateFile: 'pet-sim.html', family: 'simLite', dimension: '2d' },
+      { templateFile: 'crystal-defense.html', family: 'strategyDefenseLite', dimension: '2d' },
+      { templateFile: 'village-quest.html', family: 'rpgProgressionLite', dimension: '2d' },
+      { templateFile: 'trick-shot-arena.html', family: 'sportsSkill', dimension: '2d' },
       { templateFile: 'obby.html', family: 'obbyPlatform3d', dimension: '3d' },
       { templateFile: 'open-map-explorer.html', family: 'explorationAdventure3d', dimension: '3d' },
+      { templateFile: 'relic-hunt-3d.html', family: 'explorationAdventure3d', dimension: '3d' },
       { templateFile: 'stunt-racer-3d.html', family: 'racingDriving3d', dimension: '3d' },
       { templateFile: 'survival-crafting-game.html', family: 'survivalCraft3d', dimension: '3d' },
       { templateFile: 'house-builder.html', family: 'sandboxBuilder3d', dimension: '3d' },
@@ -80,6 +84,59 @@ test.describe('Vibe engine integrity', () => {
         const profile = resolveEngineProfile({ prompt, currentCode });
         expect(profile.genreFamily, `Wrong family for ${scenario.templateFile} on "${prompt}"`).toBe(scenario.family);
         expect(profile.dimension, `Wrong dimension for ${scenario.templateFile} on "${prompt}"`).toBe(scenario.dimension);
+      }
+    }
+  });
+
+  test('prompt signal matching favors the right family for ambiguous ideas', () => {
+    const scenarios = [
+      {
+        prompt: 'make a 3d relic hunt in ancient ruins with landmarks and quests',
+        family: 'explorationAdventure3d',
+        starter: 'relic-hunt-3d',
+      },
+      {
+        prompt: 'make a 3d house builder where I place walls, furniture, and decorate rooms',
+        family: 'sandboxBuilder3d',
+      },
+      {
+        prompt: 'make a 3d island survival game where I gather wood, craft tools, and survive the night',
+        family: 'survivalCraft3d',
+      },
+      {
+        prompt: 'make a 3d stunt car racing game with drift ramps, boost pads, and checkpoints',
+        family: 'racingDriving3d',
+      },
+      {
+        prompt: 'make a side scroller where I jump over spikes and collect coins',
+        family: 'platformAction',
+      },
+      {
+        prompt: 'make a top-down maze escape game with chasers and treasure',
+        family: 'topDownAction',
+      },
+      {
+        prompt: 'make a crystal defense game where guardians protect the base from enemy waves',
+        family: 'strategyDefenseLite',
+        starter: 'crystal-defense',
+      },
+      {
+        prompt: 'make a village quest game where I help villagers, level up, and finish story quests',
+        family: 'rpgProgressionLite',
+        starter: 'village-quest',
+      },
+      {
+        prompt: 'make a trick shot basketball challenge with moving hoops and accuracy timing',
+        family: 'sportsSkill',
+        starter: 'trick-shot-arena',
+      },
+    ];
+
+    for (const scenario of scenarios) {
+      const profile = resolveEngineProfile({ prompt: scenario.prompt });
+      expect(profile.genreFamily, `Wrong family for "${scenario.prompt}"`).toBe(scenario.family);
+      if (scenario.starter) {
+        expect(profile.starterTemplateId, `Wrong starter for "${scenario.prompt}"`).toBe(scenario.starter);
       }
     }
   });

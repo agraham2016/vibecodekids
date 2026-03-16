@@ -142,8 +142,8 @@ export const ENGINE_FAMILY_PROFILES = {
     dimension: '2d',
     label: 'Strategy / Defense Lite',
     defaultTemplateGenre: 'tower-defense',
-    heroTemplateIds: ['tower-defense'],
-    starterTemplateIds: ['tower-defense'],
+    heroTemplateIds: ['tower-defense', 'crystal-defense'],
+    starterTemplateIds: ['tower-defense', 'crystal-defense'],
     validationProfile: 'vibe-2d-defense',
     coreSystems: ['lane routing', 'tower placement', 'wave pacing', 'currency loop', 'base defense feedback'],
     safeEditSurfaces: ['theme swap', 'tower skins', 'wave pacing', 'currency tuning', 'enemy mix'],
@@ -160,8 +160,8 @@ export const ENGINE_FAMILY_PROFILES = {
     dimension: '2d',
     label: 'RPG / Progression Lite',
     defaultTemplateGenre: 'rpg',
-    heroTemplateIds: ['dungeon-crawler', 'creature-collector'],
-    starterTemplateIds: ['dungeon-crawler', 'creature-collector'],
+    heroTemplateIds: ['dungeon-crawler', 'creature-collector', 'village-quest'],
+    starterTemplateIds: ['dungeon-crawler', 'creature-collector', 'village-quest'],
     validationProfile: 'vibe-2d-rpg',
     coreSystems: ['exploration loop', 'combat or encounter pressure', 'quest text', 'reward progression', 'status HUD'],
     safeEditSurfaces: ['theme swap', 'party art', 'quest copy', 'enemy roster', 'reward tuning'],
@@ -177,8 +177,8 @@ export const ENGINE_FAMILY_PROFILES = {
     dimension: '2d',
     label: 'Sports / Skill',
     defaultTemplateGenre: 'sports',
-    heroTemplateIds: ['fishing-game', 'sports'],
-    starterTemplateIds: ['fishing-game'],
+    heroTemplateIds: ['fishing-game', 'trick-shot-arena', 'sports'],
+    starterTemplateIds: ['fishing-game', 'trick-shot-arena'],
     validationProfile: 'vibe-2d-sports',
     coreSystems: ['precision input', 'clear score target', 'round pacing', 'reward feedback', 'retry loop'],
     safeEditSurfaces: ['theme swap', 'athlete gear', 'target mix', 'timing difficulty', 'goal text'],
@@ -212,8 +212,8 @@ export const ENGINE_FAMILY_PROFILES = {
     dimension: '3d',
     label: 'Exploration Adventure 3D',
     defaultTemplateGenre: null,
-    heroTemplateIds: ['open-map-explorer'],
-    starterTemplateIds: ['open-map-explorer'],
+    heroTemplateIds: ['open-map-explorer', 'relic-hunt-3d'],
+    starterTemplateIds: ['open-map-explorer', 'relic-hunt-3d'],
     modelPackHint: 'rpg-3d',
     validationProfile: 'vibe-3d-exploration',
     coreSystems: ['movement rig', 'camera rig', 'landmarks', 'quest HUD', 'discovery loop'],
@@ -392,11 +392,27 @@ export const TEMPLATE_BLUEPRINTS = {
     sourceTemplateGenre: 'tower-defense',
     dimension: '2d',
   },
+  'crystal-defense': {
+    id: 'crystal-defense',
+    label: 'Crystal Defense',
+    family: 'strategyDefenseLite',
+    sourceTemplateGenre: null,
+    templateFile: 'crystal-defense.html',
+    dimension: '2d',
+  },
   'dungeon-crawler': {
     id: 'dungeon-crawler',
     label: 'Dungeon Crawler',
     family: 'rpgProgressionLite',
     sourceTemplateGenre: 'rpg',
+    dimension: '2d',
+  },
+  'village-quest': {
+    id: 'village-quest',
+    label: 'Village Quest',
+    family: 'rpgProgressionLite',
+    sourceTemplateGenre: null,
+    templateFile: 'village-quest.html',
     dimension: '2d',
   },
   'farming-game': {
@@ -411,6 +427,14 @@ export const TEMPLATE_BLUEPRINTS = {
     label: 'Fishing Game',
     family: 'sportsSkill',
     sourceTemplateGenre: 'fishing',
+    dimension: '2d',
+  },
+  'trick-shot-arena': {
+    id: 'trick-shot-arena',
+    label: 'Trick Shot Arena',
+    family: 'sportsSkill',
+    sourceTemplateGenre: null,
+    templateFile: 'trick-shot-arena.html',
     dimension: '2d',
   },
   'creature-collector': {
@@ -434,6 +458,14 @@ export const TEMPLATE_BLUEPRINTS = {
     family: 'explorationAdventure3d',
     sourceTemplateGenre: null,
     templateFile: 'open-map-explorer.html',
+    dimension: '3d',
+  },
+  'relic-hunt-3d': {
+    id: 'relic-hunt-3d',
+    label: 'Relic Hunt 3D',
+    family: 'explorationAdventure3d',
+    sourceTemplateGenre: null,
+    templateFile: 'relic-hunt-3d.html',
     dimension: '3d',
   },
   'stunt-racer-3d': {
@@ -488,9 +520,21 @@ const GAME_TYPE_ALIASES = {
   'pet-simulator': 'pet-care-simulator',
   'simple-racing-game': 'simple-racing',
   'tower-defense-game': 'tower-defense',
+  'lane-defense': 'crystal-defense',
+  'guardian-defense': 'crystal-defense',
+  'crystal-guardians': 'crystal-defense',
+  'town-quest': 'village-quest',
+  'storybook-rpg': 'village-quest',
+  'quest-village': 'village-quest',
   fishing: 'fishing-game',
+  'trick-shot': 'trick-shot-arena',
+  'basketball-challenge': 'trick-shot-arena',
+  'hoop-shot': 'trick-shot-arena',
   'top-down-adventure-game': 'top-down-adventure',
   'open-map-adventure': 'open-map-explorer',
+  'relic-hunt': 'relic-hunt-3d',
+  'treasure-hunt-3d': 'relic-hunt-3d',
+  'ruins-adventure': 'relic-hunt-3d',
   'survival-crafting': 'survival-crafting-game',
   'stunt-racer': 'stunt-racer-3d',
   'stunt-racing': 'stunt-racer-3d',
@@ -534,6 +578,15 @@ const GENRE_FAMILY_BY_GAME_TYPE = {
   clicker: 'builderTycoonLite',
   parking: 'racingDriving3d',
   obby: 'obbyPlatform3d',
+  'crystal-defense': 'strategyDefenseLite',
+  'village-quest': 'rpgProgressionLite',
+  'trick-shot-arena': 'sportsSkill',
+  'open-map-explorer': 'explorationAdventure3d',
+  'relic-hunt': 'explorationAdventure3d',
+  'relic-hunt-3d': 'explorationAdventure3d',
+  'house-builder': 'sandboxBuilder3d',
+  'survival-crafting-game': 'survivalCraft3d',
+  'stunt-racer-3d': 'racingDriving3d',
 };
 
 function normalizeToken(value) {
@@ -542,6 +595,73 @@ function normalizeToken(value) {
     .toLowerCase()
     .replace(/_/g, '-')
     .replace(/\s+/g, '-');
+}
+
+function inferStarterTemplateFromPrompt(prompt = '') {
+  const text = String(prompt || '').toLowerCase();
+  if (!text) return null;
+
+  const starterSignals = [
+    {
+      id: 'trick-shot-arena',
+      patterns: [
+        /\btrick shot\b/i,
+        /\bbasketball challenge\b/i,
+        /\bhoop shot\b/i,
+        /\btarget shot\b/i,
+        /\bskill shot\b/i,
+      ],
+    },
+    {
+      id: 'village-quest',
+      patterns: [
+        /\bvillage quest\b/i,
+        /\btown quest\b/i,
+        /\bhelp villagers\b/i,
+        /\bstory quest\b/i,
+        /\blevel up adventure\b/i,
+      ],
+    },
+    {
+      id: 'crystal-defense',
+      patterns: [
+        /\bcrystal defense\b/i,
+        /\blane defense\b/i,
+        /\bguardian defense\b/i,
+        /\bprotect the crystal\b/i,
+        /\bmagic defense\b/i,
+      ],
+    },
+    {
+      id: 'relic-hunt-3d',
+      patterns: [/\brelic hunt\b/i, /\blost temple\b/i, /\bancient ruins\b/i, /\bclue trail\b/i, /\brelic quest\b/i],
+    },
+    {
+      id: 'open-map-explorer',
+      patterns: [/\bopen world\b/i, /\bopen map\b/i, /\bexplorer\b/i, /\bdiscover\b/i, /\blandmarks?\b/i],
+    },
+    {
+      id: 'house-builder',
+      patterns: [/\bhouse builder\b/i, /\bhouse designer\b/i, /\bdecorate rooms?\b/i, /\bplace furniture\b/i],
+    },
+    {
+      id: 'survival-crafting-game',
+      patterns: [/\bisland survival\b/i, /\bsurvival crafting\b/i, /\bgather and build\b/i, /\bsurvive the night\b/i],
+    },
+    {
+      id: 'stunt-racer-3d',
+      patterns: [/\bstunt racer\b/i, /\bstunt driving\b/i, /\bdrift\b/i, /\bboost pads?\b/i, /\bramps?\b/i],
+    },
+    { id: 'obby', patterns: [/\bobby\b/i, /\broblox\b/i, /\bparkour\b/i, /\bobstacle course\b/i] },
+  ];
+
+  for (const signal of starterSignals) {
+    if (signal.patterns.some((pattern) => pattern.test(text))) {
+      return signal.id;
+    }
+  }
+
+  return null;
 }
 
 export function normalizeGameType(value) {
@@ -583,9 +703,17 @@ function inferFamilyFromCode(currentCode = '') {
   }
 
   if (/Phaser\.Game/i.test(code)) {
-    if (/tower|wave/i.test(code)) return 'strategyDefenseLite';
-    if (/\brace\b|\bcar\b|\broad\b|\bboost\b/i.test(code)) return 'racingArcade';
-    if (/\bquest\b|\bxp\b|\blevel\b|\binventory\b/i.test(code)) return 'rpgProgressionLite';
+    if (/tower|wave|defense|guardian|crystalHp|baseHp/i.test(code)) return 'strategyDefenseLite';
+    if (
+      /\baccuracy\b|\bshot\b|\bhoop\b|\btarget\b|\breel\b|\bfish\b|playerScore|aiScore|goalScored|kickCooldown/i.test(
+        code,
+      )
+    ) {
+      return 'sportsSkill';
+    }
+    if (/\brace\b|\bcar\b|\btraffic\b|\bboost\b|\blap\b|\bvehicle\b/i.test(code)) return 'racingArcade';
+    if (/\bquest\b|\bxp\b|\blevel\b|\binventory\b|villager|questLog|storyProgress/i.test(code))
+      return 'rpgProgressionLite';
     if (/\bmood\b|\benergy\b|\bpet\b|\bharvest\b/i.test(code)) return 'simLite';
     if (/\bmoves\b|\bmatch\b|\bcard\b|\btimer\b|\bgrid\b/i.test(code)) return 'puzzleCasual';
     if (/ghost|maze|dotsTotal|collectDot|setVelocity\(vx,\s*vy\)|setVelocity\([^,]+,\s*[^)]+\)/i.test(code)) {
@@ -598,17 +726,165 @@ function inferFamilyFromCode(currentCode = '') {
   return null;
 }
 
+const PROMPT_FAMILY_SIGNAL_PATTERNS = {
+  explorationAdventure3d: [
+    /\bopen world\b/i,
+    /\bopen map\b/i,
+    /\brelic\b/i,
+    /\bruins?\b/i,
+    /\blandmark\b/i,
+    /\bquest\b/i,
+    /\btreasure hunt\b/i,
+    /\bexplore\b/i,
+    /\bdiscovery\b/i,
+    /\bancient temple\b/i,
+  ],
+  sandboxBuilder3d: [
+    /\bhouse\b/i,
+    /\bbuilder\b/i,
+    /\bbuild\b/i,
+    /\bplace\b/i,
+    /\bdecorate\b/i,
+    /\bfurniture\b/i,
+    /\bblueprint\b/i,
+    /\broom\b/i,
+    /\bsandbox\b/i,
+    /\bdesign\b/i,
+  ],
+  survivalCraft3d: [
+    /\bsurviv(?:al|e)\b/i,
+    /\bcraft(?:ing)?\b/i,
+    /\bgather\b/i,
+    /\bresource\b/i,
+    /\bshelter\b/i,
+    /\bhunger\b/i,
+    /\bnight\b/i,
+    /\bscavenge\b/i,
+    /\bmine\b/i,
+    /\bforage\b/i,
+  ],
+  racingDriving3d: [
+    /\bstunt\b/i,
+    /\bdrift\b/i,
+    /\brace\b/i,
+    /\bracing\b/i,
+    /\bcar\b/i,
+    /\bvehicle\b/i,
+    /\btruck\b/i,
+    /\bboost\b/i,
+    /\bramp\b/i,
+    /\bcheckpoint\b/i,
+  ],
+  obbyPlatform3d: [/\bobby\b/i, /\broblox\b/i, /\bparkour\b/i, /\bjump\b/i, /\bplatform\b/i, /\bobstacle course\b/i],
+  platformAction: [
+    /\bside scroller\b/i,
+    /\bside-scroller\b/i,
+    /\bjump\b/i,
+    /\bdouble jump\b/i,
+    /\bplatformer\b/i,
+    /\bcoins?\b/i,
+    /\bspikes?\b/i,
+  ],
+  topDownAction: [/\btop down\b/i, /\btop-down\b/i, /\bmaze\b/i, /\bchasers?\b/i, /\boverhead\b/i, /\bescape\b/i],
+  strategyDefenseLite: [
+    /\bdefense\b/i,
+    /\btower\b/i,
+    /\bwaves?\b/i,
+    /\blanes?\b/i,
+    /\bguardians?\b/i,
+    /\bprotect\b/i,
+    /\bcrystal\b/i,
+    /\bbase\b/i,
+  ],
+  rpgProgressionLite: [
+    /\brpg\b/i,
+    /\bquest\b/i,
+    /\bloot\b/i,
+    /\bxp\b/i,
+    /\blevel(?: up)?\b/i,
+    /\bdungeon\b/i,
+    /\bvillagers?\b/i,
+    /\btown\b/i,
+  ],
+  sportsSkill: [/\bsports?\b/i, /\bscore\b/i, /\btimer\b/i, /\baccuracy\b/i, /\bshot\b/i, /\bhoop\b/i, /\bfishing\b/i],
+};
+
+function inferFamilyFromPromptSignals(prompt = '', gameConfig = null) {
+  const text = String(prompt || '').toLowerCase();
+  if (!text) return null;
+
+  const families =
+    gameConfig?.dimension === '3d'
+      ? ['obbyPlatform3d', 'explorationAdventure3d', 'racingDriving3d', 'survivalCraft3d', 'sandboxBuilder3d']
+      : gameConfig?.dimension === '2d'
+        ? [
+            'platformAction',
+            'topDownAction',
+            'racingArcade',
+            'puzzleCasual',
+            'simLite',
+            'builderTycoonLite',
+            'strategyDefenseLite',
+            'rpgProgressionLite',
+            'sportsSkill',
+          ]
+        : Object.keys(PROMPT_FAMILY_SIGNAL_PATTERNS);
+
+  let bestFamily = null;
+  let bestScore = 0;
+
+  for (const family of families) {
+    const patterns = PROMPT_FAMILY_SIGNAL_PATTERNS[family] || [];
+    const score = patterns.reduce((total, pattern) => total + (pattern.test(text) ? 1 : 0), 0);
+    if (score > bestScore) {
+      bestScore = score;
+      bestFamily = family;
+    }
+  }
+
+  if (bestScore >= 2) return bestFamily;
+
+  if (bestScore === 1) {
+    if (bestFamily === 'obbyPlatform3d' || /\b3d\b|\broblox\b/.test(text)) return bestFamily;
+    if (bestFamily === 'explorationAdventure3d' && /\b3d\b|\bopen\b|\brelic\b|\bruins?\b/.test(text)) return bestFamily;
+    if (bestFamily === 'sandboxBuilder3d' && /\b3d\b|\bhouse\b|\bbuild\b|\bdecorate\b/.test(text)) return bestFamily;
+    if (bestFamily === 'survivalCraft3d' && /\b3d\b|\bsurviv(?:al|e)\b|\bcraft(?:ing)?\b/.test(text)) return bestFamily;
+    if (bestFamily === 'racingDriving3d' && /\b3d\b|\bstunt\b|\bdrift\b|\brace\b|\bcar\b/.test(text)) return bestFamily;
+    if (bestFamily === 'platformAction' && /\bjump\b|\bside\b|\bplatform\b/.test(text)) return bestFamily;
+    if (bestFamily === 'topDownAction' && /\bmaze\b|\bescape\b|\btop\b/.test(text)) return bestFamily;
+    if (bestFamily === 'strategyDefenseLite' && /\bdefense\b|\btower\b|\bwave\b|\blane\b|\bcrystal\b/.test(text))
+      return bestFamily;
+    if (
+      bestFamily === 'rpgProgressionLite' &&
+      /\brpg\b|\bquest\b|\bloot\b|\bxp\b|\bdungeon\b|\bvillage\b|\btown\b/.test(text)
+    )
+      return bestFamily;
+    if (bestFamily === 'sportsSkill' && /\bsport\b|\bshot\b|\bhoop\b|\baccuracy\b|\bfishing\b|\btarget\b/.test(text))
+      return bestFamily;
+  }
+
+  return null;
+}
+
 export function resolveEngineProfile({ prompt = '', genre = null, gameConfig = null, currentCode = null } = {}) {
   const promptText = String(prompt || '');
+  const promptSignalFamily = inferFamilyFromPromptSignals(promptText, gameConfig);
   const detectedFamily = detectGenreFamily(promptText);
   const codeDetectedFamily = inferFamilyFromCode(currentCode);
+  const promptStarterId = inferStarterTemplateFromPrompt(promptText);
   const normalizedRequestedType = normalizeGameType(
-    gameConfig?.starterTemplateId || gameConfig?.gameType || genre || detectGameGenre(promptText) || '',
+    gameConfig?.starterTemplateId ||
+      gameConfig?.gameType ||
+      genre ||
+      promptStarterId ||
+      detectGameGenre(promptText) ||
+      '',
   );
 
   const starterBlueprint = getTemplateBlueprint(normalizedRequestedType);
   const inferredFamily =
     gameConfig?.genreFamily ||
+    promptSignalFamily ||
     detectedFamily ||
     starterBlueprint?.family ||
     codeDetectedFamily ||
@@ -631,8 +907,8 @@ export function resolveEngineProfile({ prompt = '', genre = null, gameConfig = n
       : starterBlueprint?.id;
   const resolvedStarterId =
     preferredStarterId ||
-    normalizedRequestedType ||
     familyProfile.starterTemplateIds[0] ||
+    normalizedRequestedType ||
     (dimension === '3d' ? 'obby' : familyProfile.defaultTemplateGenre || 'platformer');
 
   const resolvedBlueprint = getTemplateBlueprint(resolvedStarterId) || starterBlueprint;

@@ -3,6 +3,7 @@ import { test, expect } from '@playwright/test';
 const TEMPLATES = [
   'obby',
   'open-map-explorer',
+  'relic-hunt-3d',
   'survival-crafting-game',
   'stunt-racer-3d',
   'house-builder',
@@ -112,6 +113,10 @@ test.describe('Template Runtime Regression Tests', () => {
       } else if (templateName === 'open-map-explorer') {
         expect(hudContent).toContain('Quest Log:');
         expect(hudContent).toContain('Find 3 relics');
+      } else if (templateName === 'relic-hunt-3d') {
+        expect(hudContent).toContain('Objective:');
+        expect(hudContent).toContain('Relics:');
+        expect(hudContent).toContain('Clue Signal:');
       } else if (templateName === 'survival-crafting-game') {
         expect(hudContent).toContain('Time to dawn:');
         expect(hudContent).toContain('Health:');
