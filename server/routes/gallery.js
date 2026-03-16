@@ -1,6 +1,6 @@
 /**
  * Gallery Route
- * 
+ *
  * GET /api/gallery - Public game gallery listing.
  */
 
@@ -17,9 +17,9 @@ router.get('/', async (req, res) => {
 
     const allProjects = await listProjects();
     const filtered = allProjects
-      .filter(p => p.isPublic)
-      .filter(p => !category || p.category === category)
-      .map(p => ({
+      .filter((p) => p.isPublic && p.code)
+      .filter((p) => !category || p.category === category)
+      .map((p) => ({
         id: p.id,
         title: p.title,
         creatorName: p.creatorName,
@@ -28,7 +28,7 @@ router.get('/', async (req, res) => {
         createdAt: p.createdAt,
         views: p.views || 0,
         likes: p.likes || 0,
-        thumbnail: p.thumbnail || null
+        thumbnail: p.thumbnail || null,
       }))
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 

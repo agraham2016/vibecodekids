@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useAuth } from './context/AuthContext';
 import { useProjects } from './hooks/useProjects';
 import { useChat } from './hooks/useChat';
@@ -63,6 +63,43 @@ function App() {
   const [mobileTab, setMobileTab] = useState<'chat' | 'game' | 'projects'>('chat');
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [shareThumbnail, setShareThumbnail] = useState<string | null>(null);
+
+  // Resizable panel split (desktop only)
+  const [chatWidth, setChatWidth] = useState(() => {
+    const saved = localStorage.getItem('vck_chat_width');
+    return saved ? Math.max(280, Math.min(Number(saved), 600)) : 360;
+  });
+  const dragRef = useRef({ startX: 0, startW: 0, latestW: 360 });
+
+  useEffect(() => {
+    dragRef.current.latestW = chatWidth;
+  }, [chatWidth]);
+
+  const handleResizeStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    dragRef.current.startX = e.clientX;
+    dragRef.current.startW = dragRef.current.latestW;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+
+    const onMove = (ev: MouseEvent) => {
+      const delta = ev.clientX - dragRef.current.startX;
+      const w = Math.max(280, Math.min(dragRef.current.startW + delta, 600));
+      dragRef.current.latestW = w;
+      setChatWidth(w);
+    };
+
+    const onUp = () => {
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      localStorage.setItem('vck_chat_width', String(dragRef.current.latestW));
+    };
+
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  }, []);
 
   // Chat with AI generation callbacks (dual-model)
   const {
@@ -437,7 +474,10 @@ function App() {
           />
         </div>
 
-        <div className={`chat-panel-container mobile-panel ${mobileTab === 'chat' ? 'mobile-active' : ''}`}>
+        <div
+          className={`chat-panel-container mobile-panel ${mobileTab === 'chat' ? 'mobile-active' : ''}`}
+          style={{ width: chatWidth }}
+        >
           <ChatPanel
             messages={messages}
             onSendMessage={handleSendMessage}
@@ -454,6 +494,8 @@ function App() {
             }}
           />
         </div>
+
+        <div className="resize-handle" onMouseDown={handleResizeStart} role="separator" aria-label="Resize panels" />
 
         <div className={`preview-code-container mobile-panel ${mobileTab === 'game' ? 'mobile-active' : ''}`}>
           <div className="view-toggle-bar">

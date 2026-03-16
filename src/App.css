@@ -56,9 +56,8 @@
 /* ========== MIDDLE PANEL: CHAT ========== */
 
 .chat-panel-container {
-  width: 360px;
   min-width: 280px;
-  max-width: 420px;
+  max-width: 600px;
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -67,6 +66,43 @@
 
 .chat-panel-container > .panel {
   height: 100%;
+}
+
+/* ========== RESIZE HANDLE ========== */
+
+.resize-handle {
+  width: 6px;
+  cursor: col-resize;
+  flex-shrink: 0;
+  position: relative;
+  border-radius: 3px;
+  background: transparent;
+  transition: background 0.15s ease;
+  z-index: 10;
+}
+
+.resize-handle::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 4px;
+  height: 40px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.15);
+  transition: background 0.15s ease, height 0.15s ease;
+}
+
+.resize-handle:hover,
+.resize-handle:active {
+  background: rgba(139, 92, 246, 0.15);
+}
+
+.resize-handle:hover::after,
+.resize-handle:active::after {
+  background: rgba(139, 92, 246, 0.6);
+  height: 60px;
 }
 
 /* ========== RIGHT PANEL: PREVIEW / CODE ========== */
@@ -205,6 +241,10 @@
   .chat-panel-container {
     width: 300px;
     min-width: 240px;
+  }
+
+  .resize-handle {
+    display: none;
   }
 
   /* Hide the static projects panel; use drawer instead */
