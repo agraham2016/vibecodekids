@@ -33,21 +33,18 @@ export interface StarterFamilyGuide {
 export const ENGINE_SELECTION_GUIDE: Record<EngineId, EngineSelectionGuide> = {
   'vibe-2d': {
     label: 'Vibe 2D',
-    runtimeSummary: 'Fast Phaser-based starters built around compact loops, readable HUDs, and quick retries.',
-    iterationSweetSpot: 'Best for theme swaps, pacing tweaks, enemy counts, and arcade rule changes.',
+    runtimeSummary: 'Fast 2D starters for simple, arcade-style games.',
+    iterationSweetSpot: 'Great for platformers, racers, mazes, and other quick-play ideas.',
     assetStrategy: 'Lean on verified sprite packs, simple scenes, and template reuse instead of one-off systems.',
-    architectureReason: 'Use when the idea should feel instantly playable, remixable, and safe to edit in small steps.',
+    architectureReason: 'Best when you want a game that is easy to start, easy to change, and fun right away.',
   },
   'vibe-3d': {
     label: 'Vibe 3D',
-    runtimeSummary:
-      'Three.js world starters with movement rigs, camera contracts, visible goals, and touch-friendly controls.',
-    iterationSweetSpot:
-      'Best for biome swaps, route changes, build goals, checkpoint tuning, and camera-safe world remixes.',
+    runtimeSummary: '3D starters for bigger worlds, movement, and exploration.',
+    iterationSweetSpot: 'Great for obbies, builders, driving games, and open-world ideas.',
     assetStrategy:
       'Prefer geometry-first scenes and only use verified local 3D assets when the asset manifest says they are safe.',
-    architectureReason:
-      'Use when the idea needs a readable 3D space, stronger exploration fantasy, or a camera-driven play loop.',
+    architectureReason: 'Best when the idea needs a world to explore, build in, or move through.',
   },
 };
 

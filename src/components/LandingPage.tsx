@@ -61,27 +61,27 @@ function friendlyCreatorName(raw: string | undefined, index: number): string {
 const FAQ_ITEMS = [
   {
     q: 'What is vibecoding?',
-    a: 'Vibecoding is a new way to create games using AI. Your child simply describes the game they want in plain English — "make a platformer where a cat collects fish" — and our AI writes the actual game code. No programming knowledge needed. They learn game design, logic, and creativity while having fun.',
+    a: 'Vibecoding means kids describe a game idea in plain English and AI helps build it. They can play it, change it, and learn how games work as they go.',
   },
   {
     q: 'Is this safe for my child?',
-    a: 'Absolutely. VibeCode Kidz is fully COPPA compliant. We use AI content moderation to filter inappropriate requests, require parental consent for users under 13, and never collect more data than necessary. All games are limited to E-rated (Everyone) content — think Minecraft and Pokemon, not anything violent or scary.',
+    a: 'Yes. VibeCode Kidz uses kid-friendly guardrails, requires parental consent for kids under 13, and keeps data collection minimal.',
   },
   {
     q: 'What ages is this for?',
-    a: 'VibeCode Kidz is designed for ages 7 to 18. Younger kids (7-10) can describe simple games and learn the basics, while older kids and teens can create increasingly complex projects. The AI adapts to their skill level.',
+    a: 'VibeCode Kidz is built for ages 7 to 18. Younger kids can start with simple ideas, and older kids can build more advanced projects.',
   },
   {
     q: 'Do kids actually learn to code?',
-    a: 'Yes! While the AI writes the initial code, kids can see and edit the source code of every game they create. They learn computational thinking, game design principles, debugging, and how code works — all through hands-on creation rather than boring tutorials.',
+    a: 'Yes. Kids can see and edit the code behind every game, which helps them learn logic, debugging, and how games are built.',
   },
   {
     q: 'Can I cancel anytime?',
-    a: 'Yes, you can cancel your subscription at any time from your account settings. There are no contracts or cancellation fees. Your child keeps access through the end of the billing period.',
+    a: 'Yes. You can cancel anytime in account settings. There are no contracts or cancellation fees.',
   },
   {
     q: 'Do you accept Arizona ESA funds?',
-    a: 'Yes! VibeCode Kidz qualifies as an approved ESA educational technology expense. Arizona ESA families can pay with their ClassWallet funds. Visit our ESA page for details on quarterly and annual billing options.',
+    a: 'Yes. Arizona ESA families can pay with ClassWallet funds. Visit our ESA page for details.',
   },
 ];
 
@@ -242,10 +242,10 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
           <div className="hero-logo">
             <img src="/images/logo.png?v=3" alt="VibeCode Kidz" className="hero-logo-img" />
           </div>
-          <h1 className="hero-headline">Teach kids to create with AI, not just consume it.</h1>
+          <h1 className="hero-headline">Kids can make games with AI.</h1>
           <p className="hero-subtitle">
-            Pick a Vibe 2D or Vibe 3D starter, or describe your own idea. VibeCode Kidz matches it to the right game
-            engine so your child can start with a playable game fast and customize it through vibe coding.
+            Pick a starter or describe an idea. VibeCode Kidz builds a playable game fast so kids can keep changing it
+            and make it their own.
           </p>
 
           <div className="hero-features">
@@ -272,15 +272,13 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
             </button>
           </div>
 
-          <p className="hero-note">
-            Start your free 30-day trial and give them a playable first version instead of a blank page.
-          </p>
+          <p className="hero-note">Start free for 30 days and begin with a playable game, not a blank page.</p>
         </section>
 
         {/* ── 3. How It Works ── */}
         <section className="how-it-works" id="how-it-works">
           <h2 className="section-heading">How It Works</h2>
-          <p className="section-subheading">A guided, beginner-friendly path from idea to playable game</p>
+          <p className="section-subheading">From idea to playable game in 3 simple steps.</p>
           <div className="steps-row">
             <div className="step-card">
               <div className="step-number">1</div>
@@ -310,10 +308,9 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
         {/* ── 4. Real Games Showcase ── */}
         {featuredGames.length > 0 && (
           <section className="games-showcase">
-            <h2 className="section-heading">Make It. Share It. Inspire the Next Creator.</h2>
+            <h2 className="section-heading">Make a Game. Share It. Let Others Play.</h2>
             <p className="section-subheading">
-              Kids build a game, share it to the Arcade, and let friends play it free. That is how one game idea can
-              spark the next one.
+              Kids can share their games in the Arcade so friends and family can play them.
             </p>
             <div className="showcase-game-grid">
               {featuredGames.map((game, i) => (
@@ -360,10 +357,8 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
 
         {/* ── 6. Template Grid (existing) ── */}
         <section className="template-showcase">
-          <h2 className="section-heading">Vibe 2D + Vibe 3D Starter Lineup</h2>
-          <p className="section-subheading">
-            Start with a polished engine path, then remix it into something totally yours
-          </p>
+          <h2 className="section-heading">Choose a Starter and Begin Fast</h2>
+          <p className="section-subheading">Start with a strong base, then change it into your own game.</p>
           <div className="landing-engine-guide-grid">
             {LANDING_ENGINE_GUIDES.map((engine) => (
               <div key={engine.label} className="landing-engine-guide-card">
@@ -413,45 +408,33 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
 
         {/* ── 7. Founder Story ── */}
         <section className="founder-story-section">
-          <h2 className="section-heading">A Better Middle Path for AI</h2>
+          <h2 className="section-heading">A Simpler Way for Kids to Use AI</h2>
           <p className="section-subheading">
-            We built VibeCode Kidz after seeing two extremes: schools trying to block AI entirely, and kids getting
-            dropped into powerful tools built for adults.
+            We built VibeCode Kidz for families who want kids to create with AI in a way that feels safe and simple.
           </p>
           <div className="founder-story-card">
-            <p>
-              VibeCode Kidz is the middle path: a safe, creative, guided way for kids to use AI productively. Instead of
-              just consuming content, they can turn ideas into real games, build confidence quickly, and share what they
-              made with friends and family.
-            </p>
+            <p>Instead of watching or scrolling, kids can turn an idea into a real game, improve it, and share it.</p>
           </div>
           <div className="parent-grid founder-pillars">
             <div className="parent-card">
               <span className="parent-card-icon">🧭</span>
               <h3>Guided, Not Overwhelming</h3>
-              <p>
-                Kids can start creating right away without having to navigate tools and workflows designed for adults.
-              </p>
+              <p>Kids can start right away without learning adult tools first.</p>
             </div>
             <div className="parent-card">
               <span className="parent-card-icon">✨</span>
               <h3>Creative, Not Passive</h3>
-              <p>
-                AI becomes a tool for making, testing, and learning instead of just watching, scrolling, or consuming.
-              </p>
+              <p>AI helps kids make, test, and learn instead of just watch and scroll.</p>
             </div>
             <div className="parent-card">
               <span className="parent-card-icon">🛡️</span>
               <h3>Safe, Not Reckless</h3>
-              <p>Parent controls, kid-friendly content rules, and moderated sharing are built into the experience.</p>
+              <p>Parent controls, kid-safe rules, and moderated sharing are built in.</p>
             </div>
             <div className="parent-card">
               <span className="parent-card-icon">⚡</span>
               <h3>Fast, Not Frustrating</h3>
-              <p>
-                Kids can go from idea to playable game in minutes, so they build confidence before complexity gets in
-                the way.
-              </p>
+              <p>Kids can go from idea to playable game in minutes.</p>
             </div>
           </div>
         </section>
@@ -460,8 +443,7 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
         <section className="scratch-section">
           <h2 className="scratch-title">Start With a Playable Game. Then Make It Yours.</h2>
           <p className="scratch-subtitle">
-            Describe what you want to make and VibeCode Kidz matches it to the right game engine, giving kids a playable
-            starting point they can tweak, remix, and improve through vibe coding.
+            Describe a game idea and VibeCode Kidz gives kids a playable version they can change and improve.
           </p>
           <div className="scratch-examples">
             {[
@@ -493,7 +475,7 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
             ))}
           </div>
           <div className="scratch-bottom">
-            <p className="scratch-hint">No blank page. No adult workflow. Just a playable start kids can build on.</p>
+            <p className="scratch-hint">No blank page. Just a playable start kids can build on.</p>
             <button className="section-cta" onClick={() => handleCta('section-cta', 'scratch')}>
               Start With a Playable Game
             </button>
@@ -502,41 +484,28 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
 
         {/* ── 8. For Parents ── */}
         <section className="for-parents" id="parents">
-          <h2 className="section-heading">Creative Screen Time Parents Can Feel Good About</h2>
-          <p className="section-subheading">
-            VibeCode Kidz is a guided middle path for AI in education: creative, safe, and built for beginners.
-          </p>
+          <h2 className="section-heading">Screen Time That Helps Kids Create</h2>
+          <p className="section-subheading">VibeCode Kidz is creative, safe, and built for beginners.</p>
           <div className="parent-grid">
             <div className="parent-card">
               <span className="parent-card-icon">🛡️</span>
               <h3>Safe &amp; COPPA Compliant</h3>
-              <p>
-                Parental consent for under-13 users, minimal data collection, and kid-friendly guardrails are built in
-                from the start.
-              </p>
+              <p>Parental consent, minimal data collection, and kid-friendly guardrails are built in.</p>
             </div>
             <div className="parent-card">
               <span className="parent-card-icon">🧠</span>
               <h3>Create With AI, Not Just Consume It</h3>
-              <p>
-                Kids use AI to make, test, and improve their own games. It is creative screen time with a real outcome.
-              </p>
+              <p>Kids use AI to make, test, and improve their own games.</p>
             </div>
             <div className="parent-card">
               <span className="parent-card-icon">✅</span>
               <h3>Built for Beginners</h3>
-              <p>
-                We built VibeCode Kidz for kids who want to make games, but are not ready for adult AI coding tools and
-                complex workflows.
-              </p>
+              <p>Kids can make games without dealing with complicated adult tools.</p>
             </div>
             <div className="parent-card">
               <span className="parent-card-icon">👨‍👩‍👧</span>
               <h3>You Stay in Control</h3>
-              <p>
-                View your child's creations, request data access or deletion anytime, and set daily usage limits through
-                your account.
-              </p>
+              <p>View your child's creations, manage data requests, and set usage limits from your account.</p>
             </div>
           </div>
         </section>
@@ -626,8 +595,8 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
 
         {/* ── 12. Final CTA ── */}
         <section className="final-cta-section">
-          <h2>What if your child could build and share a game today?</h2>
-          <p>Start free and give them a creative, guided way to use AI.</p>
+          <h2>Your child can build a game today.</h2>
+          <p>Start free and let them create with AI.</p>
           <button className="section-cta" onClick={() => handleCta('section-cta', 'final')}>
             Get Started Free
           </button>
