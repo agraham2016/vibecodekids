@@ -4,8 +4,9 @@
  * Lightweight helmet-style security headers without adding a dependency.
  * Protects against common web vulnerabilities.
  *
- * Uses nonce-based CSP when req.cspNonce is set (HTML pages).
- * script-src: nonce (no unsafe-inline). style-src: unsafe-inline (AI games need inline styles).
+ * script-src: unsafe-inline + unsafe-eval required because AI-generated game code
+ * runs in srcdoc iframes that inherit the parent CSP. Nonce-based CSP is deferred
+ * until AST-level code rewriting is in place (see backlog).
  */
 
 export function securityHeaders() {
@@ -16,13 +17,12 @@ export function securityHeaders() {
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
     res.setHeader('Permissions-Policy', 'camera=(), microphone=(self), geolocation=()');
 
-    // /dev routes: use unsafe-inline (templates have inline script/style)
-    const isDevRoute = (req.path || '').startsWith('/dev');
-    const nonce = isDevRoute ? null : req.cspNonce;
-    // script-src: nonce eliminates unsafe-inline (primary XSS vector)
-    const scriptSrc = nonce
-      ? `'self' 'nonce-${nonce}' https://js.stripe.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com`
-      : "'self' 'unsafe-inline' https://js.stripe.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com";
+    // AI-generated game code runs in srcdoc iframes that inherit the parent CSP.
+    // Games use inline event handlers, eval(), new Function(), and dynamic scripts
+    // that can't be nonce-controlled. Keep unsafe-inline + unsafe-eval for game pages.
+    // Nonce-based CSP is deferred to a future sprint (requires AST-level code rewriting).
+    const scriptSrc =
+      "'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com";
     // style-src: use 'unsafe-inline' only (no nonce). Per CSP spec, nonce+unsafe-inline ignores
     // unsafe-inline, blocking style="" attributes. AI-generated games (Phaser, etc.) rely on
     // inline styles—without this, preview iframe shows blank white screen.
