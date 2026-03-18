@@ -7,7 +7,7 @@ interface ShareModalProps {
   gameConfig?: GameConfig | null;
   onClose: () => void;
   authToken?: string | null;
-  userDisplayName?: string;
+  userScreenName?: string;
   thumbnail?: string | null;
 }
 
@@ -28,11 +28,11 @@ export default function ShareModal({
   gameConfig,
   onClose,
   authToken,
-  userDisplayName,
+  userScreenName,
   thumbnail,
 }: ShareModalProps) {
   const [title, setTitle] = useState('');
-  const [creatorName, setCreatorName] = useState(userDisplayName || '');
+  const creatorName = userScreenName || 'Creator';
   const [category, setCategory] = useState('arcade');
   const [isPublic, setIsPublic] = useState(false);
   const [multiplayer, setMultiplayer] = useState(false);
@@ -134,16 +134,10 @@ export default function ShareModal({
               </div>
 
               <div className="form-group">
-                <label>Creator nickname:</label>
-                <input
-                  type="text"
-                  value={creatorName}
-                  onChange={(e) => setCreatorName(e.target.value)}
-                  placeholder="Pick a cool nickname!"
-                  maxLength={20}
-                />
+                <label>Arcade screen name:</label>
+                <input type="text" value={creatorName} readOnly />
                 <small style={{ color: '#888', fontSize: '0.75rem' }}>
-                  Don't use your real name — pick something fun!
+                  Your game will be shared with your screen name, not your real name.
                 </small>
               </div>
 

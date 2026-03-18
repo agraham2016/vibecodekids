@@ -205,6 +205,7 @@ export interface DebugInfo {
 
 /** /api/generate response (tri-model). */
 export interface GenerateResponse {
+  generationId?: string;
   message: string;
   code: string | null;
   usage?: MembershipUsage;

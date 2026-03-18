@@ -42,6 +42,7 @@ function hashUserId(userId) {
  *
  * @param {object} event
  * @param {string} [event.sessionId]
+ * @param {string} [event.generationId]
  * @param {string} [event.startingModel] - 'claude' | 'grok'
  * @param {string} event.modelUsed - 'claude' | 'grok'
  * @param {string} event.mode
@@ -59,6 +60,7 @@ export async function logGenerateEvent(event) {
     id: `evt_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`,
     timestamp: new Date().toISOString(),
     sessionId: event.sessionId || null,
+    generationId: event.generationId || null,
     startingModel: event.startingModel || null,
     modelUsed: event.modelUsed || null,
     mode: event.mode || 'default',
@@ -82,13 +84,15 @@ export async function readEvents(opts = {}) {
     await ensureEventsFile();
     const content = await fs.readFile(EVENTS_FILE, 'utf-8');
     const lines = content.trim().split('\n').filter(Boolean);
-    let events = lines.map((line) => {
-      try {
-        return JSON.parse(line);
-      } catch {
-        return null;
-      }
-    }).filter(Boolean);
+    let events = lines
+      .map((line) => {
+        try {
+          return JSON.parse(line);
+        } catch {
+          return null;
+        }
+      })
+      .filter(Boolean);
 
     if (opts.sinceDays) {
       const cutoff = new Date();
@@ -125,6 +129,7 @@ async function ensureFeedbackFile() {
  *
  * @param {object} opts
  * @param {string} opts.sessionId
+ * @param {string} [opts.generationId]
  * @param {string} opts.messageId
  * @param {string} opts.outcome - 'thumbsUp' | 'thumbsDown'
  * @param {string} [opts.modelUsed] - 'claude' | 'grok'
@@ -141,6 +146,7 @@ export async function logFeedbackEvent(opts) {
     id: `fb_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`,
     timestamp: new Date().toISOString(),
     sessionId: opts.sessionId || null,
+    generationId: opts.generationId || null,
     messageId: opts.messageId || null,
     outcome: opts.outcome || null,
     modelUsed: opts.modelUsed || null,
@@ -162,13 +168,18 @@ export async function readFeedbackEvents(opts = {}) {
   try {
     await ensureFeedbackFile();
     const content = await fs.readFile(FEEDBACK_FILE, 'utf-8');
-    let events = content.trim().split('\n').filter(Boolean).map((line) => {
-      try {
-        return JSON.parse(line);
-      } catch {
-        return null;
-      }
-    }).filter(Boolean);
+    let events = content
+      .trim()
+      .split('\n')
+      .filter(Boolean)
+      .map((line) => {
+        try {
+          return JSON.parse(line);
+        } catch {
+          return null;
+        }
+      })
+      .filter(Boolean);
 
     if (opts.sinceDays) {
       const cutoff = new Date();

@@ -64,6 +64,7 @@ interface ChatPanelProps {
     messageId: string,
     outcome: 'thumbsUp' | 'thumbsDown',
     modelUsed: AIModel | null,
+    generationId?: string,
     details?: string,
   ) => void;
   isLoading: boolean;
@@ -586,7 +587,7 @@ export default function ChatPanel({
                               <button
                                 className="feedback-btn feedback-thumbs-up"
                                 onClick={() => {
-                                  onFeedback(message.id, 'thumbsUp', message.modelUsed ?? null);
+                                  onFeedback(message.id, 'thumbsUp', message.modelUsed ?? null, message.generationId);
                                   setFeedbackGiven((prev) => ({ ...prev, [message.id]: 'thumbsUp' }));
                                 }}
                                 title="This helped!"
@@ -596,7 +597,7 @@ export default function ChatPanel({
                               <button
                                 className="feedback-btn feedback-thumbs-down"
                                 onClick={() => {
-                                  onFeedback(message.id, 'thumbsDown', message.modelUsed ?? null);
+                                  onFeedback(message.id, 'thumbsDown', message.modelUsed ?? null, message.generationId);
                                   setFeedbackGiven((prev) => ({ ...prev, [message.id]: 'thumbsDown' }));
                                 }}
                                 title="This wasn't helpful"

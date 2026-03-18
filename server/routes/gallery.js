@@ -6,6 +6,7 @@
 
 import { Router } from 'express';
 import { listProjects } from '../services/storage.js';
+import { resolvePublicCreatorAlias } from '../utils/publicCreatorAlias.js';
 
 const router = Router();
 
@@ -14,23 +15,28 @@ router.get('/', async (req, res) => {
     const { category, limit = 30, offset = 0 } = req.query;
     const lim = Math.min(parseInt(limit) || 30, 100);
     const off = parseInt(offset) || 0;
+    const userCache = new Map();
 
     const allProjects = await listProjects();
-    const filtered = allProjects
+    const visibleProjects = allProjects
       .filter((p) => p.isPublic && p.code)
-      .filter((p) => !category || p.category === category)
-      .map((p) => ({
+      .filter((p) => !category || p.category === category);
+
+    const filtered = await Promise.all(
+      visibleProjects.map(async (p) => ({
         id: p.id,
         title: p.title,
-        creatorName: p.creatorName,
+        creatorName: await resolvePublicCreatorAlias(p, userCache),
         category: p.category,
         multiplayer: p.multiplayer || false,
         createdAt: p.createdAt,
         views: p.views || 0,
         likes: p.likes || 0,
         thumbnail: p.thumbnail || null,
-      }))
-      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      })),
+    );
+
+    filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
     const paged = filtered.slice(off, off + lim);
     res.json({ games: paged, total: filtered.length, hasMore: off + lim < filtered.length });

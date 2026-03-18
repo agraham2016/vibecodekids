@@ -26,6 +26,12 @@ import {
 import { searchSprites } from './spriteSearch.js';
 import { USE_POSTGRES } from '../config/index.js';
 import { resolveEngineProfile } from './engineRegistry.js';
+import {
+  getEngineOutcomeBias,
+  getEngineOutcomeRankingSnapshot,
+  getEngineOverrideEffect,
+  getEngineOverrideState,
+} from './engineOutcomes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -181,14 +187,31 @@ async function loadTemplate(filename, genreLabel) {
  * @param {string|null} params.currentCode - Existing game code for engine context on edits
  * @returns {Promise<{ referenceCode: string, sources: string[], totalChars: number, engineProfile: object|null }>}
  */
-export async function resolveReferences({ prompt, genre, gameConfig, isNewGame, currentCode = null }) {
+export async function resolveReferences({
+  prompt,
+  genre,
+  gameConfig,
+  isNewGame,
+  currentCode = null,
+  rankingSnapshot = null,
+  overrideState = null,
+}) {
   const sources = [];
   const parts = [];
   let charBudget = REFERENCE_MAX_CHARS;
+  const effectiveRankingSnapshot = rankingSnapshot || getEngineOutcomeRankingSnapshot();
+  const effectiveOverrideState = overrideState || getEngineOverrideState();
 
   // Use genre from gameConfig if available
   const effectiveGenre = genre || gameConfig?.gameType || null;
-  const engineProfile = resolveEngineProfile({ prompt, genre: effectiveGenre, gameConfig, currentCode });
+  const engineProfile = resolveEngineProfile({
+    prompt,
+    genre: effectiveGenre,
+    gameConfig,
+    currentCode,
+    rankingSnapshot: effectiveRankingSnapshot,
+    overrideState: effectiveOverrideState,
+  });
   const referenceGenre = engineProfile.templateGenre || effectiveGenre;
   const templateFile = engineProfile.templateFile || LEGACY_TEMPLATE_MAP[referenceGenre] || null;
 
@@ -276,9 +299,14 @@ export async function resolveReferences({ prompt, genre, gameConfig, isNewGame, 
     engineProfile,
     referenceGenre,
     force3D,
+    rankingSnapshot: effectiveRankingSnapshot,
+    overrideState: effectiveOverrideState,
   });
   if (is3DEngineRequest && modelReference.block) {
-    if (modelReference.block.length <= charBudget) {
+    const modelOverride = modelReference.source
+      ? getEngineOverrideEffect(effectiveOverrideState, 'sources', modelReference.source)
+      : { hidden: false };
+    if (!modelOverride.hidden && modelReference.block.length <= charBudget) {
       parts.push(modelReference.block);
       charBudget -= modelReference.block.length;
       sources.push(modelReference.source);
@@ -290,29 +318,36 @@ export async function resolveReferences({ prompt, genre, gameConfig, isNewGame, 
   }
 
   if (isNewGame && templateFile) {
-    const template = await loadTemplate(
-      templateFile,
-      engineProfile.starterTemplateId || referenceGenre || engineProfile.genreFamily,
-    );
-    if (template) {
-      const chunk = formatTemplateReference(
-        template,
-        template.genreLabel || referenceGenre || engineProfile.genreFamily,
-        engineProfile,
+    const templateSource = `template:${path.basename(templateFile)}`;
+    const templateOverride = getEngineOverrideEffect(effectiveOverrideState, 'sources', templateSource);
+    if (!templateOverride.hidden) {
+      const template = await loadTemplate(
+        templateFile,
+        engineProfile.starterTemplateId || referenceGenre || engineProfile.genreFamily,
       );
-      if (chunk.length <= charBudget) {
-        parts.push(chunk);
-        charBudget -= chunk.length;
-        sources.push(`template:${template.filename}`);
-      } else {
-        console.warn(`⚠️ Template DROPPED — ${chunk.length} chars exceeds remaining budget of ${charBudget}`);
+      if (template) {
+        const chunk = formatTemplateReference(
+          template,
+          template.genreLabel || referenceGenre || engineProfile.genreFamily,
+          engineProfile,
+        );
+        if (chunk.length <= charBudget) {
+          parts.push(chunk);
+          charBudget -= chunk.length;
+          sources.push(`template:${template.filename}`);
+        } else {
+          console.warn(`⚠️ Template DROPPED — ${chunk.length} chars exceeds remaining budget of ${charBudget}`);
+        }
       }
     }
   }
 
   // ===== 5. INJECT 3D MODEL LIST (after template for non-3D requests) =====
   if (!is3DEngineRequest && modelReference.block) {
-    if (modelReference.block.length <= charBudget) {
+    const modelOverride = modelReference.source
+      ? getEngineOverrideEffect(effectiveOverrideState, 'sources', modelReference.source)
+      : { hidden: false };
+    if (!modelOverride.hidden && modelReference.block.length <= charBudget) {
       parts.push(modelReference.block);
       charBudget -= modelReference.block.length;
       sources.push(modelReference.source);
@@ -324,7 +359,11 @@ export async function resolveReferences({ prompt, genre, gameConfig, isNewGame, 
   }
 
   // ===== 6. LOAD RELEVANT SNIPPETS =====
-  const snippets = getRelevantSnippets(referenceGenre || effectiveGenre, prompt);
+  const snippets = getRelevantSnippets(referenceGenre || effectiveGenre, prompt, {
+    engineProfile,
+    rankingSnapshot: effectiveRankingSnapshot,
+    overrideState: effectiveOverrideState,
+  });
   for (const snippet of snippets) {
     if (snippet.content.length > charBudget) continue;
     parts.push(formatSnippetReference(snippet));
@@ -350,24 +389,39 @@ export async function resolveReferences({ prompt, genre, gameConfig, isNewGame, 
   return { referenceCode, sources, totalChars, engineProfile };
 }
 
-function buildModelReference({ engineProfile, referenceGenre, force3D }) {
+function buildModelReference({ engineProfile, referenceGenre, force3D, rankingSnapshot = null, overrideState = null }) {
   const implies3D = force3D || engineProfile.dimension === '3d' || referenceGenre === 'parking';
 
-  let modelKey = null;
-  if (engineProfile.modelPackHint) {
-    modelKey = engineProfile.modelPackHint;
-  } else if (referenceGenre) {
-    const modelGenre3D = referenceGenre + '-3d';
-    modelKey = MODEL_MANIFEST[referenceGenre]
-      ? referenceGenre
-      : MODEL_MANIFEST[modelGenre3D]
-        ? modelGenre3D
-        : implies3D
-          ? 'common-3d'
-          : null;
-  } else if (implies3D) {
-    modelKey = 'common-3d';
+  const candidates = [];
+  const addCandidate = (key, baseScore) => {
+    if (!key || !MODEL_MANIFEST[key]) return;
+    if (candidates.some((candidate) => candidate.key === key)) return;
+    const source = `models:${key}`;
+    const bias = getEngineOutcomeBias(rankingSnapshot?.sources?.[`models:${key}`], {
+      minSamples: 2,
+      maxBoost: 1.5,
+      fullConfidenceSamples: 8,
+    });
+    const override = getEngineOverrideEffect(overrideState, 'sources', source);
+    candidates.push({ key, source, hidden: !!override.hidden, score: baseScore + bias + Number(override.boost || 0) });
+  };
+
+  addCandidate(engineProfile.modelPackHint, 4);
+  addCandidate(engineProfile.starterTemplateId, 3.5);
+  addCandidate(engineProfile.starterTemplateId ? `${engineProfile.starterTemplateId}-3d` : null, 3.4);
+
+  if (referenceGenre) {
+    addCandidate(referenceGenre, 3);
+    addCandidate(`${referenceGenre}-3d`, 2.8);
   }
+
+  if (implies3D) {
+    addCandidate('common-3d', 1.5);
+  }
+
+  const bestCandidate =
+    candidates.filter((candidate) => !candidate.hidden).sort((a, b) => b.score - a.score)[0] || null;
+  const modelKey = bestCandidate?.key || null;
 
   if (!modelKey) {
     return { block: '', source: null };

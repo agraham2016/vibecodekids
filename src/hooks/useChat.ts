@@ -12,6 +12,7 @@ import type { Message, MembershipUsage, GenerateResponse, AIModel, AIMode, GameC
 
 /** Extended message with model info for UI rendering. */
 export interface ChatMessage extends Message {
+  generationId?: string;
   modelUsed?: AIModel | null;
   isCacheHit?: boolean;
   alternateResponse?: {
@@ -141,6 +142,7 @@ export function useChat({ onCodeGenerated, onUsageUpdate, onUpgradeNeeded }: Use
           role: 'assistant',
           content: data.message,
           timestamp: new Date(),
+          generationId: data.generationId,
           modelUsed: data.modelUsed,
           isCacheHit: data.isCacheHit,
           alternateResponse: data.alternateResponse,
@@ -201,10 +203,17 @@ export function useChat({ onCodeGenerated, onUsageUpdate, onUpgradeNeeded }: Use
 
   /** Send thumbs up/down feedback for an AI response. */
   const sendFeedback = useCallback(
-    async (messageId: string, outcome: 'thumbsUp' | 'thumbsDown', modelUsed: AIModel | null, details?: string) => {
+    async (
+      messageId: string,
+      outcome: 'thumbsUp' | 'thumbsDown',
+      modelUsed: AIModel | null,
+      generationId?: string,
+      details?: string,
+    ) => {
       try {
         await api.post('/api/feedback', {
           sessionId: sessionIdRef.current,
+          generationId: generationId || undefined,
           messageId,
           outcome,
           modelUsed: modelUsed || null,

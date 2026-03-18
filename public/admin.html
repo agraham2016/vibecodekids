@@ -1165,6 +1165,20 @@
           </div>
           <div class="panel" style="grid-column: 1 / -1;">
             <div class="panel-header">
+              🧠 Smart Engine
+              <select id="engineOutcomesPeriod" onchange="loadEngineOutcomes()" style="margin-left:12px;padding:6px 10px;border-radius:8px;background:rgba(0,0,0,0.3);border:1px solid var(--glass-border);color:white;font-size:0.9rem;">
+                <option value="7">Last 7 days</option>
+                <option value="30" selected>Last 30 days</option>
+                <option value="90">Last 90 days</option>
+              </select>
+              <button class="btn btn-primary btn-sm" style="margin-left:8px;" onclick="loadEngineOutcomes()">Refresh</button>
+            </div>
+            <div class="panel-content" id="engineOutcomesContent">
+              <div class="loading"><div class="spinner"></div><p>Loading smart engine stats...</p></div>
+            </div>
+          </div>
+          <div class="panel" style="grid-column: 1 / -1;">
+            <div class="panel-header">
               🚩 Moderation Queue
               <select id="modQueueFilter" onchange="loadModerationQueue()" style="margin-left:12px;padding:6px 10px;border-radius:8px;background:rgba(0,0,0,0.3);border:1px solid var(--glass-border);color:white;font-size:0.9rem;">
                 <option value="pending">Pending</option>
@@ -1574,6 +1588,7 @@
 
       if (tabId === 'system') {
         loadModelPerformance();
+        loadEngineOutcomes();
         loadSystemHealth();
         loadContentFilterStats();
         loadRateLimitStats();
@@ -2465,6 +2480,153 @@
         `;
       } catch (error) {
         container.innerHTML = '<p style="color:var(--error);">Failed to load model performance stats.</p>';
+      }
+    }
+
+    function renderEngineOverrideButtons(scope, item, overrides) {
+      const current = overrides?.[scope]?.[item.key] || null;
+      const currentLabel = current
+        ? `<div style="margin-bottom:8px;color:var(--text-secondary);font-size:0.8rem;">Override: ${escapeHtml(current.action)}${current.expiresAt ? ` until ${escapeHtml(formatDate(current.expiresAt))}` : ''}</div>`
+        : '';
+
+      const buttons = [];
+      if (scope === 'families' || scope === 'starters') {
+        buttons.push(
+          `<button class="btn btn-sm" style="background:rgba(52,211,153,0.2);color:#34d399;border:1px solid #34d399;" onclick="applyEngineOverride(${JSON.stringify(scope)}, ${JSON.stringify(item.key)}, 'pin')">Pin</button>`,
+        );
+        buttons.push(
+          `<button class="btn btn-sm" style="background:rgba(251,191,36,0.2);color:#fbbf24;border:1px solid #fbbf24;" onclick="applyEngineOverride(${JSON.stringify(scope)}, ${JSON.stringify(item.key)}, 'downweight')">Downweight</button>`,
+        );
+      } else if (scope === 'sources') {
+        buttons.push(
+          `<button class="btn btn-sm" style="background:rgba(251,191,36,0.2);color:#fbbf24;border:1px solid #fbbf24;" onclick="applyEngineOverride('sources', ${JSON.stringify(item.key)}, 'downweight')">Downweight</button>`,
+        );
+        buttons.push(
+          `<button class="btn btn-sm" style="background:rgba(239,68,68,0.2);color:#ef4444;border:1px solid #ef4444;" onclick="applyEngineOverride('sources', ${JSON.stringify(item.key)}, 'mute')">Mute 7d</button>`,
+        );
+      }
+      if (current) {
+        buttons.push(
+          `<button class="btn btn-sm" style="background:rgba(255,255,255,0.1);color:#fff;border:1px solid var(--glass-border);" onclick="clearEngineOverrideAction(${JSON.stringify(scope)}, ${JSON.stringify(item.key)})">Clear</button>`,
+        );
+      }
+
+      return `${currentLabel}<div class="actions">${buttons.join('')}</div>`;
+    }
+
+    function renderEngineOutcomeRankRows(items, emptyLabel, scope, overrides = {}) {
+      if (!items || items.length === 0) {
+        return `<tr><td colspan="6" style="color:var(--text-secondary);">${escapeHtml(emptyLabel)}</td></tr>`;
+      }
+
+      return items.map(item => {
+        const avg = Number(item.averageScore || 0).toFixed(2);
+        const bias = Number(item.bias || 0).toFixed(2);
+        const feedback = Number(item.feedbackCount || 0);
+        return `<tr>
+          <td style="font-family:monospace;font-size:0.85rem;">${escapeHtml(item.key || '-')}</td>
+          <td>${Number(item.count || 0).toLocaleString()}</td>
+          <td>${avg}</td>
+          <td>${bias}</td>
+          <td>👍 ${Number(item.thumbsUpCount || 0)} / 👎 ${Number(item.thumbsDownCount || 0)}${feedback ? ` <span style="color:var(--text-secondary);">(${feedback})</span>` : ''}</td>
+          <td>${renderEngineOverrideButtons(scope, item, overrides)}</td>
+        </tr>`;
+      }).join('');
+    }
+
+    async function applyEngineOverride(scope, key, action) {
+      try {
+        const response = await adminFetch('/api/admin/engine-overrides', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ scope, key, action })
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Failed to save override');
+        showToast(`Saved smart engine override for ${key}`, 'success');
+        loadEngineOutcomes();
+      } catch (error) {
+        showToast(error.message || 'Failed to save smart engine override', 'error');
+      }
+    }
+
+    async function clearEngineOverrideAction(scope, key) {
+      try {
+        const response = await adminFetch('/api/admin/engine-overrides/clear', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ scope, key })
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Failed to clear override');
+        showToast(`Cleared smart engine override for ${key}`, 'success');
+        loadEngineOutcomes();
+      } catch (error) {
+        showToast(error.message || 'Failed to clear smart engine override', 'error');
+      }
+    }
+
+    async function loadEngineOutcomes() {
+      const container = document.getElementById('engineOutcomesContent');
+      if (!container) return;
+
+      try {
+        const days = document.getElementById('engineOutcomesPeriod')?.value || '30';
+        const response = await adminFetch('/api/admin/engine-outcomes?days=' + days + '&limit=6');
+        const data = await response.json();
+        const totals = data.totals || {};
+        const overrides = data.overrides || {};
+        const topFamilies = renderEngineOutcomeRankRows(data.topFamilies, 'No ranked families yet.', 'families', overrides);
+        const topStarters = renderEngineOutcomeRankRows(data.topStarters, 'No ranked starters yet.', 'starters', overrides);
+        const topSources = renderEngineOutcomeRankRows(data.topSources, 'No ranked reference sources yet.', 'sources', overrides);
+        const bottomFamilies = renderEngineOutcomeRankRows(data.bottomFamilies, 'No underperforming families yet.', 'families', overrides);
+        const bottomStarters = renderEngineOutcomeRankRows(data.bottomStarters, 'No underperforming starters yet.', 'starters', overrides);
+        const bottomSources = renderEngineOutcomeRankRows(data.bottomSources, 'No underperforming sources yet.', 'sources', overrides);
+
+        container.innerHTML = `
+          <div class="system-stat-row"><span class="system-stat-label">Period</span><span class="system-stat-value">${escapeHtml(String(data.periodDays || 30))} days</span></div>
+          <div class="system-stat-row"><span class="system-stat-label">Generations Logged</span><span class="system-stat-value">${Number(totals.generations || 0).toLocaleString()}</span></div>
+          <div class="system-stat-row"><span class="system-stat-label">Feedback Logged</span><span class="system-stat-value">${Number(totals.feedback || 0).toLocaleString()}</span></div>
+          <div class="system-stat-row"><span class="system-stat-label">Thumbs</span><span class="system-stat-value">👍 ${Number(totals.thumbsUp || 0)} / 👎 ${Number(totals.thumbsDown || 0)}</span></div>
+          <div class="system-stat-row"><span class="system-stat-label">Cache Hits</span><span class="system-stat-value">${Number(totals.cacheHits || 0).toLocaleString()}</span></div>
+          <div class="system-stat-row"><span class="system-stat-label">Validation Passes</span><span class="system-stat-value">${Number(totals.validationPasses || 0).toLocaleString()}</span></div>
+          <div class="system-stat-row"><span class="system-stat-label">Repair Success</span><span class="system-stat-value">${Number(totals.repairSuccesses || 0)} / ${Number(totals.repairAttempts || 0)}</span></div>
+          <hr style="border:none;border-top:1px solid rgba(255,255,255,0.1);margin:14px 0;">
+          <h4 style="margin-bottom:10px;">Top Families</h4>
+          <table class="data-table" style="font-size:0.9rem;margin-bottom:16px;">
+            <thead><tr><th>Family</th><th>Runs</th><th>Avg Score</th><th>Bias</th><th>Feedback</th><th>Actions</th></tr></thead>
+            <tbody>${topFamilies}</tbody>
+          </table>
+          <h4 style="margin-bottom:10px;">Top Starters</h4>
+          <table class="data-table" style="font-size:0.9rem;margin-bottom:16px;">
+            <thead><tr><th>Starter</th><th>Runs</th><th>Avg Score</th><th>Bias</th><th>Feedback</th><th>Actions</th></tr></thead>
+            <tbody>${topStarters}</tbody>
+          </table>
+          <h4 style="margin-bottom:10px;">Top Reference Sources</h4>
+          <table class="data-table" style="font-size:0.9rem;">
+            <thead><tr><th>Source</th><th>Runs</th><th>Avg Score</th><th>Bias</th><th>Feedback</th><th>Actions</th></tr></thead>
+            <tbody>${topSources}</tbody>
+          </table>
+          <hr style="border:none;border-top:1px solid rgba(255,255,255,0.1);margin:18px 0;">
+          <h4 style="margin-bottom:10px;color:#fbbf24;">Needs Attention: Families</h4>
+          <table class="data-table" style="font-size:0.9rem;margin-bottom:16px;">
+            <thead><tr><th>Family</th><th>Runs</th><th>Avg Score</th><th>Bias</th><th>Feedback</th><th>Actions</th></tr></thead>
+            <tbody>${bottomFamilies}</tbody>
+          </table>
+          <h4 style="margin-bottom:10px;color:#fbbf24;">Needs Attention: Starters</h4>
+          <table class="data-table" style="font-size:0.9rem;margin-bottom:16px;">
+            <thead><tr><th>Starter</th><th>Runs</th><th>Avg Score</th><th>Bias</th><th>Feedback</th><th>Actions</th></tr></thead>
+            <tbody>${bottomStarters}</tbody>
+          </table>
+          <h4 style="margin-bottom:10px;color:#fbbf24;">Needs Attention: Reference Sources</h4>
+          <table class="data-table" style="font-size:0.9rem;">
+            <thead><tr><th>Source</th><th>Runs</th><th>Avg Score</th><th>Bias</th><th>Feedback</th><th>Actions</th></tr></thead>
+            <tbody>${bottomSources}</tbody>
+          </table>
+          ${Number(totals.generations || 0) === 0 ? '<p style="color:var(--text-secondary);margin-top:12px;">No smart engine events yet. Rankings start appearing after live generations and thumbs feedback are logged.</p>' : ''}
+        `;
+      } catch (error) {
+        container.innerHTML = '<p style="color:var(--error);">Failed to load smart engine stats.</p>';
       }
     }
 

@@ -6,6 +6,7 @@
 
 import { Router } from 'express';
 import { logFeedbackEvent } from '../services/eventStore.js';
+import { logEngineOutcomeFeedback } from '../services/engineOutcomes.js';
 import { readUser } from '../services/storage.js';
 
 export default function createFeedbackRouter(sessions) {
@@ -13,7 +14,7 @@ export default function createFeedbackRouter(sessions) {
 
   router.post('/', async (req, res) => {
     try {
-      const { sessionId, messageId, outcome, modelUsed, details } = req.body;
+      const { sessionId, generationId, messageId, outcome, modelUsed, details } = req.body;
 
       if (!outcome || !['thumbsUp', 'thumbsDown'].includes(outcome)) {
         return res.status(400).json({ error: 'Invalid outcome. Use thumbsUp or thumbsDown.' });
@@ -38,9 +39,21 @@ export default function createFeedbackRouter(sessions) {
 
       await logFeedbackEvent({
         sessionId: sessionId || null,
+        generationId: generationId || null,
         messageId: messageId || null,
         outcome,
-        modelUsed: modelUsed && ['claude', 'grok'].includes(modelUsed) ? modelUsed : null,
+        modelUsed: modelUsed && ['claude', 'grok', 'openai'].includes(modelUsed) ? modelUsed : null,
+        details: typeof details === 'string' ? details.slice(0, 500) : null,
+        userId,
+        improvementOptOut,
+      });
+
+      await logEngineOutcomeFeedback({
+        sessionId: sessionId || null,
+        generationId: generationId || null,
+        messageId: messageId || null,
+        outcome,
+        modelUsed: modelUsed && ['claude', 'grok', 'openai'].includes(modelUsed) ? modelUsed : null,
         details: typeof details === 'string' ? details.slice(0, 500) : null,
         userId,
         improvementOptOut,

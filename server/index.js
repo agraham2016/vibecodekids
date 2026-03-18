@@ -40,6 +40,7 @@ import { ensureDataDirs } from './services/storage.js';
 import { SessionStore } from './services/sessions.js';
 import log from './services/logger.js';
 import { injectNonce } from './utils/injectNonce.js';
+import { resolvePublicCreatorAlias } from './utils/publicCreatorAlias.js';
 
 // Middleware
 import { requireAdmin } from './middleware/auth.js';
@@ -245,7 +246,7 @@ app.get('/play/:id', async (req, res) => {
 
     if (project) {
       const title = (project.title || 'Untitled Game').replace(/[<>"]/g, '');
-      const creator = (project.displayName || project.username || 'a kid').replace(/[<>"]/g, '');
+      const creator = (await resolvePublicCreatorAlias(project)).replace(/[<>"]/g, '');
       const desc = `Play "${title}" by ${creator} on VibeCodeKidz — built with AI!`;
 
       html = html.replace(/<title>[^<]*<\/title>/, `<title>${title} - VibeCodeKidz</title>`);

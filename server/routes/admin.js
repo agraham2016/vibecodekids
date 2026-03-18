@@ -29,6 +29,7 @@ import { getBugReport, listBugReports, resolveBugReport, updateBugReportTriage }
 import { triageBugReport } from '../services/bugReportTriage.js';
 import { runRetentionCleanup } from '../services/dataRetention.js';
 import { getAlertStatus } from '../services/adminAlerts.js';
+import { clearEngineOverride, getEngineOutcomeAdminSummary, setEngineOverride } from '../services/engineOutcomes.js';
 
 const router = Router();
 
@@ -513,6 +514,51 @@ router.get('/content-filter-stats', (_req, res) => {
   } catch (error) {
     console.error('Content filter stats error:', error);
     res.status(500).json({ error: 'Could not load content filter stats' });
+  }
+});
+
+// Smart engine outcomes summary
+router.get('/engine-outcomes', async (req, res) => {
+  try {
+    const days = Math.min(parseInt(req.query.days || '30', 10) || 30, 365);
+    const limit = Math.min(parseInt(req.query.limit || '5', 10) || 5, 20);
+    const summary = await getEngineOutcomeAdminSummary({ sinceDays: days, limit });
+    res.json(summary);
+  } catch (error) {
+    console.error('Engine outcomes admin summary error:', error);
+    res.status(500).json({ error: 'Could not load engine outcomes summary' });
+  }
+});
+
+router.post('/engine-overrides', async (req, res) => {
+  try {
+    const { scope, key, action } = req.body || {};
+    const state = await setEngineOverride({ scope, key, action });
+    logAdminAction({
+      action: 'engine-override-set',
+      details: { scope, key, action },
+      ip: getAdminIp(req),
+    }).catch(() => {});
+    res.json({ success: true, overrides: state });
+  } catch (error) {
+    console.error('Set engine override error:', error);
+    res.status(400).json({ error: error.message || 'Could not set engine override' });
+  }
+});
+
+router.post('/engine-overrides/clear', async (req, res) => {
+  try {
+    const { scope, key } = req.body || {};
+    const state = await clearEngineOverride({ scope, key });
+    logAdminAction({
+      action: 'engine-override-clear',
+      details: { scope, key },
+      ip: getAdminIp(req),
+    }).catch(() => {});
+    res.json({ success: true, overrides: state });
+  } catch (error) {
+    console.error('Clear engine override error:', error);
+    res.status(400).json({ error: error.message || 'Could not clear engine override' });
   }
 });
 

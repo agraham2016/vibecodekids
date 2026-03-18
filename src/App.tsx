@@ -397,7 +397,7 @@ function App() {
           gameConfig={activeGameConfig}
           onClose={() => setShowShareModal(false)}
           authToken={token}
-          userDisplayName={user.displayName}
+          userScreenName={user.username}
           thumbnail={shareThumbnail}
         />
       )}

@@ -27,6 +27,15 @@ const GENRE_SNIPPET_ALIASES = {
   'lemonade-stand-tycoon': ['clicker'],
 };
 
+const STARTER_SNIPPET_PREFERENCES = {
+  'crystal-defense': ['ai-enemies', 'ui-components', 'particle-system'],
+  'village-quest': ['ui-components', 'ai-enemies', 'camera-systems'],
+  'trick-shot-arena': ['physics-2d', 'particle-system', 'ui-components'],
+  'relic-hunt-3d': ['particle-system', 'ai-enemies'],
+  'open-map-explorer': ['particle-system', 'camera-systems'],
+  'stunt-racer-3d': ['particle-system', 'camera-systems'],
+};
+
 /**
  * Each snippet has:
  * - content: The code string to inject
@@ -209,15 +218,22 @@ export const SNIPPET_LIBRARY = [
  * Get snippets relevant to a genre and/or prompt.
  * Returns an array of { name, content } objects.
  */
-export function getRelevantSnippets(genre, prompt) {
+export function getRelevantSnippets(genre, prompt, options = {}) {
   const lower = (prompt || '').toLowerCase();
   const matched = [];
   const genreCandidates = [genre, ...(GENRE_SNIPPET_ALIASES[genre] || [])].filter(
     (name, index, list) => !!name && list.indexOf(name) === index,
   );
+  const rankingSources = options.rankingSnapshot?.sources || {};
+  const starterPreferences = STARTER_SNIPPET_PREFERENCES[options.engineProfile?.starterTemplateId] || [];
+  const overrideState = options.overrideState || null;
 
   for (const snippet of SNIPPET_LIBRARY) {
     let score = 0;
+    const override = overrideState?.sources?.[`snippet:${snippet.name}`];
+    if (override?.action === 'mute' && (!override.expiresAt || new Date(override.expiresAt).getTime() > Date.now())) {
+      continue;
+    }
 
     // Genre match
     if (genreCandidates.some((candidate) => snippet.genres.includes(candidate))) score += 2;
@@ -229,6 +245,18 @@ export function getRelevantSnippets(genre, prompt) {
         break;
       }
     }
+
+    if (starterPreferences.includes(snippet.name)) score += 0.5;
+
+    const sourceStats = rankingSources[`snippet:${snippet.name}`];
+    if (sourceStats?.count >= 2) {
+      const confidence = Math.min(1, sourceStats.count / 8);
+      const normalized = Math.max(-1, Math.min(1, sourceStats.averageScore / 6));
+      score += normalized * 1.25 * confidence;
+    }
+
+    if (override?.action === 'pin') score += 3;
+    if (override?.action === 'downweight') score -= 2.5;
 
     if (score > 0) matched.push({ ...snippet, score });
   }

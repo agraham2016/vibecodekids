@@ -205,6 +205,13 @@ export async function generateOrIterateGame({
 
   // ===== DETERMINE TARGET MODEL =====
   const targetModel = resolveTargetModel(effectiveMode, lastModelUsed);
+  const detectedGenre = gameConfig?.gameType || detectGameGenre(prompt || '') || null;
+  const cachedEngineProfile = resolveEngineProfile({
+    prompt,
+    genre: detectedGenre,
+    gameConfig,
+    currentCode,
+  });
   console.log(
     `🎯 Mode: "${effectiveMode}" → Model: ${targetModel} | hasCode: ${!!currentCode} | history: ${conversationHistory.length}`,
   );
@@ -219,6 +226,15 @@ export async function generateOrIterateGame({
       modelUsed: cached.model,
       isCacheHit: true,
       wasTruncated: false,
+      engineTelemetry: {
+        engineProfile: cachedEngineProfile,
+        validationSafe: null,
+        validationWarningsCount: 0,
+        validationViolationsCount: 0,
+        repairAttempted: false,
+        repairSucceeded: false,
+        isNewGame: !currentCode,
+      },
     };
   }
 
@@ -445,6 +461,15 @@ Only output the full HTML game.`;
 
   let assistantText;
   let wasTruncated = false;
+  const engineTelemetry = {
+    engineProfile: requestedEngineProfile,
+    validationSafe: null,
+    validationWarningsCount: 0,
+    validationViolationsCount: 0,
+    repairAttempted: false,
+    repairSucceeded: false,
+    isNewGame,
+  };
 
   assistantText = await requestAssistantText(messages);
 
@@ -496,12 +521,16 @@ Only output the full HTML game.`;
 
   if (code) {
     let engineValidation = validateEngineOutput(code, requestedEngineProfile);
+    engineTelemetry.validationSafe = engineValidation.safe;
+    engineTelemetry.validationWarningsCount = engineValidation.warnings.length;
+    engineTelemetry.validationViolationsCount = engineValidation.violations.length;
     if (engineValidation.warnings.length > 0) {
       console.log(
         `🧪 Engine validation warnings (${requestedEngineProfile.validationProfile}): ${engineValidation.warnings.join(', ')}`,
       );
     }
     if (!engineValidation.safe) {
+      engineTelemetry.repairAttempted = true;
       console.warn(
         `⚠️ Engine validation failed (${requestedEngineProfile.validationProfile}): ${engineValidation.violations.join(', ')}`,
       );
@@ -528,10 +557,18 @@ Only output the full HTML game.`;
             code = repairedCode;
             assistantText = repairText;
             engineValidation = repairedValidation;
+            engineTelemetry.repairSucceeded = true;
+            engineTelemetry.validationSafe = repairedValidation.safe;
+            engineTelemetry.validationWarningsCount = repairedValidation.warnings.length;
+            engineTelemetry.validationViolationsCount = repairedValidation.violations.length;
           } else {
             console.warn(
               `⚠️ Engine repair retry still failed (${requestedEngineProfile.validationProfile}): ${repairedValidation.violations.join(', ')}`,
             );
+            engineTelemetry.repairSucceeded = false;
+            engineTelemetry.validationSafe = repairedValidation.safe;
+            engineTelemetry.validationWarningsCount = repairedValidation.warnings.length;
+            engineTelemetry.validationViolationsCount = repairedValidation.violations.length;
             code = null;
           }
         } else {
@@ -566,6 +603,7 @@ Only output the full HTML game.`;
     isCacheHit: false,
     wasTruncated,
     referenceSources,
+    engineTelemetry,
   };
 }
 
@@ -757,6 +795,8 @@ async function handleCriticMode({ prompt, currentCode, conversationHistory, game
     modelUsed: 'claude',
     isCacheHit: false,
     wasTruncated: polishedResult.wasTruncated,
+    referenceSources: polishedResult.referenceSources || claudeResult.referenceSources || [],
+    engineTelemetry: polishedResult.engineTelemetry || claudeResult.engineTelemetry || null,
     // Include the alternate response so the UI can show side-by-side
     alternateResponse: {
       response: critiqueResult.response,

@@ -17,6 +17,7 @@
  */
 
 import { Router } from 'express';
+import crypto from 'crypto';
 import { detectGameGenre } from '../prompts/index.js';
 import { filterContent } from '../middleware/contentFilter.js';
 import { piiScannerMiddleware, scanPII } from '../middleware/piiScanner.js';
@@ -33,6 +34,8 @@ import {
 } from '../services/ai.js';
 import { generateOrIterateGame } from '../services/gameHandler.js';
 import { logGenerateEvent } from '../services/eventStore.js';
+import { logEngineOutcomeGeneration } from '../services/engineOutcomes.js';
+import { resolveEngineProfile } from '../services/engineRegistry.js';
 import { readUser } from '../services/storage.js';
 import { recordViolation } from '../services/discipline.js';
 import { checkAbuse } from '../services/abuseDetection.js';
@@ -69,6 +72,7 @@ export default function createGenerateRouter(sessions) {
         startingModel = null,
       } = req.body;
       let mode = requestedMode;
+      const generationId = `gen_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
 
       console.log(
         `🎮 Generate request: "${(message || '').slice(0, 80)}" | mode: ${mode} | model-hint: ${lastModelUsed || 'none'} | gameConfig: ${gameConfig ? gameConfig.gameType : 'none'} | hasCode: ${!!currentCode} | historyLen: ${conversationHistory.length}`,
@@ -210,6 +214,7 @@ export default function createGenerateRouter(sessions) {
           }
           if (!improvementOptOut) {
             logGenerateEvent({
+              generationId,
               sessionId,
               startingModel,
               modelUsed: 'claude',
@@ -219,6 +224,39 @@ export default function createGenerateRouter(sessions) {
               ageBracket,
               improvementOptOut,
             }).catch((err) => console.error('Event log error:', err?.message));
+
+            const cachedProfile = resolveEngineProfile({
+              prompt: message,
+              genre: gameGenre,
+              gameConfig,
+              currentCode,
+            });
+            logEngineOutcomeGeneration({
+              generationId,
+              sessionId,
+              startingModel,
+              modelUsed: 'claude',
+              mode,
+              hasCode: !!cached.code,
+              userId: ageBracket === 'under13' ? null : userId,
+              ageBracket,
+              improvementOptOut,
+              isCacheHit: true,
+              isNewGame,
+              code: cached.code,
+              referenceSources: [],
+              engineId: cachedProfile.engineId,
+              dimension: cachedProfile.dimension,
+              genreFamily: cachedProfile.genreFamily,
+              starterTemplateId: cachedProfile.starterTemplateId,
+              templateGenre: cachedProfile.templateGenre,
+              validationProfile: cachedProfile.validationProfile,
+              validationSafe: null,
+              validationWarningsCount: 0,
+              validationViolationsCount: 0,
+              repairAttempted: false,
+              repairSucceeded: false,
+            }).catch((err) => console.error('Engine outcome log error:', err?.message));
           }
 
           return res.json({
@@ -228,6 +266,7 @@ export default function createGenerateRouter(sessions) {
             modelUsed: 'claude',
             isCacheHit: true,
             cached: true,
+            generationId,
           });
         }
       }
@@ -288,6 +327,7 @@ export default function createGenerateRouter(sessions) {
       const usage = userId ? calculateUsageRemaining(tierCheck.user) : null;
 
       const responsePayload = {
+        generationId,
         message: cleanedMessage,
         code: cleanedCode,
         usage,
@@ -327,6 +367,7 @@ export default function createGenerateRouter(sessions) {
       }
       if (!improvementOptOut) {
         logGenerateEvent({
+          generationId,
           sessionId,
           startingModel,
           modelUsed: result.modelUsed,
@@ -336,6 +377,42 @@ export default function createGenerateRouter(sessions) {
           ageBracket,
           improvementOptOut,
         }).catch((err) => console.error('Event log error:', err?.message));
+
+        const telemetry = result.engineTelemetry || {};
+        const engineProfile =
+          telemetry.engineProfile ||
+          resolveEngineProfile({
+            prompt: message,
+            genre: gameGenre,
+            gameConfig,
+            currentCode,
+          });
+        logEngineOutcomeGeneration({
+          generationId,
+          sessionId,
+          startingModel,
+          modelUsed: result.modelUsed,
+          mode,
+          hasCode: !!cleanedCode,
+          userId: ageBracket === 'under13' ? null : userId,
+          ageBracket,
+          improvementOptOut,
+          isCacheHit: result.isCacheHit,
+          isNewGame,
+          code: cleanedCode,
+          referenceSources: result.referenceSources || [],
+          engineId: engineProfile.engineId,
+          dimension: engineProfile.dimension,
+          genreFamily: engineProfile.genreFamily,
+          starterTemplateId: engineProfile.starterTemplateId,
+          templateGenre: engineProfile.templateGenre,
+          validationProfile: engineProfile.validationProfile,
+          validationSafe: telemetry.validationSafe ?? null,
+          validationWarningsCount: telemetry.validationWarningsCount ?? 0,
+          validationViolationsCount: telemetry.validationViolationsCount ?? 0,
+          repairAttempted: telemetry.repairAttempted ?? false,
+          repairSucceeded: telemetry.repairSucceeded ?? false,
+        }).catch((err) => console.error('Engine outcome log error:', err?.message));
       }
 
       res.json(responsePayload);

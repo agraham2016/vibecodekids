@@ -9,9 +9,9 @@ import { randomBytes } from 'crypto';
 import { readProject, writeProject, deleteProject as removeProject, readUser } from '../services/storage.js';
 import { filterContent } from '../middleware/contentFilter.js';
 import { prePublishScan } from '../middleware/prePublishScan.js';
-import { filterUsername } from '../middleware/usernameFilter.js';
 import { checkTierLimits, incrementUsage, calculateUsageRemaining } from '../middleware/rateLimit.js';
 import { ageGate } from '../middleware/ageGate.js';
+import { resolvePublicCreatorAlias, resolveSessionCreatorAlias } from '../utils/publicCreatorAlias.js';
 
 function generateProjectId() {
   const chars = 'abcdefghjkmnpqrstuvwxyz23456789';
@@ -37,7 +37,7 @@ export default function createProjectsRouter(sessions) {
       if (!session) return res.status(401).json({ error: 'Session expired. Please log in again.' });
 
       const userId = session.userId;
-      let displayName = session.displayName;
+      const creatorAlias = resolveSessionCreatorAlias(session);
 
       const {
         title,
@@ -101,14 +101,6 @@ export default function createProjectsRouter(sessions) {
         }
       }
 
-      // Filter creatorName to prevent PII disclosure in public games
-      if (allowPublic && displayName) {
-        const nameCheck = filterUsername(displayName);
-        if (nameCheck.blocked) {
-          displayName = 'Creator';
-        }
-      }
-
       const id = generateProjectId();
       let validThumb = null;
       if (
@@ -138,7 +130,7 @@ export default function createProjectsRouter(sessions) {
         id,
         title: title.slice(0, 50),
         code,
-        creatorName: displayName.slice(0, 30),
+        creatorName: creatorAlias,
         userId,
         isPublic: allowPublic,
         pendingParentApproval,
@@ -280,7 +272,7 @@ export default function createProjectsRouter(sessions) {
         code,
         category,
         gameConfig: gameConfig ?? null,
-        creatorName: session.displayName,
+        creatorName: resolveSessionCreatorAlias(session),
         userId: session.userId,
         isPublic: false,
         isDraft: true,
@@ -323,6 +315,7 @@ export default function createProjectsRouter(sessions) {
           return res.status(404).json({ error: 'Project not found' });
         }
         const { userId: _uid, ageMode: _am, parentEmail: _pe, gameConfig: _gc, ...safeProject } = project;
+        safeProject.creatorName = await resolvePublicCreatorAlias(project);
         return res.json(safeProject);
       }
 

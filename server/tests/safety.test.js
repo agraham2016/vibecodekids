@@ -14,6 +14,7 @@ import { filterUsername } from '../middleware/usernameFilter.js';
 import { ageGate } from '../middleware/ageGate.js';
 import { checkAbuse } from '../services/abuseDetection.js';
 import { CONSENT_POLICY_VERSION } from '../config/index.js';
+import { resolveSessionCreatorAlias } from '../utils/publicCreatorAlias.js';
 
 let passed = 0;
 let failed = 0;
@@ -113,6 +114,14 @@ assert(filterUsername('emily2015').blocked === true, 'Blocks name+birth year 2')
 assert(filterUsername('5thgrade').blocked === true, 'Blocks grade reference');
 assert(filterUsername('player123').blocked === false, 'Generic "player123" allowed');
 assert(filterUsername('jake_mcallister').blocked === true, 'Blocks first+last name pattern');
+assert(
+  resolveSessionCreatorAlias({ username: 'CoolGamer99', displayName: 'Alex' }) === 'CoolGamer99',
+  'Public alias prefers username over display name',
+);
+assert(
+  resolveSessionCreatorAlias({ username: 'john_smith', displayName: 'Alex' }) === 'Creator',
+  'Unsafe public alias falls back to Creator',
+);
 
 // ========== PROMPT INJECTION DEFENSE ==========
 section('Prompt Injection Defense');
