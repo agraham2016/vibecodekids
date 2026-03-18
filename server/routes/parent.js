@@ -104,7 +104,7 @@ router.get('/verify', async (req, res) => {
     try {
       const user = await readUser(consent.userId);
 
-      if (consent.action === 'consent') {
+      if (consent.action === 'consent' || consent.action === 'reconsent') {
         if (granted) {
           const nowIso = new Date().toISOString();
           user.parentalConsentStatus = 'granted';
@@ -116,14 +116,16 @@ router.get('/verify', async (req, res) => {
           user.parentAcceptedTermsAt = explicitConsent ? nowIso : null;
           user.status = 'approved';
           user.approvedAt = nowIso;
-          // Default: publishing and multiplayer OFF for under-13 until parent enables
-          if (user.publishingEnabled === undefined) user.publishingEnabled = false;
-          if (user.multiplayerEnabled === undefined) user.multiplayerEnabled = false;
+          if (consent.action === 'consent') {
+            // Default: publishing and multiplayer OFF for under-13 until parent enables
+            if (user.publishingEnabled === undefined) user.publishingEnabled = false;
+            if (user.multiplayerEnabled === undefined) user.multiplayerEnabled = false;
+          }
           // Generate Parent Command Center token
           grantedDashToken = await createParentDashboardToken(consent.userId);
           user.parentDashboardToken = grantedDashToken;
           logAdminAction({
-            action: 'consent_granted',
+            action: consent.action === 'reconsent' ? 'reconsent_granted' : 'consent_granted',
             targetId: consent.userId,
             details: {
               username: user.username,
@@ -137,7 +139,7 @@ router.get('/verify', async (req, res) => {
           user.status = 'denied';
           user.deniedAt = new Date().toISOString();
           logAdminAction({
-            action: 'consent_denied',
+            action: consent.action === 'reconsent' ? 'reconsent_denied' : 'consent_denied',
             targetId: consent.userId,
             details: { username: user.username },
           }).catch(() => {});
@@ -179,10 +181,14 @@ ${JSON.stringify(data, null, 2)}
 
     if (granted) {
       let message;
-      if (consent.action === 'consent') {
+      if (consent.action === 'consent' || consent.action === 'reconsent') {
         const dashUrl = grantedDashToken ? `${BASE_URL}/parent-dashboard?token=${grantedDashToken}` : null;
+        const approvalLabel =
+          consent.action === 'reconsent'
+            ? `You've re-approved your child's account under the updated policy. They can log in now!`
+            : `You have approved your child's account. They can log in now!`;
         message =
-          `You have approved your child's account. They can log in now!` +
+          approvalLabel +
           (dashUrl
             ? `<br><br><strong>Parent Command Center:</strong><br>Manage your child's privacy settings, toggle publishing and multiplayer, review data, or delete the account:<br><a href="${dashUrl}" style="color:#667eea;font-weight:bold">${dashUrl}</a><br><small>Bookmark this link — it's your portal to manage your child's account.</small>`
             : '') +
@@ -193,7 +199,7 @@ ${JSON.stringify(data, null, 2)}
       res.send(renderPage('Approved!', message, 'success'));
     } else {
       const message =
-        consent.action === 'consent'
+        consent.action === 'consent' || consent.action === 'reconsent'
           ? "You have denied your child's account request. No account will be created."
           : 'The request has been denied.';
       res.send(renderPage('Denied', message, 'info'));
