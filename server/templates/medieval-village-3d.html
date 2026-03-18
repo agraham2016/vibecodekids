@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { overflow: hidden; background: linear-gradient(180deg, #87ceeb 0%, #e0f2fe 100%); font-family: Arial, sans-serif; touch-action: none; }
+    #game-container { width: 100vw; height: 100vh; }
+    #hud {
+      position: fixed; top: 16px; left: 16px; z-index: 10;
+      min-width: 210px; padding: 14px 16px; border-radius: 18px;
+      background: rgba(17,24,39,0.82); color: #f8fafc;
+      line-height: 1.5; font-size: 15px;
+      box-shadow: 0 12px 30px rgba(15,23,42,0.35);
+    }
+    #toast {
+      position: fixed; top: 80px; left: 50%; transform: translateX(-50%);
+      z-index: 20; padding: 12px 22px; border-radius: 999px;
+      background: rgba(59,130,246,0.9); color: #fff; font-weight: bold;
+      opacity: 0; transition: opacity 0.3s ease; pointer-events: none;
+    }
+    #toast.visible { opacity: 1; }
+    #win-screen {
+      display: none; position: fixed; inset: 0; z-index: 25;
+      align-items: center; justify-content: center; padding: 24px;
+      background: rgba(15,23,42,0.75); color: #fff;
+    }
+    #win-screen.visible { display: flex; }
+    .win-card {
+      width: min(92vw, 420px); padding: 28px; border-radius: 24px;
+      background: rgba(17,24,39,0.96); text-align: center;
+      border: 2px solid rgba(255,255,255,0.14);
+    }
+    .win-card h1 { margin-bottom: 10px; font-size: 30px; }
+    .win-card p { margin-bottom: 16px; line-height: 1.5; }
+    .win-card button {
+      border: 0; border-radius: 999px; padding: 12px 20px;
+      background: #facc15; color: #422006; font-weight: bold;
+      font-size: 15px; cursor: pointer;
+    }
+    #palette {
+      position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
+      z-index: 15; display: flex; gap: 8px;
+    }
+    .pal-btn {
+      border: 2px solid rgba(255,255,255,0.3); border-radius: 14px;
+      padding: 10px 14px; background: rgba(17,24,39,0.75); color: #fff;
+      font-weight: bold; font-size: 13px; cursor: pointer;
+    }
+    .pal-btn.active { border-color: #facc15; background: rgba(250,204,21,0.25); }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+</head>
+<body>
+  <div id="game-container"></div>
+  <div id="hud"></div>
+  <div id="toast"></div>
+  <div id="palette"></div>
+  <div id="win-screen">
+    <div class="win-card">
+      <h1>Village Complete!</h1>
+      <p id="win-msg"></p>
+      <button id="restart-btn">Build Again</button>
+    </div>
+  </div>
+  <script>
+(function () {
+  var G = 8, TILE = 2, HALF = G * TILE / 2;
+  var TYPES = {
+    house:  { label: 'House 50g',  cost: 50,  color: 0xc2855a },
+    market: { label: 'Market 100g', cost: 100, color: 0xd97706 },
+    tower:  { label: 'Tower 150g',  cost: 150, color: 0x6b7280 },
+    farm:   { label: 'Farm 75g',    cost: 75,  color: 0x65a30d }
+  };
+  var GOALS = { house: 2, market: 1, tower: 1, farm: 1 };
+
+  var scene, camera, renderer, clock, raycaster, pointer;
+  var groundMesh, gridGroup, ghostMesh;
+  var hudEl = document.getElementById('hud');
+  var toastEl = document.getElementById('toast');
+  var palEl = document.getElementById('palette');
+  var winScreen = document.getElementById('win-screen');
+  var winMsg = document.getElementById('win-msg');
+
+  var state = { gold: 500, selected: 'house', buildings: [], villagers: [], counts: { house:0, market:0, tower:0, farm:0 }, grid: {}, won: false };
+  var toastTimer = 0;
+
+  function toast(msg) {
+    toastEl.textContent = msg; toastEl.classList.add('visible');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { toastEl.classList.remove('visible'); }, 2000);
+  }
+
+  function init() {
+    clock = new THREE.Clock();
+    raycaster = new THREE.Raycaster();
+    pointer = new THREE.Vector2();
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x87ceeb);
+    scene.fog = new THREE.Fog(0x87ceeb, 30, 60);
+
+    camera = new THREE.PerspectiveCamera(50, innerWidth / innerHeight, 0.1, 100);
+    camera.position.set(14, 16, 14);
+    camera.lookAt(0, 0, 0);
+
+    renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(innerWidth, innerHeight);
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    document.getElementById('game-container').appendChild(renderer.domElement);
+
+    scene.add(new THREE.AmbientLight(0xffffff, 0.55));
+    var sun = new THREE.DirectionalLight(0xfff4e0, 0.9);
+    sun.position.set(8, 14, 6); sun.castShadow = true;
+    sun.shadow.mapSize.set(1024, 1024);
+    scene.add(sun);
+
+    var groundGeo = new THREE.PlaneGeometry(G * TILE, G * TILE);
+    var groundMat = new THREE.MeshStandardMaterial({ color: 0x4ade80 });
+    groundMesh = new THREE.Mesh(groundGeo, groundMat);
+    groundMesh.rotation.x = -Math.PI / 2; groundMesh.receiveShadow = true;
+    scene.add(groundMesh);
+
+    buildGrid();
+    buildPalette();
+    setupControls();
+    updateHud();
+    startIncomeLoop();
+    animate();
+  }
+
+  function buildGrid() {
+    gridGroup = new THREE.Group(); scene.add(gridGroup);
+    var mat = new THREE.LineBasicMaterial({ color: 0x166534, transparent: true, opacity: 0.25 });
+    for (var i = 0; i <= G; i++) {
+      var x = -HALF + i * TILE, pts;
+      pts = [new THREE.Vector3(x, 0.01, -HALF), new THREE.Vector3(x, 0.01, HALF)];
+      gridGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), mat));
+      pts = [new THREE.Vector3(-HALF, 0.01, x), new THREE.Vector3(HALF, 0.01, x)];
+      gridGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), mat));
+    }
+  }
+
+  function buildPalette() {
+    Object.keys(TYPES).forEach(function (key) {
+      var b = document.createElement('button');
+      b.className = 'pal-btn' + (key === state.selected ? ' active' : '');
+      b.textContent = TYPES[key].label; b.dataset.type = key;
+      b.addEventListener('click', function () {
+        state.selected = key;
+        document.querySelectorAll('.pal-btn').forEach(function (el) { el.classList.toggle('active', el.dataset.type === key); });
+      });
+      palEl.appendChild(b);
+    });
+  }
+
+  function gridKey(r, c) { return r + ',' + c; }
+
+  function cellFromWorld(pt) {
+    var c = Math.floor((pt.x + HALF) / TILE);
+    var r = Math.floor((pt.z + HALF) / TILE);
+    if (c < 0 || c >= G || r < 0 || r >= G) return null;
+    return { r: r, c: c };
+  }
+
+  function cellCenter(r, c) {
+    return new THREE.Vector3(-HALF + c * TILE + TILE / 2, 0, -HALF + r * TILE + TILE / 2);
+  }
+
+  function createBuilding(type) {
+    var group = new THREE.Group();
+    var info = TYPES[type];
+    if (type === 'house') {
+      var box = new THREE.Mesh(new THREE.BoxGeometry(1.4, 1.2, 1.4), new THREE.MeshStandardMaterial({ color: info.color }));
+      box.position.y = 0.6; box.castShadow = true; group.add(box);
+      var roof = new THREE.Mesh(new THREE.ConeGeometry(1.1, 0.8, 4), new THREE.MeshStandardMaterial({ color: 0x991b1b }));
+      roof.position.y = 1.6; roof.rotation.y = Math.PI / 4; roof.castShadow = true; group.add(roof);
+    } else if (type === 'market') {
+      var base = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.9, 1.4), new THREE.MeshStandardMaterial({ color: info.color }));
+      base.position.y = 0.45; base.castShadow = true; group.add(base);
+      var awning = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.1, 1.6), new THREE.MeshStandardMaterial({ color: 0xfbbf24 }));
+      awning.position.y = 1.0; awning.castShadow = true; group.add(awning);
+    } else if (type === 'tower') {
+      var shaft = new THREE.Mesh(new THREE.BoxGeometry(0.9, 2.6, 0.9), new THREE.MeshStandardMaterial({ color: info.color }));
+      shaft.position.y = 1.3; shaft.castShadow = true; group.add(shaft);
+      var top = new THREE.Mesh(new THREE.ConeGeometry(0.7, 0.9, 8), new THREE.MeshStandardMaterial({ color: 0x1e3a5f }));
+      top.position.y = 3.1; top.castShadow = true; group.add(top);
+    } else if (type === 'farm') {
+      var dirt = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.2, 1.6), new THREE.MeshStandardMaterial({ color: 0x78350f }));
+      dirt.position.y = 0.1; group.add(dirt);
+      var crops = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 1.4), new THREE.MeshStandardMaterial({ color: 0x22c55e, side: THREE.DoubleSide }));
+      crops.rotation.x = -Math.PI / 2; crops.position.y = 0.21; group.add(crops);
+    }
+    return group;
+  }
+
+  function placeBuilding(cell) {
+    var key = gridKey(cell.r, cell.c);
+    if (state.grid[key]) { toast('Occupied!'); return; }
+    var info = TYPES[state.selected];
+    if (state.gold < info.cost) { toast('Not enough gold!'); return; }
+    state.gold -= info.cost;
+    state.counts[state.selected]++;
+    state.grid[key] = state.selected;
+    var bld = createBuilding(state.selected);
+    var pos = cellCenter(cell.r, cell.c);
+    bld.position.copy(pos);
+    scene.add(bld);
+    state.buildings.push({ type: state.selected, group: bld, r: cell.r, c: cell.c });
+    if (state.selected === 'house') spawnVillager(pos);
+    toast(state.selected.charAt(0).toUpperCase() + state.selected.slice(1) + ' built!');
+    updateHud();
+    checkWin();
+  }
+
+  function spawnVillager(origin) {
+    var geo = new THREE.CylinderGeometry(0.15, 0.15, 0.5, 8);
+    var mat = new THREE.MeshStandardMaterial({ color: new THREE.Color().setHSL(Math.random(), 0.7, 0.55) });
+    var m = new THREE.Mesh(geo, mat); m.castShadow = true;
+    m.position.set(origin.x + (Math.random() - 0.5), 0.25, origin.z + (Math.random() - 0.5));
+    scene.add(m);
+    state.villagers.push({ mesh: m, tx: m.position.x, tz: m.position.z, wait: 0 });
+  }
+
+  function updateVillagers(dt) {
+    state.villagers.forEach(function (v) {
+      v.wait -= dt;
+      if (v.wait <= 0) {
+        v.tx = THREE.MathUtils.clamp(v.mesh.position.x + (Math.random() - 0.5) * 3, -HALF + 0.5, HALF - 0.5);
+        v.tz = THREE.MathUtils.clamp(v.mesh.position.z + (Math.random() - 0.5) * 3, -HALF + 0.5, HALF - 0.5);
+        v.wait = 2 + Math.random() * 3;
+      }
+      v.mesh.position.x += (v.tx - v.mesh.position.x) * dt * 1.2;
+      v.mesh.position.z += (v.tz - v.mesh.position.z) * dt * 1.2;
+    });
+  }
+
+  function startIncomeLoop() {
+    setInterval(function () {
+      if (state.won) return;
+      var earned = state.counts.farm * 25;
+      if (earned > 0) { state.gold += earned; toast('+' + earned + 'g from farms'); updateHud(); }
+    }, 10000);
+    setInterval(function () {
+      if (state.won) return;
+      var earned = state.counts.market * 50;
+      if (earned > 0) { state.gold += earned; toast('+' + earned + 'g from markets'); updateHud(); }
+    }, 15000);
+  }
+
+  function goalText(type) {
+    return state.counts[type] + '/' + GOALS[type] + ' ' + type + (GOALS[type] > 1 ? 's' : '');
+  }
+
+  function updateHud() {
+    hudEl.innerHTML =
+      '<b>Gold:</b> ' + state.gold +
+      '<br><b>Buildings:</b> ' + state.buildings.length +
+      '<br><b>Population:</b> ' + state.villagers.length +
+      '<br><b>Goals:</b><br>' +
+      Object.keys(GOALS).map(function (t) {
+        var done = state.counts[t] >= GOALS[t];
+        return '&nbsp;' + (done ? '✅' : '⬜') + ' ' + goalText(t);
+      }).join('<br>');
+  }
+
+  function checkWin() {
+    var allMet = Object.keys(GOALS).every(function (t) { return state.counts[t] >= GOALS[t]; });
+    if (!allMet || state.won) return;
+    state.won = true;
+    winMsg.innerHTML =
+      'Buildings: ' + state.buildings.length +
+      '<br>Population: ' + state.villagers.length +
+      '<br>Gold remaining: ' + state.gold;
+    winScreen.classList.add('visible');
+  }
+
+  /* --- Camera orbit via drag --- */
+  var camAngle = Math.PI / 4, camDist = 20, camY = 16, dragging = false, lastX = 0;
+
+  function updateCamera() {
+    camera.position.set(Math.sin(camAngle) * camDist, camY, Math.cos(camAngle) * camDist);
+    camera.lookAt(0, 0, 0);
+  }
+
+  function setupControls() {
+    var el = renderer.domElement;
+    el.addEventListener('pointerdown', function (e) { dragging = true; lastX = e.clientX; });
+    el.addEventListener('pointermove', function (e) {
+      if (!dragging) return;
+      camAngle += (e.clientX - lastX) * 0.005; lastX = e.clientX; updateCamera();
+    });
+    el.addEventListener('pointerup', function (e) {
+      if (dragging && Math.abs(e.clientX - lastX) < 4) handleClick(e);
+      dragging = false;
+    });
+    el.addEventListener('wheel', function (e) {
+      camDist = THREE.MathUtils.clamp(camDist + e.deltaY * 0.02, 10, 35);
+      camY = THREE.MathUtils.clamp(camY + e.deltaY * 0.01, 8, 24);
+      updateCamera();
+    }, { passive: true });
+    window.addEventListener('resize', function () {
+      camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
+      renderer.setSize(innerWidth, innerHeight);
+    });
+    document.getElementById('restart-btn').addEventListener('click', function () { location.reload(); });
+  }
+
+  function handleClick(e) {
+    if (state.won) return;
+    pointer.x = (e.clientX / innerWidth) * 2 - 1;
+    pointer.y = -(e.clientY / innerHeight) * 2 + 1;
+    raycaster.setFromCamera(pointer, camera);
+    var hits = raycaster.intersectObject(groundMesh);
+    if (hits.length === 0) return;
+    var cell = cellFromWorld(hits[0].point);
+    if (cell) placeBuilding(cell);
+  }
+
+  function animate() {
+    requestAnimationFrame(animate);
+    var dt = clock.getDelta();
+    updateVillagers(dt);
+    renderer.render(scene, camera);
+  }
+
+  init();
+})();
+  </script>
+</body>
+</html>

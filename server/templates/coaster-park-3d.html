@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { overflow: hidden; background: linear-gradient(180deg, #38bdf8 0%, #7dd3fc 40%, #bae6fd 100%); font-family: Arial, sans-serif; touch-action: none; }
+    #game-container { width: 100vw; height: 100vh; }
+    #hud {
+      position: fixed; top: 16px; left: 16px; z-index: 10;
+      min-width: 200px; padding: 14px 16px; border-radius: 18px;
+      background: rgba(15, 23, 42, 0.78); color: #e2e8f0;
+      line-height: 1.5; font-size: 15px;
+      box-shadow: 0 12px 30px rgba(15, 23, 42, 0.35);
+    }
+    #toast {
+      position: fixed; top: 16px; left: 50%; transform: translateX(-50%); z-index: 20;
+      padding: 12px 18px; border-radius: 999px;
+      background: rgba(14, 165, 233, 0.92); color: #fff; font-weight: bold;
+      opacity: 0; transition: opacity 0.2s ease; pointer-events: none;
+    }
+    #toast.visible { opacity: 1; }
+    #overlay {
+      display: none; position: fixed; inset: 0; z-index: 25;
+      align-items: center; justify-content: center; padding: 24px;
+      background: rgba(15, 23, 42, 0.7); color: #fff;
+    }
+    #overlay.visible { display: flex; }
+    .card {
+      width: min(92vw, 430px); padding: 28px; border-radius: 24px;
+      background: rgba(15, 23, 42, 0.96); text-align: center;
+      border: 2px solid rgba(255,255,255,0.15);
+    }
+    .card h1 { margin-bottom: 10px; font-size: 32px; }
+    .card p { margin-bottom: 16px; line-height: 1.5; }
+    .card button {
+      border: 0; border-radius: 999px; padding: 12px 24px;
+      background: #f472b6; color: #fff; font-weight: bold; font-size: 16px; cursor: pointer;
+    }
+    #ride-btn {
+      position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%); z-index: 15;
+      border: 0; border-radius: 999px; padding: 14px 36px;
+      background: #f43f5e; color: #fff; font-weight: bold; font-size: 18px;
+      box-shadow: 0 6px 20px rgba(244, 63, 94, 0.5); cursor: pointer;
+      user-select: none; -webkit-user-select: none;
+    }
+    #ride-btn:active { transform: translateX(-50%) scale(0.95); }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+</head>
+<body>
+  <div id="game-container"></div>
+  <div id="hud"></div>
+  <div id="toast"></div>
+  <div id="overlay">
+    <div class="card">
+      <h1 id="win-title">🎢 Park Complete!</h1>
+      <p id="win-msg">You conquered the coaster!</p>
+      <button id="restart-btn">Play Again</button>
+    </div>
+  </div>
+  <button id="ride-btn">🎢 Ride!</button>
+  <script>
+    (function () {
+      var container = document.getElementById('game-container');
+      var hudEl = document.getElementById('hud');
+      var toastEl = document.getElementById('toast');
+      var overlay = document.getElementById('overlay');
+      var rideBtn = document.getElementById('ride-btn');
+      var restartBtn = document.getElementById('restart-btn');
+
+      var scene, camera, renderer, clock;
+      var car, trackCurve, trackPoints;
+      var toastTimer = 0;
+
+      var state = { rides: 0, riding: false, t: 0, speed: 0.12, topSpeed: 0, excitement: 0, done: false };
+
+      function init() {
+        clock = new THREE.Clock();
+        scene = new THREE.Scene();
+        scene.fog = new THREE.Fog(0x7dd3fc, 80, 200);
+
+        camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 500);
+        camera.position.set(0, 50, 60);
+        camera.lookAt(0, 0, 0);
+
+        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+        container.appendChild(renderer.domElement);
+
+        var ambient = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambient);
+        var sun = new THREE.DirectionalLight(0xfff5e6, 0.9);
+        sun.position.set(30, 60, 40);
+        sun.castShadow = true;
+        scene.add(sun);
+
+        buildGround();
+        buildTrack();
+        buildCar();
+        buildDecorations();
+        updateHud();
+
+        rideBtn.addEventListener('click', startRide);
+        rideBtn.addEventListener('touchstart', function (e) { e.preventDefault(); startRide(); });
+        restartBtn.addEventListener('click', resetGame);
+
+        window.addEventListener('resize', function () {
+          camera.aspect = window.innerWidth / window.innerHeight;
+          camera.updateProjectionMatrix();
+          renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        animate();
+      }
+
+      function buildGround() {
+        var ground = new THREE.Mesh(
+          new THREE.PlaneGeometry(200, 200),
+          new THREE.MeshLambertMaterial({ color: 0x4ade80 })
+        );
+        ground.rotation.x = -Math.PI / 2;
+        ground.receiveShadow = true;
+        scene.add(ground);
+      }
+
+      function buildTrack() {
+        trackPoints = [
+          new THREE.Vector3(0, 1, 20),      // station
+          new THREE.Vector3(10, 1, 18),
+          new THREE.Vector3(18, 4, 10),      // climb start
+          new THREE.Vector3(20, 14, 0),      // big hill top
+          new THREE.Vector3(18, 4, -10),     // drop
+          new THREE.Vector3(10, 2, -18),
+          new THREE.Vector3(0, 6, -20),      // small hill
+          new THREE.Vector3(-10, 2, -18),
+          new THREE.Vector3(-18, 8, -10),    // second hill
+          new THREE.Vector3(-20, 3, 0),
+          new THREE.Vector3(-18, 2, 10),
+          new THREE.Vector3(-10, 1, 18),
+          new THREE.Vector3(0, 1, 20)        // back to station
+        ];
+
+        trackCurve = new THREE.CatmullRomCurve3(trackPoints, false, 'catmullrom', 0.5);
+
+        var tubeGeo = new THREE.TubeGeometry(trackCurve, 200, 0.3, 8, false);
+        var rail = new THREE.Mesh(tubeGeo, new THREE.MeshLambertMaterial({ color: 0x64748b }));
+        rail.castShadow = true;
+        scene.add(rail);
+
+        var rail2Curve = new THREE.CatmullRomCurve3(
+          trackPoints.map(function (p) { return new THREE.Vector3(p.x, p.y, p.z).add(new THREE.Vector3(0, 0, 1.8)); }),
+          false, 'catmullrom', 0.5
+        );
+        var tube2 = new THREE.TubeGeometry(rail2Curve, 200, 0.3, 8, false);
+        var rail2 = new THREE.Mesh(tube2, new THREE.MeshLambertMaterial({ color: 0x64748b }));
+        rail2.castShadow = true;
+        scene.add(rail2);
+
+        var supportMat = new THREE.MeshLambertMaterial({ color: 0x94a3b8 });
+        for (var i = 0; i <= 1; i += 0.04) {
+          var pt = trackCurve.getPointAt(i);
+          if (pt.y > 1.5) {
+            var h = pt.y - 0.2;
+            var post = new THREE.Mesh(new THREE.BoxGeometry(0.3, h, 0.3), supportMat);
+            post.position.set(pt.x, h / 2, pt.z);
+            post.castShadow = true;
+            scene.add(post);
+          }
+        }
+
+        var platGeo = new THREE.BoxGeometry(8, 0.5, 6);
+        var platMat = new THREE.MeshLambertMaterial({ color: 0xa78bfa });
+        var platform = new THREE.Mesh(platGeo, platMat);
+        platform.position.set(0, 0.25, 20);
+        platform.receiveShadow = true;
+        scene.add(platform);
+      }
+
+      function buildCar() {
+        var group = new THREE.Group();
+        var body = new THREE.Mesh(
+          new THREE.BoxGeometry(2.2, 1.2, 1.6),
+          new THREE.MeshLambertMaterial({ color: 0xf43f5e })
+        );
+        body.castShadow = true;
+        group.add(body);
+
+        var seat = new THREE.Mesh(
+          new THREE.BoxGeometry(1.0, 0.6, 1.0),
+          new THREE.MeshLambertMaterial({ color: 0xfbbf24 })
+        );
+        seat.position.y = 0.7;
+        group.add(seat);
+
+        car = group;
+        car.position.copy(trackCurve.getPointAt(0));
+        scene.add(car);
+      }
+
+      function buildDecorations() {
+        var treeMat = new THREE.MeshLambertMaterial({ color: 0x22c55e });
+        var trunkMat = new THREE.MeshLambertMaterial({ color: 0x92400e });
+        var treePositions = [
+          [30, 0, 30], [-30, 0, 25], [25, 0, -30], [-28, 0, -28],
+          [35, 0, 0], [-35, 0, 5], [0, 0, -35], [15, 0, 32]
+        ];
+        treePositions.forEach(function (p) {
+          var trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.5, 3, 6), trunkMat);
+          trunk.position.set(p[0], 1.5, p[2]);
+          trunk.castShadow = true;
+          scene.add(trunk);
+          var leaves = new THREE.Mesh(new THREE.SphereGeometry(2, 6, 5), treeMat);
+          leaves.position.set(p[0], 4.5, p[2]);
+          leaves.castShadow = true;
+          scene.add(leaves);
+        });
+
+        var fenceMat = new THREE.MeshLambertMaterial({ color: 0xfef3c7 });
+        for (var i = 0; i < 20; i++) {
+          var angle = (i / 20) * Math.PI * 2;
+          var fx = Math.cos(angle) * 28;
+          var fz = Math.sin(angle) * 28;
+          var post = new THREE.Mesh(new THREE.BoxGeometry(0.3, 1.5, 0.3), fenceMat);
+          post.position.set(fx, 0.75, fz);
+          scene.add(post);
+        }
+
+        var signGeo = new THREE.BoxGeometry(5, 2.5, 0.3);
+        var signMat = new THREE.MeshLambertMaterial({ color: 0x7c3aed });
+        var sign = new THREE.Mesh(signGeo, signMat);
+        sign.position.set(0, 4, 24);
+        scene.add(sign);
+        var signPost = new THREE.Mesh(new THREE.BoxGeometry(0.3, 4, 0.3), new THREE.MeshLambertMaterial({ color: 0x64748b }));
+        signPost.position.set(0, 2, 24);
+        scene.add(signPost);
+      }
+
+      function startRide() {
+        if (state.riding || state.done) return;
+        state.riding = true;
+        state.t = 0;
+        state.speed = 0.12 + state.rides * 0.04;
+        state.excitement = 0;
+        rideBtn.style.display = 'none';
+        showToast('Hold on tight!');
+      }
+
+      function resetGame() {
+        state = { rides: 0, riding: false, t: 0, speed: 0.12, topSpeed: 0, excitement: 0, done: false };
+        overlay.classList.remove('visible');
+        rideBtn.style.display = '';
+        car.position.copy(trackCurve.getPointAt(0));
+        camera.position.set(0, 50, 60);
+        camera.lookAt(0, 0, 0);
+        updateHud();
+      }
+
+      function showToast(msg) {
+        toastEl.textContent = msg;
+        toastEl.classList.add('visible');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(function () { toastEl.classList.remove('visible'); }, 2000);
+      }
+
+      function updateHud() {
+        hudEl.innerHTML =
+          '🎢 <b>Coaster Park</b><br>' +
+          'Rides: ' + state.rides + ' / 3<br>' +
+          'Top Speed: ' + state.topSpeed.toFixed(1) + '<br>' +
+          'Excitement: ' + Math.min(100, Math.round(state.excitement)) + '%';
+      }
+
+      function animate() {
+        requestAnimationFrame(animate);
+        var dt = clock.getDelta();
+
+        if (state.riding) {
+          var pt = trackCurve.getPointAt(state.t);
+          var nextT = Math.min(state.t + 0.002, 1);
+          var nextPt = trackCurve.getPointAt(nextT);
+
+          var heightDiff = pt.y - nextPt.y;
+          var currentSpeed = state.speed + heightDiff * 0.08;
+          currentSpeed = Math.max(0.04, Math.min(currentSpeed, 0.5));
+
+          if (currentSpeed > state.topSpeed) state.topSpeed = currentSpeed;
+
+          var slopeExcite = Math.abs(heightDiff) * 40;
+          var speedExcite = currentSpeed * 2;
+          state.excitement += (slopeExcite + speedExcite) * dt;
+
+          state.t += currentSpeed * dt;
+
+          if (state.t >= 1) {
+            state.riding = false;
+            state.rides++;
+            state.t = 0;
+            car.position.copy(trackCurve.getPointAt(0));
+
+            var exc = Math.min(100, Math.round(state.excitement));
+            var label = exc > 70 ? 'EXTREME' : exc > 40 ? 'Thrilling' : 'Mild';
+            showToast('Ride over! ' + label + ' (' + exc + '%)');
+
+            if (state.rides >= 3) {
+              state.done = true;
+              document.getElementById('win-msg').textContent =
+                'You completed 3 rides! Top speed: ' + state.topSpeed.toFixed(1) +
+                ' | Best excitement: ' + exc + '%';
+              overlay.classList.add('visible');
+              rideBtn.style.display = 'none';
+            } else {
+              rideBtn.style.display = '';
+            }
+
+            camera.position.set(0, 50, 60);
+            camera.lookAt(0, 0, 0);
+            updateHud();
+            return;
+          }
+
+          pt = trackCurve.getPointAt(state.t);
+          car.position.copy(pt);
+
+          var lookT = Math.min(state.t + 0.02, 1);
+          var lookPt = trackCurve.getPointAt(lookT);
+          car.lookAt(lookPt);
+
+          var camOffset = new THREE.Vector3(0, 3, -6);
+          camOffset.applyQuaternion(car.quaternion);
+          camera.position.copy(car.position).add(camOffset);
+          camera.lookAt(car.position.clone().add(new THREE.Vector3(0, 1, 0)));
+
+          updateHud();
+        }
+
+        renderer.render(scene, camera);
+      }
+
+      init();
+    })();
+  </script>
+</body>
+</html>

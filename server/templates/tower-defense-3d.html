@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { overflow: hidden; background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%); font-family: Arial, sans-serif; touch-action: none; }
+    #game-container { width: 100vw; height: 100vh; }
+    #hud {
+      position: fixed; top: 16px; left: 16px; z-index: 10;
+      min-width: 220px; padding: 14px 16px; border-radius: 18px;
+      background: rgba(17,24,39,0.82); color: #f8fafc;
+      line-height: 1.5; font-size: 15px;
+      box-shadow: 0 12px 30px rgba(15,23,42,0.35);
+    }
+    #toast {
+      position: fixed; top: 80px; left: 50%; transform: translateX(-50%);
+      z-index: 20; padding: 12px 22px; border-radius: 999px;
+      background: rgba(59,130,246,0.9); color: #fff; font-weight: bold;
+      opacity: 0; transition: opacity 0.3s ease; pointer-events: none;
+    }
+    #toast.visible { opacity: 1; }
+    #win-screen {
+      display: none; position: fixed; inset: 0; z-index: 25;
+      align-items: center; justify-content: center; padding: 24px;
+      background: rgba(15,23,42,0.75); color: #fff;
+    }
+    #win-screen.visible { display: flex; }
+    .win-card {
+      width: min(92vw, 420px); padding: 28px; border-radius: 24px;
+      background: rgba(17,24,39,0.96); text-align: center;
+      border: 2px solid rgba(255,255,255,0.14);
+    }
+    .win-card h1 { margin-bottom: 10px; font-size: 30px; }
+    .win-card p { margin-bottom: 16px; line-height: 1.5; }
+    .win-card button, #start-wave-btn {
+      border: 0; border-radius: 999px; padding: 12px 20px;
+      background: #22d3ee; color: #0f172a; font-weight: bold;
+      font-size: 15px; cursor: pointer;
+    }
+    #start-wave-btn {
+      position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%);
+      z-index: 15; box-shadow: 0 8px 20px rgba(34,211,238,0.35);
+    }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+  <div id="game-container"></div>
+  <div id="hud"></div>
+  <div id="toast"></div>
+  <button id="start-wave-btn">Start Wave</button>
+  <div id="win-screen">
+    <div class="win-card">
+      <h1 id="end-title">Victory!</h1>
+      <p id="end-msg">You defended the base through all waves!</p>
+      <button id="restart-btn">Play Again</button>
+    </div>
+  </div>
+  <script>
+(function () {
+  var COLS = 8, ROWS = 6, TILE = 2;
+  var MAX_TOWERS = 5, TOWER_COST = 50, KILL_REWARD = 25;
+  var MAX_WAVES = 5, START_GOLD = 200, START_LIVES = 10;
+
+  var scene, camera, renderer, clock;
+  var hudEl = document.getElementById('hud');
+  var toastEl = document.getElementById('toast');
+  var winScreen = document.getElementById('win-screen');
+  var startBtn = document.getElementById('start-wave-btn');
+  var restartBtn = document.getElementById('restart-btn');
+
+  var path = [
+    [0,2],[1,2],[2,2],[2,3],[3,3],[4,3],[5,3],[5,4],[6,4],[7,4]
+  ];
+  var pathSet = {};
+  path.forEach(function (p) { pathSet[p[0] + ',' + p[1]] = true; });
+
+  var state = {
+    gold: START_GOLD, lives: START_LIVES, wave: 0,
+    waveActive: false, towers: [], enemies: [], projectiles: [],
+    towerCount: 0, spawnQueue: 0, spawnTimer: 0, gameOver: false
+  };
+
+  var tileGroup, raycaster, mouse, tileMeshes = [];
+
+  function init() {
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x1a1a2e);
+    clock = new THREE.Clock();
+
+    camera = new THREE.PerspectiveCamera(50, innerWidth / innerHeight, 0.1, 200);
+    camera.position.set(8, 18, 14);
+    camera.lookAt(8, 0, 6);
+
+    renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(innerWidth, innerHeight);
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    document.getElementById('game-container').appendChild(renderer.domElement);
+
+    scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+    var dir = new THREE.DirectionalLight(0xffffff, 0.8);
+    dir.position.set(10, 20, 10);
+    scene.add(dir);
+
+    raycaster = new THREE.Raycaster();
+    mouse = new THREE.Vector2();
+
+    buildGrid();
+    updateHUD();
+
+    renderer.domElement.addEventListener('pointerdown', onTap);
+    startBtn.addEventListener('click', startWave);
+    restartBtn.addEventListener('click', function () { location.reload(); });
+    window.addEventListener('resize', onResize);
+
+    animate();
+  }
+
+  function buildGrid() {
+    tileGroup = new THREE.Group();
+    scene.add(tileGroup);
+    for (var r = 0; r < ROWS; r++) {
+      for (var c = 0; c < COLS; c++) {
+        var isPath = pathSet[c + ',' + r];
+        var color = isPath ? 0x475569 : 0x334155;
+        var geo = new THREE.BoxGeometry(TILE - 0.1, 0.3, TILE - 0.1);
+        var mat = new THREE.MeshStandardMaterial({ color: color });
+        var mesh = new THREE.Mesh(geo, mat);
+        mesh.position.set(c * TILE + 1, 0, r * TILE + 1);
+        mesh.userData = { col: c, row: r, isPath: isPath, hasTower: false };
+        tileGroup.add(mesh);
+        tileMeshes.push(mesh);
+      }
+    }
+    var spawnMark = new THREE.Mesh(
+      new THREE.SphereGeometry(0.4, 12, 12),
+      new THREE.MeshStandardMaterial({ color: 0xef4444 })
+    );
+    spawnMark.position.set(path[0][0] * TILE + 1, 0.6, path[0][1] * TILE + 1);
+    scene.add(spawnMark);
+
+    var baseMark = new THREE.Mesh(
+      new THREE.BoxGeometry(1.2, 1.2, 1.2),
+      new THREE.MeshStandardMaterial({ color: 0x3b82f6 })
+    );
+    baseMark.position.set(path[path.length - 1][0] * TILE + 1, 0.8, path[path.length - 1][1] * TILE + 1);
+    scene.add(baseMark);
+  }
+
+  function adjacentToPath(col, row) {
+    var dirs = [[1,0],[-1,0],[0,1],[0,-1]];
+    for (var i = 0; i < dirs.length; i++) {
+      if (pathSet[(col + dirs[i][0]) + ',' + (row + dirs[i][1])]) return true;
+    }
+    return false;
+  }
+
+  function onTap(e) {
+    if (state.gameOver) return;
+    var rect = renderer.domElement.getBoundingClientRect();
+    mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+    mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+    raycaster.setFromCamera(mouse, camera);
+    var hits = raycaster.intersectObjects(tileMeshes);
+    if (hits.length === 0) return;
+    var tile = hits[0].object;
+    var d = tile.userData;
+    if (d.isPath || d.hasTower) return;
+    if (!adjacentToPath(d.col, d.row)) return;
+    if (state.towerCount >= MAX_TOWERS) { showToast('Max towers reached!'); return; }
+    if (state.gold < TOWER_COST) { showToast('Not enough gold!'); return; }
+    placeTower(d.col, d.row, tile);
+  }
+
+  function placeTower(col, row, tile) {
+    state.gold -= TOWER_COST;
+    state.towerCount++;
+    tile.userData.hasTower = true;
+    var base = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.6, 0.7, 1.0, 8),
+      new THREE.MeshStandardMaterial({ color: 0x8b5cf6 })
+    );
+    var turret = new THREE.Mesh(
+      new THREE.BoxGeometry(0.35, 0.6, 0.35),
+      new THREE.MeshStandardMaterial({ color: 0xa78bfa })
+    );
+    turret.position.y = 0.8;
+    var group = new THREE.Group();
+    group.add(base); group.add(turret);
+    group.position.set(col * TILE + 1, 0.65, row * TILE + 1);
+    scene.add(group);
+    state.towers.push({ mesh: group, col: col, row: row, cooldown: 0, range: 5 });
+    updateHUD();
+  }
+
+  function startWave() {
+    if (state.waveActive || state.gameOver) return;
+    state.wave++;
+    if (state.wave > MAX_WAVES) return;
+    state.waveActive = true;
+    state.spawnQueue = 1 + state.wave * 2;
+    state.spawnTimer = 0;
+    startBtn.style.display = 'none';
+    showToast('Wave ' + state.wave + ' incoming!');
+    updateHUD();
+  }
+
+  function spawnEnemy() {
+    var hp = 80 + state.wave * 20;
+    var speed = 2.5 + state.wave * 0.3;
+    var mesh = new THREE.Mesh(
+      new THREE.SphereGeometry(0.5, 10, 10),
+      new THREE.MeshStandardMaterial({ color: 0xef4444 })
+    );
+    var barBg = new THREE.Mesh(
+      new THREE.BoxGeometry(1.0, 0.15, 0.05),
+      new THREE.MeshStandardMaterial({ color: 0x374151 })
+    );
+    barBg.position.y = 1.2;
+    var barFg = new THREE.Mesh(
+      new THREE.BoxGeometry(1.0, 0.15, 0.06),
+      new THREE.MeshStandardMaterial({ color: 0x22c55e })
+    );
+    barFg.position.y = 1.2;
+    var group = new THREE.Group();
+    group.add(mesh); group.add(barBg); group.add(barFg);
+    var sp = path[0];
+    group.position.set(sp[0] * TILE + 1, 0.65, sp[1] * TILE + 1);
+    scene.add(group);
+    state.enemies.push({
+      mesh: group, bar: barFg, hp: hp, maxHp: hp,
+      speed: speed, pathIdx: 0, alive: true
+    });
+  }
+
+  function updateEnemies(dt) {
+    for (var i = state.enemies.length - 1; i >= 0; i--) {
+      var en = state.enemies[i];
+      if (!en.alive) continue;
+      var target = path[en.pathIdx + 1];
+      if (!target) { enemyReachedBase(en, i); continue; }
+      var tx = target[0] * TILE + 1, tz = target[1] * TILE + 1;
+      var dx = tx - en.mesh.position.x, dz = tz - en.mesh.position.z;
+      var dist = Math.sqrt(dx * dx + dz * dz);
+      if (dist < 0.15) { en.pathIdx++; continue; }
+      var step = en.speed * dt;
+      en.mesh.position.x += (dx / dist) * step;
+      en.mesh.position.z += (dz / dist) * step;
+    }
+  }
+
+  function enemyReachedBase(en, idx) {
+    en.alive = false;
+    scene.remove(en.mesh);
+    state.enemies.splice(idx, 1);
+    state.lives--;
+    updateHUD();
+    if (state.lives <= 0) endGame(false);
+  }
+
+  function updateTowers(dt) {
+    for (var t = 0; t < state.towers.length; t++) {
+      var tw = state.towers[t];
+      tw.cooldown -= dt;
+      if (tw.cooldown > 0) continue;
+      var best = null, bestDist = tw.range;
+      for (var e = 0; e < state.enemies.length; e++) {
+        var en = state.enemies[e];
+        if (!en.alive) continue;
+        var d = tw.mesh.position.distanceTo(en.mesh.position);
+        if (d < bestDist) { bestDist = d; best = en; }
+      }
+      if (best) { fireProjectile(tw, best); tw.cooldown = 0.8; }
+    }
+  }
+
+  function fireProjectile(tower, target) {
+    var mesh = new THREE.Mesh(
+      new THREE.SphereGeometry(0.15, 6, 6),
+      new THREE.MeshStandardMaterial({ color: 0xfbbf24 })
+    );
+    mesh.position.copy(tower.mesh.position);
+    mesh.position.y = 1.4;
+    scene.add(mesh);
+    state.projectiles.push({ mesh: mesh, target: target, speed: 14 });
+  }
+
+  function updateProjectiles(dt) {
+    for (var i = state.projectiles.length - 1; i >= 0; i--) {
+      var p = state.projectiles[i];
+      if (!p.target.alive) { scene.remove(p.mesh); state.projectiles.splice(i, 1); continue; }
+      var dir = p.target.mesh.position.clone().sub(p.mesh.position);
+      var dist = dir.length();
+      if (dist < 0.4) {
+        hitEnemy(p.target, 20 + state.wave * 5);
+        scene.remove(p.mesh);
+        state.projectiles.splice(i, 1);
+      } else {
+        dir.normalize().multiplyScalar(p.speed * dt);
+        p.mesh.position.add(dir);
+      }
+    }
+  }
+
+  function hitEnemy(en, dmg) {
+    en.hp -= dmg;
+    var ratio = Math.max(0, en.hp / en.maxHp);
+    en.bar.scale.x = ratio;
+    if (en.hp <= 0) {
+      en.alive = false;
+      scene.remove(en.mesh);
+      var idx = state.enemies.indexOf(en);
+      if (idx !== -1) state.enemies.splice(idx, 1);
+      state.gold += KILL_REWARD;
+      updateHUD();
+    }
+  }
+
+  function checkWaveComplete() {
+    if (!state.waveActive) return;
+    if (state.spawnQueue > 0) return;
+    if (state.enemies.length > 0) return;
+    state.waveActive = false;
+    if (state.wave >= MAX_WAVES) { endGame(true); return; }
+    showToast('Wave ' + state.wave + ' complete!');
+    startBtn.style.display = '';
+  }
+
+  function endGame(won) {
+    state.gameOver = true;
+    startBtn.style.display = 'none';
+    document.getElementById('end-title').textContent = won ? 'Victory!' : 'Defeat';
+    document.getElementById('end-msg').textContent = won
+      ? 'You defended the base through all ' + MAX_WAVES + ' waves!'
+      : 'The enemies broke through. You survived ' + (state.wave - 1) + ' full waves.';
+    winScreen.classList.add('visible');
+  }
+
+  function showToast(msg) {
+    toastEl.textContent = msg;
+    toastEl.classList.add('visible');
+    setTimeout(function () { toastEl.classList.remove('visible'); }, 2000);
+  }
+
+  function updateHUD() {
+    hudEl.innerHTML =
+      '<b>Wave:</b> ' + state.wave + '/' + MAX_WAVES +
+      '<br><b>Gold:</b> ' + state.gold +
+      '<br><b>Lives:</b> ' + state.lives +
+      '<br><b>Towers:</b> ' + state.towerCount + '/' + MAX_TOWERS;
+  }
+
+  function onResize() {
+    camera.aspect = innerWidth / innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(innerWidth, innerHeight);
+  }
+
+  function animate() {
+    requestAnimationFrame(animate);
+    var dt = Math.min(clock.getDelta(), 0.05);
+    if (!state.gameOver) {
+      if (state.waveActive && state.spawnQueue > 0) {
+        state.spawnTimer -= dt;
+        if (state.spawnTimer <= 0) { spawnEnemy(); state.spawnQueue--; state.spawnTimer = 1.0; }
+      }
+      updateEnemies(dt);
+      updateTowers(dt);
+      updateProjectiles(dt);
+      checkWaveComplete();
+    }
+    renderer.render(scene, camera);
+  }
+
+  init();
+})();
+  </script>
+</body>
+</html>

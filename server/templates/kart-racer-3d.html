@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { overflow: hidden; background: linear-gradient(180deg, #7dd3fc 0%, #bae6fd 100%); font-family: Arial, sans-serif; touch-action: none; }
+    #game-container { width: 100vw; height: 100vh; }
+    #hud {
+      position: fixed; top: 16px; left: 16px; padding: 12px 14px; border-radius: 14px;
+      background: rgba(15,23,42,0.68); color: #fff; z-index: 10; font-size: 15px; line-height: 1.5; min-width: 180px;
+    }
+    #toast {
+      position: fixed; top: 16px; left: 50%; transform: translateX(-50%); padding: 12px 18px;
+      border-radius: 999px; background: rgba(37,99,235,0.92); color: #fff; z-index: 11;
+      font-weight: bold; opacity: 0; transition: opacity 0.2s ease; pointer-events: none;
+    }
+    #toast.visible { opacity: 1; }
+    #win-screen {
+      display: none; position: fixed; inset: 0; align-items: center; justify-content: center;
+      background: rgba(15,23,42,0.66); color: #fff; z-index: 20; text-align: center; padding: 24px;
+    }
+    #win-screen.visible { display: flex; }
+    .win-card { background: rgba(30,41,59,0.95); border: 2px solid rgba(255,255,255,0.2); border-radius: 24px; padding: 28px; max-width: 420px; }
+    .win-card h1 { font-size: 34px; margin-bottom: 10px; }
+    .win-card p { margin-bottom: 16px; line-height: 1.5; }
+    .win-card button { padding: 12px 18px; border: 0; border-radius: 999px; background: #38bdf8; color: #082f49; font-weight: bold; cursor: pointer; }
+    .touch-btn {
+      position: fixed; bottom: 22px; width: 68px; height: 68px; border-radius: 50%;
+      background: rgba(255,255,255,0.28); color: #fff; border: 2px solid rgba(255,255,255,0.45);
+      display: flex; align-items: center; justify-content: center; font-size: 28px; z-index: 12; user-select: none;
+    }
+    #left-btn { left: 20px; }
+    #right-btn { left: 100px; }
+    #gas-btn { right: 22px; font-size: 20px; }
+    @media (min-width: 900px) { .touch-btn { opacity: 0.35; } }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+</head>
+<body>
+  <div id="game-container"></div>
+  <div id="hud"></div>
+  <div id="toast"></div>
+  <div id="win-screen">
+    <div class="win-card">
+      <h1 id="win-title">Race Complete!</h1>
+      <p id="win-text"></p>
+      <button id="restart-btn">Race Again</button>
+    </div>
+  </div>
+  <div id="left-btn" class="touch-btn">&larr;</div>
+  <div id="right-btn" class="touch-btn">&rarr;</div>
+  <div id="gas-btn" class="touch-btn">GO</div>
+  <script>
+(function () {
+  var scene, camera, renderer, clock;
+  var container = document.getElementById('game-container');
+  var hud = document.getElementById('hud');
+  var toast = document.getElementById('toast');
+  var winScreen = document.getElementById('win-screen');
+
+  var TRACK_RADIUS = 30;
+  var TRACK_WIDTH = 8;
+  var TOTAL_LAPS = 3;
+  var trackPoints = [];
+  var trackLen = 0;
+
+  var player, playerAngle = 0, playerSpeed = 0, playerLap = 0, playerCheckpoints = 0;
+  var coins = [], coinCount = 0;
+  var aiKarts = [], aiData = [];
+  var gameOver = false, raceTime = 0;
+
+  var keys = { left: false, right: false, gas: false, brake: false };
+
+  function init() {
+    scene = new THREE.Scene();
+    scene.fog = new THREE.Fog(0x7dd3fc, 60, 120);
+    camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 200);
+    renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    container.appendChild(renderer.domElement);
+    clock = new THREE.Clock();
+
+    scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+    var sun = new THREE.DirectionalLight(0xffffff, 0.8);
+    sun.position.set(20, 40, 20);
+    scene.add(sun);
+
+    buildTrack();
+    buildKarts();
+    spawnCoins();
+    setupInput();
+
+    window.addEventListener('resize', function () {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    document.getElementById('restart-btn').addEventListener('click', resetRace);
+    animate();
+  }
+
+  function buildTrack() {
+    var ground = new THREE.Mesh(
+      new THREE.PlaneGeometry(120, 120),
+      new THREE.MeshStandardMaterial({ color: 0x4ade80 })
+    );
+    ground.rotation.x = -Math.PI / 2;
+    scene.add(ground);
+
+    var segments = 64;
+    var a = TRACK_RADIUS, b = TRACK_RADIUS * 0.65;
+    for (var i = 0; i < segments; i++) {
+      var t = (i / segments) * Math.PI * 2;
+      trackPoints.push(new THREE.Vector3(Math.cos(t) * a, 0.01, Math.sin(t) * b));
+    }
+    trackLen = segments;
+
+    var shape = new THREE.Shape();
+    for (var i = 0; i < segments; i++) {
+      var p = trackPoints[i];
+      if (i === 0) shape.moveTo(p.x, p.z); else shape.lineTo(p.x, p.z);
+    }
+    shape.closePath();
+
+    var roadMat = new THREE.MeshStandardMaterial({ color: 0x64748b });
+    for (var i = 0; i < segments; i++) {
+      var p1 = trackPoints[i], p2 = trackPoints[(i + 1) % segments];
+      var dx = p2.x - p1.x, dz = p2.z - p1.z;
+      var len = Math.sqrt(dx * dx + dz * dz);
+      var cx = (p1.x + p2.x) / 2, cz = (p1.z + p2.z) / 2;
+      var road = new THREE.Mesh(new THREE.BoxGeometry(len + 0.5, 0.1, TRACK_WIDTH), roadMat);
+      road.position.set(cx, 0.05, cz);
+      road.rotation.y = -Math.atan2(dz, dx);
+      scene.add(road);
+    }
+
+    var finishGeo = new THREE.BoxGeometry(0.5, 3, TRACK_WIDTH);
+    var finish = new THREE.Mesh(finishGeo, new THREE.MeshStandardMaterial({ color: 0xffffff }));
+    finish.position.set(trackPoints[0].x, 1.5, trackPoints[0].z);
+    scene.add(finish);
+
+    for (var i = 0; i < 12; i++) {
+      var angle = (i / 12) * Math.PI * 2;
+      var tr = new THREE.Group();
+      var trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.3, 2, 6), new THREE.MeshStandardMaterial({ color: 0x8B4513 }));
+      trunk.position.y = 1;
+      var leaves = new THREE.Mesh(new THREE.SphereGeometry(1.2, 6, 6), new THREE.MeshStandardMaterial({ color: 0x22c55e }));
+      leaves.position.y = 2.5;
+      tr.add(trunk); tr.add(leaves);
+      tr.position.set(Math.cos(angle) * (a + 8), 0, Math.sin(angle) * (b + 8));
+      scene.add(tr);
+    }
+  }
+
+  function makeKart(color) {
+    var g = new THREE.Group();
+    var body = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.5, 2), new THREE.MeshStandardMaterial({ color: color }));
+    body.position.y = 0.5;
+    g.add(body);
+    var cab = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.4, 0.8), new THREE.MeshStandardMaterial({ color: color }));
+    cab.position.set(0, 0.9, -0.2);
+    g.add(cab);
+    var wheelGeo = new THREE.CylinderGeometry(0.25, 0.25, 0.2, 8);
+    var wheelMat = new THREE.MeshStandardMaterial({ color: 0x1e293b });
+    var offsets = [[-0.7, 0.25, 0.6], [0.7, 0.25, 0.6], [-0.7, 0.25, -0.6], [0.7, 0.25, -0.6]];
+    offsets.forEach(function (o) {
+      var w = new THREE.Mesh(wheelGeo, wheelMat);
+      w.rotation.z = Math.PI / 2;
+      w.position.set(o[0], o[1], o[2]);
+      g.add(w);
+    });
+    return g;
+  }
+
+  function buildKarts() {
+    player = makeKart(0x3b82f6);
+    player.position.copy(trackPoints[0]);
+    player.position.y = 0;
+    scene.add(player);
+    playerAngle = 0;
+
+    var aiColors = [0xef4444, 0xeab308, 0xa855f7];
+    for (var i = 0; i < 3; i++) {
+      var k = makeKart(aiColors[i]);
+      var startIdx = Math.floor((i + 1) * trackLen / 4);
+      k.position.copy(trackPoints[startIdx]);
+      scene.add(k);
+      aiKarts.push(k);
+      aiData.push({ idx: startIdx, speed: 8 + Math.random() * 3, lap: 0, checkpoints: 0 });
+    }
+  }
+
+  function spawnCoins() {
+    for (var i = 0; i < 10; i++) {
+      var idx = Math.floor((i / 10) * trackLen);
+      var p = trackPoints[idx];
+      var coin = new THREE.Mesh(
+        new THREE.OctahedronGeometry(0.35),
+        new THREE.MeshStandardMaterial({ color: 0xfbbf24, metalness: 0.6 })
+      );
+      coin.position.set(p.x + (Math.random() - 0.5) * 2, 0.8, p.z + (Math.random() - 0.5) * 2);
+      coin.userData.alive = true;
+      scene.add(coin);
+      coins.push(coin);
+    }
+  }
+
+  function getTrackDir(idx) {
+    var p1 = trackPoints[idx % trackLen];
+    var p2 = trackPoints[(idx + 1) % trackLen];
+    return Math.atan2(p2.z - p1.z, p2.x - p1.x);
+  }
+
+  function setupInput() {
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'ArrowLeft' || e.key === 'a') keys.left = true;
+      if (e.key === 'ArrowRight' || e.key === 'd') keys.right = true;
+      if (e.key === 'ArrowUp' || e.key === 'w') keys.gas = true;
+      if (e.key === 'ArrowDown' || e.key === 's') keys.brake = true;
+    });
+    document.addEventListener('keyup', function (e) {
+      if (e.key === 'ArrowLeft' || e.key === 'a') keys.left = false;
+      if (e.key === 'ArrowRight' || e.key === 'd') keys.right = false;
+      if (e.key === 'ArrowUp' || e.key === 'w') keys.gas = false;
+      if (e.key === 'ArrowDown' || e.key === 's') keys.brake = false;
+    });
+    var touchBtn = function (id, key) {
+      var el = document.getElementById(id);
+      el.addEventListener('touchstart', function (e) { e.preventDefault(); keys[key] = true; });
+      el.addEventListener('touchend', function (e) { e.preventDefault(); keys[key] = false; });
+      el.addEventListener('mousedown', function () { keys[key] = true; });
+      el.addEventListener('mouseup', function () { keys[key] = false; });
+    };
+    touchBtn('left-btn', 'left');
+    touchBtn('right-btn', 'right');
+    touchBtn('gas-btn', 'gas');
+  }
+
+  function showToast(msg) {
+    toast.textContent = msg;
+    toast.classList.add('visible');
+    setTimeout(function () { toast.classList.remove('visible'); }, 2000);
+  }
+
+  function closestTrackIdx(pos) {
+    var best = 0, bestD = Infinity;
+    for (var i = 0; i < trackLen; i++) {
+      var dx = trackPoints[i].x - pos.x, dz = trackPoints[i].z - pos.z;
+      var d = dx * dx + dz * dz;
+      if (d < bestD) { bestD = d; best = i; }
+    }
+    return best;
+  }
+
+  function updatePlayer(dt) {
+    if (gameOver) return;
+    var turnSpeed = 2.5;
+    if (keys.left) playerAngle += turnSpeed * dt;
+    if (keys.right) playerAngle -= turnSpeed * dt;
+    if (keys.gas) playerSpeed = Math.min(playerSpeed + 15 * dt, 22);
+    else if (keys.brake) playerSpeed = Math.max(playerSpeed - 20 * dt, 0);
+    else playerSpeed *= 0.97;
+
+    player.position.x += Math.cos(playerAngle) * playerSpeed * dt;
+    player.position.z += Math.sin(playerAngle) * playerSpeed * dt;
+    player.rotation.y = -playerAngle + Math.PI / 2;
+
+    var idx = closestTrackIdx(player.position);
+    var quarter = Math.floor(idx / (trackLen / 4));
+    if (quarter > playerCheckpoints) {
+      playerCheckpoints = quarter;
+    } else if (playerCheckpoints >= 3 && quarter === 0) {
+      playerLap++;
+      playerCheckpoints = 0;
+      if (playerLap >= TOTAL_LAPS) {
+        gameOver = true;
+        document.getElementById('win-title').textContent = 'Race Complete!';
+        document.getElementById('win-text').textContent =
+          'Time: ' + raceTime.toFixed(1) + 's | Coins: ' + coinCount;
+        winScreen.classList.add('visible');
+      } else {
+        showToast('Lap ' + (playerLap + 1) + '!');
+      }
+    }
+
+    coins.forEach(function (c) {
+      if (!c.userData.alive) return;
+      var dx = c.position.x - player.position.x;
+      var dz = c.position.z - player.position.z;
+      if (dx * dx + dz * dz < 2) {
+        c.userData.alive = false;
+        c.visible = false;
+        coinCount++;
+      }
+    });
+  }
+
+  function updateAI(dt) {
+    if (gameOver) return;
+    aiData.forEach(function (d, i) {
+      d.idx = (d.idx + d.speed * dt) % trackLen;
+      var fIdx = Math.floor(d.idx);
+      var frac = d.idx - fIdx;
+      var p1 = trackPoints[fIdx % trackLen];
+      var p2 = trackPoints[(fIdx + 1) % trackLen];
+      aiKarts[i].position.x = p1.x + (p2.x - p1.x) * frac;
+      aiKarts[i].position.z = p1.z + (p2.z - p1.z) * frac;
+      var dir = getTrackDir(fIdx);
+      aiKarts[i].rotation.y = -dir + Math.PI / 2;
+    });
+  }
+
+  function getPosition() {
+    var myIdx = closestTrackIdx(player.position) + playerLap * trackLen;
+    var pos = 1;
+    aiData.forEach(function (d) {
+      if ((d.idx + d.lap * trackLen) > myIdx) pos++;
+    });
+    return pos;
+  }
+
+  function resetRace() {
+    gameOver = false;
+    raceTime = 0;
+    playerAngle = 0;
+    playerSpeed = 0;
+    playerLap = 0;
+    playerCheckpoints = 0;
+    coinCount = 0;
+    player.position.copy(trackPoints[0]);
+    winScreen.classList.remove('visible');
+    coins.forEach(function (c) { c.userData.alive = true; c.visible = true; });
+    aiData.forEach(function (d, i) {
+      d.idx = Math.floor((i + 1) * trackLen / 4);
+      d.lap = 0; d.checkpoints = 0;
+    });
+  }
+
+  function animate() {
+    requestAnimationFrame(animate);
+    var dt = Math.min(clock.getDelta(), 0.05);
+    if (!gameOver) raceTime += dt;
+
+    updatePlayer(dt);
+    updateAI(dt);
+
+    coins.forEach(function (c) { if (c.userData.alive) c.rotation.y += 2 * dt; });
+
+    var camDist = 10, camH = 6;
+    camera.position.x = player.position.x - Math.cos(playerAngle) * camDist;
+    camera.position.z = player.position.z - Math.sin(playerAngle) * camDist;
+    camera.position.y = camH;
+    camera.lookAt(player.position.x, 1, player.position.z);
+
+    var pos = getPosition();
+    var suffix = pos === 1 ? 'st' : pos === 2 ? 'nd' : pos === 3 ? 'rd' : 'th';
+    hud.innerHTML =
+      'Lap: ' + Math.min(playerLap + 1, TOTAL_LAPS) + '/' + TOTAL_LAPS +
+      '<br>Position: ' + pos + suffix +
+      '<br>Speed: ' + Math.round(playerSpeed) +
+      '<br>Coins: ' + coinCount +
+      '<br>Time: ' + raceTime.toFixed(1) + 's';
+
+    renderer.render(scene, camera);
+  }
+
+  init();
+})();
+  </script>
+</body>
+</html>

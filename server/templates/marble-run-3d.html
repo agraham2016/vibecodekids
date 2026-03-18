@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { overflow: hidden; background: linear-gradient(180deg, #7dd3fc 0%, #bae6fd 50%, #e0f2fe 100%); font-family: Arial, sans-serif; touch-action: none; }
+    #game-container { width: 100vw; height: 100vh; }
+    #hud {
+      position: fixed; top: 16px; left: 16px; z-index: 10;
+      min-width: 220px; padding: 14px 16px; border-radius: 18px;
+      background: rgba(15, 23, 42, 0.78); color: #e2e8f0;
+      line-height: 1.45; font-size: 15px;
+      box-shadow: 0 12px 30px rgba(15, 23, 42, 0.35);
+    }
+    #toast {
+      position: fixed; top: 16px; left: 50%; transform: translateX(-50%); z-index: 20;
+      padding: 12px 18px; border-radius: 999px;
+      background: rgba(14, 165, 233, 0.92); color: #fff; font-weight: bold;
+      opacity: 0; transition: opacity 0.2s ease; pointer-events: none;
+    }
+    #toast.visible { opacity: 1; }
+    #overlay { display: none; position: fixed; inset: 0; z-index: 25; align-items: center; justify-content: center; padding: 24px; background: rgba(15, 23, 42, 0.7); color: #fff; }
+    #overlay.visible { display: flex; }
+    .card {
+      width: min(92vw, 430px); padding: 28px; border-radius: 24px;
+      background: rgba(15, 23, 42, 0.96); text-align: center;
+      border: 2px solid rgba(255,255,255,0.15);
+    }
+    .card h1 { margin-bottom: 10px; font-size: 32px; }
+    .card p { margin-bottom: 16px; line-height: 1.5; }
+    .card button {
+      border: 0; border-radius: 999px; padding: 12px 24px;
+      background: #f472b6; color: #fff; font-weight: bold; font-size: 16px; cursor: pointer;
+    }
+    #drop-btn {
+      position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%); z-index: 15;
+      border: 0; border-radius: 999px; padding: 14px 32px;
+      background: #38bdf8; color: #fff; font-weight: bold; font-size: 18px;
+      box-shadow: 0 6px 20px rgba(56, 189, 248, 0.5); cursor: pointer;
+      user-select: none; -webkit-user-select: none;
+    }
+    #drop-btn:active { transform: translateX(-50%) scale(0.95); }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+  <div id="game-container"></div>
+  <div id="hud"></div>
+  <div id="toast"></div>
+  <div id="overlay">
+    <div class="card">
+      <h1>🏆 You Win!</h1>
+      <p id="win-msg">You completed all 3 levels!</p>
+      <button id="restart-btn">Play Again</button>
+    </div>
+  </div>
+  <button id="drop-btn">🔵 Drop Marble</button>
+  <script>
+    (function () {
+      var container = document.getElementById('game-container');
+      var hud = document.getElementById('hud');
+      var toast = document.getElementById('toast');
+      var overlay = document.getElementById('overlay');
+      var dropBtn = document.getElementById('drop-btn');
+      var restartBtn = document.getElementById('restart-btn');
+
+      var scene, camera, renderer, clock;
+      var marble, marbleBody;
+      var trackGroup;
+      var finishY = 0;
+
+      var state = { level: 1, running: false, time: 0, bestTimes: [Infinity, Infinity, Infinity], finished: false };
+      var vel = { x: 0, y: 0, z: 0 };
+      var gravity = -18;
+      var ramps = [];
+      var walls = [];
+
+      function init() {
+        scene = new THREE.Scene();
+        scene.fog = new THREE.Fog(0x7dd3fc, 40, 90);
+        clock = new THREE.Clock();
+
+        camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 200);
+        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+        container.appendChild(renderer.domElement);
+
+        scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+        var sun = new THREE.DirectionalLight(0xffffff, 0.8);
+        sun.position.set(10, 20, 10);
+        sun.castShadow = true;
+        scene.add(sun);
+
+        marble = new THREE.Mesh(
+          new THREE.SphereGeometry(0.35, 24, 24),
+          new THREE.MeshStandardMaterial({ color: 0x3b82f6, metalness: 0.3, roughness: 0.2 })
+        );
+        marble.castShadow = true;
+        scene.add(marble);
+
+        buildTrack(state.level);
+        resetMarble();
+        updateHUD();
+        animate();
+      }
+
+      function buildTrack(level) {
+        if (trackGroup) scene.remove(trackGroup);
+        ramps = [];
+        walls = [];
+        trackGroup = new THREE.Group();
+
+        var segCount = 3 + level * 2;
+        var rampLen = 6;
+        var rampW = 3;
+        var dropPerSeg = 2.5;
+        var startY = segCount * dropPerSeg + 2;
+
+        var platGeo = new THREE.BoxGeometry(rampW + 1, 0.4, rampW + 1);
+        var platMat = new THREE.MeshStandardMaterial({ color: 0x22c55e });
+        var startPlat = new THREE.Mesh(platGeo, platMat);
+        startPlat.position.set(0, startY, 0);
+        startPlat.receiveShadow = true;
+        trackGroup.add(startPlat);
+
+        var rampMat = new THREE.MeshStandardMaterial({ color: 0xa16207, roughness: 0.7 });
+        var wallMat = new THREE.MeshStandardMaterial({ color: 0x16a34a });
+
+        for (var i = 0; i < segCount; i++) {
+          var dir = (i % 2 === 0) ? 1 : -1;
+          var topY = startY - i * dropPerSeg;
+          var botY = topY - dropPerSeg;
+          var cx = dir * (rampLen / 2) * 0.5;
+          var cy = (topY + botY) / 2;
+          var angle = Math.atan2(dropPerSeg, rampLen);
+
+          var segLen = Math.sqrt(rampLen * rampLen + dropPerSeg * dropPerSeg);
+          var ramp = new THREE.Mesh(new THREE.BoxGeometry(rampW, 0.15, segLen), rampMat.clone());
+          ramp.position.set(cx, cy, 0);
+          ramp.rotation.x = dir > 0 ? angle : -angle;
+          ramp.rotation.y = Math.PI / 2;
+          ramp.receiveShadow = true;
+          trackGroup.add(ramp);
+
+          ramps.push({ cx: cx, topY: topY, botY: botY, dir: dir, left: cx - dir * rampLen / 2, right: cx + dir * rampLen / 2, w: rampW });
+
+          var wallH = 1.2;
+          for (var side = -1; side <= 1; side += 2) {
+            var wall = new THREE.Mesh(new THREE.BoxGeometry(0.15, wallH, segLen), wallMat);
+            wall.position.set(cx + side * (rampW / 2), cy + wallH * 0.35, 0);
+            wall.rotation.x = ramp.rotation.x;
+            wall.rotation.y = ramp.rotation.y;
+            trackGroup.add(wall);
+          }
+
+          if (i < segCount - 1) {
+            var bumpX = (i % 2 === 0) ? cx + dir * rampLen / 2 : cx - dir * rampLen / 2;
+            var bumper = new THREE.Mesh(new THREE.BoxGeometry(0.2, 1.2, rampW), wallMat);
+            bumper.position.set(bumpX, botY + 0.5, 0);
+            trackGroup.add(bumper);
+            walls.push({ x: bumpX, y: botY, h: 1.5, isEnd: dir > 0 });
+          }
+        }
+
+        finishY = startY - segCount * dropPerSeg;
+        var bowlMat = new THREE.MeshStandardMaterial({ color: 0xfbbf24, metalness: 0.2 });
+        var bowl = new THREE.Mesh(new THREE.CylinderGeometry(1.8, 1.2, 0.6, 24), bowlMat);
+        bowl.position.set(0, finishY - 0.3, 0);
+        bowl.receiveShadow = true;
+        trackGroup.add(bowl);
+
+        scene.add(trackGroup);
+        marble.userData.startY = startY + 1;
+      }
+
+      function resetMarble() {
+        var sy = marble.userData.startY || 10;
+        marble.position.set(0, sy, 0);
+        vel.x = 0; vel.y = 0; vel.z = 0;
+        state.running = false;
+        state.time = 0;
+        state.finished = false;
+        dropBtn.style.display = 'block';
+      }
+
+      function dropMarble() {
+        if (state.running || state.finished) return;
+        state.running = true;
+        state.time = 0;
+        clock.getDelta();
+        dropBtn.style.display = 'none';
+        showToast('Marble dropped!');
+      }
+
+      function showToast(msg) {
+        toast.textContent = msg;
+        toast.classList.add('visible');
+        setTimeout(function () { toast.classList.remove('visible'); }, 1500);
+      }
+
+      function updateHUD() {
+        var best = state.bestTimes[state.level - 1];
+        hud.innerHTML =
+          '<b>Level:</b> ' + state.level + ' / 3<br>' +
+          '<b>Time:</b> ' + state.time.toFixed(1) + 's<br>' +
+          '<b>Best:</b> ' + (best < Infinity ? best.toFixed(1) + 's' : '—');
+      }
+
+      function updatePhysics(dt) {
+        if (!state.running) return;
+        dt = Math.min(dt, 0.05);
+
+        vel.y += gravity * dt;
+        var nx = marble.position.x + vel.x * dt;
+        var ny = marble.position.y + vel.y * dt;
+
+        var onRamp = false;
+        for (var i = 0; i < ramps.length; i++) {
+          var r = ramps[i];
+          var lo = Math.min(r.left, r.right);
+          var hi = Math.max(r.left, r.right);
+
+          if (nx >= lo && nx <= hi) {
+            var t = (nx - r.left) / (r.right - r.left);
+            var surfY = r.topY + t * (r.botY - r.topY) + 0.35;
+
+            if (ny <= surfY && marble.position.y >= surfY - 0.5) {
+              ny = surfY;
+              var slope = (r.botY - r.topY) / (r.right - r.left);
+              var slopeAngle = Math.atan(slope);
+              var gPar = gravity * Math.sin(slopeAngle);
+              vel.x += gPar * Math.cos(slopeAngle) * dt * 3;
+              vel.y = vel.x * Math.tan(slopeAngle);
+              vel.x *= 0.995;
+              onRamp = true;
+              break;
+            }
+          }
+        }
+
+        for (var j = 0; j < walls.length; j++) {
+          var w = walls[j];
+          if (Math.abs(nx - w.x) < 0.5 && ny < w.y + w.h && ny > w.y - 0.5) {
+            vel.x = -vel.x * 0.3;
+            nx = w.x + (nx > w.x ? 0.5 : -0.5);
+          }
+        }
+
+        if (!onRamp && ny < finishY + 0.35 && Math.abs(nx) < 1.8) {
+          ny = finishY + 0.35;
+          vel.x *= 0.9;
+          vel.y = 0;
+          if (Math.abs(vel.x) < 0.3) {
+            completeLevel();
+            return;
+          }
+        }
+
+        if (ny < finishY - 10) {
+          showToast('Marble lost! Try again');
+          resetMarble();
+          return;
+        }
+
+        marble.position.x = nx;
+        marble.position.y = ny;
+
+        var speed = Math.sqrt(vel.x * vel.x + vel.y * vel.y);
+        if (speed > 0.01) {
+          marble.rotation.z -= (vel.x * dt) / 0.35;
+          marble.rotation.x += (vel.y * dt) / 0.35;
+        }
+      }
+
+      function completeLevel() {
+        state.running = false;
+        state.finished = true;
+        var bt = state.bestTimes[state.level - 1];
+        if (state.time < bt) state.bestTimes[state.level - 1] = state.time;
+        updateHUD();
+
+        if (state.level >= 3) {
+          document.getElementById('win-msg').textContent =
+            'All 3 levels complete! Best times: ' +
+            state.bestTimes.map(function (t, i) { return 'L' + (i + 1) + ': ' + t.toFixed(1) + 's'; }).join(', ');
+          overlay.classList.add('visible');
+        } else {
+          showToast('Level ' + state.level + ' done! ' + state.time.toFixed(1) + 's');
+          state.level++;
+          setTimeout(function () {
+            buildTrack(state.level);
+            resetMarble();
+            updateHUD();
+          }, 1200);
+        }
+      }
+
+      function animate() {
+        requestAnimationFrame(animate);
+        var dt = clock.getDelta();
+        if (state.running && !state.finished) {
+          state.time += dt;
+          updatePhysics(dt);
+        }
+        updateHUD();
+
+        var targetX = marble.position.x;
+        var targetY = marble.position.y + 3;
+        camera.position.x += (targetX - camera.position.x) * 0.05;
+        camera.position.y += (targetY - camera.position.y) * 0.05;
+        camera.position.z = 22;
+        camera.lookAt(marble.position.x, marble.position.y, 0);
+
+        renderer.render(scene, camera);
+      }
+
+      dropBtn.addEventListener('click', dropMarble);
+      dropBtn.addEventListener('touchstart', function (e) { e.preventDefault(); dropMarble(); });
+
+      restartBtn.addEventListener('click', function () {
+        overlay.classList.remove('visible');
+        state.level = 1;
+        state.bestTimes = [Infinity, Infinity, Infinity];
+        buildTrack(1);
+        resetMarble();
+        updateHUD();
+      });
+
+      window.addEventListener('resize', function () {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      });
+
+      init();
+    })();
+  </script>
+</body>
+</html>
