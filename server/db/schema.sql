@@ -234,12 +234,12 @@ CREATE TABLE IF NOT EXISTS bug_reports (
     user_notification_seen_at TIMESTAMPTZ
 );
 
+ALTER TABLE bug_reports ADD COLUMN IF NOT EXISTS user_notification_seen_at TIMESTAMPTZ;
 CREATE INDEX IF NOT EXISTS idx_bug_reports_status ON bug_reports(status, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_bug_reports_project ON bug_reports(project_id);
 CREATE INDEX IF NOT EXISTS idx_bug_reports_reporter ON bug_reports(reporter_user_id);
 CREATE INDEX IF NOT EXISTS idx_bug_reports_user_notification
     ON bug_reports(reporter_user_id, user_notification_seen_at, reviewed_at DESC);
-ALTER TABLE bug_reports ADD COLUMN IF NOT EXISTS user_notification_seen_at TIMESTAMPTZ;
 
 -- Per-user content filter violation tracking (Session 4)
 ALTER TABLE users ADD COLUMN IF NOT EXISTS filter_violations INT NOT NULL DEFAULT 0;
