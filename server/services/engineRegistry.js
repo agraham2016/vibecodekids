@@ -1005,8 +1005,16 @@ export function resolveEngineProfile({
   const effectiveRankingSnapshot = rankingSnapshot || getEngineOutcomeRankingSnapshot();
   const effectiveOverrideState = overrideState || getEngineOverrideState();
   const defaultFamily = gameConfig?.dimension === '3d' ? 'obbyPlatform3d' : 'platformAction';
+
+  // ITERATION LOCK: when editing an existing game, the engine detected from
+  // the current code takes absolute priority over prompt-keyword signals.
+  // This prevents "add double jump" from swapping a 3D Three.js game to 2D Phaser.
+  const isIterating = currentCode && currentCode.length > 400;
+  const iterationLockedFamily = isIterating && codeDetectedFamily ? codeDetectedFamily : null;
+
   const inferredFamily =
     gameConfig?.genreFamily ||
+    iterationLockedFamily ||
     chooseFamilyByRanking({
       promptSignalFamily,
       detectedFamily,

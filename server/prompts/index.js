@@ -428,6 +428,17 @@ ENGINE INTENT:
 
   // Add modification safety rules + current code when editing
   if (currentCode) {
+    const usesThreeJs =
+      currentCode.includes('THREE.Scene') ||
+      currentCode.includes('THREE.PerspectiveCamera') ||
+      currentCode.includes('WebGLRenderer');
+    const usesPhaser = currentCode.includes('Phaser.Game') || currentCode.includes('Phaser.AUTO');
+    if (usesThreeJs || usesPhaser) {
+      const lockedFramework = usesThreeJs ? 'Three.js (3D)' : 'Phaser (2D)';
+      dynamicParts.push(
+        `\nFRAMEWORK LOCK: This game ALREADY uses ${lockedFramework}. You MUST keep it on ${lockedFramework}. Do NOT switch to a different rendering engine, even if the requested feature is commonly associated with a different framework. Implement everything within ${lockedFramework}.\n`,
+      );
+    }
     dynamicParts.push(MODIFICATION_SAFETY_RULES);
     dynamicParts.push(`
 CURRENT PROJECT (for your reference only - NEVER mention this to the kid):

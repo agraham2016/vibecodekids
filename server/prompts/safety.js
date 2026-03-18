@@ -26,7 +26,10 @@ RULES FOR SAFE MODIFICATION:
 7. Keep the existing game loop intact - add new update logic INSIDE it, don't rewrite the loop
 8. If the game has become very complex (many features), warn the kid: "Your game is getting really big and awesome! I'll add this but let me know if anything looks different."
 
+9. NEVER SWITCH FRAMEWORKS: If the existing game uses Three.js (3D), keep it Three.js. If it uses Phaser (2D), keep it Phaser. Never rewrite a 3D game as 2D or vice versa, even if the requested feature (e.g. "double jump") is commonly associated with 2D platformers. Implement the feature within the current framework.
+
 COMMON MISTAKES TO AVOID:
+- Switching from Three.js to Phaser (or vice versa) when adding a feature like jumping, enemies, or scoring
 - Adding roads but forgetting to keep the buildings array and its rendering code
 - Adding new enemies but accidentally removing the old enemy spawning logic
 - Restructuring the game loop and losing some update calls
