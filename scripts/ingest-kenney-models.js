@@ -106,6 +106,50 @@ async function copyGlbFiles(glbFiles, destDir, dryRun, force) {
   return { copied, skipped };
 }
 
+async function copyDirectoryRecursive(srcDir, destDir, dryRun, force) {
+  let copied = 0;
+  let skipped = 0;
+
+  if (!existsSync(srcDir)) {
+    return { copied, skipped };
+  }
+
+  if (!dryRun) {
+    await fs.mkdir(destDir, { recursive: true });
+  }
+
+  const entries = await fs.readdir(srcDir, { withFileTypes: true });
+  for (const entry of entries) {
+    const src = path.join(srcDir, entry.name);
+    const dest = path.join(destDir, entry.name);
+
+    if (entry.isDirectory()) {
+      const nested = await copyDirectoryRecursive(src, dest, dryRun, force);
+      copied += nested.copied;
+      skipped += nested.skipped;
+      continue;
+    }
+
+    if (!force && existsSync(dest)) {
+      skipped++;
+      continue;
+    }
+
+    if (!dryRun) {
+      await fs.copyFile(src, dest);
+    }
+    copied++;
+  }
+
+  return { copied, skipped };
+}
+
+async function copyTextureFiles(modelsDir, destDir, dryRun, force) {
+  const textureSrc = path.join(modelsDir, 'Textures');
+  const textureDest = path.join(destDir, 'Textures');
+  return copyDirectoryRecursive(textureSrc, textureDest, dryRun, force);
+}
+
 async function convertObjFiles(objFiles, destDir, dryRun) {
   let converted = 0;
   let errors = 0;
@@ -196,6 +240,7 @@ async function main() {
     skippedExisting: 0,
     skippedNoModels: 0,
     glbCopied: 0,
+    texturesCopied: 0,
     objConverted: 0,
     errors: 0,
     totalFiles: 0,
@@ -242,11 +287,18 @@ async function main() {
         dryRun,
         force,
       );
+      const textureResults = await copyTextureFiles(glbDir, targetDir, dryRun, force);
       const total = copied + skipped;
       console.log(
         `COPY  ${folder} -> ${targetName} (${total} GLB, ${copied} new${skipped > 0 ? `, ${skipped} exist` : ''})`,
       );
+      if (textureResults.copied > 0 || textureResults.skipped > 0) {
+        console.log(
+          `      textures: ${textureResults.copied} new${textureResults.skipped > 0 ? `, ${textureResults.skipped} exist` : ''}`,
+        );
+      }
       summary.glbCopied += copied;
+      summary.texturesCopied += textureResults.copied;
       summary.totalFiles += total;
       summary.processed++;
       continue;
@@ -278,6 +330,7 @@ async function main() {
   console.log('=== Summary ===');
   console.log(`Packs processed:   ${summary.processed}`);
   console.log(`GLB files copied:  ${summary.glbCopied}`);
+  console.log(`Textures copied:   ${summary.texturesCopied}`);
   console.log(`OBJ -> GLB:        ${summary.objConverted}`);
   console.log(`Total new files:   ${summary.totalFiles}`);
   console.log(`Skipped (blocked): ${summary.skippedBlacklist}`);
