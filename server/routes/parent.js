@@ -100,6 +100,7 @@ router.get('/verify', async (req, res) => {
     await resolveConsent(token, granted);
 
     // Update user based on consent action
+    let grantedDashToken = null;
     try {
       const user = await readUser(consent.userId);
 
@@ -119,8 +120,8 @@ router.get('/verify', async (req, res) => {
           if (user.publishingEnabled === undefined) user.publishingEnabled = false;
           if (user.multiplayerEnabled === undefined) user.multiplayerEnabled = false;
           // Generate Parent Command Center token
-          const dashboardToken = await createParentDashboardToken(consent.userId);
-          user.parentDashboardToken = dashboardToken;
+          grantedDashToken = await createParentDashboardToken(consent.userId);
+          user.parentDashboardToken = grantedDashToken;
           logAdminAction({
             action: 'consent_granted',
             targetId: consent.userId,
@@ -179,9 +180,7 @@ ${JSON.stringify(data, null, 2)}
     if (granted) {
       let message;
       if (consent.action === 'consent') {
-        const user = await readUser(consent.userId).catch(() => null);
-        const dashToken = user?.parentDashboardToken;
-        const dashUrl = dashToken ? `${BASE_URL}/parent-dashboard?token=${dashToken}` : null;
+        const dashUrl = grantedDashToken ? `${BASE_URL}/parent-dashboard?token=${grantedDashToken}` : null;
         message =
           `You have approved your child's account. They can log in now!` +
           (dashUrl
