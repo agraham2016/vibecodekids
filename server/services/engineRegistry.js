@@ -794,6 +794,35 @@ function inferStarterTemplateFromPrompt(prompt = '') {
 
   const starterSignals = [
     {
+      id: 'tower-defense-3d',
+      patterns: [/\b3d tower defense\b/i, /\btower defense 3d\b/i, /\b3d tower defense game\b/i],
+    },
+    {
+      id: 'minigolf-3d',
+      patterns: [/\b3d minigolf\b/i, /\b3d mini golf\b/i, /\bmini golf 3d\b/i, /\bminigolf 3d\b/i],
+    },
+    {
+      id: 'marble-run-3d',
+      patterns: [/\b3d marble run\b/i, /\bmarble run 3d\b/i, /\b3d marble maze\b/i],
+    },
+    {
+      id: 'kart-racer-3d',
+      patterns: [/\b3d kart\b/i, /\b3d kart racer\b/i, /\b3d kart racing\b/i, /\bgo kart 3d\b/i],
+    },
+    {
+      id: 'coaster-park-3d',
+      patterns: [/\b3d coaster\b/i, /\b3d roller coaster\b/i, /\btheme park 3d\b/i, /\bcoaster park 3d\b/i],
+    },
+    {
+      id: 'medieval-village-3d',
+      patterns: [
+        /\b3d medieval village\b/i,
+        /\bmedieval village 3d\b/i,
+        /\b3d fantasy town\b/i,
+        /\b3d village builder\b/i,
+      ],
+    },
+    {
       id: 'trick-shot-arena',
       patterns: [
         /\btrick shot\b/i,
@@ -853,6 +882,32 @@ function inferStarterTemplateFromPrompt(prompt = '') {
   }
 
   return null;
+}
+
+function promoteRequestedTypeTo3D(requestedType, prompt = '') {
+  const text = String(prompt || '').toLowerCase();
+  const directMap = {
+    'tower-defense': 'tower-defense-3d',
+    minigolf: 'minigolf-3d',
+    'marble-run': 'marble-run-3d',
+    'kart-racer': 'kart-racer-3d',
+    'coaster-park': 'coaster-park-3d',
+    'medieval-village': 'medieval-village-3d',
+  };
+
+  if (requestedType && directMap[requestedType]) {
+    return directMap[requestedType];
+  }
+
+  if (/\btower defense\b/i.test(text)) return 'tower-defense-3d';
+  if (/\bminigolf\b|\bmini golf\b|\bputt[- ]putt\b/i.test(text)) return 'minigolf-3d';
+  if (/\bmarble run\b|\bmarble maze\b|\bmarble race\b/i.test(text)) return 'marble-run-3d';
+  if (/\bkart\b|\bgo[- ]kart\b/i.test(text)) return 'kart-racer-3d';
+  if (/\broller coaster\b|\bcoaster park\b|\btheme park\b|\bamusement park\b/i.test(text)) return 'coaster-park-3d';
+  if (/\bmedieval village\b|\bfantasy town\b|\bvillage builder\b|\btown builder\b|\bcastle builder\b/i.test(text))
+    return 'medieval-village-3d';
+
+  return requestedType;
 }
 
 export function normalizeGameType(value) {
@@ -1170,11 +1225,13 @@ export function resolveEngineProfile({
   overrideState = null,
 } = {}) {
   const promptText = String(prompt || '');
+  const promptHas3DSignals =
+    /\b3d\b/.test(promptText.toLowerCase()) || /\bobby\b|\broblox\b/.test(promptText.toLowerCase());
   const promptSignalFamily = inferFamilyFromPromptSignals(promptText, gameConfig);
   const detectedFamily = detectGenreFamily(promptText);
   const codeDetectedFamily = inferFamilyFromCode(currentCode);
   const promptStarterId = inferStarterTemplateFromPrompt(promptText);
-  const normalizedRequestedType = normalizeGameType(
+  let normalizedRequestedType = normalizeGameType(
     gameConfig?.starterTemplateId ||
       gameConfig?.gameType ||
       promptStarterId ||
@@ -1182,14 +1239,15 @@ export function resolveEngineProfile({
       detectGameGenre(promptText) ||
       '',
   );
+  if (promptHas3DSignals) {
+    normalizedRequestedType = promoteRequestedTypeTo3D(normalizedRequestedType, promptText);
+  }
 
   const starterBlueprint = getTemplateBlueprint(normalizedRequestedType);
-  const promptHas3DSignals =
-    /\b3d\b/.test(promptText.toLowerCase()) || /\bobby\b|\broblox\b/.test(promptText.toLowerCase());
   const dimensionHint = gameConfig?.dimension || starterBlueprint?.dimension || (promptHas3DSignals ? '3d' : null);
   const effectiveRankingSnapshot = rankingSnapshot || getEngineOutcomeRankingSnapshot();
   const effectiveOverrideState = overrideState || getEngineOverrideState();
-  const defaultFamily = gameConfig?.dimension === '3d' ? 'obbyPlatform3d' : 'platformAction';
+  const defaultFamily = dimensionHint === '3d' ? 'obbyPlatform3d' : 'platformAction';
 
   // ITERATION LOCK: when editing an existing game, the engine detected from
   // the current code takes absolute priority over prompt-keyword signals.

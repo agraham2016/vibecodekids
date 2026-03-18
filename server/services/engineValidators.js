@@ -63,6 +63,72 @@ export const VALIDATION_RULES = {
     required: [/THREE\.Scene/, /THREE\.PerspectiveCamera/, /requestAnimationFrame/],
     warnings: [{ pattern: /VibeMultiplayer|players|room/i, label: 'missing social or multiplayer hooks' }],
   },
+  'vibe-3d-tower-defense': {
+    required: [
+      /THREE\.Scene/,
+      /THREE\.PerspectiveCamera/,
+      /requestAnimationFrame/,
+      /AmbientLight|DirectionalLight/,
+      /tower|enemy|wave/i,
+      /GLTFLoader|\/assets\/models\//,
+    ],
+    warnings: [{ pattern: /gold|lives|projectile|path/i, label: 'missing tower defense HUD or combat loop' }],
+  },
+  'vibe-3d-minigolf': {
+    required: [
+      /THREE\.Scene/,
+      /THREE\.PerspectiveCamera/,
+      /requestAnimationFrame/,
+      /AmbientLight|DirectionalLight/,
+      /ball|hole|stroke|par/i,
+      /GLTFLoader|\/assets\/models\//,
+    ],
+    warnings: [{ pattern: /aim|power|drag/i, label: 'missing aim or shot control feedback' }],
+  },
+  'vibe-3d-marble-run': {
+    required: [
+      /THREE\.Scene/,
+      /THREE\.PerspectiveCamera/,
+      /requestAnimationFrame/,
+      /AmbientLight|DirectionalLight/,
+      /marble|track|finish|gravity/i,
+      /GLTFLoader|\/assets\/models\//,
+    ],
+    warnings: [{ pattern: /timer|level|retry/i, label: 'missing marble run progression feedback' }],
+  },
+  'vibe-3d-kart-racing': {
+    required: [
+      /THREE\.Scene/,
+      /THREE\.PerspectiveCamera/,
+      /requestAnimationFrame/,
+      /AmbientLight|DirectionalLight/,
+      /kart|lap|track|speed/i,
+      /GLTFLoader|\/assets\/models\//,
+    ],
+    warnings: [{ pattern: /position|boost|coins?/i, label: 'missing kart racing HUD or pickup loop' }],
+  },
+  'vibe-3d-coaster-park': {
+    required: [
+      /THREE\.Scene/,
+      /THREE\.PerspectiveCamera/,
+      /requestAnimationFrame/,
+      /AmbientLight|DirectionalLight/,
+      /coaster|track|ride|park/i,
+      /GLTFLoader|\/assets\/models\//,
+    ],
+    warnings: [{ pattern: /excitement|rides?|speed/i, label: 'missing coaster park progression feedback' }],
+  },
+  'vibe-3d-medieval-village': {
+    required: [
+      /THREE\.Scene/,
+      /THREE\.PerspectiveCamera/,
+      /requestAnimationFrame/,
+      /AmbientLight|DirectionalLight/,
+      /village|building|gold|villager/i,
+      /GLTFLoader|\/assets\/models\//,
+    ],
+    warnings: [{ pattern: /palette|place|goal|population/i, label: 'missing village builder interaction loop' }],
+  },
 };
 
 function collectMatches(code, patterns) {

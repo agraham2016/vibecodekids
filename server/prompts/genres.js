@@ -93,6 +93,12 @@ export const GENRE_KEYWORDS = {
     'quest village',
     'level up adventure',
   ],
+  'tower-defense-3d': ['3d tower defense', 'tower defense 3d', '3d defense game', '3d td game'],
+  'minigolf-3d': ['3d minigolf', '3d mini golf', 'mini golf 3d', 'minigolf 3d', 'putt putt 3d'],
+  'marble-run-3d': ['3d marble run', 'marble run 3d', '3d marble maze', 'marble race 3d'],
+  'kart-racer-3d': ['3d kart racing', '3d kart racer', 'kart racing 3d', 'go kart 3d'],
+  'coaster-park-3d': ['3d coaster park', '3d roller coaster', 'theme park 3d', 'amusement park 3d'],
+  'medieval-village-3d': ['3d medieval village', 'medieval village 3d', '3d fantasy town', '3d village builder'],
   fighting: [
     'fighting game',
     'fighter',
@@ -192,6 +198,12 @@ export function detectGameGenre(message) {
 }
 
 export const GENRE_FAMILY_KEYWORDS = {
+  towerDefense3d: ['3d tower defense', 'tower defense 3d', '3d defense game', '3d td game'],
+  minigolf3d: ['3d minigolf', '3d mini golf', 'mini golf 3d', 'minigolf 3d', 'putt putt 3d'],
+  marbleRun3d: ['3d marble run', 'marble run 3d', '3d marble maze', 'marble race 3d'],
+  kartRacing3d: ['3d kart racing', '3d kart racer', 'kart racing 3d', 'go kart 3d'],
+  coasterPark3d: ['3d coaster park', '3d roller coaster', 'theme park 3d', 'amusement park 3d'],
+  medievalVillage3d: ['3d medieval village', 'medieval village 3d', '3d fantasy town', '3d village builder'],
   obbyPlatform3d: [
     'obby',
     'roblox',
