@@ -177,7 +177,11 @@ export async function generateOrIterateGame({
   userId = null,
   lastModelUsed = null,
   debugAttempt = 0,
+  onStatus = null,
 }) {
+  const emitStatus = (stage, message) => {
+    if (typeof onStatus === 'function') onStatus(stage, message);
+  };
   // ===== AUTO-DETECT MODE (if mode is 'default') =====
   let effectiveMode = mode;
   if (mode === 'default') {
@@ -280,6 +284,7 @@ export async function generateOrIterateGame({
         image,
         userId,
         targetModel,
+        emitStatus,
       });
       break;
   }
@@ -342,10 +347,20 @@ function resolveTargetModel(mode, lastModelUsed) {
 /**
  * Call a single model (Claude or Grok) and process the response.
  */
-async function handleSingleModel({ prompt, currentCode, conversationHistory, gameConfig, image, userId, targetModel }) {
+async function handleSingleModel({
+  prompt,
+  currentCode,
+  conversationHistory,
+  gameConfig,
+  image,
+  userId,
+  targetModel,
+  emitStatus = () => {},
+}) {
   // Detect genre for reference resolution
   const genre = gameConfig?.gameType || detectGameGenre(prompt || '') || null;
   const requestedEngineProfile = resolveEngineProfile({ prompt, genre, gameConfig, currentCode });
+  emitStatus('engine', 'Choosing the right engine...');
   const isNewGame =
     !currentCode ||
     currentCode.includes('Tell me what you want to create') ||
@@ -381,6 +396,7 @@ async function handleSingleModel({ prompt, currentCode, conversationHistory, gam
   if (referenceSources.length > 0) {
     console.log(`📚 Using references: ${referenceSources.join(', ')}`);
   }
+  emitStatus('references', 'Loading game templates...');
 
   // Combine reference code with pattern hint
   const fullReferenceCode = referenceCode + patternHintText;
@@ -459,6 +475,8 @@ Regenerate the COMPLETE game code. Keep the same game idea, but make sure the re
 
 Only output the full HTML game.`;
 
+  emitStatus('generating', 'Writing your game code...');
+
   let assistantText;
   let wasTruncated = false;
   const engineTelemetry = {
@@ -516,6 +534,8 @@ Only output the full HTML game.`;
     }
   }
 
+  emitStatus('polishing', 'Polishing and checking...');
+
   // Post-process: inject Kenney sprites if the AI used generateTexture instead
   code = await applyEnginePostProcessing(code);
 
@@ -530,6 +550,7 @@ Only output the full HTML game.`;
       );
     }
     if (!engineValidation.safe) {
+      emitStatus('repairing', 'Fixing a small issue...');
       engineTelemetry.repairAttempted = true;
       console.warn(
         `⚠️ Engine validation failed (${requestedEngineProfile.validationProfile}): ${engineValidation.violations.join(', ')}`,

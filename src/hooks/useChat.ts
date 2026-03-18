@@ -38,9 +38,15 @@ function pickRandomStartingModel(openaiAvailable: boolean): AIModel {
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
+export interface GenerationStatus {
+  stage: string;
+  message: string;
+}
+
 export function useChat({ onCodeGenerated, onUsageUpdate, onUpgradeNeeded }: UseChatOptions) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [generationStatus, setGenerationStatus] = useState<GenerationStatus | null>(null);
   const [activeModel, setActiveModel] = useState<AIModel>('claude');
   const [openaiAvailable, setOpenaiAvailable] = useState(false);
   const [lastModelUsed, setLastModelUsed] = useState<AIModel | null>(null);
@@ -100,7 +106,9 @@ export function useChat({ onCodeGenerated, onUsageUpdate, onUpgradeNeeded }: Use
       const mode: AIMode = modeOverride || (activeModel === 'openai' ? 'openai' : 'default');
 
       try {
-        const data = await api.post<GenerateResponse>('/api/generate', {
+        setGenerationStatus(null);
+
+        const requestBody = {
           message: content,
           image,
           currentCode,
@@ -115,7 +123,11 @@ export function useChat({ onCodeGenerated, onUsageUpdate, onUpgradeNeeded }: Use
           debugAttempt: mode === 'debug' ? debugAttemptRef.current : 0,
           sessionId: sessionIdRef.current,
           startingModel: startingModelRef.current,
-        });
+        };
+
+        const data = await api.postSSE<GenerateResponse>('/api/generate', requestBody, (status) =>
+          setGenerationStatus(status),
+        );
 
         if (data.usage) {
           onUsageUpdate(data.usage);
@@ -180,6 +192,7 @@ export function useChat({ onCodeGenerated, onUsageUpdate, onUpgradeNeeded }: Use
         setMessages((prev) => [...prev, errorMsg]);
       } finally {
         setIsLoading(false);
+        setGenerationStatus(null);
       }
     },
     [messages, activeModel, lastModelUsed, onCodeGenerated, onUsageUpdate, onUpgradeNeeded],
@@ -229,6 +242,7 @@ export function useChat({ onCodeGenerated, onUsageUpdate, onUpgradeNeeded }: Use
   return {
     messages,
     isLoading,
+    generationStatus,
     sendMessage,
     clearMessages,
     sendFeedback,

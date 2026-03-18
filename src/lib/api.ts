@@ -110,4 +110,65 @@ export const api = {
       headers: buildHeaders(headers),
     });
   },
+
+  async postSSE<T = unknown>(
+    url: string,
+    body: unknown,
+    onStatus: (status: { stage: string; message: string }) => void,
+  ): Promise<T> {
+    const headers = buildHeaders({ Accept: 'text/event-stream' });
+    const response = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(body),
+    });
+
+    if (!response.ok && !response.body) {
+      throw new ApiError(response.statusText, response.status);
+    }
+
+    const reader = response.body!.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let result: T | undefined;
+    let sseError: string | undefined;
+
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (value) buffer += decoder.decode(value, { stream: true });
+
+      const parts = buffer.split('\n\n');
+      buffer = parts.pop() || '';
+
+      for (const part of parts) {
+        let eventType = 'message';
+        let data = '';
+        for (const line of part.split('\n')) {
+          if (line.startsWith('event: ')) eventType = line.slice(7).trim();
+          else if (line.startsWith('data: ')) data += line.slice(6);
+          else if (line.startsWith('data:')) data += line.slice(5);
+        }
+        if (!data) continue;
+
+        if (eventType === 'status') {
+          try {
+            onStatus(JSON.parse(data));
+          } catch {
+            /* malformed status — skip */
+          }
+        } else if (eventType === 'result') {
+          result = JSON.parse(data) as T;
+        } else if (eventType === 'error') {
+          const parsed = JSON.parse(data);
+          sseError = parsed.error || 'Generation failed';
+        }
+      }
+
+      if (done) break;
+    }
+
+    if (sseError) throw new ApiError(sseError, 500);
+    if (!result) throw new ApiError('Stream ended without a result', 500);
+    return result;
+  },
 };

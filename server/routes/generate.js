@@ -280,6 +280,22 @@ export default function createGenerateRouter(sessions) {
         return msg;
       });
 
+      // ===== SSE STREAMING DETECTION =====
+      const wantsSSE = req.headers.accept === 'text/event-stream' || req.query.stream === '1';
+
+      let onStatus = null;
+      if (wantsSSE) {
+        res.writeHead(200, {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          Connection: 'keep-alive',
+          'X-Accel-Buffering': 'no',
+        });
+        onStatus = (stage, message) => {
+          res.write(`event: status\ndata: ${JSON.stringify({ stage, message })}\n\n`);
+        };
+      }
+
       // ===== CALL THE DUAL-MODEL HANDLER =====
       const result = await generateOrIterateGame({
         prompt: message,
@@ -291,6 +307,7 @@ export default function createGenerateRouter(sessions) {
         userId,
         lastModelUsed,
         debugAttempt,
+        onStatus,
       });
 
       // Increment usage
@@ -415,7 +432,12 @@ export default function createGenerateRouter(sessions) {
         }).catch((err) => console.error('Engine outcome log error:', err?.message));
       }
 
-      res.json(responsePayload);
+      if (wantsSSE) {
+        res.write(`event: result\ndata: ${JSON.stringify(responsePayload)}\n\n`);
+        res.end();
+      } else {
+        res.json(responsePayload);
+      }
     } catch (error) {
       console.error('API Error:', error.message || error);
       console.error('Stack:', error.stack);
@@ -446,12 +468,22 @@ export default function createGenerateRouter(sessions) {
         statusCode = 503;
       }
 
-      res.status(statusCode).json({
-        message: friendlyMessage,
-        code: null,
-        modelUsed: null,
-        isCacheHit: false,
-      });
+      const wantsSSE = req.headers.accept === 'text/event-stream' || req.query.stream === '1';
+      if (wantsSSE && !res.headersSent) {
+        res.writeHead(statusCode, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache' });
+        res.write(`event: error\ndata: ${JSON.stringify({ error: friendlyMessage })}\n\n`);
+        res.end();
+      } else if (wantsSSE) {
+        res.write(`event: error\ndata: ${JSON.stringify({ error: friendlyMessage })}\n\n`);
+        res.end();
+      } else {
+        res.status(statusCode).json({
+          message: friendlyMessage,
+          code: null,
+          modelUsed: null,
+          isCacheHit: false,
+        });
+      }
     }
   });
 

@@ -1120,3 +1120,51 @@
   padding: 0 6px 4px;
   font-style: italic;
 }
+
+/* ========== GENERATION STEP INDICATOR ========== */
+
+.generation-steps {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0 6px 4px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.generation-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 0.58rem;
+  color: rgba(255, 255, 255, 0.5);
+  transition: color 0.2s;
+}
+
+.generation-step.done {
+  color: rgba(0, 255, 170, 0.8);
+}
+
+.generation-step.active {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.generation-step-icon {
+  display: inline-block;
+  width: 10px;
+  text-align: center;
+  font-size: 0.55rem;
+}
+
+.generation-step.active .generation-step-icon {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  animation: stepPulse 1s ease-in-out infinite;
+}
+
+@keyframes stepPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}

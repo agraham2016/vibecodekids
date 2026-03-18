@@ -126,6 +126,7 @@ function App() {
   const {
     messages,
     isLoading,
+    generationStatus,
     sendMessage,
     clearMessages,
     sendFeedback,
@@ -633,6 +634,7 @@ function App() {
             onSendMessage={handleSendMessage}
             onFeedback={sendFeedback}
             isLoading={isLoading}
+            generationStatus={generationStatus}
             activeModel={activeModel}
             onSwitchModel={switchModel}
             openaiAvailable={openaiAvailable}

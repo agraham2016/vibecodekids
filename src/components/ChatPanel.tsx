@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import type { AIModel, AIMode, GameConfig } from '../types';
-import type { ChatMessage } from '../hooks/useChat';
+import type { ChatMessage, GenerationStatus } from '../hooks/useChat';
 import {
   ENGINE_SELECTION_GUIDE,
   STARTERS_BY_ENGINE,
@@ -68,6 +68,7 @@ interface ChatPanelProps {
     details?: string,
   ) => void;
   isLoading: boolean;
+  generationStatus?: GenerationStatus | null;
   activeModel: AIModel;
   onSwitchModel: (model: AIModel) => void;
   openaiAvailable: boolean;
@@ -136,12 +137,15 @@ const GAME_STARTER_GROUPS = [
   },
 ];
 
+const GENERATION_STAGES = ['engine', 'references', 'generating', 'polishing', 'repairing'] as const;
+
 export default function ChatPanel({
   messages,
   activeGameConfig,
   onSendMessage,
   onFeedback,
   isLoading,
+  generationStatus,
   activeModel,
   onSwitchModel,
   openaiAvailable,
@@ -653,7 +657,7 @@ export default function ChatPanel({
               </div>
             ))}
 
-            {/* Loading indicator with personality */}
+            {/* Loading indicator with live generation status */}
             {isLoading && (
               <div className="chat-message assistant loading">
                 <div className="message-avatar">{loadingModelInfo.icon}</div>
@@ -668,7 +672,31 @@ export default function ChatPanel({
                       ? 'Coach GPT is strategizing... 🏆'
                       : 'Professor Claude is thinking... 🧠'}
                   </div>
-                  <div className="loading-sublabel">Finding the best references and building your game...</div>
+                  <div className="loading-sublabel">
+                    {generationStatus?.message || 'Finding the best references and building your game...'}
+                  </div>
+                  {generationStatus && (
+                    <ul className="generation-steps">
+                      {GENERATION_STAGES.map((stage) => {
+                        const currentIdx = GENERATION_STAGES.indexOf(
+                          generationStatus.stage as (typeof GENERATION_STAGES)[number],
+                        );
+                        const stageIdx = GENERATION_STAGES.indexOf(stage);
+                        if (stageIdx > currentIdx) return null;
+                        const isCurrent = stage === generationStatus.stage;
+                        return (
+                          <li key={stage} className={isCurrent ? 'generation-step active' : 'generation-step done'}>
+                            <span className="generation-step-icon">{isCurrent ? '' : '✓'}</span>
+                            {stage === 'engine' && 'Engine selected'}
+                            {stage === 'references' && 'Templates loaded'}
+                            {stage === 'generating' && 'Writing code'}
+                            {stage === 'polishing' && 'Polishing'}
+                            {stage === 'repairing' && 'Repairing'}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
                 </div>
               </div>
             )}
