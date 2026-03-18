@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { getVisitorId } from '../lib/abVariant';
 import { trackPageView, trackCtaClick } from '../lib/marketingEvents';
 import { ENGINE_SELECTION_GUIDE, STARTER_TEMPLATES } from '../config/gameCatalog';
+import { enhanceSandboxedPreviewHtml } from '../utils/previewHtml';
 import './LandingPageB.css';
 import './LandingPage.css';
 
@@ -45,25 +46,6 @@ const LANDING_ENGINE_GUIDES = Object.values(ENGINE_SELECTION_GUIDE);
 
 type Phase = 'idle' | 'loading' | 'playing' | 'gated';
 
-function injectLibraries(code: string): string {
-  const hasFullStructure = code.toLowerCase().includes('<!doctype') || code.toLowerCase().includes('<html');
-  const previewScrollStyle = `<style>html,body{overflow-y:auto!important;overflow-x:hidden;min-height:100%}</style>`;
-  const libraryScripts = `<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script><script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script><script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script><script>
-    window.THREE=THREE;delete window.createImageBitmap;
-    (function(){if(!window.THREE||!window.THREE.ImageLoader)return;var o=window.THREE.ImageLoader.prototype.load;window.THREE.ImageLoader.prototype.load=function(u,l,p,e){if(typeof u==='string'&&u.indexOf('blob:')===0){fetch(u).then(function(r){return r.blob()}).then(function(b){return new Promise(function(res,rej){var r=new FileReader();r.onload=function(){res(r.result)};r.onerror=function(){rej(r.error)};r.readAsDataURL(b)})}).then(function(d){o.call(this,d,l,p,e)}.bind(this)).catch(function(err){if(e)e(err)})}else{o.call(this,u,l,p,e)}}})();
-  </script>`;
-  const headInject = previewScrollStyle + libraryScripts;
-  if (hasFullStructure) {
-    const headOpenMatch = code.match(/<head[^>]*>/i);
-    if (headOpenMatch) {
-      const idx = code.indexOf(headOpenMatch[0]) + headOpenMatch[0].length;
-      return code.slice(0, idx) + headInject + code.slice(idx);
-    }
-    if (code.includes('<body')) return code.replace(/<body/i, `${previewScrollStyle}<body`);
-  }
-  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">${headInject}</head><body>${code}</body></html>`;
-}
-
 export default function LandingPageB({ onLoginClick, onSignupClick }: LandingPageBProps) {
   const [customPrompt, setCustomPrompt] = useState('');
   const [phase, setPhase] = useState<Phase>('idle');
@@ -90,7 +72,7 @@ export default function LandingPageB({ onLoginClick, onSignupClick }: LandingPag
       const doc = iframeRef.current.contentDocument || iframeRef.current.contentWindow?.document;
       if (doc) {
         doc.open();
-        doc.write(injectLibraries(currentCode));
+        doc.write(enhanceSandboxedPreviewHtml(currentCode));
         doc.close();
       }
     }

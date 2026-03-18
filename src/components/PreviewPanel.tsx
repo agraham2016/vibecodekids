@@ -1,90 +1,9 @@
-import { useRef, useEffect, useState } from 'react';
-import { injectNonceIntoCode } from '../utils/cspNonce';
+import { useRef, useEffect, useState, useCallback } from 'react';
+import { enhanceSandboxedPreviewHtml } from '../utils/previewHtml';
 import './PreviewPanel.css';
 
 interface PreviewPanelProps {
   code: string;
-}
-
-// Inject Three.js and other 3D libraries into the preview
-function injectLibraries(code: string): string {
-  const hasFullStructure = code.toLowerCase().includes('<!doctype') || code.toLowerCase().includes('<html');
-  const codeLower = code.toLowerCase();
-
-  const previewScrollStyle = `
-    <style id="vibe-preview-scroll">
-      html, body { overflow-y: auto !important; overflow-x: hidden; min-height: 100%; }
-    </style>
-  `;
-
-  // Only inject Three.js if the code doesn't already include it (prevents duplicate instance warnings)
-  const alreadyHasThree =
-    codeLower.includes('three.min.js') ||
-    codeLower.includes('three.js') ||
-    codeLower.includes('three@') ||
-    codeLower.includes('cdn.jsdelivr.net/npm/three') ||
-    codeLower.includes('cdnjs.cloudflare.com/ajax/libs/three');
-
-  const libraryScripts = alreadyHasThree
-    ? ''
-    : `
-    <!-- 3D Libraries -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-    <script>
-      window.THREE = THREE;
-      delete window.createImageBitmap;
-      (function(){
-        if (!window.THREE || !window.THREE.ImageLoader) return;
-        var orig = window.THREE.ImageLoader.prototype.load;
-        window.THREE.ImageLoader.prototype.load = function(url, onLoad, onProgress, onError) {
-          if (typeof url === 'string' && url.indexOf('blob:') === 0) {
-            fetch(url).then(function(r){ return r.blob(); }).then(function(blob) {
-              return new Promise(function(res, rej) {
-                var r = new FileReader();
-                r.onload = function() { res(r.result); };
-                r.onerror = function() { rej(r.error); };
-                r.readAsDataURL(blob);
-              });
-            }).then(function(dataUrl) {
-              orig.call(this, dataUrl, onLoad, onProgress, onError);
-            }.bind(this)).catch(function(e) {
-              if (onError) onError(e);
-            });
-          } else {
-            orig.call(this, url, onLoad, onProgress, onError);
-          }
-        };
-      })();
-    </script>
-  `;
-  const headInject = previewScrollStyle + libraryScripts;
-
-  if (hasFullStructure) {
-    // Inject right AFTER <head> so Three.js loads before any AI-generated scripts
-    const headOpenMatch = code.match(/<head[^>]*>/i);
-    if (headOpenMatch) {
-      const idx = code.indexOf(headOpenMatch[0]) + headOpenMatch[0].length;
-      return code.slice(0, idx) + `\n${headInject}\n` + code.slice(idx);
-    } else if (code.includes('<body')) {
-      return code.replace(/<body/i, `${previewScrollStyle}<body`);
-    }
-  }
-
-  // If no structure, wrap the code
-  return `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  ${previewScrollStyle}
-  ${libraryScripts}
-</head>
-<body>
-${code}
-</body>
-</html>`;
 }
 
 export default function PreviewPanel({ code }: PreviewPanelProps) {
@@ -93,9 +12,19 @@ export default function PreviewPanel({ code }: PreviewPanelProps) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [key, setKey] = useState(0);
 
-  // Inject libraries into the code (used as srcdoc for sandboxing)
-  // Apply CSP nonce so parent's nonce-based CSP allows inline script/style in iframe
-  const enhancedCode = injectNonceIntoCode(injectLibraries(code));
+  const enhancedCode = enhanceSandboxedPreviewHtml(code);
+
+  const focusIframe = useCallback((iframe: HTMLIFrameElement | null) => {
+    if (!iframe) return;
+    iframe.setAttribute('tabindex', '0');
+    window.setTimeout(() => {
+      try {
+        iframe.focus();
+      } catch {
+        // Ignore focus errors from sandboxed iframe timing.
+      }
+    }, 100);
+  }, []);
 
   // Handle Escape key to exit fullscreen
   useEffect(() => {
@@ -141,6 +70,7 @@ export default function PreviewPanel({ code }: PreviewPanelProps) {
             title="Preview"
             sandbox="allow-scripts allow-pointer-lock"
             className="preview-iframe"
+            onLoad={() => focusIframe(iframeRef.current)}
           />
         </div>
       </div>
@@ -164,6 +94,7 @@ export default function PreviewPanel({ code }: PreviewPanelProps) {
               title="Fullscreen Preview"
               sandbox="allow-scripts allow-pointer-lock"
               className="play-mode-iframe"
+              onLoad={() => focusIframe(fullscreenIframeRef.current)}
             />
           </div>
           <div className="play-mode-footer">

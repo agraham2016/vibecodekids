@@ -137,4 +137,40 @@ test.describe('Template Runtime Regression Tests', () => {
       expect(hudContentAfter, `HUD should remain visible and not crash for ${templateName}`).toBeTruthy();
     });
   }
+
+  test('obby - player stays put until input and arrow keys move the character', async ({ page }) => {
+    await page.goto('http://localhost:3001/dev/template/obby', {
+      waitUntil: 'networkidle',
+      timeout: 15000,
+    });
+
+    await page.waitForTimeout(1200);
+    await page.evaluate(() => window.__vibeObbyDebug?.clearInputState?.());
+    await page.waitForTimeout(100);
+    await page.locator('canvas').click();
+
+    const initial = await page.evaluate(() => window.__vibeObbyDebug?.getPlayerState?.() || null);
+    expect(initial, 'Obby debug state should be available').not.toBeNull();
+
+    await page.waitForTimeout(800);
+
+    const idle = await page.evaluate(() => window.__vibeObbyDebug?.getPlayerState?.() || null);
+    expect(Math.abs(idle.z - initial.z), 'Player should not auto-run off the starting platform').toBeLessThan(0.2);
+
+    await page.keyboard.down('ArrowRight');
+    await page.waitForTimeout(350);
+    await page.keyboard.up('ArrowRight');
+    await page.waitForTimeout(150);
+
+    const movedRight = await page.evaluate(() => window.__vibeObbyDebug?.getPlayerState?.() || null);
+    expect(movedRight.x - idle.x, 'ArrowRight should move the player').toBeGreaterThan(0.5);
+
+    await page.keyboard.down('ArrowUp');
+    await page.waitForTimeout(350);
+    await page.keyboard.up('ArrowUp');
+    await page.waitForTimeout(150);
+
+    const movedForward = await page.evaluate(() => window.__vibeObbyDebug?.getPlayerState?.() || null);
+    expect(idle.z - movedForward.z, 'ArrowUp should move the player forward').toBeGreaterThan(0.5);
+  });
 });

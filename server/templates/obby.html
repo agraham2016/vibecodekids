@@ -127,12 +127,17 @@
         new THREE.MeshStandardMaterial({ color: 0x38bdf8, roughness: 0.5, metalness: 0.05 })
       );
       var velocity = new THREE.Vector3();
+      var grounded = false;
+      var standingPlatform = null;
       var spawnPoint = new THREE.Vector3(0, 2.5, 0);
       var activeCheckpoint = 0;
       var score = 0;
       var totalCollectibles = 3;
       var finished = false;
-      var keys = { left: false, right: false, up: false };
+      var keys = { left: false, right: false, forward: false, backward: false, jump: false };
+      var PLAYER_STAND_HEIGHT = 1.4;
+      var MOVE_SPEED = 7;
+      var JUMP_SPEED = 10.5;
 
       function showToast(text) {
         toast.textContent = text;
@@ -211,12 +216,15 @@
 
       function addMovingPlatform(x, y, z, sx, sy, sz, travel) {
         var mesh = addPlatform(x, y, z, sx, sy, sz, 0xa78bfa);
-        movingPlatforms.push({
+        var moving = {
           mesh: mesh,
           originX: x,
           travel: travel,
-          size: { x: sx, y: sy, z: sz }
-        });
+          size: { x: sx, y: sy, z: sz },
+          lastX: x
+        };
+        mesh.userData.platformRef = moving;
+        movingPlatforms.push(moving);
       }
 
       function createFallbackPlayer() {
@@ -306,6 +314,18 @@
       function resetPlayer() {
         velocity.set(0, 0, 0);
         playerGroup.position.set(spawnPoint.x, spawnPoint.y, spawnPoint.z);
+        grounded = false;
+        standingPlatform = null;
+      }
+
+      function clearInputState() {
+        keys.left = false;
+        keys.right = false;
+        keys.forward = false;
+        keys.backward = false;
+        keys.jump = false;
+        velocity.x = 0;
+        velocity.z = 0;
       }
 
       function respawnAtCheckpoint() {
@@ -335,23 +355,29 @@
         );
       }
 
-      function resolvePlatformCollision(nextX, nextZ, delta) {
-        var landed = false;
+      function resolvePlatformCollision(delta) {
+        grounded = false;
+        standingPlatform = null;
         for (var i = 0; i < platforms.length; i++) {
           var platform = platforms[i];
           var top = platform.mesh.position.y + platform.size.y * 0.5;
           var inXZ =
-            Math.abs(nextX - platform.mesh.position.x) <= platform.size.x * 0.5 + 0.35 &&
-            Math.abs(nextZ - platform.mesh.position.z) <= platform.size.z * 0.5 + 0.35;
+            Math.abs(playerGroup.position.x - platform.mesh.position.x) <= platform.size.x * 0.5 + 0.35 &&
+            Math.abs(playerGroup.position.z - platform.mesh.position.z) <= platform.size.z * 0.5 + 0.35;
           if (!inXZ) continue;
-          var fallingOntoTop = velocity.y <= 0 && playerGroup.position.y >= top + 0.6 && playerGroup.position.y + velocity.y * delta <= top + 1.4;
+          var fallingOntoTop =
+            velocity.y <= 0 &&
+            playerGroup.position.y >= top + 0.6 &&
+            playerGroup.position.y + velocity.y * delta <= top + PLAYER_STAND_HEIGHT;
           if (fallingOntoTop) {
-            playerGroup.position.y = top + 1.4;
+            playerGroup.position.y = top + PLAYER_STAND_HEIGHT;
             velocity.y = 0;
-            landed = true;
+            grounded = true;
+            standingPlatform = platform;
+            return true;
           }
         }
-        return landed;
+        return false;
       }
 
       function collectStars() {
@@ -398,6 +424,7 @@
       function updateMovingPlatforms(elapsed) {
         for (var i = 0; i < movingPlatforms.length; i++) {
           var moving = movingPlatforms[i];
+          moving.lastX = moving.mesh.position.x;
           moving.mesh.position.x = moving.originX + Math.sin(elapsed * 1.1 + i) * moving.travel;
         }
       }
@@ -413,7 +440,7 @@
           '<strong>Vibe 3D Obby</strong><br>' +
           'Stars: ' + score + '/' + totalCollectibles + '<br>' +
           'Checkpoint: ' + (activeCheckpoint + 1) + '/' + checkpoints.length + '<br>' +
-          'Arrow keys to move, jump with Up';
+          'Arrow keys to move, jump with Space';
       }
 
       function animate() {
@@ -425,24 +452,37 @@
         updateMovingPlatforms(elapsed);
 
         if (!finished) {
-          var move = 0;
-          if (keys.left) move -= 1;
-          if (keys.right) move += 1;
-          velocity.x = move * 7.5;
-          velocity.y -= 22 * delta;
-
-          var nextX = playerGroup.position.x + velocity.x * delta;
-          var nextZ = playerGroup.position.z - 4.8 * delta;
-          if (!keys.left && !keys.right) nextZ = playerGroup.position.z - 4.0 * delta;
-
-          var onPlatform = resolvePlatformCollision(nextX, nextZ, delta);
-          if (!onPlatform) {
-            playerGroup.position.y += velocity.y * delta;
+          var movingSupport = standingPlatform && standingPlatform.mesh.userData.platformRef;
+          if (movingSupport) {
+            playerGroup.position.x += movingSupport.mesh.position.x - movingSupport.lastX;
           }
 
-          playerGroup.position.x = nextX;
-          playerGroup.position.z = nextZ;
-          playerGroup.rotation.y = move !== 0 ? -move * 0.4 : 0;
+          var moveX = 0;
+          var moveZ = 0;
+          if (keys.left) moveX -= 1;
+          if (keys.right) moveX += 1;
+          if (keys.forward) moveZ -= 1;
+          if (keys.backward) moveZ += 1;
+
+          if (moveX !== 0 && moveZ !== 0) {
+            var length = Math.sqrt(moveX * moveX + moveZ * moveZ);
+            moveX /= length;
+            moveZ /= length;
+          }
+
+          velocity.x = moveX * MOVE_SPEED;
+          velocity.z = moveZ * MOVE_SPEED;
+          velocity.y -= 22 * delta;
+
+          playerGroup.position.x += velocity.x * delta;
+          playerGroup.position.z += velocity.z * delta;
+          playerGroup.position.y += velocity.y * delta;
+
+          resolvePlatformCollision(delta);
+
+          if (moveX !== 0 || moveZ !== 0) {
+            playerGroup.rotation.y = Math.atan2(moveX, -moveZ);
+          }
 
           collectStars();
           updateCheckpointProgress();
@@ -457,26 +497,43 @@
       function setKey(dir, value) {
         if (dir === 'left') keys.left = value;
         if (dir === 'right') keys.right = value;
-        if (dir === 'up') {
-          keys.up = value;
-          if (value && Math.abs(velocity.y) < 0.001) {
-            velocity.y = 10.5;
+        if (dir === 'forward') keys.forward = value;
+        if (dir === 'backward') keys.backward = value;
+        if (dir === 'jump') {
+          keys.jump = value;
+          if (value && grounded) {
+            grounded = false;
+            standingPlatform = null;
+            velocity.y = JUMP_SPEED;
           }
         }
       }
 
       function bindControls() {
+        document.body.tabIndex = 0;
+        document.body.focus();
+        window.addEventListener('pointerdown', function () {
+          document.body.focus();
+        });
+        window.addEventListener('blur', clearInputState);
+        document.addEventListener('visibilitychange', function () {
+          if (document.hidden) clearInputState();
+        });
         document.addEventListener('keydown', function (event) {
           if (event.key === 'ArrowLeft') { setKey('left', true); event.preventDefault(); }
           if (event.key === 'ArrowRight') { setKey('right', true); event.preventDefault(); }
-          if (event.key === 'ArrowUp' || event.key === ' ') { setKey('up', true); event.preventDefault(); }
+          if (event.key === 'ArrowUp') { setKey('forward', true); event.preventDefault(); }
+          if (event.key === 'ArrowDown') { setKey('backward', true); event.preventDefault(); }
+          if (event.key === ' ') { setKey('jump', true); event.preventDefault(); }
         });
         document.addEventListener('keyup', function (event) {
           if (event.key === 'ArrowLeft') setKey('left', false);
           if (event.key === 'ArrowRight') setKey('right', false);
-          if (event.key === 'ArrowUp' || event.key === ' ') setKey('up', false);
+          if (event.key === 'ArrowUp') setKey('forward', false);
+          if (event.key === 'ArrowDown') setKey('backward', false);
+          if (event.key === ' ') setKey('jump', false);
         });
-        [['left-btn', 'left'], ['right-btn', 'right'], ['jump-btn', 'up']].forEach(function (entry) {
+        [['left-btn', 'left'], ['right-btn', 'right'], ['jump-btn', 'jump']].forEach(function (entry) {
           var button = document.getElementById(entry[0]);
           var key = entry[1];
           button.addEventListener('touchstart', function (event) { event.preventDefault(); setKey(key, true); });
@@ -494,6 +551,19 @@
           renderer.setSize(window.innerWidth, window.innerHeight);
         });
       }
+
+      window.__vibeObbyDebug = {
+        clearInputState: clearInputState,
+        getPlayerState: function () {
+          return {
+            x: playerGroup.position.x,
+            y: playerGroup.position.y,
+            z: playerGroup.position.z,
+            grounded: grounded,
+            finished: finished
+          };
+        }
+      };
 
       if (typeof THREE === 'undefined') {
         hud.textContent = 'Three.js failed to load.';
