@@ -9,13 +9,21 @@
     #game-container { width: 100vw; height: 100vh; }
     #hud {
       position: fixed; top: 16px; left: 16px; z-index: 10;
-      min-width: 220px; padding: 14px 16px; border-radius: 18px;
+      min-width: 240px; padding: 14px 16px; border-radius: 18px;
       background: rgba(17,24,39,0.82); color: #f8fafc;
       line-height: 1.5; font-size: 15px;
       box-shadow: 0 12px 30px rgba(15,23,42,0.35);
     }
+    #how-to {
+      position: fixed; top: 16px; right: 16px; z-index: 10;
+      width: min(280px, calc(100vw - 32px)); padding: 14px 16px; border-radius: 18px;
+      background: rgba(17,24,39,0.82); color: #f8fafc;
+      line-height: 1.45; font-size: 14px;
+      box-shadow: 0 12px 30px rgba(15,23,42,0.35);
+    }
+    #how-to h3 { margin-bottom: 8px; font-size: 15px; }
     #toast {
-      position: fixed; top: 80px; left: 50%; transform: translateX(-50%);
+      position: fixed; top: 92px; left: 50%; transform: translateX(-50%);
       z-index: 20; padding: 12px 22px; border-radius: 999px;
       background: rgba(59,130,246,0.9); color: #fff; font-weight: bold;
       opacity: 0; transition: opacity 0.3s ease; pointer-events: none;
@@ -50,6 +58,12 @@
 <body>
   <div id="game-container"></div>
   <div id="hud"></div>
+  <div id="how-to">
+    <h3>How to play</h3>
+    <div>Tap or click glowing pads to build towers.</div>
+    <div>Press Start Wave to send enemies down the path.</div>
+    <div>Do not let them reach the crystal base.</div>
+  </div>
   <div id="toast"></div>
   <button id="start-wave-btn">Start Wave</button>
   <div id="win-screen">
@@ -62,7 +76,7 @@
   <script>
 (function () {
   var COLS = 8, ROWS = 6, TILE = 2;
-  var MAX_TOWERS = 5, TOWER_COST = 50, KILL_REWARD = 25;
+  var MAX_TOWERS = 6, TOWER_COST = 50, KILL_REWARD = 25;
   var MAX_WAVES = 5, START_GOLD = 200, START_LIVES = 10;
 
   var scene, camera, renderer, clock;
@@ -73,51 +87,44 @@
   var restartBtn = document.getElementById('restart-btn');
 
   var path = [
-    [0,2],[1,2],[2,2],[2,3],[3,3],[4,3],[5,3],[5,4],[6,4],[7,4]
+    [0, 2], [1, 2], [2, 2], [2, 3], [3, 3], [4, 3], [5, 3], [5, 4], [6, 4], [7, 4]
   ];
-  var pathSet = {};
-  path.forEach(function (p) { pathSet[p[0] + ',' + p[1]] = true; });
-  var buildSpotSet = {
-    '0,1': true,
-    '0,3': true,
-    '2,1': true,
-    '2,4': true,
-    '4,2': true,
-    '4,4': true,
-    '6,3': true,
-    '6,5': true
-  };
-  var terrainFeatureMap = {
-    '0,0': { url: '/assets/models/kenney-towerdefensekit/tile-tree-double.glb', rotationY: 0 },
-    '1,0': { url: '/assets/models/kenney-towerdefensekit/tile-tree.glb', rotationY: Math.PI / 2 },
-    '2,0': { url: '/assets/models/kenney-towerdefensekit/tile-dirt.glb', rotationY: 0 },
-    '3,0': { url: '/assets/models/kenney-towerdefensekit/tile-hill.glb', rotationY: Math.PI / 2 },
-    '4,0': { url: '/assets/models/kenney-towerdefensekit/tile-dirt.glb', rotationY: Math.PI },
-    '5,0': { url: '/assets/models/kenney-towerdefensekit/tile-rock.glb', rotationY: 0 },
-    '6,0': { url: '/assets/models/kenney-towerdefensekit/tile-tree.glb', rotationY: -Math.PI / 2 },
-    '7,0': { url: '/assets/models/kenney-towerdefensekit/tile-tree-double.glb', rotationY: Math.PI },
-    '1,1': { url: '/assets/models/kenney-towerdefensekit/tile-rock.glb', rotationY: Math.PI / 2 },
-    '3,1': { url: '/assets/models/kenney-towerdefensekit/tile-dirt.glb', rotationY: 0 },
-    '4,1': { url: '/assets/models/kenney-towerdefensekit/tile-tree.glb', rotationY: 0 },
-    '6,1': { url: '/assets/models/kenney-towerdefensekit/tile-rock.glb', rotationY: Math.PI / 2 },
-    '7,1': { url: '/assets/models/kenney-towerdefensekit/tile-tree.glb', rotationY: 0 },
-    '1,4': { url: '/assets/models/kenney-towerdefensekit/tile-rock.glb', rotationY: 0 },
-    '3,5': { url: '/assets/models/kenney-towerdefensekit/tile-dirt.glb', rotationY: 0 },
-    '4,5': { url: '/assets/models/kenney-towerdefensekit/tile-hill.glb', rotationY: Math.PI },
-    '5,5': { url: '/assets/models/kenney-towerdefensekit/tile-tree.glb', rotationY: Math.PI / 2 },
-    '7,5': { url: '/assets/models/kenney-towerdefensekit/tile-crystal.glb', rotationY: 0 }
-  };
+  var buildSpots = [
+    { col: 0, row: 1, theme: 'left-ridge' },
+    { col: 0, row: 3, theme: 'left-grove' },
+    { col: 2, row: 1, theme: 'upper-pass' },
+    { col: 2, row: 4, theme: 'river-bend' },
+    { col: 4, row: 2, theme: 'center-lookout' },
+    { col: 4, row: 4, theme: 'lower-bend' },
+    { col: 6, row: 3, theme: 'final-approach' },
+    { col: 6, row: 5, theme: 'back-crystal' }
+  ];
+  var buildSpotMap = {};
+  buildSpots.forEach(function (spot) {
+    buildSpotMap[spot.col + ',' + spot.row] = spot;
+  });
 
   var state = {
-    gold: START_GOLD, lives: START_LIVES, wave: 0,
-    waveActive: false, towers: [], enemies: [], projectiles: [],
-    towerCount: 0, spawnQueue: 0, spawnTimer: 0, gameOver: false
+    gold: START_GOLD,
+    lives: START_LIVES,
+    wave: 0,
+    waveActive: false,
+    towers: [],
+    enemies: [],
+    projectiles: [],
+    towerCount: 0,
+    spawnQueue: 0,
+    spawnTimer: 0,
+    gameOver: false
   };
 
-  var tileGroup, raycaster, mouse, tileMeshes = [];
+  var raycaster, mouse;
+  var placementMeshes = [];
   var loader = new THREE.GLTFLoader();
   var modelCache = {};
   var pendingModelLoads = {};
+  var pathCurve = null;
+  var pathSamples = [];
 
   function cloneModel(model) {
     return model.clone(true);
@@ -153,35 +160,74 @@
     });
   }
 
+  function worldPoint(col, row, y) {
+    return new THREE.Vector3(col * TILE + 1, y || 0, row * TILE + 1);
+  }
+
+  function getTileCenter(col, row) {
+    var p = worldPoint(col, row, 0);
+    return { x: p.x, z: p.z };
+  }
+
+  function getPathWorldPoint(index, y) {
+    var node = path[index];
+    return worldPoint(node[0], node[1], y || 0);
+  }
+
+  function buildPathCurve() {
+    var points = [];
+    for (var i = 0; i < path.length; i++) {
+      points.push(getPathWorldPoint(i, 0.18));
+    }
+    pathCurve = new THREE.CatmullRomCurve3(points, false, 'catmullrom', 0.45);
+    pathSamples = pathCurve.getPoints(90);
+  }
+
+  function distanceToPath(x, z) {
+    var best = Infinity;
+    for (var i = 0; i < pathSamples.length; i++) {
+      var dx = pathSamples[i].x - x;
+      var dz = pathSamples[i].z - z;
+      var dist = Math.sqrt(dx * dx + dz * dz);
+      if (dist < best) best = dist;
+    }
+    return best;
+  }
+
   function init() {
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0x1a1a2e);
     scene.fog = new THREE.Fog(0x1a1a2e, 18, 34);
     clock = new THREE.Clock();
+    buildPathCurve();
 
-    camera = new THREE.PerspectiveCamera(50, innerWidth / innerHeight, 0.1, 200);
-    camera.position.set(8, 14, 18);
-    camera.lookAt(8, 0, 4);
+    camera = new THREE.PerspectiveCamera(48, innerWidth / innerHeight, 0.1, 200);
+    camera.position.set(8.5, 12.8, 18.5);
+    camera.lookAt(8, 0, 5.2);
 
     renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(innerWidth, innerHeight);
     renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
     document.getElementById('game-container').appendChild(renderer.domElement);
 
-    scene.add(new THREE.AmbientLight(0xffffff, 0.5));
-    var dir = new THREE.DirectionalLight(0xffffff, 0.8);
-    dir.position.set(10, 20, 10);
+    scene.add(new THREE.AmbientLight(0xffffff, 0.62));
+    var dir = new THREE.DirectionalLight(0xfff4d6, 0.95);
+    dir.position.set(8, 20, 10);
+    dir.castShadow = true;
     scene.add(dir);
     var fill = new THREE.DirectionalLight(0x8ec5ff, 0.25);
-    fill.position.set(-8, 10, 14);
+    fill.position.set(-10, 10, 14);
     scene.add(fill);
 
     raycaster = new THREE.Raycaster();
     mouse = new THREE.Vector2();
 
-    addBoardBase();
-    buildGrid();
-    addBoardScenery();
+    addTerrainBase();
+    addPathCorridor();
+    addPlacementPads();
+    addMapScenery();
+    addBaseStructures();
     updateHUD();
 
     renderer.domElement.addEventListener('pointerdown', onTap);
@@ -190,196 +236,182 @@
     window.addEventListener('resize', onResize);
 
     animate();
-    showToast('Tap the glowing tower pads to build your defense!');
+    showToast('Build on the glowing pads, then send the wave.');
   }
 
-  function getTileCenter(col, row) {
-    return { x: col * TILE + 1, z: row * TILE + 1 };
+  function addTerrainBase() {
+    var lowerPlate = new THREE.Mesh(
+      new THREE.CylinderGeometry(11.8, 13.5, 2.4, 52),
+      new THREE.MeshStandardMaterial({ color: 0x20301c, roughness: 1 })
+    );
+    lowerPlate.position.set(COLS, -1.45, ROWS + 0.15);
+    scene.add(lowerPlate);
+
+    var groundGeo = new THREE.PlaneGeometry(24, 18, 32, 24);
+    groundGeo.rotateX(-Math.PI / 2);
+    var position = groundGeo.attributes.position;
+    for (var i = 0; i < position.count; i++) {
+      var localX = position.getX(i);
+      var localZ = position.getZ(i);
+      var worldX = localX + COLS;
+      var worldZ = localZ + ROWS + 0.15;
+      var ripple = Math.sin(worldX * 0.35) * 0.18 + Math.cos(worldZ * 0.27) * 0.14;
+      var edge = Math.max(Math.abs(localX) / 12, Math.abs(localZ) / 9);
+      var pathDepth = Math.max(0, 1.25 - distanceToPath(worldX, worldZ));
+      position.setY(i, ripple - edge * 0.22 - pathDepth * 0.16);
+    }
+    groundGeo.computeVertexNormals();
+    var ground = new THREE.Mesh(
+      groundGeo,
+      new THREE.MeshStandardMaterial({ color: 0x3d6130, roughness: 0.98, metalness: 0.02 })
+    );
+    ground.position.set(COLS, -0.12, ROWS + 0.15);
+    scene.add(ground);
+
+    var meadow = new THREE.Mesh(
+      new THREE.CircleGeometry(9.8, 48),
+      new THREE.MeshStandardMaterial({ color: 0x4d7d39, roughness: 1, transparent: true, opacity: 0.75 })
+    );
+    meadow.rotation.x = -Math.PI / 2;
+    meadow.position.set(COLS, 0.02, ROWS + 0.15);
+    scene.add(meadow);
   }
 
-  function getPathIndex(col, row) {
-    for (var i = 0; i < path.length; i++) {
-      if (path[i][0] === col && path[i][1] === row) return i;
+  function addPathCorridor() {
+    var border = new THREE.Mesh(
+      new THREE.TubeGeometry(pathCurve, 90, 1.15, 14, false),
+      new THREE.MeshStandardMaterial({ color: 0x4a3422, roughness: 1 })
+    );
+    border.scale.y = 0.14;
+    border.position.y = 0.18;
+    scene.add(border);
+
+    var road = new THREE.Mesh(
+      new THREE.TubeGeometry(pathCurve, 90, 0.82, 14, false),
+      new THREE.MeshStandardMaterial({ color: 0xb0885e, roughness: 1 })
+    );
+    road.scale.y = 0.08;
+    road.position.y = 0.22;
+    scene.add(road);
+
+    for (var i = 8; i < pathSamples.length - 8; i += 16) {
+      var sample = pathSamples[i];
+      var marker = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.24, 0.3, 0.14, 10),
+        new THREE.MeshStandardMaterial({ color: 0x8d6b47, roughness: 1 })
+      );
+      marker.position.set(sample.x, 0.26, sample.z);
+      scene.add(marker);
     }
-    return -1;
   }
 
-  function getPathTileDescriptor(col, row) {
-    var idx = getPathIndex(col, row);
-    if (idx === -1) return null;
-    var prev = idx > 0 ? path[idx - 1] : null;
-    var next = idx < path.length - 1 ? path[idx + 1] : null;
+  function addBaseStructures() {
+    var startPoint = getPathWorldPoint(0, 0.25);
+    var endPoint = getPathWorldPoint(path.length - 1, 0.25);
 
-    if (!prev && next) {
-      return {
-        url: '/assets/models/kenney-towerdefensekit/tile-spawn.glb',
-        rotationY: next[0] === col ? 0 : Math.PI / 2,
-      };
-    }
-    if (!next && prev) {
-      return {
-        url: '/assets/models/kenney-towerdefensekit/tile-end.glb',
-        rotationY: prev[0] === col ? 0 : Math.PI / 2,
-      };
-    }
+    loadModel('/assets/models/kenney-towerdefensekit/tile-spawn.glb', function (model) {
+      model.position.copy(startPoint);
+      model.scale.set(0.95, 0.95, 0.95);
+      model.rotation.y = Math.PI / 2;
+      scene.add(model);
+    }, null);
 
-    if (!prev || !next) {
-      return {
-        url: '/assets/models/kenney-towerdefensekit/tile-straight.glb',
-        rotationY: 0,
-      };
-    }
+    var baseGlow = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.7, 0.7, 0.12, 24),
+      new THREE.MeshStandardMaterial({ color: 0x60a5fa, emissive: 0x1d4ed8, emissiveIntensity: 0.35 })
+    );
+    baseGlow.position.set(endPoint.x, 0.28, endPoint.z);
+    scene.add(baseGlow);
 
-    var dirs = {};
-    dirs[(prev[0] - col) + ',' + (prev[1] - row)] = true;
-    dirs[(next[0] - col) + ',' + (next[1] - row)] = true;
-
-    if ((dirs['-1,0'] && dirs['1,0']) || (dirs['0,-1'] && dirs['0,1'])) {
-      return {
-        url: '/assets/models/kenney-towerdefensekit/tile-straight.glb',
-        rotationY: dirs['0,-1'] ? Math.PI / 2 : 0,
-      };
-    }
-
-    if (dirs['1,0'] && dirs['0,1']) {
-      return { url: '/assets/models/kenney-towerdefensekit/tile-corner-round.glb', rotationY: 0 };
-    }
-    if (dirs['0,1'] && dirs['-1,0']) {
-      return { url: '/assets/models/kenney-towerdefensekit/tile-corner-round.glb', rotationY: Math.PI / 2 };
-    }
-    if (dirs['-1,0'] && dirs['0,-1']) {
-      return { url: '/assets/models/kenney-towerdefensekit/tile-corner-round.glb', rotationY: Math.PI };
-    }
-    return { url: '/assets/models/kenney-towerdefensekit/tile-corner-round.glb', rotationY: -Math.PI / 2 };
+    loadModel('/assets/models/kenney-towerdefensekit/wood-structure.glb', function (model) {
+      model.position.set(endPoint.x, 0.2, endPoint.z + 0.25);
+      model.rotation.y = Math.PI;
+      model.scale.set(0.95, 0.95, 0.95);
+      scene.add(model);
+    }, null);
   }
 
-  function addBoardDecoration(url, x, z, scale, rotationY) {
+  function addSceneryProp(url, x, y, z, scale, rotationY) {
     loadModel(url, function (model) {
-      model.position.set(x, 0.15, z);
+      model.position.set(x, y, z);
       model.rotation.y = rotationY || 0;
       model.scale.set(scale, scale, scale);
       scene.add(model);
     }, null);
   }
 
-  function addBoardBase() {
-    var boardBase = new THREE.Mesh(
-      new THREE.BoxGeometry(COLS * TILE + 2.2, 1.1, ROWS * TILE + 2.2),
-      new THREE.MeshStandardMaterial({ color: 0x2d3b24, roughness: 1 })
-    );
-    boardBase.position.set(COLS, -0.58, ROWS);
-    scene.add(boardBase);
-
-    var outerGround = new THREE.Mesh(
-      new THREE.CircleGeometry(15, 48),
-      new THREE.MeshStandardMaterial({ color: 0x1c2719, roughness: 1 })
-    );
-    outerGround.rotation.x = -Math.PI / 2;
-    outerGround.position.set(COLS, -1.14, ROWS);
-    scene.add(outerGround);
-  }
-
-  function addBoardScenery() {
-    var edgeDecor = [
-      ['/assets/models/kenney-towerdefensekit/detail-tree-large.glb', -1.3, -0.9, 1.0, 0.3],
-      ['/assets/models/kenney-towerdefensekit/detail-tree-large.glb', 17.1, -0.8, 1.05, -0.6],
-      ['/assets/models/kenney-towerdefensekit/detail-tree-large.glb', -1.0, 12.8, 1.0, 0.8],
-      ['/assets/models/kenney-towerdefensekit/detail-tree-large.glb', 17.0, 12.7, 1.08, -0.4],
-      ['/assets/models/kenney-towerdefensekit/detail-rocks-large.glb', 8.0, -1.2, 1.1, 0],
-      ['/assets/models/kenney-towerdefensekit/detail-rocks-large.glb', 8.2, 13.3, 1.2, 1.6],
-      ['/assets/models/kenney-towerdefensekit/detail-crystal-large.glb', 3.4, -0.7, 0.95, 0.2],
-      ['/assets/models/kenney-towerdefensekit/detail-crystal-large.glb', 13.8, 12.9, 0.9, -0.3]
+  function addMapScenery() {
+    var props = [
+      ['/assets/models/kenney-towerdefensekit/detail-tree-large.glb', -1.2, 0.05, 0.2, 1.05, 0.25],
+      ['/assets/models/kenney-towerdefensekit/detail-tree-large.glb', 17.4, 0.05, 12.2, 1.08, -0.35],
+      ['/assets/models/kenney-towerdefensekit/detail-tree-large.glb', 15.4, 0.08, -0.9, 0.92, 0.6],
+      ['/assets/models/kenney-towerdefensekit/detail-rocks-large.glb', 7.5, 0.06, -1.3, 1.05, 0.4],
+      ['/assets/models/kenney-towerdefensekit/detail-rocks-large.glb', 10.6, 0.08, 13.2, 1.15, 1.3],
+      ['/assets/models/kenney-towerdefensekit/detail-crystal-large.glb', 2.2, 0.08, 11.8, 0.9, 0.15],
+      ['/assets/models/kenney-towerdefensekit/detail-crystal-large.glb', 14.2, 0.08, 1.4, 0.82, -0.2],
+      ['/assets/models/kenney-towerdefensekit/detail-tree.glb', 4.1, 0.02, 9.7, 0.9, 0.9],
+      ['/assets/models/kenney-towerdefensekit/detail-rocks.glb', 12.3, 0.02, 8.7, 1, -0.5],
+      ['/assets/models/kenney-towerdefensekit/detail-dirt-large.glb', 5.5, 0.04, 1.1, 0.95, 0.1],
+      ['/assets/models/kenney-towerdefensekit/detail-dirt-large.glb', 11.2, 0.04, 5.7, 1.05, -0.6]
     ];
-    for (var i = 0; i < edgeDecor.length; i++) {
-      addBoardDecoration(edgeDecor[i][0], edgeDecor[i][1], edgeDecor[i][2], edgeDecor[i][3], edgeDecor[i][4]);
+    for (var i = 0; i < props.length; i++) {
+      addSceneryProp(props[i][0], props[i][1], props[i][2], props[i][3], props[i][4], props[i][5]);
     }
   }
 
-  function isBuildSpot(col, row) {
-    return !!buildSpotSet[col + ',' + row];
+  function createPadMarker(center) {
+    var group = new THREE.Group();
+    group.position.set(center.x, 0.16, center.z);
+
+    var halo = new THREE.Mesh(
+      new THREE.TorusGeometry(0.8, 0.08, 10, 28),
+      new THREE.MeshStandardMaterial({
+        color: 0x67e8f9,
+        emissive: 0x0891b2,
+        emissiveIntensity: 0.45,
+        transparent: true,
+        opacity: 0.9
+      })
+    );
+    halo.rotation.x = Math.PI / 2;
+    group.add(halo);
+
+    var disc = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.62, 0.62, 0.06, 20),
+      new THREE.MeshStandardMaterial({ color: 0x173a53, transparent: true, opacity: 0.75 })
+    );
+    disc.position.y = 0.02;
+    group.add(disc);
+
+    loadModel('/assets/models/kenney-towerdefensekit/tower-round-base.glb', function (model) {
+      model.position.y = 0.03;
+      model.scale.set(0.58, 0.58, 0.58);
+      group.add(model);
+    }, null);
+
+    scene.add(group);
+    return group;
   }
 
-  function getTerrainTileDescriptor(col, row) {
-    var feature = terrainFeatureMap[col + ',' + row];
-    if (feature) return feature;
-    if (isBuildSpot(col, row)) {
-      return {
-        url: '/assets/models/kenney-towerdefensekit/tile-dirt.glb',
-        rotationY: ((col + row) % 4) * (Math.PI / 2)
+  function addPlacementPads() {
+    for (var i = 0; i < buildSpots.length; i++) {
+      var spot = buildSpots[i];
+      var center = getTileCenter(spot.col, spot.row);
+      var collider = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.92, 0.92, 0.45, 20),
+        new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.01 })
+      );
+      collider.position.set(center.x, 0.35, center.z);
+      collider.userData = {
+        col: spot.col,
+        row: spot.row,
+        canBuild: true,
+        hasTower: false,
+        buildMarker: createPadMarker(center)
       };
+      placementMeshes.push(collider);
+      scene.add(collider);
     }
-    return {
-      url: '/assets/models/kenney-towerdefensekit/tile.glb',
-      rotationY: ((col * 2 + row) % 4) * (Math.PI / 2)
-    };
-  }
-
-  function buildGrid() {
-    tileGroup = new THREE.Group();
-    scene.add(tileGroup);
-    for (var r = 0; r < ROWS; r++) {
-      for (var c = 0; c < COLS; c++) {
-        var isPath = pathSet[c + ',' + r];
-        var canBuild = !isPath && isBuildSpot(c, r);
-        var terrainTile = getTerrainTileDescriptor(c, r);
-        var geo = new THREE.BoxGeometry(TILE - 0.1, 0.3, TILE - 0.1);
-        var mat = new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.01 });
-        var mesh = new THREE.Mesh(geo, mat);
-        mesh.position.set(c * TILE + 1, 0, r * TILE + 1);
-        mesh.userData = { col: c, row: r, isPath: isPath, canBuild: canBuild, hasTower: false, buildMarker: null };
-        tileGroup.add(mesh);
-        tileMeshes.push(mesh);
-        var center = getTileCenter(c, r);
-
-        (function (x, z, pathTile, terrainTileInfo) {
-          var baseUrl = pathTile ? '/assets/models/kenney-towerdefensekit/tile-bump.glb' : terrainTileInfo.url;
-          var baseRotation = pathTile ? 0 : (terrainTileInfo.rotationY || 0);
-          loadModel(baseUrl, function (model) {
-            model.scale.set(1, 1, 1);
-            model.position.set(x, 0.15, z);
-            model.rotation.y = baseRotation;
-            scene.add(model);
-          }, null);
-
-          if (pathTile) {
-            loadModel(pathTile.url, function (model) {
-              model.scale.set(1, 1, 1);
-              model.position.set(x, 0.15, z);
-              model.rotation.y = pathTile.rotationY || 0;
-              scene.add(model);
-            }, null);
-          }
-        })(center.x, center.z, isPath ? getPathTileDescriptor(c, r) : null, terrainTile);
-
-        if (canBuild) {
-          (function (tile, x, z) {
-            loadModel('/assets/models/kenney-towerdefensekit/selection-a.glb', function (model) {
-              model.scale.set(0.74, 0.74, 0.74);
-              model.position.set(x, 0.16, z);
-              model.rotation.y = Math.PI / 4;
-              scene.add(model);
-              tile.userData.buildMarker = model;
-            }, function () {
-              var marker = new THREE.Mesh(
-                new THREE.CylinderGeometry(0.52, 0.52, 0.06, 18),
-                new THREE.MeshStandardMaterial({ color: 0x22d3ee, transparent: true, opacity: 0.45 })
-              );
-              marker.position.set(x, 0.18, z);
-              scene.add(marker);
-              tile.userData.buildMarker = marker;
-            });
-          })(mesh, center.x, center.z);
-        }
-      }
-    }
-  }
-
-  function adjacentToPath(col, row) {
-    var dirs = [[1,0],[-1,0],[0,1],[0,-1]];
-    for (var i = 0; i < dirs.length; i++) {
-      if (pathSet[(col + dirs[i][0]) + ',' + (row + dirs[i][1])]) return true;
-    }
-    return false;
   }
 
   function onTap(e) {
@@ -388,53 +420,68 @@
     mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
     mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
     raycaster.setFromCamera(mouse, camera);
-    var hits = raycaster.intersectObjects(tileMeshes);
+    var hits = raycaster.intersectObjects(placementMeshes);
     if (hits.length === 0) return;
-    var tile = hits[0].object;
-    var d = tile.userData;
-    if (d.isPath || d.hasTower) return;
-    if (!d.canBuild) return;
-    if (state.towerCount >= MAX_TOWERS) { showToast('Max towers reached!'); return; }
-    if (state.gold < TOWER_COST) { showToast('Not enough gold!'); return; }
-    placeTower(d.col, d.row, tile);
+    var spot = hits[0].object;
+    var data = spot.userData;
+    if (data.hasTower || !data.canBuild) return;
+    if (state.towerCount >= MAX_TOWERS) {
+      showToast('Max towers reached!');
+      return;
+    }
+    if (state.gold < TOWER_COST) {
+      showToast('Not enough gold!');
+      return;
+    }
+    placeTower(data.col, data.row, spot);
   }
 
   function makeFallbackTower() {
-    var g = new THREE.Group();
+    var group = new THREE.Group();
     var base = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.6, 0.7, 1.0, 8),
+      new THREE.CylinderGeometry(0.56, 0.72, 0.95, 12),
       new THREE.MeshStandardMaterial({ color: 0x8b5cf6 })
     );
     var turret = new THREE.Mesh(
-      new THREE.BoxGeometry(0.35, 0.6, 0.35),
-      new THREE.MeshStandardMaterial({ color: 0xa78bfa })
+      new THREE.CylinderGeometry(0.16, 0.22, 0.9, 10),
+      new THREE.MeshStandardMaterial({ color: 0xc4b5fd })
     );
-    turret.position.y = 0.8;
-    g.add(base); g.add(turret);
-    return g;
+    turret.rotation.z = Math.PI / 2;
+    turret.position.set(0, 0.76, 0);
+    group.add(base);
+    group.add(turret);
+    return group;
   }
 
-  function placeTower(col, row, tile) {
+  function placeTower(col, row, spotMesh) {
     state.gold -= TOWER_COST;
     state.towerCount++;
-    tile.userData.hasTower = true;
-    if (tile.userData.buildMarker) {
-      scene.remove(tile.userData.buildMarker);
-      tile.userData.buildMarker = null;
+    spotMesh.userData.hasTower = true;
+    if (spotMesh.userData.buildMarker) {
+      scene.remove(spotMesh.userData.buildMarker);
+      spotMesh.userData.buildMarker = null;
     }
-    var group = new THREE.Group();
-    group.position.set(col * TILE + 1, 0.15, row * TILE + 1);
-    scene.add(group);
-    state.towers.push({ mesh: group, col: col, row: row, cooldown: 0, range: 5 });
 
+    var center = getTileCenter(col, row);
+    var towerGroup = new THREE.Group();
+    towerGroup.position.set(center.x, 0.18, center.z);
+    scene.add(towerGroup);
+    state.towers.push({ mesh: towerGroup, col: col, row: row, cooldown: 0, range: 5.25 });
+
+    loadModel('/assets/models/kenney-towerdefensekit/tower-round-base.glb', function (model) {
+      model.scale.set(0.62, 0.62, 0.62);
+      towerGroup.add(model);
+    }, null);
     loadModel('/assets/models/kenney-towerdefensekit/weapon-turret.glb', function (model) {
-      model.scale.set(1, 1, 1);
-      group.add(model);
+      model.position.y = 0.05;
+      model.scale.set(0.92, 0.92, 0.92);
+      towerGroup.add(model);
     }, function () {
-      var fb = makeFallbackTower();
-      fb.position.y = 0.5;
-      group.add(fb);
+      var fallback = makeFallbackTower();
+      fallback.position.y = 0.24;
+      towerGroup.add(fallback);
     });
+
     updateHUD();
   }
 
@@ -452,60 +499,75 @@
 
   function spawnEnemy() {
     var hp = 80 + state.wave * 20;
-    var speed = 2.5 + state.wave * 0.3;
+    var speed = 2.45 + state.wave * 0.32;
     var barBg = new THREE.Mesh(
       new THREE.BoxGeometry(1.0, 0.15, 0.05),
       new THREE.MeshStandardMaterial({ color: 0x374151 })
     );
-    barBg.position.y = 1.6;
+    barBg.position.y = 1.65;
     var barFg = new THREE.Mesh(
       new THREE.BoxGeometry(1.0, 0.15, 0.06),
       new THREE.MeshStandardMaterial({ color: 0x22c55e })
     );
-    barFg.position.y = 1.6;
+    barFg.position.y = 1.65;
+
     var group = new THREE.Group();
-    group.add(barBg); group.add(barFg);
-    var sp = path[0];
-    group.position.set(sp[0] * TILE + 1, 0.15, sp[1] * TILE + 1);
+    group.add(barBg);
+    group.add(barFg);
+    var startPoint = getPathWorldPoint(0, 0.2);
+    group.position.set(startPoint.x, startPoint.y, startPoint.z);
     scene.add(group);
 
     loadModel('/assets/models/kenney-blockycharacters/character-a.glb', function (model) {
-      model.scale.set(0.7, 0.7, 0.7);
+      model.scale.set(0.72, 0.72, 0.72);
       group.add(model);
     }, function () {
-      var fb = new THREE.Mesh(
+      var fallback = new THREE.Mesh(
         new THREE.SphereGeometry(0.5, 10, 10),
         new THREE.MeshStandardMaterial({ color: 0xef4444 })
       );
-      fb.position.y = 0.5;
-      group.add(fb);
+      fallback.position.y = 0.5;
+      group.add(fallback);
     });
 
     state.enemies.push({
-      mesh: group, bar: barFg, hp: hp, maxHp: hp,
-      speed: speed, pathIdx: 0, alive: true
+      mesh: group,
+      bar: barFg,
+      hp: hp,
+      maxHp: hp,
+      speed: speed,
+      pathIdx: 0,
+      alive: true
     });
   }
 
   function updateEnemies(dt) {
     for (var i = state.enemies.length - 1; i >= 0; i--) {
-      var en = state.enemies[i];
-      if (!en.alive) continue;
-      var target = path[en.pathIdx + 1];
-      if (!target) { enemyReachedBase(en, i); continue; }
-      var tx = target[0] * TILE + 1, tz = target[1] * TILE + 1;
-      var dx = tx - en.mesh.position.x, dz = tz - en.mesh.position.z;
+      var enemy = state.enemies[i];
+      if (!enemy.alive) continue;
+      var target = path[enemy.pathIdx + 1];
+      if (!target) {
+        enemyReachedBase(enemy, i);
+        continue;
+      }
+      var targetPoint = getPathWorldPoint(enemy.pathIdx + 1, enemy.mesh.position.y);
+      var dx = targetPoint.x - enemy.mesh.position.x;
+      var dz = targetPoint.z - enemy.mesh.position.z;
       var dist = Math.sqrt(dx * dx + dz * dz);
-      if (dist < 0.15) { en.pathIdx++; continue; }
-      var step = en.speed * dt;
-      en.mesh.position.x += (dx / dist) * step;
-      en.mesh.position.z += (dz / dist) * step;
+      if (dist < 0.16) {
+        enemy.pathIdx++;
+        continue;
+      }
+      var step = enemy.speed * dt;
+      enemy.mesh.position.x += (dx / dist) * step;
+      enemy.mesh.position.z += (dz / dist) * step;
+      enemy.mesh.lookAt(targetPoint.x, enemy.mesh.position.y, targetPoint.z);
     }
   }
 
-  function enemyReachedBase(en, idx) {
-    en.alive = false;
-    scene.remove(en.mesh);
+  function enemyReachedBase(enemy, idx) {
+    enemy.alive = false;
+    scene.remove(enemy.mesh);
     state.enemies.splice(idx, 1);
     state.lives--;
     updateHUD();
@@ -513,57 +575,68 @@
   }
 
   function updateTowers(dt) {
-    for (var t = 0; t < state.towers.length; t++) {
-      var tw = state.towers[t];
-      tw.cooldown -= dt;
-      if (tw.cooldown > 0) continue;
-      var best = null, bestDist = tw.range;
-      for (var e = 0; e < state.enemies.length; e++) {
-        var en = state.enemies[e];
-        if (!en.alive) continue;
-        var d = tw.mesh.position.distanceTo(en.mesh.position);
-        if (d < bestDist) { bestDist = d; best = en; }
+    for (var i = 0; i < state.towers.length; i++) {
+      var tower = state.towers[i];
+      tower.cooldown -= dt;
+      if (tower.cooldown > 0) continue;
+      var target = null;
+      var bestDist = tower.range;
+      for (var j = 0; j < state.enemies.length; j++) {
+        var enemy = state.enemies[j];
+        if (!enemy.alive) continue;
+        var dist = tower.mesh.position.distanceTo(enemy.mesh.position);
+        if (dist < bestDist) {
+          bestDist = dist;
+          target = enemy;
+        }
       }
-      if (best) { fireProjectile(tw, best); tw.cooldown = 0.8; }
+      if (target) {
+        fireProjectile(tower, target);
+        tower.cooldown = 0.78;
+      }
     }
   }
 
   function fireProjectile(tower, target) {
-    var mesh = new THREE.Mesh(
-      new THREE.SphereGeometry(0.15, 6, 6),
-      new THREE.MeshStandardMaterial({ color: 0xfbbf24 })
+    var projectile = new THREE.Mesh(
+      new THREE.SphereGeometry(0.15, 8, 8),
+      new THREE.MeshStandardMaterial({ color: 0xfbbf24, emissive: 0xf59e0b, emissiveIntensity: 0.25 })
     );
-    mesh.position.copy(tower.mesh.position);
-    mesh.position.y = 1.4;
-    scene.add(mesh);
-    state.projectiles.push({ mesh: mesh, target: target, speed: 14 });
+    projectile.position.copy(tower.mesh.position);
+    projectile.position.y = 1.3;
+    scene.add(projectile);
+    state.projectiles.push({ mesh: projectile, target: target, speed: 14 });
   }
 
   function updateProjectiles(dt) {
     for (var i = state.projectiles.length - 1; i >= 0; i--) {
-      var p = state.projectiles[i];
-      if (!p.target.alive) { scene.remove(p.mesh); state.projectiles.splice(i, 1); continue; }
-      var dir = p.target.mesh.position.clone().sub(p.mesh.position);
-      var dist = dir.length();
-      if (dist < 0.4) {
-        hitEnemy(p.target, 20 + state.wave * 5);
-        scene.remove(p.mesh);
+      var projectile = state.projectiles[i];
+      if (!projectile.target.alive) {
+        scene.remove(projectile.mesh);
+        state.projectiles.splice(i, 1);
+        continue;
+      }
+      var direction = projectile.target.mesh.position.clone().sub(projectile.mesh.position);
+      var dist = direction.length();
+      if (dist < 0.42) {
+        hitEnemy(projectile.target, 20 + state.wave * 5);
+        scene.remove(projectile.mesh);
         state.projectiles.splice(i, 1);
       } else {
-        dir.normalize().multiplyScalar(p.speed * dt);
-        p.mesh.position.add(dir);
+        direction.normalize().multiplyScalar(projectile.speed * dt);
+        projectile.mesh.position.add(direction);
       }
     }
   }
 
-  function hitEnemy(en, dmg) {
-    en.hp -= dmg;
-    var ratio = Math.max(0, en.hp / en.maxHp);
-    en.bar.scale.x = ratio;
-    if (en.hp <= 0) {
-      en.alive = false;
-      scene.remove(en.mesh);
-      var idx = state.enemies.indexOf(en);
+  function hitEnemy(enemy, damage) {
+    enemy.hp -= damage;
+    var ratio = Math.max(0, enemy.hp / enemy.maxHp);
+    enemy.bar.scale.x = ratio;
+    if (enemy.hp <= 0) {
+      enemy.alive = false;
+      scene.remove(enemy.mesh);
+      var idx = state.enemies.indexOf(enemy);
       if (idx !== -1) state.enemies.splice(idx, 1);
       state.gold += KILL_REWARD;
       updateHUD();
@@ -575,7 +648,10 @@
     if (state.spawnQueue > 0) return;
     if (state.enemies.length > 0) return;
     state.waveActive = false;
-    if (state.wave >= MAX_WAVES) { endGame(true); return; }
+    if (state.wave >= MAX_WAVES) {
+      endGame(true);
+      return;
+    }
     showToast('Wave ' + state.wave + ' complete!');
     startBtn.style.display = '';
   }
@@ -585,7 +661,7 @@
     startBtn.style.display = 'none';
     document.getElementById('end-title').textContent = won ? 'Victory!' : 'Defeat';
     document.getElementById('end-msg').textContent = won
-      ? 'You defended the base through all ' + MAX_WAVES + ' waves!'
+      ? 'You defended the crystal base through all ' + MAX_WAVES + ' waves!'
       : 'The enemies broke through. You survived ' + (state.wave - 1) + ' full waves.';
     winScreen.classList.add('visible');
   }
@@ -593,7 +669,9 @@
   function showToast(msg) {
     toastEl.textContent = msg;
     toastEl.classList.add('visible');
-    setTimeout(function () { toastEl.classList.remove('visible'); }, 2000);
+    setTimeout(function () {
+      toastEl.classList.remove('visible');
+    }, 2000);
   }
 
   function updateHUD() {
@@ -602,7 +680,7 @@
       '<br><b>Gold:</b> ' + state.gold +
       '<br><b>Lives:</b> ' + state.lives +
       '<br><b>Towers:</b> ' + state.towerCount + '/' + MAX_TOWERS +
-      '<br><span style="font-size:12px; opacity:0.8">Build on the glowing pads.</span>';
+      '<br><span style="font-size:12px; opacity:0.8">Place towers on the glowing pads.</span>';
   }
 
   function onResize() {
@@ -617,7 +695,11 @@
     if (!state.gameOver) {
       if (state.waveActive && state.spawnQueue > 0) {
         state.spawnTimer -= dt;
-        if (state.spawnTimer <= 0) { spawnEnemy(); state.spawnQueue--; state.spawnTimer = 1.0; }
+        if (state.spawnTimer <= 0) {
+          spawnEnemy();
+          state.spawnQueue--;
+          state.spawnTimer = 1.0;
+        }
       }
       updateEnemies(dt);
       updateTowers(dt);

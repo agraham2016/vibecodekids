@@ -1020,18 +1020,23 @@ export const MODEL_MANIFEST = {
   },
   'tower-defense-3d': {
     models: [
-      { key: 'tile', path: '/assets/models/kenney-towerdefensekit/tile.glb', scale: 1, note: 'base path tile' },
+      {
+        key: 'tile',
+        path: '/assets/models/kenney-towerdefensekit/tile.glb',
+        scale: 1,
+        note: 'use sparingly for path accents only',
+      },
       {
         key: 'tileStraight',
         path: '/assets/models/kenney-towerdefensekit/tile-straight.glb',
         scale: 1,
-        note: 'straight path',
+        note: 'use for path accents, not whole-map coverage',
       },
       {
         key: 'tileCorner',
         path: '/assets/models/kenney-towerdefensekit/tile-corner-round.glb',
         scale: 1,
-        note: 'path corner',
+        note: 'use for path accents, not full terrain',
       },
       { key: 'tileSplit', path: '/assets/models/kenney-towerdefensekit/tile-split.glb', scale: 1, note: 'path split' },
       {
@@ -1121,7 +1126,31 @@ export const MODEL_MANIFEST = {
         key: 'selection',
         path: '/assets/models/kenney-towerdefensekit/selection-a.glb',
         scale: 1,
-        note: 'selection indicator',
+        note: 'selection indicator for a few build pads',
+      },
+      {
+        key: 'detailTreeLarge',
+        path: '/assets/models/kenney-towerdefensekit/detail-tree-large.glb',
+        scale: 1,
+        note: 'large scenery tree for map edges',
+      },
+      {
+        key: 'detailRocksLarge',
+        path: '/assets/models/kenney-towerdefensekit/detail-rocks-large.glb',
+        scale: 1,
+        note: 'large rock cluster for terrain dressing',
+      },
+      {
+        key: 'detailCrystalLarge',
+        path: '/assets/models/kenney-towerdefensekit/detail-crystal-large.glb',
+        scale: 1,
+        note: 'large crystal decoration for landmarks',
+      },
+      {
+        key: 'detailDirtLarge',
+        path: '/assets/models/kenney-towerdefensekit/detail-dirt-large.glb',
+        scale: 1,
+        note: 'dirt patch for path shoulders and terrain variety',
       },
     ],
   },
@@ -1583,7 +1612,7 @@ export function formatModelsForPrompt(genre) {
     'Loading real GLB models is what makes the game look 3D. Plain geometry makes it look flat and 2D. Use the loadModel() helper pattern from the template.',
   );
   lines.push(
-    'Do not stop at characters or towers only. Use GLB terrain, path, build-pad, and scenery models too so the whole board looks 3D.',
+    'Do not stop at characters or towers only. Use GLB path accents, a few build pads, and scenery models to shape the battlefield without covering the whole map in square tiles.',
   );
   lines.push(
     'If no GLB paths are listed below, DO NOT invent /assets/models/*.glb paths. Build polished geometry-based art instead.',
