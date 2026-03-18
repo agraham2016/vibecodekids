@@ -179,6 +179,8 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS multiplayer_enabled BOOLEAN NOT NULL 
 ALTER TABLE users ADD COLUMN IF NOT EXISTS parent_verified_method TEXT;        -- 'email_plus', 'stripe_micro', null
 ALTER TABLE users ADD COLUMN IF NOT EXISTS parent_verified_at TIMESTAMPTZ;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS parent_dashboard_token TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS parent_accepted_terms BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS parent_accepted_terms_at TIMESTAMPTZ;
 
 -- ========== MODERATION REPORTS (Session 4) ==========
 
@@ -197,6 +199,43 @@ CREATE TABLE IF NOT EXISTS moderation_reports (
 
 CREATE INDEX IF NOT EXISTS idx_mod_reports_status ON moderation_reports(status, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_mod_reports_project ON moderation_reports(project_id);
+
+-- ========== BUG REPORTS ==========
+-- In-studio diagnostics queue for admin investigation.
+
+CREATE TABLE IF NOT EXISTS bug_reports (
+    id                      TEXT PRIMARY KEY,
+    reporter_user_id        TEXT REFERENCES users(id) ON DELETE SET NULL,
+    reporter_username       TEXT,
+    reporter_age_bracket    TEXT,
+    reporter_ip_hash        TEXT,
+    request_id              TEXT,
+    project_id              TEXT,
+    project_name            TEXT,
+    session_id              TEXT,
+    description             TEXT NOT NULL,
+    status                  TEXT NOT NULL DEFAULT 'pending', -- 'pending', 'investigating', 'resolved', 'dismissed'
+    requires_parent_review  BOOLEAN NOT NULL DEFAULT false,
+    code_snapshot           JSONB,
+    conversation_snapshot   JSONB,
+    environment_snapshot    JSONB,
+    triage_category         TEXT,
+    triage_tags             TEXT[] NOT NULL DEFAULT '{}',
+    triage_summary          TEXT,
+    triage_explanation      TEXT,
+    triage_next_step        TEXT,
+    triage_confidence       TEXT,
+    triage_model            TEXT,
+    created_at              TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    triaged_at              TIMESTAMPTZ,
+    reviewed_at             TIMESTAMPTZ,
+    review_action           TEXT,
+    review_note             TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_bug_reports_status ON bug_reports(status, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_bug_reports_project ON bug_reports(project_id);
+CREATE INDEX IF NOT EXISTS idx_bug_reports_reporter ON bug_reports(reporter_user_id);
 
 -- Per-user content filter violation tracking (Session 4)
 ALTER TABLE users ADD COLUMN IF NOT EXISTS filter_violations INT NOT NULL DEFAULT 0;

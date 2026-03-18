@@ -44,7 +44,7 @@ export const USE_POSTGRES = !!DATABASE_URL;
 // ========== COPPA ==========
 
 export const COPPA_AGE_THRESHOLD = 13;
-export const CONSENT_POLICY_VERSION = '2026-02-28-v1';
+export const CONSENT_POLICY_VERSION = '2026-03-17-v2';
 export const CONSENT_TOKEN_EXPIRY_MS = 72 * 60 * 60 * 1000; // 72 hours for parent to respond
 export const DATA_RETENTION_DAYS = 365; // Max days to retain inactive child data
 export const SITE_NAME = 'VibeCodeKidz';

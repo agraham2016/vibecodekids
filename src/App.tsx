@@ -11,6 +11,7 @@ import ShareModal from './components/ShareModal';
 import AuthModal from './components/AuthModal';
 import UpgradeModal from './components/UpgradeModal';
 import VersionHistoryModal from './components/VersionHistoryModal';
+import BugReportModal from './components/BugReportModal';
 import LandingPage from './components/LandingPage';
 import LandingPageB from './components/LandingPageB';
 import GameSurvey from './components/GameSurvey';
@@ -18,7 +19,8 @@ import StudioTutorial from './components/StudioTutorial';
 import { getTutorialStatus, welcomedKey } from './components/tutorialUtils';
 import TipsModal from './components/TipsModal';
 import { getVariant } from './lib/abVariant';
-import type { User, MembershipUsage, TierInfo, AIMode, GameConfig } from './types';
+import { api } from './lib/api';
+import type { User, MembershipUsage, TierInfo, AIMode, GameConfig, BugReportResponse } from './types';
 import { getStarterTemplateById } from './config/gameCatalog';
 import './App.css';
 
@@ -54,6 +56,9 @@ function App() {
   const [isWelcomeUpgrade, setIsWelcomeUpgrade] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
   const [showVersionHistory, setShowVersionHistory] = useState(false);
+  const [showBugReportModal, setShowBugReportModal] = useState(false);
+  const [isSubmittingBugReport, setIsSubmittingBugReport] = useState(false);
+  const [bugReportError, setBugReportError] = useState('');
   const [showWelcomeOverlay, setShowWelcomeOverlay] = useState(false);
   const [showGameSurvey, setShowGameSurvey] = useState(false);
   const [tutorialActive, setTutorialActive] = useState(false);
@@ -114,6 +119,7 @@ function App() {
     switchModel,
     openaiAvailable,
     lastModelUsed,
+    sessionId,
   } = useChat({
     onCodeGenerated: (newCode) => {
       setGeneratedCode(newCode);
@@ -266,6 +272,59 @@ function App() {
     setShowUpgradeModal(true);
   }, []);
 
+  const handleOpenBugReport = useCallback(() => {
+    setBugReportError('');
+    setShowBugReportModal(true);
+  }, []);
+
+  const handleSubmitBugReport = useCallback(
+    async (description: string) => {
+      setIsSubmittingBugReport(true);
+      setBugReportError('');
+      try {
+        const recentMessages = messages.slice(-3).map((message) => ({
+          role: message.role,
+          content: message.content,
+          timestamp:
+            message.timestamp instanceof Date ? message.timestamp.toISOString() : String(message.timestamp || ''),
+          modelUsed: message.modelUsed ?? null,
+        }));
+        const latestDebugInfo =
+          [...messages].reverse().find((message) => message.role === 'assistant' && message.debugInfo)?.debugInfo ||
+          null;
+
+        await api.post<BugReportResponse>('/api/bug-reports', {
+          description,
+          currentCode: code,
+          conversationHistory: recentMessages,
+          projectId: currentProject.id !== 'new' ? currentProject.id : null,
+          projectName: currentProject.name || null,
+          sessionId,
+          appSurface: 'studio',
+          environment: {
+            route: window.location.pathname,
+            language: navigator.language,
+            viewport: {
+              width: window.innerWidth,
+              height: window.innerHeight,
+            },
+            lastModelUsed: lastModelUsed ?? null,
+            debugInfo: latestDebugInfo,
+          },
+        });
+
+        setShowBugReportModal(false);
+        window.alert('Thanks. Your bug report was sent to the admin team.');
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Could not submit bug report right now.';
+        setBugReportError(message);
+      } finally {
+        setIsSubmittingBugReport(false);
+      }
+    },
+    [messages, code, currentProject.id, currentProject.name, sessionId, lastModelUsed],
+  );
+
   const capturePreviewThumbnail = useCallback((): string | null => {
     try {
       const iframe = document.querySelector('.preview-iframe') as HTMLIFrameElement | null;
@@ -368,6 +427,20 @@ function App() {
         />
       )}
 
+      {showBugReportModal && (
+        <BugReportModal
+          onClose={() => {
+            if (!isSubmittingBugReport) {
+              setShowBugReportModal(false);
+              setBugReportError('');
+            }
+          }}
+          onSubmit={handleSubmitBugReport}
+          isSubmitting={isSubmittingBugReport}
+          error={bugReportError}
+        />
+      )}
+
       {/* Welcome overlay — shown every login */}
       {showWelcomeOverlay &&
         (() => {
@@ -446,6 +519,7 @@ function App() {
         membership={membership}
         onLogout={handleLogout}
         onUpgradeClick={handleUpgradeClick}
+        onReportBug={handleOpenBugReport}
         onDrawerToggle={() => setDrawerOpen((prev) => !prev)}
       />
 

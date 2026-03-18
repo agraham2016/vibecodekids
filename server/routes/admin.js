@@ -25,6 +25,8 @@ import { logAdminAction, readAuditLog } from '../services/adminAuditLog.js';
 import { getContentFilterStats } from '../services/contentFilterStats.js';
 import { readDemoEvents } from '../services/demoEvents.js';
 import { listReports, resolveReport } from '../services/moderation.js';
+import { getBugReport, listBugReports, resolveBugReport, updateBugReportTriage } from '../services/bugReports.js';
+import { triageBugReport } from '../services/bugReportTriage.js';
 import { runRetentionCleanup } from '../services/dataRetention.js';
 import { getAlertStatus } from '../services/adminAlerts.js';
 
@@ -34,7 +36,7 @@ function getAdminIp(req) {
   return req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || null;
 }
 
-const DATA_ACCESS_ROUTES = new Set(['/users', '/projects', '/moderation', '/rate-limit-stats']);
+const DATA_ACCESS_ROUTES = new Set(['/users', '/projects', '/moderation', '/bug-reports', '/rate-limit-stats']);
 
 router.use((req, _res, next) => {
   if (req.method === 'GET' && DATA_ACCESS_ROUTES.has(req.path)) {
@@ -695,6 +697,76 @@ router.post('/moderation/:id/resolve', async (req, res) => {
   } catch (error) {
     console.error('Moderation resolve error:', error);
     res.status(500).json({ error: 'Could not resolve report' });
+  }
+});
+
+router.get('/bug-reports', async (req, res) => {
+  try {
+    const status = req.query.status || null;
+    const limit = Math.min(parseInt(req.query.limit || '100', 10), 200);
+    const reports = await listBugReports({ status, limit });
+    res.json({ reports, count: reports.length });
+  } catch (error) {
+    console.error('Bug report list error:', error);
+    res.status(500).json({ error: 'Could not load bug reports' });
+  }
+});
+
+router.get('/bug-reports/:id', async (req, res) => {
+  try {
+    const report = await getBugReport(req.params.id);
+    res.json(report);
+  } catch (error) {
+    if (error.code === 'ENOENT') return res.status(404).json({ error: 'Bug report not found' });
+    console.error('Bug report detail error:', error);
+    res.status(500).json({ error: 'Could not load bug report' });
+  }
+});
+
+router.post('/bug-reports/:id/retriage', async (req, res) => {
+  try {
+    const report = await getBugReport(req.params.id);
+    const triage = await triageBugReport(report);
+    await updateBugReportTriage(req.params.id, triage);
+    logAdminAction({
+      action: 'bug-report-retriage',
+      targetId: req.params.id,
+      details: { triageCategory: triage.triageCategory },
+      ip: getAdminIp(req),
+    }).catch(() => {});
+    res.json({ success: true, triage });
+  } catch (error) {
+    if (error.code === 'ENOENT') return res.status(404).json({ error: 'Bug report not found' });
+    console.error('Bug report retriage error:', error);
+    res.status(500).json({ error: 'Could not re-triage bug report' });
+  }
+});
+
+router.post('/bug-reports/:id/resolve', async (req, res) => {
+  try {
+    const { status, note } = req.body;
+    if (!['investigating', 'resolved', 'dismissed'].includes(status)) {
+      return res.status(400).json({ error: 'Status must be investigating, resolved, or dismissed' });
+    }
+
+    await resolveBugReport(req.params.id, {
+      status,
+      reviewAction: status,
+      reviewNote: note,
+    });
+
+    logAdminAction({
+      action: `bug-report-${status}`,
+      targetId: req.params.id,
+      details: { note: (note || '').slice(0, 200) },
+      ip: getAdminIp(req),
+    }).catch(() => {});
+
+    res.json({ success: true });
+  } catch (error) {
+    if (error.code === 'ENOENT') return res.status(404).json({ error: 'Bug report not found' });
+    console.error('Bug report resolve error:', error);
+    res.status(500).json({ error: 'Could not update bug report' });
   }
 });
 

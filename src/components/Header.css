@@ -77,6 +77,29 @@
   box-shadow: 0 4px 15px rgba(251, 191, 36, 0.5);
 }
 
+.btn-report-bug {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: rgba(236, 72, 153, 0.16);
+  border: 1px solid rgba(236, 72, 153, 0.28);
+  border-radius: 50px;
+  color: #f9a8d4;
+  font-weight: 700;
+  font-size: 0.7rem;
+  transition: all 0.2s ease;
+}
+
+.btn-report-bug:hover {
+  background: rgba(236, 72, 153, 0.28);
+  color: white;
+}
+
+.btn-report-bug-icon {
+  font-size: 0.85rem;
+}
+
 /* User Menu */
 .user-menu {
   display: flex;
@@ -166,6 +189,11 @@
     min-height: 44px;
   }
 
+  .btn-report-bug {
+    padding: 6px 12px;
+    min-height: 44px;
+  }
+
   .btn-logout {
     padding: 6px 12px;
     font-size: 0.7rem;
@@ -175,6 +203,14 @@
 
 @media (max-width: 480px) {
   .btn-upgrade {
+    display: none;
+  }
+
+  .btn-report-bug {
+    padding: 6px 10px;
+  }
+
+  .btn-report-bug-label {
     display: none;
   }
 }

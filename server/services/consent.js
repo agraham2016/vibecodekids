@@ -240,15 +240,29 @@ WHAT WE COLLECT:
 - Age bracket (under 13 / 13-17 / 18+) — we do NOT store the exact age
 - Games they create on the platform
 - Basic anonymized usage data
+- If your child uses Report Bug: a short bug note, up to 3 recent AI messages,
+  a capped code excerpt, and basic technical diagnostics needed to diagnose the issue
 
 THIRD-PARTY SERVICE PROVIDERS:
 - AI Generation: Your child's game-creation prompts are sent to Anthropic (Claude),
   xAI (Grok), and/or OpenAI (GPT) to generate game code. We strip personal
   information from prompts before transmission. These providers process data under
   contract and do not use children's data for their own training.
+- Bug Report Triage: If your child sends a bug report, we may send a limited,
+  sanitized summary to Anthropic or OpenAI to classify it for our internal admin
+  team before human review. Under-13 reports use a reduced summary and do not
+  send the full code excerpt.
 - Email: We use Resend to deliver this email and other transactional messages.
-- Payments: If you upgrade, Stripe processes payment. We do not send your child's
-  information to Stripe.
+- Payments: If you upgrade or use the $0.50 parent verification option, Stripe
+  processes payment. We send only limited checkout metadata such as username,
+  display name, membership tier, and age bracket — not passwords, parent email,
+  or recovery email.
+
+BUG REPORT REVIEW AND RETENTION:
+- We scan bug notes and recent chat for obvious personal information before storage
+- Automated tools may help label a bug report before a human reviews it
+- Open bug reports stay in our internal support queue while we investigate them
+- Resolved or dismissed bug reports are deleted after 90 days
 
 WHAT WE DO NOT COLLECT:
 - Real name, home address, or phone number
@@ -262,6 +276,9 @@ After approving, you will receive a link to the Parent Command Center where you 
 - Toggle multiplayer features ON or OFF (default: OFF)
 - Request deletion of all your child's data
 - Revoke consent and deactivate the account
+
+If you do not want us to process your child's information in the ways described
+above, including bug-report handling, use the deny link below instead of approving.
 
 OPTION 1 — VERIFY WITH CREDIT CARD (Recommended):
 A small $0.50 charge (immediately refunded) verifies your identity:

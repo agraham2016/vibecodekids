@@ -10,10 +10,10 @@
 
 | Status | Count |
 |--------|-------|
-| ✅ Addressed (policy accurate) | 15 |
+| ✅ Addressed (policy accurate) | 16 |
 | ⏸️ Deferred (legal review) | 1 |
 
-*Items 1–3 implemented in privacy.html March 6, 2026. Item 4 (consent email opt-out) deferred per Elias marching orders until attorney sign-off.*
+*Items 1–3 implemented in `privacy.html` March 6, 2026. Item 5 implemented in `privacy.html` / `terms.html` March 17, 2026. Item 4 (consent email opt-out) remains deferred per Elias marching orders until attorney sign-off.*
 
 ---
 
@@ -68,6 +68,16 @@
 
 ---
 
+### 5. Bug Report Diagnostics and AI-Assisted Triage
+
+**Requirement:** Privacy disclosures should explain that support bug reports may include a short user description, limited recent chat/code context, technical diagnostics, retention timing, and AI-assisted internal classification before human review.
+
+**Status:** ✅ **Implemented** (March 17, 2026). `privacy.html` now discloses Report Bug collection, reduced under-13 triage input, service-provider sharing for internal triage, and 90-day resolved-report retention. `terms.html` now instructs users not to include personal information in bug reports and clarifies that automated labeling is advisory only. Spot-check verified against `server/routes/bugReports.js`, `server/services/bugReportTriage.js`, and `server/services/dataRetention.js`.
+
+**Follow-up for Atlas/Elias:** Decide whether enabling this feature for already-consented under-13 accounts requires a `CONSENT_POLICY_VERSION` bump and re-consent before production rollout.
+
+---
+
 ## Draft Language for Atlas Review
 
 ### Persistent Identifiers (Item 1)
@@ -88,3 +98,4 @@ Multiplayer chat is filtered for safety. Kids can choose from preset phrases (e.
 |------|--------|---------|
 | 2026-03-05 | Elias Vance | Initial gap analysis. 12 items verified, 2 minor gaps, 2 action items. |
 | 2026-03-06 | Elias Vance | Spot-check: items 1–3 implemented in privacy.html. Marked implemented. Item 4 deferred per legal review. |
+| 2026-03-17 | Nova | Added bug-report disclosure check, marked item 5 implemented, and documented re-consent follow-up for under-13 rollout. |

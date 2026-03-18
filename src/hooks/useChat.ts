@@ -227,5 +227,6 @@ export function useChat({ onCodeGenerated, onUsageUpdate, onUpgradeNeeded }: Use
     switchModel,
     openaiAvailable,
     lastModelUsed,
+    sessionId: sessionIdRef.current,
   };
 }

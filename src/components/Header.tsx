@@ -6,6 +6,7 @@ interface HeaderProps {
   membership: MembershipUsage | null;
   onLogout: () => void;
   onUpgradeClick: () => void;
+  onReportBug: () => void;
   onDrawerToggle?: () => void;
 }
 
@@ -14,6 +15,7 @@ export default function Header({
   membership: _membership,
   onLogout,
   onUpgradeClick,
+  onReportBug,
   onDrawerToggle,
 }: HeaderProps) {
   void _membership;
@@ -46,6 +48,11 @@ export default function Header({
                 ✨ Upgrade
               </button>
             )}
+
+            <button className="btn-report-bug" onClick={onReportBug} aria-label="Report a bug">
+              <span className="btn-report-bug-icon">🐞</span>
+              <span className="btn-report-bug-label">Report Bug</span>
+            </button>
 
             {/* User Avatar & Logout */}
             <div className="user-menu">

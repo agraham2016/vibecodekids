@@ -101,7 +101,7 @@
 
     <div class="header">
       <h1>Privacy Policy</h1>
-      <p class="subtitle">Last updated: March 6, 2026 &nbsp; <span class="badge">COPPA Compliant</span></p>
+      <p class="subtitle">Last updated: March 17, 2026 &nbsp; <span class="badge">COPPA Compliant</span></p>
     </div>
 
     <div class="card">
@@ -155,12 +155,24 @@
         <li><strong>Recovery email</strong> (optional, 13+ only) -- used solely for password recovery if you forget your password; never used for marketing</li>
         <li><strong>Games you create</strong> -- the code and titles of your game projects</li>
       </ul>
+      <h3>If you send us a bug report:</h3>
+      <p>When a logged-in user taps <strong>Report Bug</strong> in the studio, we collect only the information needed to diagnose the issue:</p>
+      <ul>
+        <li><strong>Your bug note</strong> -- the short description you choose to send</li>
+        <li><strong>Recent AI conversation context</strong> -- up to the last 3 chat messages tied to the issue</li>
+        <li><strong>A capped code snapshot</strong> -- a limited excerpt of the current game code</li>
+        <li><strong>Basic technical diagnostics</strong> -- such as page route, viewport size, browser language, request ID, browser user-agent, and the last AI model used</li>
+      </ul>
+      <p>We scan the bug description and recent chat snapshot for obvious personal information and redact detected items before storing the report. Reports from under-13 accounts are flagged for extra compliance review, and automated triage uses a reduced summary rather than the full snapshot.</p>
       <h3>Session identifiers:</h3>
-      <p>When you log in, we create a temporary session token (stored for up to 24 hours) so you can stay logged in without re-entering your password. This identifier is used only to recognize your account during your visit. We do not use it to contact you or track you across other websites.</p>
+      <p>When you log in, we create a temporary session token (stored for up to 24 hours) so you can stay logged in without re-entering your password. This identifier is used only to recognize your account during your visit. We do not use it to contact you or track you across other websites. We do not use cookies for session management; the login token is stored in your browser's local storage while the session remains active.</p>
+      <h3>Other secure links and tokens:</h3>
+      <p>We also generate secure tokens for parent consent links, password reset links, and Parent Command Center access. These tokens are used only for those actions and are deleted when they expire, are used, or are revoked, depending on the feature.</p>
       <h3>Information collected automatically:</h3>
       <ul>
         <li>Basic usage data (number of prompts, games created) for rate limiting</li>
         <li>Login timestamps</li>
+        <li><strong>Security and abuse-prevention data</strong> -- we may temporarily use your IP address during a request for security and rate limiting. In logs, we store only an irreversible hash instead of the raw IP address.</li>
         <li><strong>Anonymized AI interaction data</strong> — to improve our AI assistants, we may collect anonymized data about how the AI is used (e.g., which model answered, whether code was generated). This data is stripped of user IDs and any personally identifiable information before analysis.</li>
       </ul>
     </div>
@@ -212,7 +224,7 @@
       <h2>&#x1F4E4; Data Sharing &amp; Service Providers</h2>
       <p>We do <strong>not sell</strong> personal information. We share limited data with trusted service providers solely to operate our platform:</p>
       <ul>
-        <li><strong>AI game generation (Anthropic, xAI &amp; OpenAI)</strong> — Game creation prompts are transmitted to Anthropic (Claude), xAI (Grok), and/or OpenAI (GPT) to generate game code. Before transmission, prompts are automatically scanned and stripped of any personally identifiable information (PII), including names, emails, phone numbers, and addresses. For some game iteration features, we may send a screenshot of the game to our AI provider to improve the result. Screenshots are stripped of any personal information before transmission. Neither Anthropic, xAI, nor OpenAI train their models on our users' data.</li>
+        <li><strong>AI game generation and bug triage (Anthropic, xAI &amp; OpenAI)</strong> — Game creation prompts are transmitted to Anthropic (Claude), xAI (Grok), and/or OpenAI (GPT) to generate game code. Before transmission, prompts are automatically scanned and stripped of any personally identifiable information (PII), including names, emails, phone numbers, and addresses. For some game iteration features, we may send a screenshot of the game to our AI provider to improve the result. Screenshots are stripped of any personal information before transmission. If you choose to submit a bug report, we may also send a limited, sanitized summary of the report to Anthropic or OpenAI to help classify it for our internal admin team before human review. For bug reports from under-13 accounts, we reduce that automated triage input further and do not send the full code excerpt. Neither Anthropic, xAI, nor OpenAI train their models on our users' data.</li>
         <li><strong>Payment processing &amp; parental verification (Stripe)</strong> — If you purchase a paid membership, Stripe processes the payment. For Junior accounts, we also offer a Stripe-powered credit card micro-charge ($0.50, immediately refunded) as a method of verifiable parental consent. We send only a username, display name, membership tier, and age bracket to Stripe's checkout — no passwords, parent email, recovery email, or other personally identifiable information. All sensitive signup data is stored and processed on our servers only. We do not store credit card numbers on our servers.</li>
         <li><strong>Transactional email (Resend)</strong> — We use Resend to send essential emails such as parental consent requests and password reset links. Only the recipient email address and message content are shared with Resend.</li>
         <li><strong>Error monitoring (Sentry)</strong> — We use Sentry to capture server-side errors and improve stability. Error reports include stack traces and request metadata; we automatically remove authorization headers, cookies, and other sensitive data before transmission.</li>
@@ -231,8 +243,10 @@
         <li>Inactive Junior accounts (under 13) are automatically purged after 12 months of inactivity</li>
         <li>Anonymous demo event logs are purged after 90 days</li>
         <li>Resolved moderation reports are purged after 90 days</li>
+        <li>Resolved or dismissed bug reports are purged after 90 days</li>
         <li>Accounts requested for deletion are anonymized promptly upon request (typically within 48 hours)</li>
       </ul>
+      <p>Open bug reports stay in our internal support queue while we investigate them.</p>
       <p>For Junior accounts (under 13), parents can request data deletion via the <strong>Parent Command Center</strong> (linked in the consent approval email) or by contacting us. After deletion, we retain a minimal anonymized record (username placeholder) to prevent abuse and re-registration; no personal data remains.</p>
       <p>For Teen accounts (13+), users can download their data and delete their account directly from their account settings. Account deletion requires password confirmation.</p>
       <div class="highlight">
@@ -274,6 +288,8 @@
       <p>Use the <strong>Parent Command Center</strong> (linked in your consent approval email) to download data or delete the account. You can also email <a href="mailto:admin@vibecodekidz.org" style="color:#00d2ff">admin@vibecodekidz.org</a> and we will respond within 48 hours.</p>
       <h3>What happens if my child types personal information into a prompt?</h3>
       <p>Our system automatically detects and removes personal information (names, addresses, emails, phone numbers) from prompts before they are sent to AI providers. AI-generated output is also scanned before delivery to your child.</p>
+      <h3>What happens if my child reports a bug?</h3>
+      <p>A bug report is sent to our internal admin team with the note your child wrote, a limited recent chat snapshot, a capped code excerpt, and basic technical diagnostics so we can reproduce the issue. We may use AI to add an internal label before a human reviews it. For under-13 accounts, the report is flagged for extra compliance review and the automated triage uses a reduced summary.</p>
     </div>
 
     <div class="card contact-card">

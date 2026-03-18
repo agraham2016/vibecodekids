@@ -20,6 +20,7 @@ import { DATA_RETENTION_DAYS, DATA_DIR, USE_POSTGRES } from '../config/index.js'
 import { listUsers, deleteUser } from './storage.js';
 import { deleteUserData } from './consent.js';
 import log from './logger.js';
+import { purgeResolvedBugReports } from './bugReports.js';
 
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 const PURGE_AFTER_DAYS = 30;
@@ -200,6 +201,20 @@ async function purgeResolvedReports() {
   }
 }
 
+async function purgeResolvedBugReportsRetention() {
+  const cutoff = new Date(Date.now() - EPHEMERAL_RETENTION_DAYS * ONE_DAY_MS).toISOString();
+  try {
+    const removed = await purgeResolvedBugReports(cutoff);
+    if (removed > 0) {
+      log.info({ removed }, 'Retention: purged old bug reports');
+    }
+    return removed;
+  } catch (err) {
+    log.error({ err: err.message }, 'Retention: bug reports purge error');
+    return 0;
+  }
+}
+
 export async function runRetentionCleanup() {
   try {
     const users = await listUsers();
@@ -208,10 +223,18 @@ export async function runRetentionCleanup() {
     const demoEventsRemoved = await purgeDemoEvents();
     const marketingEventsRemoved = await purgeMarketingEvents();
     const reportsRemoved = await purgeResolvedReports();
+    const bugReportsRemoved = await purgeResolvedBugReportsRetention();
 
-    if (cleaned > 0 || purged > 0 || demoEventsRemoved > 0 || marketingEventsRemoved > 0 || reportsRemoved > 0) {
+    if (
+      cleaned > 0 ||
+      purged > 0 ||
+      demoEventsRemoved > 0 ||
+      marketingEventsRemoved > 0 ||
+      reportsRemoved > 0 ||
+      bugReportsRemoved > 0
+    ) {
       log.info(
-        { cleaned, purged, demoEventsRemoved, marketingEventsRemoved, reportsRemoved },
+        { cleaned, purged, demoEventsRemoved, marketingEventsRemoved, reportsRemoved, bugReportsRemoved },
         'Retention sweep complete',
       );
     }

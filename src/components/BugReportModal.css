@@ -1,0 +1,135 @@
+.bug-report-modal {
+  width: min(92vw, 560px);
+  max-height: min(88vh, 720px);
+  overflow-y: auto;
+  position: relative;
+  background: rgba(18, 24, 38, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 24px;
+  box-shadow: 0 20px 80px rgba(0, 0, 0, 0.45);
+  padding: 28px 24px 24px;
+  color: #eef2ff;
+}
+
+.bug-report-header h2 {
+  margin: 0 0 8px;
+  font-size: 1.5rem;
+}
+
+.bug-report-header p {
+  margin: 0;
+  color: rgba(224, 231, 255, 0.78);
+  line-height: 1.5;
+}
+
+.bug-report-body {
+  margin-top: 20px;
+}
+
+.bug-report-label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 700;
+}
+
+.bug-report-textarea {
+  width: 100%;
+  min-height: 140px;
+  resize: vertical;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  color: #f8fafc;
+  font: inherit;
+  line-height: 1.5;
+}
+
+.bug-report-textarea:focus {
+  outline: none;
+  border-color: rgba(167, 139, 250, 0.9);
+  box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.18);
+}
+
+.bug-report-meta {
+  margin-top: 16px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: rgba(99, 102, 241, 0.12);
+  border: 1px solid rgba(167, 139, 250, 0.16);
+}
+
+.bug-report-meta p,
+.bug-report-meta ul {
+  margin: 0;
+}
+
+.bug-report-meta ul {
+  margin: 8px 0;
+  padding-left: 20px;
+  color: rgba(224, 231, 255, 0.86);
+}
+
+.bug-report-note {
+  margin-top: 8px;
+  color: #fbbf24;
+  font-size: 0.9rem;
+}
+
+.bug-report-error {
+  margin-top: 16px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(239, 68, 68, 0.16);
+  border: 1px solid rgba(239, 68, 68, 0.28);
+  color: #fecaca;
+}
+
+.bug-report-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.bug-report-cancel,
+.bug-report-submit {
+  border: none;
+  border-radius: 999px;
+  padding: 12px 18px;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.bug-report-cancel {
+  background: rgba(255, 255, 255, 0.08);
+  color: #e2e8f0;
+}
+
+.bug-report-submit {
+  background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+  color: white;
+}
+
+.bug-report-cancel:disabled,
+.bug-report-submit:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+@media (max-width: 640px) {
+  .bug-report-modal {
+    padding: 24px 18px 18px;
+  }
+
+  .bug-report-actions {
+    flex-direction: column-reverse;
+  }
+
+  .bug-report-cancel,
+  .bug-report-submit {
+    width: 100%;
+    min-height: 44px;
+  }
+}

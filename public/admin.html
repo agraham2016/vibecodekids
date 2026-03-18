@@ -620,6 +620,42 @@
       font-weight: 700;
     }
 
+    .detail-box {
+      background: rgba(0, 0, 0, 0.22);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: var(--radius);
+      padding: 16px;
+    }
+
+    .detail-box pre {
+      margin: 0;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-family: 'Courier New', monospace;
+      font-size: 0.82rem;
+      color: #e2e8f0;
+    }
+
+    .bug-report-flags {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin: 8px 0 12px;
+    }
+
+    .bug-report-note {
+      width: 100%;
+      min-height: 100px;
+      padding: 12px 14px;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-sm);
+      color: white;
+      font-size: 0.9rem;
+      font-family: inherit;
+      resize: vertical;
+    }
+
     /* Action Buttons */
     .actions {
       display: flex;
@@ -918,6 +954,9 @@
         <button class="tab-btn" onclick="switchTab('system')">
           ⚙️ System
         </button>
+        <button class="tab-btn" onclick="switchTab('bugs')">
+          🐞 Bug Reports
+        </button>
         <button class="tab-btn" onclick="switchTab('audit')">
           📋 Audit Log
         </button>
@@ -1182,6 +1221,61 @@
         </div>
       </div>
 
+      <!-- Tab Content: Bug Reports -->
+      <div id="tab-bugs" class="tab-content">
+        <div class="panel" style="margin-bottom:20px;">
+          <div class="panel-header">
+            🐞 Bug Reports
+          </div>
+          <div class="filter-bar">
+            <select id="bugReportStatusFilter" onchange="loadBugReports()">
+              <option value="">All statuses</option>
+              <option value="pending">Pending</option>
+              <option value="investigating">Investigating</option>
+              <option value="resolved">Resolved</option>
+              <option value="dismissed">Dismissed</option>
+            </select>
+            <button class="btn btn-primary btn-sm" onclick="loadBugReports()">Refresh</button>
+          </div>
+          <div class="panel-content">
+            <div id="bugReportsLoading" class="loading">
+              <div class="spinner"></div>
+              <p>Loading bug reports...</p>
+            </div>
+            <div id="bugReportsEmpty" class="empty-state hidden">
+              <div class="icon">🐞</div>
+              <p>No bug reports yet.</p>
+            </div>
+            <table id="bugReportsTable" class="data-table hidden">
+              <thead>
+                <tr>
+                  <th>Created</th>
+                  <th>Project</th>
+                  <th>User</th>
+                  <th>Triage</th>
+                  <th>Status</th>
+                  <th>Flags</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="bugReportsBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            🔍 Bug Report Detail
+          </div>
+          <div class="panel-content" id="bugReportDetailContent">
+            <div class="empty-state">
+              <div class="icon">🧩</div>
+              <p>Select a bug report to inspect the details.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Tab Content: Audit Log -->
       <div id="tab-audit" class="tab-content">
         <div class="panel">
@@ -1292,6 +1386,8 @@
     // Admin key (password) and/or admin token (2FA) stored in session
     let adminKey = sessionStorage.getItem('adminKey');
     let adminToken = sessionStorage.getItem('adminToken');
+    let bugReportsCache = [];
+    let selectedBugReportId = null;
 
     // Helper: add admin auth headers (token when 2FA, else key)
     function adminFetch(url, options = {}) {
@@ -1464,6 +1560,7 @@
       loadRateLimitStats();
       loadABStats();
       loadModerationQueue();
+      loadBugReports();
       loadAuditLog();
     }
 
@@ -1483,6 +1580,8 @@
         loadAdmin2FA();
         loadABStats();
         loadModerationQueue();
+      } else if (tabId === 'bugs') {
+        loadBugReports();
       } else if (tabId === 'audit') {
         loadAuditLog();
       }
@@ -2520,6 +2619,171 @@
         container.innerHTML = `<table class="data-table" style="font-size:0.9rem;"><thead><tr><th>Date</th><th>Project</th><th>Reason</th><th>Actions</th></tr></thead><tbody>${rows}</tbody></table>`;
       } catch (error) {
         container.innerHTML = '<p style="color:var(--error);">Failed to load moderation queue.</p>';
+      }
+    }
+
+    async function loadBugReports() {
+      const loading = document.getElementById('bugReportsLoading');
+      const empty = document.getElementById('bugReportsEmpty');
+      const table = document.getElementById('bugReportsTable');
+      const tbody = document.getElementById('bugReportsBody');
+      const status = document.getElementById('bugReportStatusFilter')?.value || '';
+
+      if (!loading || !empty || !table || !tbody) return;
+
+      loading.classList.remove('hidden');
+      empty.classList.add('hidden');
+      table.classList.add('hidden');
+
+      try {
+        const query = status ? `?status=${encodeURIComponent(status)}` : '';
+        const response = await adminFetch('/api/admin/bug-reports' + query);
+        const data = await response.json();
+        bugReportsCache = data.reports || [];
+
+        loading.classList.add('hidden');
+
+        if (bugReportsCache.length === 0) {
+          empty.classList.remove('hidden');
+          tbody.innerHTML = '';
+          if (!selectedBugReportId) {
+            document.getElementById('bugReportDetailContent').innerHTML = '<div class="empty-state"><div class="icon">🧩</div><p>Select a bug report to inspect the details.</p></div>';
+          }
+          return;
+        }
+
+        table.classList.remove('hidden');
+        tbody.innerHTML = bugReportsCache.map((report) => `
+          <tr>
+            <td>${formatDate(report.createdAt)}</td>
+            <td><strong>${escapeHtml(report.projectName || report.projectId || 'Unsaved project')}</strong></td>
+            <td>${escapeHtml(report.reporterUsername || report.reporterUserId || 'unknown')}</td>
+            <td>${escapeHtml(report.triageCategory || 'pending')}<br><small style="color:var(--text-secondary)">${escapeHtml(report.triageSummary || 'Waiting for triage')}</small></td>
+            <td>${escapeHtml(report.status || 'pending')}</td>
+            <td>${report.requiresParentReview ? '<span class="badge badge-pending">UNDER-13</span>' : '—'}</td>
+            <td class="actions">
+              <button class="btn btn-primary btn-sm" onclick="loadBugReportDetail('${report.id}')">View</button>
+            </td>
+          </tr>
+        `).join('');
+
+        if (selectedBugReportId) {
+          await loadBugReportDetail(selectedBugReportId);
+        }
+      } catch (error) {
+        loading.classList.add('hidden');
+        empty.classList.remove('hidden');
+        empty.innerHTML = '<div class="icon">⚠️</div><p>Failed to load bug reports</p>';
+      }
+    }
+
+    async function loadBugReportDetail(reportId) {
+      selectedBugReportId = reportId;
+      const container = document.getElementById('bugReportDetailContent');
+      if (!container) return;
+      container.innerHTML = '<div class="loading"><div class="spinner"></div><p>Loading bug report...</p></div>';
+
+      try {
+        const response = await adminFetch(`/api/admin/bug-reports/${reportId}`);
+        const report = await response.json();
+        const tags = Array.isArray(report.triageTags) ? report.triageTags : [];
+        const conversation = Array.isArray(report.conversationSnapshot) ? report.conversationSnapshot : [];
+        const codeExcerpt = report.codeSnapshot?.excerpt || 'No code snapshot stored.';
+        const env = report.environmentSnapshot || {};
+
+        container.innerHTML = `
+          <div class="system-stat-row"><span class="system-stat-label">Project</span><span class="system-stat-value">${escapeHtml(report.projectName || report.projectId || 'Unsaved project')}</span></div>
+          <div class="system-stat-row"><span class="system-stat-label">Reporter</span><span class="system-stat-value">${escapeHtml(report.reporterUsername || report.reporterUserId || 'unknown')}</span></div>
+          <div class="system-stat-row"><span class="system-stat-label">Status</span><span class="system-stat-value">${escapeHtml(report.status || 'pending')}</span></div>
+          <div class="system-stat-row"><span class="system-stat-label">Created</span><span class="system-stat-value">${formatDate(report.createdAt)}</span></div>
+          <div class="bug-report-flags">
+            ${report.requiresParentReview ? '<span class="badge badge-pending">Under-13 review</span>' : ''}
+            ${tags.map(tag => `<span class="badge" style="background:rgba(255,255,255,0.1);color:white;">${escapeHtml(tag)}</span>`).join('')}
+          </div>
+
+          <h4 style="margin:12px 0 8px;">User Description</h4>
+          <div class="detail-box" style="margin-bottom:16px;"><pre>${escapeHtml(report.description || '')}</pre></div>
+
+          <h4 style="margin:12px 0 8px;">AI Triage</h4>
+          <div class="detail-box" style="margin-bottom:16px;">
+            <div class="system-stat-row"><span class="system-stat-label">Category</span><span class="system-stat-value">${escapeHtml(report.triageCategory || 'pending')}</span></div>
+            <div class="system-stat-row"><span class="system-stat-label">Confidence</span><span class="system-stat-value">${escapeHtml(report.triageConfidence || 'n/a')}</span></div>
+            <div class="system-stat-row"><span class="system-stat-label">Model</span><span class="system-stat-value">${escapeHtml(report.triageModel || 'n/a')}</span></div>
+            <p style="margin-top:10px;color:var(--text-secondary);">${escapeHtml(report.triageSummary || 'No triage summary yet.')}</p>
+            <p style="margin-top:8px;color:var(--text-secondary);">${escapeHtml(report.triageExplanation || '')}</p>
+            <p style="margin-top:8px;color:white;"><strong>Suggested next step:</strong> ${escapeHtml(report.triageNextStep || 'Review manually.')}</p>
+            <button class="btn btn-primary btn-sm" style="margin-top:12px;" onclick="retriageBugReport('${report.id}')">Re-run Triage</button>
+          </div>
+
+          <h4 style="margin:12px 0 8px;">Conversation Snapshot</h4>
+          <div class="detail-box" style="margin-bottom:16px;"><pre>${escapeHtml(conversation.map(entry => {
+            const modelText = entry.modelUsed ? ` [model=${entry.modelUsed}]` : '';
+            return `${entry.role}${modelText}: ${entry.content}`;
+          }).join('\\n\\n') || 'No conversation snapshot stored.')}</pre></div>
+
+          <h4 style="margin:12px 0 8px;">Code Snapshot</h4>
+          <div class="detail-box" style="margin-bottom:16px;"><pre>${escapeHtml(codeExcerpt)}</pre></div>
+
+          <h4 style="margin:12px 0 8px;">Environment</h4>
+          <div class="detail-box" style="margin-bottom:16px;">
+            <pre>${escapeHtml(JSON.stringify({
+              route: env.route || null,
+              viewport: env.viewport || null,
+              language: env.language || null,
+              lastModelUsed: env.lastModelUsed || null,
+              requestId: report.requestId || null
+            }, null, 2))}</pre>
+          </div>
+
+          <h4 style="margin:12px 0 8px;">Admin Note</h4>
+          <textarea id="bugReportAdminNote" class="bug-report-note" placeholder="Add your diagnosis or resolution note here..."></textarea>
+
+          <div class="actions" style="margin-top:16px;">
+            <button class="btn btn-warning btn-sm" onclick="updateBugReportStatus('${report.id}','investigating')">Mark Investigating</button>
+            <button class="btn btn-success btn-sm" onclick="updateBugReportStatus('${report.id}','resolved')">Resolve</button>
+            <button class="btn btn-danger btn-sm" onclick="updateBugReportStatus('${report.id}','dismissed')">Dismiss</button>
+          </div>
+        `;
+        const noteField = document.getElementById('bugReportAdminNote');
+        if (noteField) noteField.value = report.reviewNote || '';
+      } catch (error) {
+        container.innerHTML = '<p style="color:var(--error);">Failed to load bug report details.</p>';
+      }
+    }
+
+    async function retriageBugReport(reportId) {
+      try {
+        const response = await adminFetch(`/api/admin/bug-reports/${reportId}/retriage`, { method: 'POST' });
+        if (response.ok) {
+          showToast('Bug report triaged again', 'success');
+          await loadBugReports();
+          await loadBugReportDetail(reportId);
+        } else {
+          showToast('Failed to re-run triage', 'error');
+        }
+      } catch {
+        showToast('Network error', 'error');
+      }
+    }
+
+    async function updateBugReportStatus(reportId, status) {
+      const note = document.getElementById('bugReportAdminNote')?.value || '';
+      try {
+        const response = await adminFetch(`/api/admin/bug-reports/${reportId}/resolve`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status, note }),
+        });
+        if (response.ok) {
+          showToast(`Bug report marked ${status}`, 'success');
+          await loadBugReports();
+          await loadBugReportDetail(reportId);
+        } else {
+          const data = await response.json().catch(() => ({}));
+          showToast(data.error || 'Failed to update bug report', 'error');
+        }
+      } catch {
+        showToast('Network error', 'error');
       }
     }
 

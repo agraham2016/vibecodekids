@@ -154,6 +154,11 @@ export interface User {
   // COPPA fields
   ageBracket?: 'under13' | '13to17' | '18plus' | 'unknown';
   parentalConsentStatus?: 'not_required' | 'pending' | 'granted' | 'denied' | 'revoked';
+  consentPolicyVersion?: string | null;
+  parentAcceptedTerms?: boolean;
+  parentAcceptedTermsAt?: string | null;
+  parentVerifiedMethod?: 'email_plus' | 'stripe_micro' | null;
+  parentVerifiedAt?: string | null;
 }
 
 /** Login response from /api/auth/login. */
@@ -226,4 +231,39 @@ export interface GenerateRequest {
   mode?: AIMode;
   lastModelUsed?: AIModel;
   debugAttempt?: number;
+}
+
+export interface BugReportConversationEntry {
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp?: string;
+  modelUsed?: AIModel | null;
+}
+
+export interface BugReportEnvironment {
+  route: string;
+  language?: string;
+  viewport?: {
+    width: number;
+    height: number;
+  };
+  lastModelUsed?: AIModel | null;
+  debugInfo?: DebugInfo | null;
+}
+
+export interface BugReportRequest {
+  description: string;
+  currentCode?: string;
+  conversationHistory?: BugReportConversationEntry[];
+  projectId?: string | null;
+  projectName?: string | null;
+  sessionId?: string | null;
+  appSurface?: string;
+  environment?: BugReportEnvironment;
+}
+
+export interface BugReportResponse {
+  ok: boolean;
+  reportId: string;
+  triageCategory: string | null;
 }

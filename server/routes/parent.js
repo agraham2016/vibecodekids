@@ -86,6 +86,17 @@ router.get('/verify', async (req, res) => {
 
     const granted = action === 'grant';
     const explicitConsent = req.query.explicit_consent === 'true';
+    if (consent.action === 'consent' && granted && !explicitConsent) {
+      return res
+        .status(400)
+        .send(
+          renderPage(
+            'Confirmation Required',
+            'Please confirm that you have read the Privacy Policy and Terms of Service before approving your child&apos;s account.',
+            'error',
+          ),
+        );
+    }
     await resolveConsent(token, granted);
 
     // Update user based on consent action
@@ -94,15 +105,16 @@ router.get('/verify', async (req, res) => {
 
       if (consent.action === 'consent') {
         if (granted) {
+          const nowIso = new Date().toISOString();
           user.parentalConsentStatus = 'granted';
-          user.parentalConsentAt = new Date().toISOString();
+          user.parentalConsentAt = nowIso;
           user.parentVerifiedMethod = 'email_plus';
-          user.parentVerifiedAt = new Date().toISOString();
+          user.parentVerifiedAt = nowIso;
           user.consentPolicyVersion = CONSENT_POLICY_VERSION;
           user.parentAcceptedTerms = explicitConsent;
-          user.parentAcceptedTermsAt = explicitConsent ? new Date().toISOString() : null;
+          user.parentAcceptedTermsAt = explicitConsent ? nowIso : null;
           user.status = 'approved';
-          user.approvedAt = new Date().toISOString();
+          user.approvedAt = nowIso;
           // Default: publishing and multiplayer OFF for under-13 until parent enables
           if (user.publishingEnabled === undefined) user.publishingEnabled = false;
           if (user.multiplayerEnabled === undefined) user.multiplayerEnabled = false;
@@ -112,7 +124,12 @@ router.get('/verify', async (req, res) => {
           logAdminAction({
             action: 'consent_granted',
             targetId: consent.userId,
-            details: { username: user.username, method: 'email_plus' },
+            details: {
+              username: user.username,
+              method: 'email_plus',
+              consentPolicyVersion: CONSENT_POLICY_VERSION,
+              parentAcceptedTerms: explicitConsent,
+            },
           }).catch(() => {});
         } else {
           user.parentalConsentStatus = 'denied';
@@ -284,14 +301,29 @@ router.get('/privacy', (_req, res) => {
   res.json({
     siteName: SITE_NAME,
     supportEmail: SUPPORT_EMAIL,
-    lastUpdated: '2026-02-14',
-    summary: 'VibeCodeKidz is a kid-friendly game creation platform. We comply with COPPA and collect minimal data.',
+    lastUpdated: '2026-03-17',
+    summary:
+      'VibeCodeKidz is a kid-friendly game creation platform. We comply with COPPA, collect only the data needed to operate the product, and give parents direct control over under-13 accounts.',
     dataCollected: [
       'Username and display name (no real names required)',
       'Age bracket (under 13, 13-17, 18+)',
       'Parent email (for users under 13, used only for consent)',
       'Games created on the platform',
       'Basic anonymized usage data',
+      'If Report Bug is used: a short bug note, up to 3 recent AI messages, a capped code excerpt, and basic technical diagnostics',
+    ],
+    serviceProviders: [
+      'Anthropic, xAI, and OpenAI for AI game generation',
+      'Anthropic or OpenAI for limited, sanitized internal bug triage summaries',
+      'Resend for transactional emails',
+      'Stripe for payments and optional parent identity verification',
+      'Sentry for server-side error monitoring',
+    ],
+    retention: [
+      'Login sessions expire automatically',
+      'Resolved or dismissed bug reports are deleted after 90 days',
+      'Resolved moderation reports are deleted after 90 days',
+      'Inactive under-13 accounts are purged after 12 months of inactivity',
     ],
     dataNotCollected: [
       'Real name, address, or phone number',

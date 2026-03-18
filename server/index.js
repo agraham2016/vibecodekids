@@ -60,6 +60,7 @@ import parentDashboardRouter from './routes/parentDashboard.js';
 import parentVerifyChargeRouter from './routes/parentVerifyCharge.js';
 import createEsaRouter from './routes/esa.js';
 import createFeedbackRouter from './routes/feedback.js';
+import createBugReportsRouter from './routes/bugReports.js';
 import demoRouter from './routes/demo.js';
 import demoAnalyticsRouter from './routes/demoAnalytics.js';
 import marketingAnalyticsRouter from './routes/marketingAnalytics.js';
@@ -558,6 +559,7 @@ app.use('/api/auth', createAuthRouter(sessions));
 app.use('/api/projects', createProjectsRouter(sessions));
 app.use('/api/generate', express.json({ limit: '6mb' }), createGenerateRouter(sessions));
 app.use('/api/feedback', createFeedbackRouter(sessions));
+app.use('/api/bug-reports', createBugReportsRouter(sessions));
 app.use('/api/gallery', galleryRouter);
 
 // Billing routes (Stripe checkout at /api/stripe/*, membership at /api/membership/*)

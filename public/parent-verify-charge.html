@@ -197,6 +197,26 @@
         </ul>
       </div>
 
+      <div class="info-box">
+        <strong>What you are approving:</strong>
+        <ul style="margin-top:8px;padding-left:20px;color:#555;font-size:0.9rem;">
+          <li>Collection of your child's username, display name, age bracket, and saved games</li>
+          <li>Use of AI services (Anthropic/xAI/OpenAI) to generate game code from your child's prompts</li>
+          <li>Basic anonymized usage data collection</li>
+          <li>If your child uses Report Bug, collection of a short bug note, up to 3 recent AI messages, a capped code excerpt, and basic technical diagnostics needed to diagnose the issue</li>
+        </ul>
+      </div>
+
+      <div class="info-box">
+        <strong>Bug reports and support review:</strong>
+        <ul style="margin-top:8px;padding-left:20px;color:#555;font-size:0.9rem;">
+          <li>We scan bug notes and recent chat for obvious personal information before storage</li>
+          <li>Automated tools may help label a bug report before a human reviews it</li>
+          <li>Under-13 reports receive extra review and reduced automated triage input</li>
+          <li>Resolved or dismissed bug reports are deleted after 90 days</li>
+        </ul>
+      </div>
+
       <div id="payment-element"></div>
       <p class="error-msg" id="paymentError"></p>
 
@@ -206,7 +226,7 @@
           I have read and agree to the
           <a href="/privacy" target="_blank">Privacy Policy</a> and
           <a href="/terms" target="_blank">Terms of Service</a>
-          for my child's use of VibeCodeKidz.
+          for my child's use of VibeCodeKidz, including the bug-report handling described above.
         </label>
       </div>
 
@@ -350,7 +370,7 @@
         var confirmResp = await fetch('/api/parent/verify-charge/confirm', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ consentToken: consentToken, paymentIntentId: paymentIntentId }),
+          body: JSON.stringify({ consentToken: consentToken, paymentIntentId: paymentIntentId, acceptedTerms: true }),
         });
         var confirmData = await confirmResp.json();
 

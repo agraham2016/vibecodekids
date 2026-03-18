@@ -30,7 +30,7 @@ async function ensureFile() {
  * Log an admin action.
  *
  * @param {object} opts
- * @param {string} opts.action - approve | deny | suspend | unsuspend | reset-password | delete-user | delete-project | set-tier | opt-out-improvement | cache-clear | data-access | consent_granted | retention-sweep
+ * @param {string} opts.action - approve | deny | suspend | unsuspend | reset-password | delete-user | delete-project | set-tier | opt-out-improvement | cache-clear | data-access | consent_granted | retention-sweep | bug-report-investigating | bug-report-resolved | bug-report-dismissed | bug-report-retriage
  * @param {string} [opts.targetId] - user id, project id, etc.
  * @param {object} [opts.details] - extra context (e.g. { username, reason, tier })
  * @param {string} [opts.ip] - requester IP (hashed before storage; raw never persisted)

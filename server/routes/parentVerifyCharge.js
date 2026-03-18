@@ -91,9 +91,12 @@ router.post('/confirm', async (req, res) => {
   }
 
   try {
-    const { consentToken, paymentIntentId } = req.body;
+    const { consentToken, paymentIntentId, acceptedTerms } = req.body;
     if (!consentToken || !paymentIntentId) {
       return res.status(400).json({ error: 'Consent token and payment intent ID are required.' });
+    }
+    if (acceptedTerms !== true) {
+      return res.status(400).json({ error: 'Please agree to the Privacy Policy and Terms of Service first.' });
     }
 
     const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
@@ -119,15 +122,16 @@ router.post('/confirm', async (req, res) => {
     if (consent?.userId) {
       try {
         const user = await readUser(consent.userId);
+        const nowIso = new Date().toISOString();
         user.parentalConsentStatus = 'granted';
-        user.parentalConsentAt = new Date().toISOString();
+        user.parentalConsentAt = nowIso;
         user.parentVerifiedMethod = 'stripe_micro';
-        user.parentVerifiedAt = new Date().toISOString();
+        user.parentVerifiedAt = nowIso;
         user.consentPolicyVersion = CONSENT_POLICY_VERSION;
-        user.parentAcceptedTerms = true;
-        user.parentAcceptedTermsAt = new Date().toISOString();
+        user.parentAcceptedTerms = acceptedTerms;
+        user.parentAcceptedTermsAt = acceptedTerms ? nowIso : null;
         user.status = 'approved';
-        user.approvedAt = new Date().toISOString();
+        user.approvedAt = nowIso;
         if (user.publishingEnabled === undefined) user.publishingEnabled = false;
         if (user.multiplayerEnabled === undefined) user.multiplayerEnabled = false;
         const dashboardToken = await createParentDashboardToken(consent.userId);
@@ -136,7 +140,12 @@ router.post('/confirm', async (req, res) => {
         logAdminAction({
           action: 'consent_granted',
           targetId: consent.userId,
-          details: { username: user.username, method: 'stripe_micro' },
+          details: {
+            username: user.username,
+            method: 'stripe_micro',
+            consentPolicyVersion: CONSENT_POLICY_VERSION,
+            parentAcceptedTerms: acceptedTerms,
+          },
         }).catch(() => {});
       } catch (err) {
         console.error('User update after micro-charge failed:', err.message);

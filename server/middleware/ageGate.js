@@ -10,6 +10,8 @@
  *   if (!check.allowed) return res.status(403).json({ error: check.reason });
  */
 
+import { CONSENT_POLICY_VERSION } from '../config/index.js';
+
 const FEATURE_RULES = {
   publish: {
     requiresConsent: true,
@@ -22,6 +24,11 @@ const FEATURE_RULES = {
     denyReason: 'Multiplayer is not enabled for your account. A parent must enable it in the Parent Command Center.',
   },
   generate: {
+    requiresConsent: true,
+    juniorRequires: null,
+    denyReason: null,
+  },
+  support: {
     requiresConsent: true,
     juniorRequires: null,
     denyReason: null,
@@ -55,6 +62,13 @@ export function ageGate(user, feature) {
   if (rule.requiresConsent && isJunior) {
     if (user.parentalConsentStatus !== 'granted') {
       return { allowed: false, reason: 'Parental consent is required for this feature.' };
+    }
+    if (user.consentPolicyVersion !== CONSENT_POLICY_VERSION) {
+      return {
+        allowed: false,
+        reason:
+          'Our privacy policy has been updated. Ask your parent to check their email and approve again so you can keep using this feature.',
+      };
     }
   }
 
