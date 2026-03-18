@@ -43,6 +43,7 @@ function mapBugReportRow(row) {
     reviewedAt: row.reviewed_at?.toISOString?.() || row.reviewed_at || null,
     reviewAction: row.review_action || null,
     reviewNote: row.review_note || null,
+    userNotificationSeenAt: row.user_notification_seen_at?.toISOString?.() || row.user_notification_seen_at || null,
   };
 }
 
@@ -68,6 +69,7 @@ function summarizeBugReport(report) {
     triagedAt: report.triagedAt,
     reviewedAt: report.reviewedAt,
     reviewAction: report.reviewAction,
+    userNotificationSeenAt: report.userNotificationSeenAt,
   };
 }
 
@@ -150,6 +152,7 @@ export async function createBugReport({
     reviewedAt: null,
     reviewAction: null,
     reviewNote: null,
+    userNotificationSeenAt: null,
   };
 
   if (USE_POSTGRES) {
@@ -163,12 +166,13 @@ export async function createBugReport({
           code_snapshot, conversation_snapshot, environment_snapshot,
           triage_category, triage_tags, triage_summary, triage_explanation, triage_next_step,
           triage_confidence, triage_model, created_at, triaged_at, reviewed_at, review_action, review_note
+         , user_notification_seen_at
         ) VALUES (
           $1,$2,$3,$4,$5,$6,
           $7,$8,$9,$10,$11,$12,
           $13,$14,$15,
           $16,$17,$18,$19,$20,
-          $21,$22,$23,$24,$25,$26,$27
+          $21,$22,$23,$24,$25,$26,$27,$28
         )`,
         [
           report.id,
@@ -198,6 +202,7 @@ export async function createBugReport({
           report.reviewedAt,
           report.reviewAction,
           report.reviewNote,
+          report.userNotificationSeenAt,
         ],
       );
       return report;
@@ -351,6 +356,7 @@ export async function getBugReport(reportId) {
 
 export async function resolveBugReport(reportId, { status, reviewAction, reviewNote }) {
   const reviewedAt = new Date().toISOString();
+  const shouldNotifyUser = status === 'resolved' || status === 'dismissed';
 
   if (USE_POSTGRES) {
     try {
@@ -361,9 +367,17 @@ export async function resolveBugReport(reportId, { status, reviewAction, reviewN
          SET status = $1,
              reviewed_at = $2,
              review_action = $3,
-             review_note = $4
-         WHERE id = $5`,
-        [status, reviewedAt, reviewAction || null, (reviewNote || '').slice(0, 2000) || null, reportId],
+             review_note = $4,
+             user_notification_seen_at = $5
+         WHERE id = $6`,
+        [
+          status,
+          reviewedAt,
+          reviewAction || null,
+          (reviewNote || '').slice(0, 2000) || null,
+          shouldNotifyUser ? null : reviewedAt,
+          reportId,
+        ],
       );
       if (rowCount === 0) {
         const err = new Error(`Bug report not found: ${reportId}`);
@@ -388,6 +402,105 @@ export async function resolveBugReport(reportId, { status, reviewAction, reviewN
           reviewedAt,
           reviewAction: reviewAction || null,
           reviewNote: (reviewNote || '').slice(0, 2000) || null,
+          userNotificationSeenAt: shouldNotifyUser ? null : reviewedAt,
+        })
+      : report,
+  );
+  if (!found) {
+    const err = new Error(`Bug report not found: ${reportId}`);
+    err.code = 'ENOENT';
+    throw err;
+  }
+  await writeFileBugReports(updated);
+  return true;
+}
+
+export async function listPendingBugReportNotifications(reporterUserId, limit = 5) {
+  if (!reporterUserId) return [];
+
+  if (USE_POSTGRES) {
+    try {
+      const { getPool } = await import('./db.js');
+      const pool = getPool();
+      const { rows } = await pool.query(
+        `SELECT id, project_name, description, status, reviewed_at, review_note
+         FROM bug_reports
+         WHERE reporter_user_id = $1
+           AND status IN ('resolved', 'dismissed')
+           AND reviewed_at IS NOT NULL
+           AND user_notification_seen_at IS NULL
+         ORDER BY reviewed_at ASC
+         LIMIT $2`,
+        [reporterUserId, limit],
+      );
+      return rows.map((row) => ({
+        id: row.id,
+        projectName: row.project_name || null,
+        description: row.description || '',
+        status: row.status || 'resolved',
+        reviewedAt: row.reviewed_at?.toISOString?.() || row.reviewed_at || null,
+        reviewNote: row.review_note || null,
+      }));
+    } catch {
+      // Fall through to file storage.
+    }
+  }
+
+  const reports = await readFileBugReports();
+  return reports
+    .filter(
+      (report) =>
+        report.reporterUserId === reporterUserId &&
+        (report.status === 'resolved' || report.status === 'dismissed') &&
+        report.reviewedAt &&
+        !report.userNotificationSeenAt,
+    )
+    .sort((a, b) => new Date(a.reviewedAt).getTime() - new Date(b.reviewedAt).getTime())
+    .slice(0, limit)
+    .map((report) => ({
+      id: report.id,
+      projectName: report.projectName || null,
+      description: report.description || '',
+      status: report.status || 'resolved',
+      reviewedAt: report.reviewedAt || null,
+      reviewNote: report.reviewNote || null,
+    }));
+}
+
+export async function acknowledgeBugReportNotification(reportId, reporterUserId) {
+  const seenAt = new Date().toISOString();
+
+  if (USE_POSTGRES) {
+    try {
+      const { getPool } = await import('./db.js');
+      const pool = getPool();
+      const { rowCount } = await pool.query(
+        `UPDATE bug_reports
+         SET user_notification_seen_at = $1
+         WHERE id = $2
+           AND reporter_user_id = $3`,
+        [seenAt, reportId, reporterUserId],
+      );
+      if (rowCount === 0) {
+        const err = new Error(`Bug report not found: ${reportId}`);
+        err.code = 'ENOENT';
+        throw err;
+      }
+      return true;
+    } catch (err) {
+      if (err?.code === 'ENOENT') throw err;
+      // Fall through to file storage.
+    }
+  }
+
+  const reports = await readFileBugReports();
+  let found = false;
+  const updated = reports.map((report) =>
+    report.id === reportId && report.reporterUserId === reporterUserId
+      ? ((found = true),
+        {
+          ...report,
+          userNotificationSeenAt: seenAt,
         })
       : report,
   );

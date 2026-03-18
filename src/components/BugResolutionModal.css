@@ -1,0 +1,101 @@
+.bug-resolution-modal {
+  width: min(92vw, 560px);
+  max-height: min(88vh, 720px);
+  overflow-y: auto;
+  background: rgba(18, 24, 38, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 24px;
+  box-shadow: 0 20px 80px rgba(0, 0, 0, 0.45);
+  padding: 28px 24px 24px;
+  color: #eef2ff;
+}
+
+.bug-resolution-modal h2 {
+  margin: 0 0 8px;
+  font-size: 1.5rem;
+}
+
+.bug-resolution-summary {
+  margin: 0;
+  color: rgba(224, 231, 255, 0.78);
+  line-height: 1.5;
+}
+
+.bug-resolution-card,
+.bug-resolution-message {
+  margin-top: 18px;
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.bug-resolution-card {
+  background: rgba(99, 102, 241, 0.12);
+}
+
+.bug-resolution-message {
+  background: rgba(139, 92, 246, 0.14);
+}
+
+.bug-resolution-label {
+  margin: 0 0 8px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(196, 181, 253, 0.95);
+}
+
+.bug-resolution-description,
+.bug-resolution-message p:last-child {
+  margin: 0;
+  line-height: 1.55;
+}
+
+.bug-resolution-date {
+  margin: 12px 0 0;
+  font-size: 0.9rem;
+  color: rgba(224, 231, 255, 0.65);
+}
+
+.bug-resolution-count {
+  margin: 16px 0 0;
+  color: rgba(224, 231, 255, 0.72);
+}
+
+.bug-resolution-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 22px;
+}
+
+.bug-resolution-button {
+  border: none;
+  border-radius: 999px;
+  padding: 12px 18px;
+  min-height: 44px;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+  color: #fff;
+}
+
+.bug-resolution-button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+@media (max-width: 640px) {
+  .bug-resolution-modal {
+    padding: 24px 18px 18px;
+  }
+
+  .bug-resolution-actions {
+    justify-content: stretch;
+  }
+
+  .bug-resolution-button {
+    width: 100%;
+  }
+}

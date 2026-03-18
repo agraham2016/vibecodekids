@@ -12,6 +12,7 @@ import AuthModal from './components/AuthModal';
 import UpgradeModal from './components/UpgradeModal';
 import VersionHistoryModal from './components/VersionHistoryModal';
 import BugReportModal from './components/BugReportModal';
+import BugResolutionModal from './components/BugResolutionModal';
 import LandingPage from './components/LandingPage';
 import LandingPageB from './components/LandingPageB';
 import GameSurvey from './components/GameSurvey';
@@ -20,7 +21,16 @@ import { getTutorialStatus, welcomedKey } from './components/tutorialUtils';
 import TipsModal from './components/TipsModal';
 import { getVariant } from './lib/abVariant';
 import { api } from './lib/api';
-import type { User, MembershipUsage, TierInfo, AIMode, GameConfig, BugReportResponse } from './types';
+import type {
+  User,
+  MembershipUsage,
+  TierInfo,
+  AIMode,
+  GameConfig,
+  BugReportResponse,
+  BugReportResolutionNotification,
+  BugReportResolutionNotificationsResponse,
+} from './types';
 import { getStarterTemplateById } from './config/gameCatalog';
 import './App.css';
 
@@ -59,6 +69,10 @@ function App() {
   const [showBugReportModal, setShowBugReportModal] = useState(false);
   const [isSubmittingBugReport, setIsSubmittingBugReport] = useState(false);
   const [bugReportError, setBugReportError] = useState('');
+  const [pendingBugResolutionNotifications, setPendingBugResolutionNotifications] = useState<
+    BugReportResolutionNotification[]
+  >([]);
+  const [isAcknowledgingBugResolution, setIsAcknowledgingBugResolution] = useState(false);
   const [showWelcomeOverlay, setShowWelcomeOverlay] = useState(false);
   const [showGameSurvey, setShowGameSurvey] = useState(false);
   const [tutorialActive, setTutorialActive] = useState(false);
@@ -145,6 +159,34 @@ function App() {
       });
     }
   }, [token, user?.id, fetchUserProjects, messages.length]);
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    async function loadBugResolutionNotifications() {
+      if (!token || !user?.id) {
+        setPendingBugResolutionNotifications([]);
+        return;
+      }
+
+      try {
+        const data = await api.get<BugReportResolutionNotificationsResponse>('/api/bug-reports/notifications');
+        if (!isCancelled) {
+          setPendingBugResolutionNotifications(Array.isArray(data.notifications) ? data.notifications : []);
+        }
+      } catch {
+        if (!isCancelled) {
+          setPendingBugResolutionNotifications([]);
+        }
+      }
+    }
+
+    loadBugResolutionNotifications();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [token, user?.id]);
 
   // Login handler
   const handleLogin = useCallback(
@@ -276,6 +318,21 @@ function App() {
     setBugReportError('');
     setShowBugReportModal(true);
   }, []);
+
+  const handleAcknowledgeBugResolution = useCallback(async () => {
+    const currentNotification = pendingBugResolutionNotifications[0];
+    if (!currentNotification) return;
+
+    setIsAcknowledgingBugResolution(true);
+    try {
+      await api.post(`/api/bug-reports/${currentNotification.id}/acknowledge`);
+    } catch {
+      // If this save fails, the popup may show again next login. That's safer than dropping it forever.
+    } finally {
+      setPendingBugResolutionNotifications((current) => current.filter((item) => item.id !== currentNotification.id));
+      setIsAcknowledgingBugResolution(false);
+    }
+  }, [pendingBugResolutionNotifications]);
 
   const handleSubmitBugReport = useCallback(
     async (description: string) => {
@@ -441,8 +498,18 @@ function App() {
         />
       )}
 
+      {pendingBugResolutionNotifications[0] && (
+        <BugResolutionModal
+          notification={pendingBugResolutionNotifications[0]}
+          pendingCount={pendingBugResolutionNotifications.length}
+          isAcknowledging={isAcknowledgingBugResolution}
+          onClose={handleAcknowledgeBugResolution}
+        />
+      )}
+
       {/* Welcome overlay — shown every login */}
-      {showWelcomeOverlay &&
+      {!pendingBugResolutionNotifications[0] &&
+        showWelcomeOverlay &&
         (() => {
           const tutStatus = getTutorialStatus(user?.id);
           const isReturning =

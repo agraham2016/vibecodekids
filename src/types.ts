@@ -268,3 +268,17 @@ export interface BugReportResponse {
   reportId: string;
   triageCategory: string | null;
 }
+
+export interface BugReportResolutionNotification {
+  id: string;
+  projectName?: string | null;
+  description: string;
+  status: 'resolved' | 'dismissed';
+  reviewedAt?: string | null;
+  reviewNote?: string | null;
+}
+
+export interface BugReportResolutionNotificationsResponse {
+  ok: boolean;
+  notifications: BugReportResolutionNotification[];
+}
