@@ -68,7 +68,7 @@ export default function PreviewPanel({ code }: PreviewPanelProps) {
             ref={iframeRef}
             srcDoc={enhancedCode}
             title="Preview"
-            sandbox="allow-scripts allow-pointer-lock"
+            sandbox="allow-scripts allow-same-origin allow-pointer-lock"
             className="preview-iframe"
             onLoad={() => focusIframe(iframeRef.current)}
           />
@@ -92,7 +92,7 @@ export default function PreviewPanel({ code }: PreviewPanelProps) {
               ref={fullscreenIframeRef}
               srcDoc={enhancedCode}
               title="Fullscreen Preview"
-              sandbox="allow-scripts allow-pointer-lock"
+              sandbox="allow-scripts allow-same-origin allow-pointer-lock"
               className="play-mode-iframe"
               onLoad={() => focusIframe(fullscreenIframeRef.current)}
             />
