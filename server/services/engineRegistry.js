@@ -1,4 +1,10 @@
 import { detectGameGenre, detectGenreFamily } from '../prompts/genres.js';
+import {
+  getEngineOutcomeBias,
+  getEngineOutcomeRankingSnapshot,
+  getEngineOverrideEffect,
+  getEngineOverrideState,
+} from './engineOutcomes.js';
 
 export const ENGINE_IDS = {
   VIBE_2D: 'vibe-2d',
@@ -691,7 +697,11 @@ function inferFamilyFromCode(currentCode = '') {
     if (/\bbuild\b|\bplace\b|\bmaterials\b|\binventory\b|blueprint|buildMode/i.test(code)) {
       return 'sandboxBuilder3d';
     }
-    if (/VibeMultiplayer|players|room/i.test(code)) return 'socialParty3d';
+    if (
+      /VibeMultiplayer|multiplayer|roomCode|createRoom|joinRoom|onRoomJoined|onPlayerJoined|\bplayers\b/i.test(code)
+    ) {
+      return 'socialParty3d';
+    }
     if (/\broad\b|\btrack\b|\bcar\b|\bboost\b|\bdrift\b|\blap\b|\bsteer\b|sedan|suv|vehicle/i.test(code)) {
       return 'racingDriving3d';
     }
@@ -866,7 +876,114 @@ function inferFamilyFromPromptSignals(prompt = '', gameConfig = null) {
   return null;
 }
 
-export function resolveEngineProfile({ prompt = '', genre = null, gameConfig = null, currentCode = null } = {}) {
+function addCandidate(candidateMap, id, score, source) {
+  if (!id) return;
+  const current = candidateMap.get(id) || { id, baseScore: 0, sources: [] };
+  current.baseScore += score;
+  if (source) current.sources.push(source);
+  candidateMap.set(id, current);
+}
+
+function chooseRankedCandidate(candidateMap, biasLookup, overrideLookup = () => ({ boost: 0, hidden: false })) {
+  const ranked = [...candidateMap.values()]
+    .map((candidate) => {
+      const bias = biasLookup(candidate.id);
+      const override = overrideLookup(candidate.id) || { boost: 0, hidden: false };
+      return {
+        ...candidate,
+        bias,
+        overrideBoost: Number(override.boost || 0),
+        hidden: !!override.hidden,
+        score: candidate.baseScore + bias + Number(override.boost || 0),
+      };
+    })
+    .filter((candidate) => !candidate.hidden)
+    .sort((a, b) => b.score - a.score || b.baseScore - a.baseScore || a.id.localeCompare(b.id));
+
+  return ranked[0] || null;
+}
+
+function chooseFamilyByRanking({
+  promptSignalFamily,
+  detectedFamily,
+  starterFamily,
+  codeDetectedFamily,
+  mappedFamily,
+  defaultFamily,
+  dimensionHint,
+  rankingSnapshot,
+  overrideState,
+}) {
+  const candidates = new Map();
+  const dimensionMatches = (familyId) => {
+    if (!dimensionHint) return true;
+    const profile = getFamilyProfile(familyId);
+    return profile?.dimension === dimensionHint;
+  };
+
+  const maybeAdd = (id, score, source) => {
+    if (!id || !dimensionMatches(id)) return;
+    addCandidate(candidates, id, score, source);
+  };
+
+  maybeAdd(promptSignalFamily, 4.5, 'prompt-signals');
+  maybeAdd(detectedFamily, 3.5, 'genre-detector');
+  maybeAdd(starterFamily, 3.25, 'starter-blueprint');
+  maybeAdd(codeDetectedFamily, 2.5, 'current-code');
+  maybeAdd(mappedFamily, 2, 'game-type-map');
+  maybeAdd(defaultFamily, 0.5, 'default');
+
+  const best = chooseRankedCandidate(
+    candidates,
+    (familyId) => getEngineOutcomeBias(rankingSnapshot?.families?.[familyId], { minSamples: 3, maxBoost: 1.25 }),
+    (familyId) => getEngineOverrideEffect(overrideState, 'families', familyId),
+  );
+
+  return best?.id || defaultFamily;
+}
+
+function chooseStarterByRanking({
+  familyProfile,
+  starterBlueprint,
+  promptStarterId,
+  normalizedRequestedType,
+  rankingSnapshot,
+  overrideState,
+}) {
+  const candidates = new Map();
+  const familyStarters = familyProfile?.starterTemplateIds || [];
+
+  familyStarters.forEach((starterId, index) => {
+    addCandidate(candidates, starterId, index === 0 ? 0.5 : 0, 'family-default');
+  });
+
+  if (starterBlueprint?.id && familyStarters.includes(starterBlueprint.id)) {
+    addCandidate(candidates, starterBlueprint.id, 4, 'normalized-blueprint');
+  }
+  if (promptStarterId && familyStarters.includes(promptStarterId)) {
+    addCandidate(candidates, promptStarterId, 4.5, 'prompt-starter');
+  }
+  if (normalizedRequestedType && familyStarters.includes(normalizedRequestedType)) {
+    addCandidate(candidates, normalizedRequestedType, 2, 'normalized-request');
+  }
+
+  const best = chooseRankedCandidate(
+    candidates,
+    (starterId) => getEngineOutcomeBias(rankingSnapshot?.starters?.[starterId], { minSamples: 2, maxBoost: 1.5 }),
+    (starterId) => getEngineOverrideEffect(overrideState, 'starters', starterId),
+  );
+
+  return best?.id || familyStarters[0] || null;
+}
+
+export function resolveEngineProfile({
+  prompt = '',
+  genre = null,
+  gameConfig = null,
+  currentCode = null,
+  rankingSnapshot = null,
+  overrideState = null,
+} = {}) {
   const promptText = String(prompt || '');
   const promptSignalFamily = inferFamilyFromPromptSignals(promptText, gameConfig);
   const detectedFamily = detectGenreFamily(promptText);
@@ -882,14 +999,25 @@ export function resolveEngineProfile({ prompt = '', genre = null, gameConfig = n
   );
 
   const starterBlueprint = getTemplateBlueprint(normalizedRequestedType);
+  const promptHas3DSignals =
+    /\b3d\b/.test(promptText.toLowerCase()) || /\bobby\b|\broblox\b/.test(promptText.toLowerCase());
+  const dimensionHint = gameConfig?.dimension || starterBlueprint?.dimension || (promptHas3DSignals ? '3d' : null);
+  const effectiveRankingSnapshot = rankingSnapshot || getEngineOutcomeRankingSnapshot();
+  const effectiveOverrideState = overrideState || getEngineOverrideState();
+  const defaultFamily = gameConfig?.dimension === '3d' ? 'obbyPlatform3d' : 'platformAction';
   const inferredFamily =
     gameConfig?.genreFamily ||
-    promptSignalFamily ||
-    detectedFamily ||
-    starterBlueprint?.family ||
-    codeDetectedFamily ||
-    GENRE_FAMILY_BY_GAME_TYPE[normalizedRequestedType] ||
-    (gameConfig?.dimension === '3d' ? 'obbyPlatform3d' : 'platformAction');
+    chooseFamilyByRanking({
+      promptSignalFamily,
+      detectedFamily,
+      starterFamily: starterBlueprint?.family,
+      codeDetectedFamily,
+      mappedFamily: GENRE_FAMILY_BY_GAME_TYPE[normalizedRequestedType],
+      defaultFamily,
+      dimensionHint,
+      rankingSnapshot: effectiveRankingSnapshot,
+      overrideState: effectiveOverrideState,
+    });
 
   const familyProfile = getFamilyProfile(inferredFamily) || ENGINE_FAMILY_PROFILES.platformAction;
   const wants3D =
@@ -902,9 +1030,24 @@ export function resolveEngineProfile({ prompt = '', genre = null, gameConfig = n
   const dimension = wants3D ? '3d' : '2d';
 
   const preferredStarterId =
-    familyProfile.dimension === '3d' && starterBlueprint?.dimension !== '3d'
-      ? familyProfile.starterTemplateIds[0]
-      : starterBlueprint?.id;
+    gameConfig?.starterTemplateId ||
+    (familyProfile.dimension === '3d' && starterBlueprint?.dimension !== '3d'
+      ? chooseStarterByRanking({
+          familyProfile,
+          starterBlueprint: null,
+          promptStarterId,
+          normalizedRequestedType,
+          rankingSnapshot: effectiveRankingSnapshot,
+          overrideState: effectiveOverrideState,
+        }) || familyProfile.starterTemplateIds[0]
+      : chooseStarterByRanking({
+          familyProfile,
+          starterBlueprint,
+          promptStarterId,
+          normalizedRequestedType,
+          rankingSnapshot: effectiveRankingSnapshot,
+          overrideState: effectiveOverrideState,
+        }) || starterBlueprint?.id);
   const resolvedStarterId =
     preferredStarterId ||
     familyProfile.starterTemplateIds[0] ||

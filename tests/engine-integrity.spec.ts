@@ -76,7 +76,7 @@ test.describe('Vibe engine integrity', () => {
       { templateFile: 'house-builder.html', family: 'sandboxBuilder3d', dimension: '3d' },
     ];
 
-    const followUpPrompts = ['make it faster', 'make it spooky', 'add more challenge'];
+    const followUpPrompts = ['make it faster', 'make it spooky', 'add more challenge', 'add double jumps'];
 
     for (const scenario of scenarios) {
       const currentCode = fs.readFileSync(path.join(TEMPLATE_DIR, scenario.templateFile), 'utf-8');
