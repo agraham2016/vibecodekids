@@ -216,24 +216,31 @@ export async function sendConsentEmail(parentEmail, childUsername, token, action
   const consentUrl = `${BASE_URL}/parent-consent?token=${token}`;
   const denyUrl = `${BASE_URL}/api/parent/verify?token=${token}&action=deny`;
   const verifyChargeUrl = `${BASE_URL}/parent-verify-charge?token=${token}`;
+  const isConsentAction = action === 'consent' || action === 'reconsent';
 
   const subject =
     action === 'consent'
       ? `${SITE_NAME}: Your child wants to create an account`
-      : action === 'data_access'
-        ? `${SITE_NAME}: Data access request for your child's account`
-        : `${SITE_NAME}: Data deletion request for your child's account`;
+      : action === 'reconsent'
+        ? `${SITE_NAME}: Updated parent approval needed`
+        : action === 'data_access'
+          ? `${SITE_NAME}: Data access request for your child's account`
+          : `${SITE_NAME}: Data deletion request for your child's account`;
 
-  const body =
-    action === 'consent'
-      ? `
+  const body = isConsentAction
+    ? `
 Hi there!
 
-Your child (username: ${childUsername}) wants to create an account on ${SITE_NAME},
-a kid-friendly game creation platform where kids ages 7-18 build games with AI.
+Your child (username: ${childUsername}) ${
+        action === 'reconsent'
+          ? `already has an account on ${SITE_NAME}, but we need your approval again because our Privacy Policy has been updated.`
+          : `wants to create an account on ${SITE_NAME}, a kid-friendly game creation platform where kids ages 7-18 build games with AI.`
+      }
 
 Under COPPA (Children's Online Privacy Protection Act), we need your permission
-before your child (under ${COPPA_AGE_THRESHOLD}) can use our platform.
+before your child (under ${COPPA_AGE_THRESHOLD}) can use our platform${
+        action === 'reconsent' ? ' under the updated policy.' : '.'
+      }
 
 WHAT WE COLLECT:
 - Username and display name (no real names required)
@@ -285,7 +292,7 @@ A small $0.50 charge (immediately refunded) verifies your identity:
 ${verifyChargeUrl}
 
 OPTION 2 — APPROVE VIA EMAIL:
-Review and approve your child's account (you'll be asked to agree to our
+Review and approve ${action === 'reconsent' ? "continued access to your child's account" : "your child's account"} (you'll be asked to agree to our
 Privacy Policy and Terms of Service):
 ${consentUrl}
 
@@ -303,7 +310,7 @@ Privacy Policy: ${BASE_URL}/privacy
 
 - The ${SITE_NAME} Team
 `
-      : `
+    : `
 Hi there!
 
 A request has been made regarding your child's account (username: ${childUsername}) 

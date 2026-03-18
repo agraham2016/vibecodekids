@@ -32,8 +32,11 @@ import { createResetToken, getResetByToken, consumeToken } from '../services/pas
 
 const loginAttempts = new Map();
 const forgotPasswordAttempts = new Map();
+const resendConsentAttempts = new Map();
 const LOGIN_WINDOW_MS = 60 * 1000;
 const LOGIN_MAX_ATTEMPTS = 5;
+const RESEND_CONSENT_WINDOW_MS = 15 * 60 * 1000;
+const RESEND_CONSENT_MAX_ATTEMPTS = 3;
 
 // Rate limit: max 3 signups per parent email per 24h
 const parentEmailSignups = new Map();
@@ -78,6 +81,18 @@ function checkForgotPasswordRateLimit(ip) {
   return true;
 }
 
+function checkResendConsentRateLimit(key) {
+  const now = Date.now();
+  const entry = resendConsentAttempts.get(key);
+  if (!entry || now - entry.windowStart > RESEND_CONSENT_WINDOW_MS) {
+    resendConsentAttempts.set(key, { windowStart: now, count: 1 });
+    return true;
+  }
+  entry.count++;
+  if (entry.count > RESEND_CONSENT_MAX_ATTEMPTS) return false;
+  return true;
+}
+
 setInterval(() => {
   const now = Date.now();
   for (const [ip, entry] of loginAttempts) {
@@ -85,6 +100,9 @@ setInterval(() => {
   }
   for (const [ip, entry] of forgotPasswordAttempts) {
     if (now - entry.windowStart > LOGIN_WINDOW_MS * 2) forgotPasswordAttempts.delete(ip);
+  }
+  for (const [key, entry] of resendConsentAttempts) {
+    if (now - entry.windowStart > RESEND_CONSENT_WINDOW_MS * 2) resendConsentAttempts.delete(key);
   }
 }, 60 * 1000);
 
@@ -357,6 +375,7 @@ export default function createAuthRouter(sessions) {
         return res.status(403).json({
           error:
             'Our privacy policy has been updated. Ask your parent to check their email and approve again so you can log in!',
+          canResendConsentEmail: true,
         });
       }
 
@@ -402,6 +421,60 @@ export default function createAuthRouter(sessions) {
     } catch (error) {
       log.error({ err: error }, 'Login error');
       res.status(500).json({ error: 'Could not log in' });
+    }
+  });
+
+  router.post('/resend-consent-email', async (req, res) => {
+    try {
+      const clientIp = req.ip || req.connection?.remoteAddress || 'unknown';
+      const { username, password } = req.body;
+      if (!username || !password) {
+        return res.status(400).json({ error: 'Username and password are required' });
+      }
+
+      const rateLimitKey = `${clientIp}:${String(username).toLowerCase()}`;
+      if (!checkResendConsentRateLimit(rateLimitKey)) {
+        return res.status(429).json({ error: 'Too many resend attempts. Please wait a bit and try again.' });
+      }
+
+      const userId = `user_${String(username).toLowerCase()}`;
+
+      let user;
+      try {
+        user = await readUser(userId);
+      } catch (err) {
+        if (err.code === 'ENOENT') {
+          return res.status(401).json({ error: 'Invalid username or password' });
+        }
+        throw err;
+      }
+
+      const passwordValid = await bcrypt.compare(password, user.passwordHash);
+      if (!passwordValid) {
+        return res.status(401).json({ error: 'Invalid username or password' });
+      }
+
+      const needsReconsent =
+        user.ageBracket === 'under13' &&
+        user.parentalConsentStatus === 'granted' &&
+        user.consentPolicyVersion !== CONSENT_POLICY_VERSION;
+
+      if (!needsReconsent || !user.parentEmail) {
+        return res.status(400).json({ error: 'This account does not need a new parent approval email.' });
+      }
+
+      const token = await createConsentRequest(user.id, user.parentEmail, 'reconsent');
+      await sendConsentEmail(user.parentEmail, user.username, token, 'reconsent');
+
+      log.info({ userId: user.id, event: 'reconsent_email_resent' }, 'Re-consent email resent');
+
+      return res.json({
+        success: true,
+        message: 'We sent a fresh approval email to your parent. Ask them to check their inbox again!',
+      });
+    } catch (error) {
+      log.error({ err: error }, 'Resend consent email error');
+      return res.status(500).json({ error: 'Could not resend the approval email right now. Please try again.' });
     }
   });
 

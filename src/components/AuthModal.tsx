@@ -109,6 +109,7 @@ export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: A
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [canResendConsentEmail, setCanResendConsentEmail] = useState(false);
   const [forgotStep, setForgotStep] = useState<'request' | null>(null);
   const [recaptchaSiteKey, setRecaptchaSiteKey] = useState<string | null>(null);
   const [nameSuggestions, setNameSuggestions] = useState<string[]>(() => generateNameSuggestions());
@@ -176,6 +177,7 @@ export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: A
     e.preventDefault();
     setError('');
     setSuccess('');
+    setCanResendConsentEmail(false);
     setIsLoading(true);
 
     try {
@@ -314,6 +316,7 @@ export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: A
         const data = await response.json();
 
         if (!response.ok) {
+          setCanResendConsentEmail(!!data.canResendConsentEmail);
           throw new Error(data.error || 'Oops! Something went wrong. Try again?');
         }
 
@@ -337,6 +340,38 @@ export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: A
     setForgotStep(null);
     setError('');
     setSuccess('');
+    setCanResendConsentEmail(false);
+  };
+
+  const handleResendConsentEmail = async () => {
+    setError('');
+    setSuccess('');
+    setIsLoading(true);
+
+    try {
+      const response = await fetch('/api/auth/resend-consent-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      });
+
+      const contentType = response.headers.get('content-type');
+      if (!contentType?.includes('application/json')) {
+        throw new Error('Our robots are taking a break. Try again in a minute!');
+      }
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Could not resend the approval email right now. Please try again.');
+      }
+
+      setSuccess(data.message || 'We sent a fresh approval email to your parent. Ask them to check again!');
+      setCanResendConsentEmail(false);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Could not resend the approval email right now. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Show plan selector for signup
@@ -601,6 +636,16 @@ export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: A
                 <div className="auth-error" id="auth-error-main" role="alert">
                   {error}
                 </div>
+              )}
+              {mode === 'login' && canResendConsentEmail && (
+                <button
+                  type="button"
+                  className="auth-secondary-btn"
+                  onClick={handleResendConsentEmail}
+                  disabled={isLoading || !username.trim() || !password}
+                >
+                  {isLoading ? '⏳ Sending...' : '📧 Resend Parent Email'}
+                </button>
               )}
               {success && <div className="auth-success">{success}</div>}
 
