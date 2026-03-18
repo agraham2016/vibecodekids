@@ -302,22 +302,9 @@ export async function resolveReferences({
     rankingSnapshot: effectiveRankingSnapshot,
     overrideState: effectiveOverrideState,
   });
-  if (is3DEngineRequest && modelReference.block) {
-    const modelOverride = modelReference.source
-      ? getEngineOverrideEffect(effectiveOverrideState, 'sources', modelReference.source)
-      : { hidden: false };
-    if (!modelOverride.hidden && modelReference.block.length <= charBudget) {
-      parts.push(modelReference.block);
-      charBudget -= modelReference.block.length;
-      sources.push(modelReference.source);
-    } else {
-      console.warn(
-        `⚠️ Model guidance DROPPED — ${modelReference.block.length} chars exceeds remaining budget of ${charBudget}`,
-      );
-    }
-  }
 
-  if (isNewGame && templateFile) {
+  async function appendTemplateChunk() {
+    if (!isNewGame || !templateFile) return;
     const templateSource = `template:${path.basename(templateFile)}`;
     const templateOverride = getEngineOverrideEffect(effectiveOverrideState, 'sources', templateSource);
     if (!templateOverride.hidden) {
@@ -340,6 +327,31 @@ export async function resolveReferences({
         }
       }
     }
+  }
+
+  // For new 3D games, keep the full starter template ahead of the broad model list
+  // so the world layout, terrain, and board structure do not get dropped on budget.
+  if (is3DEngineRequest) {
+    await appendTemplateChunk();
+  }
+
+  if (is3DEngineRequest && modelReference.block) {
+    const modelOverride = modelReference.source
+      ? getEngineOverrideEffect(effectiveOverrideState, 'sources', modelReference.source)
+      : { hidden: false };
+    if (!modelOverride.hidden && modelReference.block.length <= charBudget) {
+      parts.push(modelReference.block);
+      charBudget -= modelReference.block.length;
+      sources.push(modelReference.source);
+    } else {
+      console.warn(
+        `⚠️ Model guidance DROPPED — ${modelReference.block.length} chars exceeds remaining budget of ${charBudget}`,
+      );
+    }
+  }
+
+  if (!is3DEngineRequest) {
+    await appendTemplateChunk();
   }
 
   // ===== 5. INJECT 3D MODEL LIST (after template for non-3D requests) =====
@@ -486,7 +498,7 @@ function formatThreeTemplateReference(template, genre) {
     `// The template uses procedural geometry as a PLACEHOLDER. You MUST replace it with`,
     `// loader.load('/assets/models/...') calls from the 3D ASSET GUIDANCE section above.`,
     `// This makes the game look 3D instead of flat colored boxes. The loadModel() helper`,
-    `// in the template shows the exact pattern — use it for towers, enemies, vehicles, etc.`,
+    `// in the template shows the exact pattern — use it for terrain tiles, towers, enemies, vehicles, etc.`,
     `// ══════════════════════════════════════════════════════════`,
     '',
     sanitizedContent,

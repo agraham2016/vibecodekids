@@ -21,6 +21,23 @@ export const IS_PRODUCTION = NODE_ENV === 'production';
 export const PORT = process.env.PORT || 3001;
 export const BASE_URL = (process.env.BASE_URL || 'https://vibecodekidz.org').trim().replace(/\/+$/, '');
 
+function isLocalPlaceholderDatabaseUrl(value) {
+  if (!value) return false;
+  try {
+    const parsed = new URL(value);
+    return (
+      parsed.protocol.startsWith('postgres') &&
+      parsed.hostname === '127.0.0.1' &&
+      parsed.port === '5432' &&
+      parsed.username === 'invalid' &&
+      parsed.password === 'invalid' &&
+      parsed.pathname === '/invalid'
+    );
+  } catch {
+    return false;
+  }
+}
+
 // ========== PATHS ==========
 
 export const SERVER_DIR = path.join(__dirname, '..');
@@ -38,7 +55,9 @@ export const PUBLIC_DIR = path.join(ROOT_DIR, 'public');
 // ========== DATABASE ==========
 // Set DATABASE_URL to enable Postgres. Without it, falls back to JSON file storage.
 
-export const DATABASE_URL = process.env.DATABASE_URL || null;
+const rawDatabaseUrl = process.env.DATABASE_URL || null;
+export const IGNORING_PLACEHOLDER_DATABASE_URL = !IS_PRODUCTION && isLocalPlaceholderDatabaseUrl(rawDatabaseUrl);
+export const DATABASE_URL = IGNORING_PLACEHOLDER_DATABASE_URL ? null : rawDatabaseUrl;
 export const USE_POSTGRES = !!DATABASE_URL;
 
 // ========== COPPA ==========

@@ -71,6 +71,8 @@ export const VALIDATION_RULES = {
       /AmbientLight|DirectionalLight/,
       /tower|enemy|wave/i,
       /GLTFLoader|\/assets\/models\//,
+      /tile(?:-bump)?\.glb|tile-straight\.glb|tile-corner-round\.glb/,
+      /selection-[ab]\.glb|tower-round-base\.glb|tower-square-bottom-a\.glb/,
     ],
     warnings: [{ pattern: /gold|lives|projectile|path/i, label: 'missing tower defense HUD or combat loop' }],
   },

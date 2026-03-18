@@ -40,6 +40,7 @@ import { readUser } from '../services/storage.js';
 import { recordViolation } from '../services/discipline.js';
 import { checkAbuse } from '../services/abuseDetection.js';
 import { ageGate } from '../middleware/ageGate.js';
+import { buildStarterFallback } from '../services/starterFallback.js';
 
 export default function createGenerateRouter(sessions) {
   const router = Router();
@@ -78,15 +79,7 @@ export default function createGenerateRouter(sessions) {
         `🎮 Generate request: "${(message || '').slice(0, 80)}" | mode: ${mode} | model-hint: ${lastModelUsed || 'none'} | gameConfig: ${gameConfig ? gameConfig.gameType : 'none'} | hasCode: ${!!currentCode} | historyLen: ${conversationHistory.length}`,
       );
 
-      if (!isClaudeAvailable() && !isGrokAvailable() && !isOpenAIAvailable()) {
-        return res.status(503).json({
-          message:
-            'AI features are not available — no AI API keys are configured. Please set ANTHROPIC_API_KEY in .env.',
-          code: null,
-          modelUsed: null,
-          isCacheHit: false,
-        });
-      }
+      const aiAvailable = isClaudeAvailable() || isGrokAvailable() || isOpenAIAvailable();
 
       // IP-level abuse detection for unauthenticated burst generation
       const genIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || '';
@@ -296,19 +289,27 @@ export default function createGenerateRouter(sessions) {
         };
       }
 
-      // ===== CALL THE DUAL-MODEL HANDLER =====
-      const result = await generateOrIterateGame({
-        prompt: message,
-        currentCode,
-        mode,
-        conversationHistory: cleanedHistory,
-        gameConfig,
-        image,
-        userId,
-        lastModelUsed,
-        debugAttempt,
-        onStatus,
-      });
+      // ===== GENERATION / STARTER FALLBACK =====
+      const result = aiAvailable
+        ? await generateOrIterateGame({
+            prompt: message,
+            currentCode,
+            mode,
+            conversationHistory: cleanedHistory,
+            gameConfig,
+            image,
+            userId,
+            lastModelUsed,
+            debugAttempt,
+            onStatus,
+          })
+        : await buildStarterFallback({
+            prompt: message,
+            currentCode,
+            gameConfig,
+            genre: gameGenre,
+            isNewGame,
+          });
 
       // Increment usage
       await incrementUsage(userId, 'generate');

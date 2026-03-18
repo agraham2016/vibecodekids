@@ -123,6 +123,21 @@ export const api = {
       body: JSON.stringify(body),
     });
 
+    const contentType = response.headers.get('content-type') || '';
+    if (contentType.includes('application/json')) {
+      const data = (await response.json()) as Record<string, unknown>;
+      if (!response.ok) {
+        throw new ApiError(
+          (typeof data.error === 'string' && data.error) ||
+            (typeof data.message === 'string' && data.message) ||
+            `Request failed (${response.status})`,
+          response.status,
+          data,
+        );
+      }
+      return data as T;
+    }
+
     if (!response.ok && !response.body) {
       throw new ApiError(response.statusText, response.status);
     }

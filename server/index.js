@@ -25,6 +25,7 @@ import {
   DATA_DIR,
   USE_POSTGRES,
   IS_PRODUCTION,
+  IGNORING_PLACEHOLDER_DATABASE_URL,
   ANTHROPIC_API_KEY,
   AI_MODEL,
   XAI_API_KEY,
@@ -78,6 +79,9 @@ const startTime = Date.now();
 // ========== PRODUCTION SAFETY WARNINGS ==========
 if (IS_PRODUCTION && !USE_POSTGRES) {
   log.warn('DATABASE_URL is not set — using file-based storage. Set DATABASE_URL for production use.');
+}
+if (IGNORING_PLACEHOLDER_DATABASE_URL) {
+  log.warn('Ignoring placeholder DATABASE_URL in local dev and falling back to file storage.');
 }
 if (!ANTHROPIC_API_KEY) {
   log.warn('ANTHROPIC_API_KEY is not set — Claude AI features will not work until configured.');

@@ -77,6 +77,36 @@
   ];
   var pathSet = {};
   path.forEach(function (p) { pathSet[p[0] + ',' + p[1]] = true; });
+  var buildSpotSet = {
+    '0,1': true,
+    '0,3': true,
+    '2,1': true,
+    '2,4': true,
+    '4,2': true,
+    '4,4': true,
+    '6,3': true,
+    '6,5': true
+  };
+  var terrainFeatureMap = {
+    '0,0': { url: '/assets/models/kenney-towerdefensekit/tile-tree-double.glb', rotationY: 0 },
+    '1,0': { url: '/assets/models/kenney-towerdefensekit/tile-tree.glb', rotationY: Math.PI / 2 },
+    '2,0': { url: '/assets/models/kenney-towerdefensekit/tile-dirt.glb', rotationY: 0 },
+    '3,0': { url: '/assets/models/kenney-towerdefensekit/tile-hill.glb', rotationY: Math.PI / 2 },
+    '4,0': { url: '/assets/models/kenney-towerdefensekit/tile-dirt.glb', rotationY: Math.PI },
+    '5,0': { url: '/assets/models/kenney-towerdefensekit/tile-rock.glb', rotationY: 0 },
+    '6,0': { url: '/assets/models/kenney-towerdefensekit/tile-tree.glb', rotationY: -Math.PI / 2 },
+    '7,0': { url: '/assets/models/kenney-towerdefensekit/tile-tree-double.glb', rotationY: Math.PI },
+    '1,1': { url: '/assets/models/kenney-towerdefensekit/tile-rock.glb', rotationY: Math.PI / 2 },
+    '3,1': { url: '/assets/models/kenney-towerdefensekit/tile-dirt.glb', rotationY: 0 },
+    '4,1': { url: '/assets/models/kenney-towerdefensekit/tile-tree.glb', rotationY: 0 },
+    '6,1': { url: '/assets/models/kenney-towerdefensekit/tile-rock.glb', rotationY: Math.PI / 2 },
+    '7,1': { url: '/assets/models/kenney-towerdefensekit/tile-tree.glb', rotationY: 0 },
+    '1,4': { url: '/assets/models/kenney-towerdefensekit/tile-rock.glb', rotationY: 0 },
+    '3,5': { url: '/assets/models/kenney-towerdefensekit/tile-dirt.glb', rotationY: 0 },
+    '4,5': { url: '/assets/models/kenney-towerdefensekit/tile-hill.glb', rotationY: Math.PI },
+    '5,5': { url: '/assets/models/kenney-towerdefensekit/tile-tree.glb', rotationY: Math.PI / 2 },
+    '7,5': { url: '/assets/models/kenney-towerdefensekit/tile-crystal.glb', rotationY: 0 }
+  };
 
   var state = {
     gold: START_GOLD, lives: START_LIVES, wave: 0,
@@ -86,18 +116,47 @@
 
   var tileGroup, raycaster, mouse, tileMeshes = [];
   var loader = new THREE.GLTFLoader();
+  var modelCache = {};
+  var pendingModelLoads = {};
+
+  function cloneModel(model) {
+    return model.clone(true);
+  }
 
   function loadModel(url, onLoad, fallback) {
+    if (modelCache[url]) {
+      onLoad(cloneModel(modelCache[url]));
+      return;
+    }
+    if (pendingModelLoads[url]) {
+      pendingModelLoads[url].push({ onLoad: onLoad, fallback: fallback });
+      return;
+    }
+    pendingModelLoads[url] = [{ onLoad: onLoad, fallback: fallback }];
     loader.load(url, function (gltf) {
-      onLoad(gltf.scene);
-    }, undefined, function () {
-      if (fallback) fallback();
+      modelCache[url] = gltf.scene;
+      var waiting = pendingModelLoads[url] || [];
+      delete pendingModelLoads[url];
+      waiting.forEach(function (entry) {
+        try {
+          entry.onLoad(cloneModel(modelCache[url]));
+        } catch (err) {
+          if (entry.fallback) entry.fallback(err);
+        }
+      });
+    }, undefined, function (err) {
+      var waiting = pendingModelLoads[url] || [];
+      delete pendingModelLoads[url];
+      waiting.forEach(function (entry) {
+        if (entry.fallback) entry.fallback(err);
+      });
     });
   }
 
   function init() {
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0x1a1a2e);
+    scene.fog = new THREE.Fog(0x1a1a2e, 18, 34);
     clock = new THREE.Clock();
 
     camera = new THREE.PerspectiveCamera(50, innerWidth / innerHeight, 0.1, 200);
@@ -113,11 +172,16 @@
     var dir = new THREE.DirectionalLight(0xffffff, 0.8);
     dir.position.set(10, 20, 10);
     scene.add(dir);
+    var fill = new THREE.DirectionalLight(0x8ec5ff, 0.25);
+    fill.position.set(-8, 10, 14);
+    scene.add(fill);
 
     raycaster = new THREE.Raycaster();
     mouse = new THREE.Vector2();
 
+    addBoardBase();
     buildGrid();
+    addBoardScenery();
     updateHUD();
 
     renderer.domElement.addEventListener('pointerdown', onTap);
@@ -126,6 +190,128 @@
     window.addEventListener('resize', onResize);
 
     animate();
+    showToast('Tap the glowing tower pads to build your defense!');
+  }
+
+  function getTileCenter(col, row) {
+    return { x: col * TILE + 1, z: row * TILE + 1 };
+  }
+
+  function getPathIndex(col, row) {
+    for (var i = 0; i < path.length; i++) {
+      if (path[i][0] === col && path[i][1] === row) return i;
+    }
+    return -1;
+  }
+
+  function getPathTileDescriptor(col, row) {
+    var idx = getPathIndex(col, row);
+    if (idx === -1) return null;
+    var prev = idx > 0 ? path[idx - 1] : null;
+    var next = idx < path.length - 1 ? path[idx + 1] : null;
+
+    if (!prev && next) {
+      return {
+        url: '/assets/models/kenney-towerdefensekit/tile-spawn.glb',
+        rotationY: next[0] === col ? 0 : Math.PI / 2,
+      };
+    }
+    if (!next && prev) {
+      return {
+        url: '/assets/models/kenney-towerdefensekit/tile-end.glb',
+        rotationY: prev[0] === col ? 0 : Math.PI / 2,
+      };
+    }
+
+    if (!prev || !next) {
+      return {
+        url: '/assets/models/kenney-towerdefensekit/tile-straight.glb',
+        rotationY: 0,
+      };
+    }
+
+    var dirs = {};
+    dirs[(prev[0] - col) + ',' + (prev[1] - row)] = true;
+    dirs[(next[0] - col) + ',' + (next[1] - row)] = true;
+
+    if ((dirs['-1,0'] && dirs['1,0']) || (dirs['0,-1'] && dirs['0,1'])) {
+      return {
+        url: '/assets/models/kenney-towerdefensekit/tile-straight.glb',
+        rotationY: dirs['0,-1'] ? Math.PI / 2 : 0,
+      };
+    }
+
+    if (dirs['1,0'] && dirs['0,1']) {
+      return { url: '/assets/models/kenney-towerdefensekit/tile-corner-round.glb', rotationY: 0 };
+    }
+    if (dirs['0,1'] && dirs['-1,0']) {
+      return { url: '/assets/models/kenney-towerdefensekit/tile-corner-round.glb', rotationY: Math.PI / 2 };
+    }
+    if (dirs['-1,0'] && dirs['0,-1']) {
+      return { url: '/assets/models/kenney-towerdefensekit/tile-corner-round.glb', rotationY: Math.PI };
+    }
+    return { url: '/assets/models/kenney-towerdefensekit/tile-corner-round.glb', rotationY: -Math.PI / 2 };
+  }
+
+  function addBoardDecoration(url, x, z, scale, rotationY) {
+    loadModel(url, function (model) {
+      model.position.set(x, 0.15, z);
+      model.rotation.y = rotationY || 0;
+      model.scale.set(scale, scale, scale);
+      scene.add(model);
+    }, null);
+  }
+
+  function addBoardBase() {
+    var boardBase = new THREE.Mesh(
+      new THREE.BoxGeometry(COLS * TILE + 2.2, 1.1, ROWS * TILE + 2.2),
+      new THREE.MeshStandardMaterial({ color: 0x2d3b24, roughness: 1 })
+    );
+    boardBase.position.set(COLS, -0.58, ROWS);
+    scene.add(boardBase);
+
+    var outerGround = new THREE.Mesh(
+      new THREE.CircleGeometry(15, 48),
+      new THREE.MeshStandardMaterial({ color: 0x1c2719, roughness: 1 })
+    );
+    outerGround.rotation.x = -Math.PI / 2;
+    outerGround.position.set(COLS, -1.14, ROWS);
+    scene.add(outerGround);
+  }
+
+  function addBoardScenery() {
+    var edgeDecor = [
+      ['/assets/models/kenney-towerdefensekit/detail-tree-large.glb', -1.3, -0.9, 1.0, 0.3],
+      ['/assets/models/kenney-towerdefensekit/detail-tree-large.glb', 17.1, -0.8, 1.05, -0.6],
+      ['/assets/models/kenney-towerdefensekit/detail-tree-large.glb', -1.0, 12.8, 1.0, 0.8],
+      ['/assets/models/kenney-towerdefensekit/detail-tree-large.glb', 17.0, 12.7, 1.08, -0.4],
+      ['/assets/models/kenney-towerdefensekit/detail-rocks-large.glb', 8.0, -1.2, 1.1, 0],
+      ['/assets/models/kenney-towerdefensekit/detail-rocks-large.glb', 8.2, 13.3, 1.2, 1.6],
+      ['/assets/models/kenney-towerdefensekit/detail-crystal-large.glb', 3.4, -0.7, 0.95, 0.2],
+      ['/assets/models/kenney-towerdefensekit/detail-crystal-large.glb', 13.8, 12.9, 0.9, -0.3]
+    ];
+    for (var i = 0; i < edgeDecor.length; i++) {
+      addBoardDecoration(edgeDecor[i][0], edgeDecor[i][1], edgeDecor[i][2], edgeDecor[i][3], edgeDecor[i][4]);
+    }
+  }
+
+  function isBuildSpot(col, row) {
+    return !!buildSpotSet[col + ',' + row];
+  }
+
+  function getTerrainTileDescriptor(col, row) {
+    var feature = terrainFeatureMap[col + ',' + row];
+    if (feature) return feature;
+    if (isBuildSpot(col, row)) {
+      return {
+        url: '/assets/models/kenney-towerdefensekit/tile-dirt.glb',
+        rotationY: ((col + row) % 4) * (Math.PI / 2)
+      };
+    }
+    return {
+      url: '/assets/models/kenney-towerdefensekit/tile.glb',
+      rotationY: ((col * 2 + row) % 4) * (Math.PI / 2)
+    };
   }
 
   function buildGrid() {
@@ -134,52 +320,58 @@
     for (var r = 0; r < ROWS; r++) {
       for (var c = 0; c < COLS; c++) {
         var isPath = pathSet[c + ',' + r];
-        var color = isPath ? 0x475569 : 0x334155;
+        var canBuild = !isPath && isBuildSpot(c, r);
+        var terrainTile = getTerrainTileDescriptor(c, r);
         var geo = new THREE.BoxGeometry(TILE - 0.1, 0.3, TILE - 0.1);
-        var mat = new THREE.MeshStandardMaterial({ color: color });
+        var mat = new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.01 });
         var mesh = new THREE.Mesh(geo, mat);
         mesh.position.set(c * TILE + 1, 0, r * TILE + 1);
-        mesh.userData = { col: c, row: r, isPath: isPath, hasTower: false };
+        mesh.userData = { col: c, row: r, isPath: isPath, canBuild: canBuild, hasTower: false, buildMarker: null };
         tileGroup.add(mesh);
         tileMeshes.push(mesh);
+        var center = getTileCenter(c, r);
 
-        if (isPath) {
-          (function (x, z) {
-            loadModel('/assets/models/kenney-towerdefensekit/tile-straight.glb', function (model) {
+        (function (x, z, pathTile, terrainTileInfo) {
+          var baseUrl = pathTile ? '/assets/models/kenney-towerdefensekit/tile-bump.glb' : terrainTileInfo.url;
+          var baseRotation = pathTile ? 0 : (terrainTileInfo.rotationY || 0);
+          loadModel(baseUrl, function (model) {
+            model.scale.set(1, 1, 1);
+            model.position.set(x, 0.15, z);
+            model.rotation.y = baseRotation;
+            scene.add(model);
+          }, null);
+
+          if (pathTile) {
+            loadModel(pathTile.url, function (model) {
               model.scale.set(1, 1, 1);
               model.position.set(x, 0.15, z);
+              model.rotation.y = pathTile.rotationY || 0;
               scene.add(model);
             }, null);
-          })(c * TILE + 1, r * TILE + 1);
+          }
+        })(center.x, center.z, isPath ? getPathTileDescriptor(c, r) : null, terrainTile);
+
+        if (canBuild) {
+          (function (tile, x, z) {
+            loadModel('/assets/models/kenney-towerdefensekit/selection-a.glb', function (model) {
+              model.scale.set(0.74, 0.74, 0.74);
+              model.position.set(x, 0.16, z);
+              model.rotation.y = Math.PI / 4;
+              scene.add(model);
+              tile.userData.buildMarker = model;
+            }, function () {
+              var marker = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.52, 0.52, 0.06, 18),
+                new THREE.MeshStandardMaterial({ color: 0x22d3ee, transparent: true, opacity: 0.45 })
+              );
+              marker.position.set(x, 0.18, z);
+              scene.add(marker);
+              tile.userData.buildMarker = marker;
+            });
+          })(mesh, center.x, center.z);
         }
       }
     }
-
-    loadModel('/assets/models/kenney-towerdefensekit/tile-spawn.glb', function (model) {
-      model.scale.set(1, 1, 1);
-      model.position.set(path[0][0] * TILE + 1, 0.15, path[0][1] * TILE + 1);
-      scene.add(model);
-    }, function () {
-      var spawnMark = new THREE.Mesh(
-        new THREE.SphereGeometry(0.4, 12, 12),
-        new THREE.MeshStandardMaterial({ color: 0xef4444 })
-      );
-      spawnMark.position.set(path[0][0] * TILE + 1, 0.6, path[0][1] * TILE + 1);
-      scene.add(spawnMark);
-    });
-
-    loadModel('/assets/models/kenney-towerdefensekit/tile-end.glb', function (model) {
-      model.scale.set(1, 1, 1);
-      model.position.set(path[path.length - 1][0] * TILE + 1, 0.15, path[path.length - 1][1] * TILE + 1);
-      scene.add(model);
-    }, function () {
-      var baseMark = new THREE.Mesh(
-        new THREE.BoxGeometry(1.2, 1.2, 1.2),
-        new THREE.MeshStandardMaterial({ color: 0x3b82f6 })
-      );
-      baseMark.position.set(path[path.length - 1][0] * TILE + 1, 0.8, path[path.length - 1][1] * TILE + 1);
-      scene.add(baseMark);
-    });
   }
 
   function adjacentToPath(col, row) {
@@ -201,7 +393,7 @@
     var tile = hits[0].object;
     var d = tile.userData;
     if (d.isPath || d.hasTower) return;
-    if (!adjacentToPath(d.col, d.row)) return;
+    if (!d.canBuild) return;
     if (state.towerCount >= MAX_TOWERS) { showToast('Max towers reached!'); return; }
     if (state.gold < TOWER_COST) { showToast('Not enough gold!'); return; }
     placeTower(d.col, d.row, tile);
@@ -226,6 +418,10 @@
     state.gold -= TOWER_COST;
     state.towerCount++;
     tile.userData.hasTower = true;
+    if (tile.userData.buildMarker) {
+      scene.remove(tile.userData.buildMarker);
+      tile.userData.buildMarker = null;
+    }
     var group = new THREE.Group();
     group.position.set(col * TILE + 1, 0.15, row * TILE + 1);
     scene.add(group);
@@ -405,7 +601,8 @@
       '<b>Wave:</b> ' + state.wave + '/' + MAX_WAVES +
       '<br><b>Gold:</b> ' + state.gold +
       '<br><b>Lives:</b> ' + state.lives +
-      '<br><b>Towers:</b> ' + state.towerCount + '/' + MAX_TOWERS;
+      '<br><b>Towers:</b> ' + state.towerCount + '/' + MAX_TOWERS +
+      '<br><span style="font-size:12px; opacity:0.8">Build on the glowing pads.</span>';
   }
 
   function onResize() {

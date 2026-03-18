@@ -48,7 +48,9 @@ import {
   getPatternHint,
   storePatternSuccess,
 } from './responseCache.js';
-import { DEBUG_MAX_CLAUDE_ATTEMPTS } from '../config/index.js';
+import { promises as fs } from 'fs';
+import path from 'path';
+import { DEBUG_MAX_CLAUDE_ATTEMPTS, ROOT_DIR } from '../config/index.js';
 import { resolveReferences } from './referenceResolver.js';
 import { detectGameGenre } from '../prompts/index.js';
 import { injectSprites } from './spriteInjector.js';
@@ -179,6 +181,19 @@ export async function generateOrIterateGame({
   debugAttempt = 0,
   onStatus = null,
 }) {
+  const shouldRebuildFromStarter = (() => {
+    if (!currentCode || currentCode.length < 400) return false;
+    const text = String(prompt || '').toLowerCase();
+    const looksLikeFresh3DRequest =
+      /\b(make|build|create)\b/.test(text) &&
+      /\b3d\b/.test(text) &&
+      !/\b(add|change|fix|update|edit|improve|more|less|faster|slower|harder|easier)\b/.test(text);
+    return looksLikeFresh3DRequest;
+  })();
+  const effectiveCurrentCode = shouldRebuildFromStarter ? null : currentCode;
+  if (shouldRebuildFromStarter) {
+    console.log('🧱 Explicit 3D rebuild detected — ignoring current draft and rebuilding from starter.');
+  }
   const emitStatus = (stage, message) => {
     if (typeof onStatus === 'function') onStatus(stage, message);
   };
@@ -214,14 +229,14 @@ export async function generateOrIterateGame({
     prompt,
     genre: detectedGenre,
     gameConfig,
-    currentCode,
+    currentCode: effectiveCurrentCode,
   });
   console.log(
-    `🎯 Mode: "${effectiveMode}" → Model: ${targetModel} | hasCode: ${!!currentCode} | history: ${conversationHistory.length}`,
+    `🎯 Mode: "${effectiveMode}" → Model: ${targetModel} | hasCode: ${!!effectiveCurrentCode} | history: ${conversationHistory.length}`,
   );
 
   // ===== CACHE CHECK =====
-  const cacheKey = generateCacheKey(prompt, currentCode, targetModel, effectiveMode);
+  const cacheKey = generateCacheKey(prompt, effectiveCurrentCode, targetModel, effectiveMode);
   const cached = getCachedResponse(cacheKey);
   if (cached) {
     return {
@@ -237,9 +252,45 @@ export async function generateOrIterateGame({
         validationViolationsCount: 0,
         repairAttempted: false,
         repairSucceeded: false,
-        isNewGame: !currentCode,
+        isNewGame: !effectiveCurrentCode,
       },
     };
+  }
+
+  // ===== SERVE CURATED 3D TEMPLATES DIRECTLY =====
+  // For new 3D games, the AI consistently fails to reproduce curated board layouts,
+  // so we serve the starter template directly and let the AI customize on iteration.
+  const isEffectivelyNew =
+    !effectiveCurrentCode ||
+    (typeof effectiveCurrentCode === 'string' &&
+      (effectiveCurrentCode.includes('Tell me what you want to create') ||
+        effectiveCurrentCode.includes('Your game will appear here')));
+
+  if (isEffectivelyNew && cachedEngineProfile.engineId === 'vibe-3d' && cachedEngineProfile.templateFile) {
+    const templatePath = path.join(ROOT_DIR, 'server', 'templates', cachedEngineProfile.templateFile);
+    try {
+      const templateCode = await fs.readFile(templatePath, 'utf-8');
+      console.log(`📋 Serving curated 3D template directly: ${cachedEngineProfile.templateFile}`);
+      return {
+        response: `Here's your ${cachedEngineProfile.label || '3D'} game! 🎮 Try it out, then tell me what to change — tower types, enemy speed, colors, more waves — and I'll customize it!`,
+        code: templateCode,
+        modelUsed: null,
+        isCacheHit: false,
+        wasTruncated: false,
+        referenceSources: [`starter:${cachedEngineProfile.templateFile}`],
+        engineTelemetry: {
+          engineProfile: cachedEngineProfile,
+          validationSafe: true,
+          validationWarningsCount: 0,
+          validationViolationsCount: 0,
+          repairAttempted: false,
+          repairSucceeded: false,
+          isNewGame: true,
+        },
+      };
+    } catch (err) {
+      console.warn(`⚠️ Failed to load 3D template ${cachedEngineProfile.templateFile}: ${err.message}`);
+    }
   }
 
   // ===== ROUTE TO THE RIGHT HANDLER =====
@@ -247,13 +298,20 @@ export async function generateOrIterateGame({
 
   switch (effectiveMode) {
     case 'critic':
-      result = await handleCriticMode({ prompt, currentCode, conversationHistory, gameConfig, image, userId });
+      result = await handleCriticMode({
+        prompt,
+        currentCode: effectiveCurrentCode,
+        conversationHistory,
+        gameConfig,
+        image,
+        userId,
+      });
       break;
 
     case 'debug':
       result = await handleDebugMode({
         prompt,
-        currentCode,
+        currentCode: effectiveCurrentCode,
         conversationHistory,
         gameConfig,
         image,
@@ -265,7 +323,7 @@ export async function generateOrIterateGame({
     case 'ask-other-buddy':
       result = await handleAskOtherBuddy({
         prompt,
-        currentCode,
+        currentCode: effectiveCurrentCode,
         conversationHistory,
         gameConfig,
         image,
@@ -278,7 +336,7 @@ export async function generateOrIterateGame({
       // Standard single-model call (claude, grok, creative, default)
       result = await handleSingleModel({
         prompt,
-        currentCode,
+        currentCode: effectiveCurrentCode,
         conversationHistory,
         gameConfig,
         image,

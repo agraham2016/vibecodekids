@@ -11,9 +11,17 @@ import { detectGameGenre } from '../prompts/index.js';
 import { filterContent } from '../middleware/contentFilter.js';
 import { scanPII } from '../middleware/piiScanner.js';
 import { filterOutputText, filterOutputCode } from '../middleware/outputFilter.js';
-import { getTemplateCacheKey, getCachedTemplate, cacheTemplate } from '../services/ai.js';
+import {
+  getTemplateCacheKey,
+  getCachedTemplate,
+  cacheTemplate,
+  isClaudeAvailable,
+  isGrokAvailable,
+  isOpenAIAvailable,
+} from '../services/ai.js';
 import { generateOrIterateGame } from '../services/gameHandler.js';
 import { logDemoEvent } from '../services/demoEvents.js';
+import { buildStarterFallback } from '../services/starterFallback.js';
 
 const router = Router();
 
@@ -120,18 +128,26 @@ router.post('/generate', async (req, res) => {
       });
     }
 
-    // Full AI generation (using PII-cleaned prompt)
-    const result = await generateOrIterateGame({
-      prompt: cleanMessage,
-      currentCode: null,
-      mode: 'default',
-      conversationHistory: [],
-      gameConfig: null,
-      image: null,
-      userId: null,
-      lastModelUsed: null,
-      debugAttempt: 0,
-    });
+    const aiAvailable = isClaudeAvailable() || isGrokAvailable() || isOpenAIAvailable();
+    const result = aiAvailable
+      ? await generateOrIterateGame({
+          prompt: cleanMessage,
+          currentCode: null,
+          mode: 'default',
+          conversationHistory: [],
+          gameConfig: null,
+          image: null,
+          userId: null,
+          lastModelUsed: null,
+          debugAttempt: 0,
+        })
+      : await buildStarterFallback({
+          prompt: cleanMessage,
+          currentCode: null,
+          gameConfig: null,
+          genre: _gameGenre,
+          isNewGame: true,
+        });
 
     // Cache for future hits
     if (result.code && !result.wasTruncated && cacheKey) {

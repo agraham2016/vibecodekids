@@ -1583,6 +1583,9 @@ export function formatModelsForPrompt(genre) {
     'Loading real GLB models is what makes the game look 3D. Plain geometry makes it look flat and 2D. Use the loadModel() helper pattern from the template.',
   );
   lines.push(
+    'Do not stop at characters or towers only. Use GLB terrain, path, build-pad, and scenery models too so the whole board looks 3D.',
+  );
+  lines.push(
     'If no GLB paths are listed below, DO NOT invent /assets/models/*.glb paths. Build polished geometry-based art instead.',
   );
   lines.push('Always add lights (AmbientLight + DirectionalLight) so meshes are visible.');
