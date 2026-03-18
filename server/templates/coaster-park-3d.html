@@ -74,6 +74,10 @@
       var scene, camera, renderer, clock;
       var car, trackCurve, trackPoints;
       var toastTimer = 0;
+      var gltfLoader = new THREE.GLTFLoader();
+      function loadModel(url, onLoad, fallback) {
+        gltfLoader.load(url, function (gltf) { onLoad(gltf.scene); }, undefined, function () { if (fallback) fallback(); });
+      }
 
       var state = { rides: 0, riding: false, t: 0, speed: 0.12, topSpeed: 0, excitement: 0, done: false };
 
@@ -189,7 +193,6 @@
         );
         body.castShadow = true;
         group.add(body);
-
         var seat = new THREE.Mesh(
           new THREE.BoxGeometry(1.0, 0.6, 1.0),
           new THREE.MeshLambertMaterial({ color: 0xfbbf24 })
@@ -200,25 +203,39 @@
         car = group;
         car.position.copy(trackCurve.getPointAt(0));
         scene.add(car);
+
+        loadModel('/assets/models/kenney-coasterkit/coaster-train-front.glb', function (model) {
+          model.scale.set(1, 1, 1);
+          while (car.children.length) car.remove(car.children[0]);
+          car.add(model);
+        }, null);
       }
 
       function buildDecorations() {
-        var treeMat = new THREE.MeshLambertMaterial({ color: 0x22c55e });
-        var trunkMat = new THREE.MeshLambertMaterial({ color: 0x92400e });
         var treePositions = [
           [30, 0, 30], [-30, 0, 25], [25, 0, -30], [-28, 0, -28],
           [35, 0, 0], [-35, 0, 5], [0, 0, -35], [15, 0, 32]
         ];
         treePositions.forEach(function (p) {
-          var trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.5, 3, 6), trunkMat);
-          trunk.position.set(p[0], 1.5, p[2]);
-          trunk.castShadow = true;
-          scene.add(trunk);
-          var leaves = new THREE.Mesh(new THREE.SphereGeometry(2, 6, 5), treeMat);
-          leaves.position.set(p[0], 4.5, p[2]);
-          leaves.castShadow = true;
-          scene.add(leaves);
+          loadModel('/assets/models/kenney-coasterkit/tree.glb', function (model) {
+            model.scale.set(1.5, 1.5, 1.5);
+            model.position.set(p[0], 0, p[2]);
+            scene.add(model);
+          }, function () {
+            var trunkMat = new THREE.MeshLambertMaterial({ color: 0x92400e });
+            var treeMat = new THREE.MeshLambertMaterial({ color: 0x22c55e });
+            var trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.5, 3, 6), trunkMat);
+            trunk.position.set(p[0], 1.5, p[2]); trunk.castShadow = true; scene.add(trunk);
+            var leaves = new THREE.Mesh(new THREE.SphereGeometry(2, 6, 5), treeMat);
+            leaves.position.set(p[0], 4.5, p[2]); leaves.castShadow = true; scene.add(leaves);
+          });
         });
+
+        loadModel('/assets/models/kenney-coasterkit/park-entrance.glb', function (model) {
+          model.scale.set(2, 2, 2);
+          model.position.set(0, 0, 30);
+          scene.add(model);
+        }, null);
 
         var fenceMat = new THREE.MeshLambertMaterial({ color: 0xfef3c7 });
         for (var i = 0; i < 20; i++) {

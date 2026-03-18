@@ -1576,7 +1576,12 @@ export function formatModelsForPrompt(genre) {
   lines.push(
     'Three.js helpers are pre-loaded. Always render a working scene immediately with camera, lights, and gameplay first.',
   );
-  lines.push('If working local GLB paths are listed below, you may load them with GLTFLoader and an error callback.');
+  lines.push(
+    'IMPORTANT: If GLB model paths are listed below, you MUST use them with GLTFLoader instead of plain BoxGeometry/SphereGeometry.',
+  );
+  lines.push(
+    'Loading real GLB models is what makes the game look 3D. Plain geometry makes it look flat and 2D. Use the loadModel() helper pattern from the template.',
+  );
   lines.push(
     'If no GLB paths are listed below, DO NOT invent /assets/models/*.glb paths. Build polished geometry-based art instead.',
   );

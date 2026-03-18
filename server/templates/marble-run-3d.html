@@ -44,6 +44,7 @@
     #drop-btn:active { transform: translateX(-50%) scale(0.95); }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 </head>
 <body>
   <div id="game-container"></div>
@@ -70,6 +71,10 @@
       var marble, marbleBody;
       var trackGroup;
       var finishY = 0;
+      var loader = new THREE.GLTFLoader();
+      function loadModel(url, onLoad, fallback) {
+        loader.load(url, function (gltf) { onLoad(gltf.scene); }, undefined, function () { if (fallback) fallback(); });
+      }
 
       var state = { level: 1, running: false, time: 0, bestTimes: [Infinity, Infinity, Infinity], finished: false };
       var vel = { x: 0, y: 0, z: 0 };
@@ -95,12 +100,20 @@
         sun.castShadow = true;
         scene.add(sun);
 
-        marble = new THREE.Mesh(
+        marble = new THREE.Group();
+        var marbleFallback = new THREE.Mesh(
           new THREE.SphereGeometry(0.35, 24, 24),
           new THREE.MeshStandardMaterial({ color: 0x3b82f6, metalness: 0.3, roughness: 0.2 })
         );
-        marble.castShadow = true;
+        marbleFallback.castShadow = true;
+        marble.add(marbleFallback);
         scene.add(marble);
+
+        loadModel('/assets/models/kenney-marblekit/marble-high.glb', function (model) {
+          model.scale.set(1, 1, 1);
+          marble.remove(marbleFallback);
+          marble.add(model);
+        }, null);
 
         buildTrack(state.level);
         resetMarble();

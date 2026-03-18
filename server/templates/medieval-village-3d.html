@@ -86,6 +86,10 @@
 
   var state = { gold: 500, selected: 'house', buildings: [], villagers: [], counts: { house:0, market:0, tower:0, farm:0 }, grid: {}, won: false };
   var toastTimer = 0;
+  var gltfLoader = new THREE.GLTFLoader();
+  function loadModel(url, onLoad, fallback) {
+    gltfLoader.load(url, function (gltf) { onLoad(gltf.scene); }, undefined, function () { if (fallback) fallback(); });
+  }
 
   function toast(msg) {
     toastEl.textContent = msg; toastEl.classList.add('visible');
@@ -169,7 +173,14 @@
     return new THREE.Vector3(-HALF + c * TILE + TILE / 2, 0, -HALF + r * TILE + TILE / 2);
   }
 
-  function createBuilding(type) {
+  var BUILDING_MODELS = {
+    house: '/assets/models/kenney-fantasytownkit/wall-door.glb',
+    market: '/assets/models/kenney-fantasytownkit/stall.glb',
+    tower: '/assets/models/kenney-fantasytownkit/windmill.glb',
+    farm: '/assets/models/kenney-fantasytownkit/fence-gate.glb'
+  };
+
+  function createFallbackBuilding(type) {
     var group = new THREE.Group();
     var info = TYPES[type];
     if (type === 'house') {
@@ -192,6 +203,22 @@
       dirt.position.y = 0.1; group.add(dirt);
       var crops = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 1.4), new THREE.MeshStandardMaterial({ color: 0x22c55e, side: THREE.DoubleSide }));
       crops.rotation.x = -Math.PI / 2; crops.position.y = 0.21; group.add(crops);
+    }
+    return group;
+  }
+
+  function createBuilding(type) {
+    var group = new THREE.Group();
+    var fallback = createFallbackBuilding(type);
+    group.add(fallback);
+
+    var modelUrl = BUILDING_MODELS[type];
+    if (modelUrl) {
+      loadModel(modelUrl, function (model) {
+        model.scale.set(1, 1, 1);
+        group.remove(fallback);
+        group.add(model);
+      }, null);
     }
     return group;
   }

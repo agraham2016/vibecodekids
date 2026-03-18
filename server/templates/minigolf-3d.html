@@ -40,6 +40,7 @@
     }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 </head>
 <body>
   <div id="game-container"></div>
@@ -90,6 +91,11 @@
     sun.shadow.mapSize.set(1024, 1024);
     scene.add(sun);
 
+    var loader = new THREE.GLTFLoader();
+    function loadModel(url, onLoad, fallback) {
+      loader.load(url, function (gltf) { onLoad(gltf.scene); }, undefined, function () { if (fallback) fallback(); });
+    }
+
     var greenMat = new THREE.MeshStandardMaterial({ color: 0x16a34a });
     var wallMat = new THREE.MeshStandardMaterial({ color: 0x78350f });
     var holeMat = new THREE.MeshStandardMaterial({ color: 0x111111 });
@@ -100,9 +106,17 @@
     var courseGroup = new THREE.Group();
     scene.add(courseGroup);
 
-    var ball = new THREE.Mesh(new THREE.SphereGeometry(BALL_R, 16, 16), ballMat);
-    ball.castShadow = true;
+    var ball = new THREE.Group();
+    var ballFallback = new THREE.Mesh(new THREE.SphereGeometry(BALL_R, 16, 16), ballMat);
+    ballFallback.castShadow = true;
+    ball.add(ballFallback);
     scene.add(ball);
+
+    loadModel('/assets/models/kenney-minigolfkit/ball-blue.glb', function (model) {
+      model.scale.set(1, 1, 1);
+      ball.remove(ballFallback);
+      ball.add(model);
+    }, null);
 
     var aimLine = new THREE.Line(
       new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]),
@@ -147,12 +161,19 @@
       courseGroup.add(holeMesh);
       holePos.set(0, 0, -h.len + 1.2);
 
-      var pole = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 1.2, 8), wallMat);
-      pole.position.set(0, 0.6, -h.len + 1.2);
-      courseGroup.add(pole);
-      var flag = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 0.3), flagMat);
-      flag.position.set(0.25, 1.1, -h.len + 1.2);
-      courseGroup.add(flag);
+      var flagPos = new THREE.Vector3(0, 0, -h.len + 1.2);
+      loadModel('/assets/models/kenney-minigolfkit/flag-red.glb', function (model) {
+        model.scale.set(1, 1, 1);
+        model.position.copy(flagPos);
+        courseGroup.add(model);
+      }, function () {
+        var pole = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 1.2, 8), wallMat);
+        pole.position.set(flagPos.x, 0.6, flagPos.z);
+        courseGroup.add(pole);
+        var fl = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 0.3), flagMat);
+        fl.position.set(flagPos.x + 0.25, 1.1, flagPos.z);
+        courseGroup.add(fl);
+      });
 
       h.obstacles.forEach(function (o) {
         var box = new THREE.Mesh(new THREE.BoxGeometry(o.w, 0.5, o.d), obsMat);

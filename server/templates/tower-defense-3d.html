@@ -45,6 +45,7 @@
     }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 </head>
 <body>
   <div id="game-container"></div>
@@ -84,6 +85,15 @@
   };
 
   var tileGroup, raycaster, mouse, tileMeshes = [];
+  var loader = new THREE.GLTFLoader();
+
+  function loadModel(url, onLoad, fallback) {
+    loader.load(url, function (gltf) {
+      onLoad(gltf.scene);
+    }, undefined, function () {
+      if (fallback) fallback();
+    });
+  }
 
   function init() {
     scene = new THREE.Scene();
@@ -91,8 +101,8 @@
     clock = new THREE.Clock();
 
     camera = new THREE.PerspectiveCamera(50, innerWidth / innerHeight, 0.1, 200);
-    camera.position.set(8, 18, 14);
-    camera.lookAt(8, 0, 6);
+    camera.position.set(8, 14, 18);
+    camera.lookAt(8, 0, 4);
 
     renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(innerWidth, innerHeight);
@@ -132,21 +142,44 @@
         mesh.userData = { col: c, row: r, isPath: isPath, hasTower: false };
         tileGroup.add(mesh);
         tileMeshes.push(mesh);
+
+        if (isPath) {
+          (function (x, z) {
+            loadModel('/assets/models/kenney-towerdefensekit/tile-straight.glb', function (model) {
+              model.scale.set(1, 1, 1);
+              model.position.set(x, 0.15, z);
+              scene.add(model);
+            }, null);
+          })(c * TILE + 1, r * TILE + 1);
+        }
       }
     }
-    var spawnMark = new THREE.Mesh(
-      new THREE.SphereGeometry(0.4, 12, 12),
-      new THREE.MeshStandardMaterial({ color: 0xef4444 })
-    );
-    spawnMark.position.set(path[0][0] * TILE + 1, 0.6, path[0][1] * TILE + 1);
-    scene.add(spawnMark);
 
-    var baseMark = new THREE.Mesh(
-      new THREE.BoxGeometry(1.2, 1.2, 1.2),
-      new THREE.MeshStandardMaterial({ color: 0x3b82f6 })
-    );
-    baseMark.position.set(path[path.length - 1][0] * TILE + 1, 0.8, path[path.length - 1][1] * TILE + 1);
-    scene.add(baseMark);
+    loadModel('/assets/models/kenney-towerdefensekit/tile-spawn.glb', function (model) {
+      model.scale.set(1, 1, 1);
+      model.position.set(path[0][0] * TILE + 1, 0.15, path[0][1] * TILE + 1);
+      scene.add(model);
+    }, function () {
+      var spawnMark = new THREE.Mesh(
+        new THREE.SphereGeometry(0.4, 12, 12),
+        new THREE.MeshStandardMaterial({ color: 0xef4444 })
+      );
+      spawnMark.position.set(path[0][0] * TILE + 1, 0.6, path[0][1] * TILE + 1);
+      scene.add(spawnMark);
+    });
+
+    loadModel('/assets/models/kenney-towerdefensekit/tile-end.glb', function (model) {
+      model.scale.set(1, 1, 1);
+      model.position.set(path[path.length - 1][0] * TILE + 1, 0.15, path[path.length - 1][1] * TILE + 1);
+      scene.add(model);
+    }, function () {
+      var baseMark = new THREE.Mesh(
+        new THREE.BoxGeometry(1.2, 1.2, 1.2),
+        new THREE.MeshStandardMaterial({ color: 0x3b82f6 })
+      );
+      baseMark.position.set(path[path.length - 1][0] * TILE + 1, 0.8, path[path.length - 1][1] * TILE + 1);
+      scene.add(baseMark);
+    });
   }
 
   function adjacentToPath(col, row) {
@@ -174,10 +207,8 @@
     placeTower(d.col, d.row, tile);
   }
 
-  function placeTower(col, row, tile) {
-    state.gold -= TOWER_COST;
-    state.towerCount++;
-    tile.userData.hasTower = true;
+  function makeFallbackTower() {
+    var g = new THREE.Group();
     var base = new THREE.Mesh(
       new THREE.CylinderGeometry(0.6, 0.7, 1.0, 8),
       new THREE.MeshStandardMaterial({ color: 0x8b5cf6 })
@@ -187,11 +218,27 @@
       new THREE.MeshStandardMaterial({ color: 0xa78bfa })
     );
     turret.position.y = 0.8;
+    g.add(base); g.add(turret);
+    return g;
+  }
+
+  function placeTower(col, row, tile) {
+    state.gold -= TOWER_COST;
+    state.towerCount++;
+    tile.userData.hasTower = true;
     var group = new THREE.Group();
-    group.add(base); group.add(turret);
-    group.position.set(col * TILE + 1, 0.65, row * TILE + 1);
+    group.position.set(col * TILE + 1, 0.15, row * TILE + 1);
     scene.add(group);
     state.towers.push({ mesh: group, col: col, row: row, cooldown: 0, range: 5 });
+
+    loadModel('/assets/models/kenney-towerdefensekit/weapon-turret.glb', function (model) {
+      model.scale.set(1, 1, 1);
+      group.add(model);
+    }, function () {
+      var fb = makeFallbackTower();
+      fb.position.y = 0.5;
+      group.add(fb);
+    });
     updateHUD();
   }
 
@@ -210,25 +257,34 @@
   function spawnEnemy() {
     var hp = 80 + state.wave * 20;
     var speed = 2.5 + state.wave * 0.3;
-    var mesh = new THREE.Mesh(
-      new THREE.SphereGeometry(0.5, 10, 10),
-      new THREE.MeshStandardMaterial({ color: 0xef4444 })
-    );
     var barBg = new THREE.Mesh(
       new THREE.BoxGeometry(1.0, 0.15, 0.05),
       new THREE.MeshStandardMaterial({ color: 0x374151 })
     );
-    barBg.position.y = 1.2;
+    barBg.position.y = 1.6;
     var barFg = new THREE.Mesh(
       new THREE.BoxGeometry(1.0, 0.15, 0.06),
       new THREE.MeshStandardMaterial({ color: 0x22c55e })
     );
-    barFg.position.y = 1.2;
+    barFg.position.y = 1.6;
     var group = new THREE.Group();
-    group.add(mesh); group.add(barBg); group.add(barFg);
+    group.add(barBg); group.add(barFg);
     var sp = path[0];
-    group.position.set(sp[0] * TILE + 1, 0.65, sp[1] * TILE + 1);
+    group.position.set(sp[0] * TILE + 1, 0.15, sp[1] * TILE + 1);
     scene.add(group);
+
+    loadModel('/assets/models/kenney-blockycharacters/character-a.glb', function (model) {
+      model.scale.set(0.7, 0.7, 0.7);
+      group.add(model);
+    }, function () {
+      var fb = new THREE.Mesh(
+        new THREE.SphereGeometry(0.5, 10, 10),
+        new THREE.MeshStandardMaterial({ color: 0xef4444 })
+      );
+      fb.position.y = 0.5;
+      group.add(fb);
+    });
+
     state.enemies.push({
       mesh: group, bar: barFg, hp: hp, maxHp: hp,
       speed: speed, pathIdx: 0, alive: true

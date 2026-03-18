@@ -61,6 +61,11 @@
   var toast = document.getElementById('toast');
   var winScreen = document.getElementById('win-screen');
 
+  var gltfLoader = new THREE.GLTFLoader();
+  function loadModel(url, onLoad, fallback) {
+    gltfLoader.load(url, function (gltf) { onLoad(gltf.scene); }, undefined, function () { if (fallback) fallback(); });
+  }
+
   var TRACK_RADIUS = 30;
   var TRACK_WIDTH = 8;
   var TOTAL_LAPS = 3;
@@ -178,20 +183,41 @@
   }
 
   function buildKarts() {
-    player = makeKart(0x3b82f6);
+    player = new THREE.Group();
+    player.add(makeKart(0x3b82f6));
     player.position.copy(trackPoints[0]);
     player.position.y = 0;
     scene.add(player);
     playerAngle = 0;
 
+    loadModel('/assets/models/kenney-toycarkit/vehicle-racer.glb', function (model) {
+      model.scale.set(0.8, 0.8, 0.8);
+      while (player.children.length) player.remove(player.children[0]);
+      player.add(model);
+    }, null);
+
     var aiColors = [0xef4444, 0xeab308, 0xa855f7];
+    var aiModels = [
+      '/assets/models/kenney-toycarkit/vehicle-speedster.glb',
+      '/assets/models/kenney-toycarkit/vehicle-truck.glb',
+      '/assets/models/kenney-toycarkit/vehicle-monster-truck.glb'
+    ];
     for (var i = 0; i < 3; i++) {
-      var k = makeKart(aiColors[i]);
+      var k = new THREE.Group();
+      k.add(makeKart(aiColors[i]));
       var startIdx = Math.floor((i + 1) * trackLen / 4);
       k.position.copy(trackPoints[startIdx]);
       scene.add(k);
       aiKarts.push(k);
       aiData.push({ idx: startIdx, speed: 8 + Math.random() * 3, lap: 0, checkpoints: 0 });
+
+      (function (group, url) {
+        loadModel(url, function (model) {
+          model.scale.set(0.8, 0.8, 0.8);
+          while (group.children.length) group.remove(group.children[0]);
+          group.add(model);
+        }, null);
+      })(k, aiModels[i]);
     }
   }
 
