@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import PlanSelector from './PlanSelector';
 import type { User, MembershipUsage, TierInfo } from '../types';
+import { trackCheckoutStart, trackFormSubmit } from '../lib/marketingEvents';
 import './AuthModal.css';
 
 declare global {
@@ -223,6 +224,7 @@ export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: A
             throw new Error(data.error || 'Oops! Something went wrong. Try again?');
           }
 
+          trackFormSubmit();
           setSuccess(data.message);
           setUsername('');
           setPassword('');
@@ -280,6 +282,7 @@ export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: A
             throw new Error(data.error || 'Oops! Something went wrong. Try again?');
           }
 
+          trackCheckoutStart(selectedPlan);
           // Redirect to Stripe Checkout
           window.location.href = data.checkoutUrl;
         }

@@ -39,6 +39,7 @@ router.post('/event', async (req, res) => {
       utm_source: rest.utm_source || null,
       utm_medium: rest.utm_medium || null,
       utm_campaign: rest.utm_campaign || null,
+      utm_content: rest.utm_content || null,
       tier: rest.tier || null,
     };
 

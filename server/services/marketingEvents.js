@@ -49,6 +49,7 @@ function hasPII(obj) {
  * @param {string} [event.utm_source]
  * @param {string} [event.utm_medium]
  * @param {string} [event.utm_campaign]
+ * @param {string} [event.utm_content]
  * @param {string} [event.tier] - for checkout_start
  */
 export async function logMarketingEvent(event) {
