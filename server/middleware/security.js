@@ -22,7 +22,7 @@ export function securityHeaders() {
     // that can't be nonce-controlled. Keep unsafe-inline + unsafe-eval for game pages.
     // Nonce-based CSP is deferred to a future sprint (requires AST-level code rewriting).
     const scriptSrc =
-      "'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com";
+      "'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://connect.facebook.net";
     // style-src: use 'unsafe-inline' only (no nonce). Per CSP spec, nonce+unsafe-inline ignores
     // unsafe-inline, blocking style="" attributes. AI-generated games (Phaser, etc.) rely on
     // inline styles—without this, preview iframe shows blank white screen.
@@ -39,8 +39,8 @@ export function securityHeaders() {
       `script-src ${scriptSrc}`,
       `style-src ${styleSrc}`,
       "font-src 'self' data:",
-      `img-src 'self' ${requestOrigin} data: blob:`,
-      `connect-src 'self' ${requestOrigin} wss: ws: https://api.stripe.com`,
+      `img-src 'self' ${requestOrigin} data: blob: https://www.facebook.com https://connect.facebook.net`,
+      `connect-src 'self' ${requestOrigin} wss: ws: https://api.stripe.com https://www.facebook.com https://connect.facebook.net`,
       "frame-src 'self' blob: https://js.stripe.com",
       "object-src 'none'",
       "base-uri 'self'",
