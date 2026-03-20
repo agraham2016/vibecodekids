@@ -3,6 +3,12 @@
  * See docs/MARKETING_TRACKING_PLAN.md
  */
 
+declare global {
+  interface Window {
+    fbq?: (action: string, eventName: string, params?: Record<string, unknown>) => void;
+  }
+}
+
 type UtmParams = {
   utm_source?: string;
   utm_medium?: string;
@@ -75,6 +81,10 @@ export function trackFormSubmit(url?: string): void {
     sessionId: getSessionId(),
     ...getUtmParams(),
   });
+}
+
+export function trackMetaLead(params?: Record<string, unknown>): void {
+  window.fbq?.('track', 'Lead', params);
 }
 
 export function trackCheckoutStart(tier: 'creator' | 'pro', url?: string): void {

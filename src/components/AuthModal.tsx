@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import PlanSelector from './PlanSelector';
 import type { User, MembershipUsage, TierInfo } from '../types';
-import { trackCheckoutStart, trackFormSubmit } from '../lib/marketingEvents';
+import { trackCheckoutStart, trackFormSubmit, trackMetaLead } from '../lib/marketingEvents';
 import './AuthModal.css';
 
 declare global {
@@ -225,6 +225,12 @@ export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: A
           }
 
           trackFormSubmit();
+          trackMetaLead({
+            content_name: 'Free Signup',
+            content_category: 'signup',
+            value: 0,
+            currency: 'USD',
+          });
           setSuccess(data.message);
           setUsername('');
           setPassword('');
@@ -282,6 +288,21 @@ export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: A
             throw new Error(data.error || 'Oops! Something went wrong. Try again?');
           }
 
+          if (selectedPlan === 'creator') {
+            trackMetaLead({
+              content_name: 'Creator',
+              content_category: 'subscription',
+              value: 13,
+              currency: 'USD',
+            });
+          } else if (selectedPlan === 'pro') {
+            trackMetaLead({
+              content_name: 'Pro',
+              content_category: 'subscription',
+              value: 21,
+              currency: 'USD',
+            });
+          }
           trackCheckoutStart(selectedPlan);
           // Redirect to Stripe Checkout
           window.location.href = data.checkoutUrl;
@@ -430,8 +451,8 @@ export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: A
         {mode === 'signup' && (
           <div className="selected-plan-badge">
             {selectedPlan === 'free' && '⭐ Free Plan'}
-            {selectedPlan === 'creator' && '🚀 Creator Plan - $7/mo'}
-            {selectedPlan === 'pro' && '👑 Pro Plan - $14/mo'}
+            {selectedPlan === 'creator' && '🚀 Creator Plan - $13/mo'}
+            {selectedPlan === 'pro' && '👑 Pro Plan - $21/mo'}
             <button className="change-plan-btn" onClick={() => setSignupStep('plan')}>
               Change
             </button>
