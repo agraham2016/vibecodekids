@@ -66,3 +66,29 @@ Use `.cursor/rules/nova-fullstack-dev.md` for the standing development rules, an
 | Test: CI | `npm run test:ci` |
 | Lint | `npm run lint` / `npm run lint:fix` |
 | Format | `npm run format` / `npm run format:check` |
+
+---
+
+## Cursor Cloud specific instructions
+
+### Services overview
+
+| Service | Command | Port | Notes |
+|---------|---------|------|-------|
+| Vite frontend | `npx vite --host 0.0.0.0` | 3000 | Proxies `/api`, `/play`, `/gallery`, `/admin` to backend |
+| Express backend | `node server/index.js` | 3001 | Falls back to JSON file storage when `DATABASE_URL` is unset |
+| Both (concurrently) | `npm run dev:full` | 3000 + 3001 | Uses `concurrently` |
+
+### Environment
+
+- Copy `.env.example` to `.env` before first run. The backend starts without real API keys; AI code generation will fail gracefully.
+- PostgreSQL is **not required** for local dev — the server falls back to JSON file storage in `data/`.
+- `ANTHROPIC_API_KEY` is needed for actual AI code generation but the app runs without it.
+
+### Gotchas
+
+- The `format:check` command currently reports 18 files with style issues (pre-existing in the repo). This is not a blocker.
+- Husky pre-commit hook runs `lint-staged` + `npm run test:safety`. Both must pass before commits land.
+- Playwright E2E tests (`npm test`) require browser binaries installed via `npx playwright install --with-deps`. These are heavyweight and not installed by the update script; install on demand.
+- The backend uses ES modules (`"type": "module"` in `package.json`). Use `import`/`export`, not `require`.
+- Node 18+ is required (`engines` field). Node 20 or 22 both work.
