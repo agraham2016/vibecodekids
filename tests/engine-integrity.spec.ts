@@ -106,6 +106,12 @@ test.describe('Vibe engine integrity', () => {
       {
         prompt: 'make a 3d stunt car racing game with drift ramps, boost pads, and checkpoints',
         family: 'racingDriving3d',
+        starter: 'stunt-racer-3d',
+      },
+      {
+        prompt: 'make a 3d racing game',
+        family: 'racingDriving3d',
+        starter: 'stunt-racer-3d',
       },
       {
         prompt: 'make a side scroller where I jump over spikes and collect coins',

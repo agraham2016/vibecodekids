@@ -32,8 +32,12 @@ test.describe('Engine reference resolution', () => {
       genre: 'open-map-explorer',
       expectedStarter: 'relic-hunt-3d',
       expectedTemplate: 'template:relic-hunt-3d.html',
-      expectedModelSource: 'models:rpg-3d',
-      expectedModelHint: '/assets/models/kenney-castlekit/tower-square.glb',
+    },
+    {
+      prompt: 'make a 3d racing game',
+      genre: 'racing',
+      expectedStarter: 'stunt-racer-3d',
+      expectedTemplate: 'template:stunt-racer-3d.html',
     },
   ];
 

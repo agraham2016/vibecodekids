@@ -894,6 +894,8 @@ function inferStarterTemplateFromPrompt(prompt = '') {
 function promoteRequestedTypeTo3D(requestedType, prompt = '') {
   const text = String(prompt || '').toLowerCase();
   const directMap = {
+    racing: 'stunt-racer-3d',
+    driving: 'stunt-racer-3d',
     'tower-defense': 'tower-defense-3d',
     minigolf: 'minigolf-3d',
     'marble-run': 'marble-run-3d',
@@ -910,6 +912,7 @@ function promoteRequestedTypeTo3D(requestedType, prompt = '') {
   if (/\bminigolf\b|\bmini golf\b|\bputt[- ]putt\b/i.test(text)) return 'minigolf-3d';
   if (/\bmarble run\b|\bmarble maze\b|\bmarble race\b/i.test(text)) return 'marble-run-3d';
   if (/\bkart\b|\bgo[- ]kart\b/i.test(text)) return 'kart-racer-3d';
+  if (/\b(?:car|driving|racing|race)\b/i.test(text)) return 'stunt-racer-3d';
   if (/\broller coaster\b|\bcoaster park\b|\btheme park\b|\bamusement park\b/i.test(text)) return 'coaster-park-3d';
   if (/\bmedieval village\b|\bfantasy town\b|\bvillage builder\b|\btown builder\b|\bcastle builder\b/i.test(text))
     return 'medieval-village-3d';
@@ -1251,7 +1254,8 @@ export function resolveEngineProfile({
   }
 
   const starterBlueprint = getTemplateBlueprint(normalizedRequestedType);
-  const dimensionHint = gameConfig?.dimension || starterBlueprint?.dimension || (promptHas3DSignals ? '3d' : null);
+  const dimensionHint =
+    gameConfig?.dimension || (promptHas3DSignals ? '3d' : null) || starterBlueprint?.dimension || null;
   const effectiveRankingSnapshot = rankingSnapshot || getEngineOutcomeRankingSnapshot();
   const effectiveOverrideState = overrideState || getEngineOverrideState();
   const defaultFamily = dimensionHint === '3d' ? 'obbyPlatform3d' : 'platformAction';
