@@ -18,6 +18,43 @@ const __dirname = path.dirname(__filename);
 const TEMPLATES_DIR = path.join(__dirname, '..', 'templates');
 const PUBLIC_DIR = path.join(__dirname, '..', '..', 'public');
 const spritePathCache = new Map();
+const ROLE_MATCHERS = {
+  player: [
+    'player',
+    'hero',
+    'ship',
+    'frog',
+    'pet',
+    'fighter',
+    'driver',
+    'diver',
+    'runner',
+    'avatar',
+    'character',
+    'robot',
+    'basket',
+    'paddle',
+    'bobber',
+    'head',
+  ],
+  enemy: ['enemy', 'npc', 'monster', 'boss', 'ghost', 'brawler', 'opponent', 'obstacle', 'truck', 'jellyfish'],
+  projectile: ['bullet', 'laser', 'missile', 'projectile', 'shot', 'spark', 'punch'],
+  collectible: ['coin', 'gem', 'orb', 'star', 'food', 'fruit', 'power', 'treasure', 'dot', 'heart', 'item', 'bubble'],
+  background: [
+    'ground',
+    'platform',
+    'wall',
+    'floor',
+    'road',
+    'path',
+    'tile',
+    'bg',
+    'background',
+    'cone',
+    'oil',
+    'barrier',
+  ],
+};
 
 /**
  * Inject sprite loading into AI-generated game code.
@@ -50,7 +87,9 @@ export async function injectSprites(code, genre) {
 
   let modified = code;
   const spriteKeys = new Set(spriteLoads.map((s) => s.key));
+  const keyRewrites = buildTextureKeyRewriteMap(modified, spriteLoads);
 
+  modified = applyTextureKeyRewrites(modified, keyRewrites);
   modified = await repairInvalidSpritePaths(modified, spriteLoads);
   modified = removeGraphicsBlock(modified, spriteKeys);
   modified = removeCanvasTextureBlock(modified, spriteKeys);
@@ -159,21 +198,89 @@ function extractLoadImageCalls(code) {
   return calls;
 }
 
+function extractTextureUsageKeys(code) {
+  const keys = new Set();
+  const patterns = [
+    /generateTexture\s*\(\s*['"]([^'"]+)['"]/g,
+    /this\.textures\.addCanvas\s*\(\s*['"]([^'"]+)['"]/g,
+    /this\.load\.image\(\s*['"]([^'"]+)['"]/g,
+    /this\.(?:physics\.add|add)\.(?:sprite|image)\([^)]*['"]([^'"]+)['"]\s*\)/g,
+    /\.create\([^)]*['"]([^'"]+)['"]\s*\)/g,
+    /\.setTexture\(\s*['"]([^'"]+)['"]\s*\)/g,
+  ];
+
+  for (const pattern of patterns) {
+    let match;
+    while ((match = pattern.exec(code)) !== null) {
+      keys.add(match[1]);
+    }
+  }
+
+  return [...keys];
+}
+
+function buildTextureKeyRewriteMap(code, spriteLoads) {
+  const rewrites = new Map();
+  for (const key of extractTextureUsageKeys(code)) {
+    if (spriteLoads.some((sprite) => sprite.key === key)) continue;
+    const replacement = findReplacementForKey(key, spriteLoads);
+    if (replacement && replacement.key !== key) {
+      rewrites.set(key, replacement.key);
+    }
+  }
+  return rewrites;
+}
+
+function applyTextureKeyRewrites(code, rewrites) {
+  for (const [sourceKey, targetKey] of rewrites.entries()) {
+    const escapedSource = sourceKey.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    code = code.replace(new RegExp(`(['"])${escapedSource}\\1`, 'g'), `$1${targetKey}$1`);
+  }
+  return code;
+}
+
 function findReplacementForKey(key, spriteLoads) {
   const exact = spriteLoads.find((s) => s.key === key);
   if (exact) return exact;
 
   const normalizedKey = normalizeKey(key);
-  return (
+  const normalizedMatch =
     spriteLoads.find((s) => normalizeKey(s.key) === normalizedKey) ||
-    spriteLoads.find((s) => normalizedKey.includes(normalizeKey(s.key)) || normalizeKey(s.key).includes(normalizedKey))
-  );
+    spriteLoads.find((s) => normalizedKey.includes(normalizeKey(s.key)) || normalizeKey(s.key).includes(normalizedKey));
+  if (normalizedMatch) return normalizedMatch;
+
+  const preferredByRole = getPreferredSpriteByRole(spriteLoads);
+  const role = inferSpriteRole(key);
+  if (role && preferredByRole[role]) return preferredByRole[role];
+
+  return spriteLoads[0] || null;
 }
 
 function normalizeKey(value) {
   return String(value || '')
     .toLowerCase()
     .replace(/[^a-z0-9]/g, '');
+}
+
+function inferSpriteRole(key) {
+  const normalizedKey = normalizeKey(key);
+  for (const [role, hints] of Object.entries(ROLE_MATCHERS)) {
+    if (hints.some((hint) => normalizedKey.includes(normalizeKey(hint)))) {
+      return role;
+    }
+  }
+  return null;
+}
+
+function getPreferredSpriteByRole(spriteLoads) {
+  const preferred = {};
+  for (const sprite of spriteLoads) {
+    const role = inferSpriteRole(sprite.key);
+    if (role && !preferred[role]) {
+      preferred[role] = sprite;
+    }
+  }
+  return preferred;
 }
 
 async function assetPathExists(assetPath) {

@@ -1,7 +1,7 @@
 /**
  * Sprite & Sound Loader Snippet (Phaser.js)
  * Patterns for loading pre-made assets: images, spritesheets, audio.
- * Includes fallback to procedural texture if a sprite doesn't fit the theme.
+ * Reinforces real sprite loading and safe missing-asset fallback behavior.
  */
 
 export const SPRITE_LOADER_SNIPPET = `
@@ -42,16 +42,20 @@ export const SPRITE_LOADER_SNIPPET = `
 //   this.sound.play('jump', { volume: 0.5 });
 //   this.sound.play('explosion', { volume: 0.7 });
 
-// --- Fallback: generate texture if sprite doesn't fit the theme ---
-//   If the kid asks for something custom (e.g. "pizza character"),
-//   generate a texture procedurally instead of using the pre-made sprite:
-//   const gfx = this.make.graphics({ add: false });
-//   gfx.fillStyle(0xff8800); gfx.fillCircle(16, 16, 14);
-//   gfx.generateTexture('pizza', 32, 32); gfx.destroy();
+// --- Theme remixes: keep real sprites whenever possible ---
+//   If the kid asks for a custom theme, keep using the closest matching sprite
+//   file and restyle the WORLD around it (backgrounds, HUD, particles, names).
+//   Do NOT switch the player/enemy/items to generateTexture() just to match a theme.
+//   Only use the loaderror fallback when a listed file fails to load at runtime.
 
 // --- Error-safe loading (handles missing assets gracefully) ---
 //   this.load.on('loaderror', (file) => {
-//     console.warn('Asset not found:', file.key);
+//     if (this.textures.exists(file.key)) return;
+//     const c = document.createElement('canvas'); c.width = 64; c.height = 64;
+//     const ctx = c.getContext('2d');
+//     ctx.fillStyle = '#d63384';
+//     ctx.beginPath(); ctx.arc(32, 32, 24, 0, Math.PI * 2); ctx.fill();
+//     this.textures.addCanvas(file.key, c);
 //   });
 //   // After load completes, check if texture exists before using:
 //   if (this.textures.exists('player')) {
