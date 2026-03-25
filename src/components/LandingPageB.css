@@ -6,11 +6,72 @@
 
 .tryit-section {
   width: 100%;
-  padding: 60px 0 40px;
+  padding: 30px 0 40px;
   display: flex;
   flex-direction: column;
   align-items: center;
   position: relative;
+}
+
+.tryit-intro-card {
+  width: 100%;
+  max-width: 940px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin: 0 0 24px;
+  padding: 24px 26px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.18);
+}
+
+.tryit-intro-card h3 {
+  margin: 10px 0 8px;
+  font-size: 1.35rem;
+  color: #fff;
+}
+
+.tryit-intro-card p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.68);
+  line-height: 1.6;
+}
+
+.tryit-intro-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(139, 92, 246, 0.2);
+  border: 1px solid rgba(139, 92, 246, 0.35);
+  color: #e9d5ff;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.tryit-intro-cta {
+  flex-shrink: 0;
+  padding: 16px 26px;
+  border: none;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+  color: #fff;
+  font-weight: 800;
+  font-size: 1rem;
+  cursor: pointer;
+  box-shadow: 0 14px 30px rgba(139, 92, 246, 0.32);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.tryit-intro-cta:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 18px 40px rgba(139, 92, 246, 0.42);
 }
 
 /* Preset buttons */
@@ -330,6 +391,16 @@
     padding: 48px 0 28px;
   }
 
+  .tryit-intro-card {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 22px 20px;
+  }
+
+  .tryit-intro-cta {
+    width: 100%;
+  }
+
   .tryit-presets {
     margin-bottom: 16px;
   }
@@ -351,6 +422,11 @@
 @media (max-width: 600px) {
   .tryit-section {
     padding: 42px 0 24px;
+  }
+
+  .tryit-intro-card {
+    gap: 18px;
+    margin-bottom: 18px;
   }
 
   .tryit-input-row {

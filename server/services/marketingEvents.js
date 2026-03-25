@@ -46,6 +46,7 @@ function hasPII(obj) {
  * @param {string} [event.sessionId]
  * @param {string} [event.section]
  * @param {string} [event.buttonId]
+ * @param {string} [event.variant]
  * @param {string} [event.utm_source]
  * @param {string} [event.utm_medium]
  * @param {string} [event.utm_campaign]

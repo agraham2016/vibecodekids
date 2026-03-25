@@ -16,6 +16,8 @@ type UtmParams = {
   utm_content?: string;
 };
 
+type Variant = 'a' | 'b';
+
 function getUtmParams(): UtmParams {
   const params = new URLSearchParams(window.location.search);
   const utm_source = params.get('utm_source') || undefined;
@@ -48,7 +50,7 @@ function sendEvent(payload: Record<string, unknown>): void {
   }).catch(() => {});
 }
 
-export function trackPageView(url?: string, referrer?: string): void {
+export function trackPageView(url?: string, referrer?: string, variant?: Variant): void {
   const path = url || window.location.pathname || '/';
   const ref = referrer ?? (document.referrer || undefined);
   sendEvent({
@@ -57,11 +59,12 @@ export function trackPageView(url?: string, referrer?: string): void {
     referrer: ref || undefined,
     device: getDevice(),
     sessionId: getSessionId(),
+    variant: variant || undefined,
     ...getUtmParams(),
   });
 }
 
-export function trackCtaClick(buttonId: string, section?: string): void {
+export function trackCtaClick(buttonId: string, section?: string, variant?: Variant): void {
   sendEvent({
     type: 'cta_click',
     url: window.location.pathname || '/',
@@ -69,22 +72,31 @@ export function trackCtaClick(buttonId: string, section?: string): void {
     sessionId: getSessionId(),
     buttonId,
     section: section || undefined,
+    variant: variant || undefined,
     ...getUtmParams(),
   });
 }
 
-export function trackFormSubmit(url?: string): void {
+export function trackFormSubmit(url?: string, variant?: Variant): void {
   sendEvent({
     type: 'form_submit',
     url: url || window.location.pathname || '/',
     device: getDevice(),
     sessionId: getSessionId(),
+    variant: variant || undefined,
     ...getUtmParams(),
   });
 }
 
 export function trackMetaLead(params?: Record<string, unknown>): void {
   window.fbq?.('track', 'Lead', params);
+}
+
+export function trackMetaLandingCta(section?: string, variant?: Variant): void {
+  window.fbq?.('trackCustom', 'LandingCTA', {
+    section: section || undefined,
+    variant: variant || undefined,
+  });
 }
 
 export function trackCheckoutStart(tier: 'creator' | 'pro', url?: string): void {

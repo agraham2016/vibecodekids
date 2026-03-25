@@ -1,7 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { getVisitorId } from '../lib/abVariant';
-import { trackPageView, trackCtaClick } from '../lib/marketingEvents';
-import { ENGINE_SELECTION_GUIDE, STARTER_TEMPLATES } from '../config/gameCatalog';
+import { trackPageView, trackCtaClick, trackMetaLandingCta } from '../lib/marketingEvents';
+import LandingHero from './LandingHero';
+import LandingCoreSections from './LandingCoreSections';
+import { HERO_CONTENT, PRICING_PLANS } from './landingContent';
+import { STARTER_TEMPLATES } from '../config/gameCatalog';
 import { enhanceSandboxedPreviewHtml } from '../utils/previewHtml';
 import './LandingPageB.css';
 import './LandingPage.css';
@@ -42,7 +45,6 @@ const GAME_STARTERS = LANDING_STARTER_IDS.map((id) => {
 });
 
 const MAX_FREE_PROMPTS = 5;
-const LANDING_ENGINE_GUIDES = Object.values(ENGINE_SELECTION_GUIDE);
 
 type Phase = 'idle' | 'loading' | 'playing' | 'gated';
 
@@ -67,17 +69,6 @@ export default function LandingPageB({ onLoginClick, onSignupClick }: LandingPag
     sessionStorage.setItem('vck_demo_prompts_used', String(promptsUsed));
   }, [promptsUsed]);
 
-  useEffect(() => {
-    if (iframeRef.current && currentCode) {
-      const doc = iframeRef.current.contentDocument || iframeRef.current.contentWindow?.document;
-      if (doc) {
-        doc.open();
-        doc.write(enhanceSandboxedPreviewHtml(currentCode));
-        doc.close();
-      }
-    }
-  }, [currentCode]);
-
   const logEvent = useCallback((payload: Record<string, unknown>) => {
     fetch('/api/demo/event', {
       method: 'POST',
@@ -92,7 +83,7 @@ export default function LandingPageB({ onLoginClick, onSignupClick }: LandingPag
       referrer: document.referrer,
       device: /Mobi/i.test(navigator.userAgent) ? 'mobile' : 'desktop',
     });
-    trackPageView();
+    trackPageView(undefined, undefined, 'b');
   }, [logEvent]);
 
   const handleGenerate = useCallback(
@@ -167,7 +158,8 @@ export default function LandingPageB({ onLoginClick, onSignupClick }: LandingPag
   );
 
   const handleSignupFromGate = useCallback(() => {
-    trackCtaClick('tryit-gate-signup', 'tryit');
+    trackMetaLandingCta('tryit', 'b');
+    trackCtaClick('tryit-gate-signup', 'tryit', 'b');
     localStorage.setItem('vck_draft_code', currentCode);
     localStorage.setItem('vck_draft_prompt', generations[generations.length - 1]?.prompt || '');
     localStorage.setItem('vck_draft_ts', String(Date.now()));
@@ -176,7 +168,8 @@ export default function LandingPageB({ onLoginClick, onSignupClick }: LandingPag
 
   const handleCta = useCallback(
     (buttonId: string, section?: string) => {
-      trackCtaClick(buttonId, section);
+      trackMetaLandingCta(section, 'b');
+      trackCtaClick(buttonId, section, 'b');
       onSignupClick();
     },
     [onSignupClick],
@@ -225,62 +218,36 @@ export default function LandingPageB({ onLoginClick, onSignupClick }: LandingPag
               Log In
             </button>
             <button className="nav-cta" onClick={() => handleCta('nav-cta', 'nav')}>
-              Get Started Free
+              {HERO_CONTENT.ctaLabel}
             </button>
           </div>
         </div>
       </nav>
 
       <div className="landing-content">
-        {/* Hero */}
-        <section className="landing-hero">
-          <div className="hero-logo">
-            <img src="/images/logo.png?v=3" alt="VibeCode Kidz" className="hero-logo-img" />
-          </div>
-          <h1 className="hero-headline">Kids can make games with AI.</h1>
-          <p className="hero-subtitle">
-            Pick a starter or describe an idea. VibeCode Kidz builds a playable game fast so kids can keep improving it.
-          </p>
-
-          <div className="hero-features">
-            <div className="feature">
-              <span className="feature-icon">💬</span>
-              <span>Pick or Describe</span>
-            </div>
-            <div className="feature">
-              <span className="feature-icon">🤖</span>
-              <span>Playable Fast</span>
-            </div>
-            <div className="feature">
-              <span className="feature-icon">🎮</span>
-              <span>Make It Yours</span>
-            </div>
-          </div>
-
-          <div className="hero-buttons">
-            <button className="btn-signup" onClick={() => tryItRef.current?.scrollIntoView({ behavior: 'smooth' })}>
-              Try It Now
-            </button>
-            <button className="btn-login" onClick={onLoginClick}>
-              Log In
-            </button>
-          </div>
-        </section>
+        <LandingHero onPrimaryCta={() => handleCta('hero-primary-cta', 'hero')} />
+        <LandingCoreSections onCta={handleCta} />
 
         {/* Try It Now Section */}
         <section ref={tryItRef} className="tryit-section" id="try-it">
-          <h2 className="section-heading">Pick It or Describe It</h2>
+          <h2 className="section-heading">See the AI game builder in action</h2>
           <p className="section-subheading">
-            Choose a starter or type your own idea. VibeCode Kidz will build a playable first version for you.
+            Try the same flow your child would use: describe a game idea, let AI build it, and watch a playable version
+            appear.
           </p>
-          <div className="landing-engine-guide-grid">
-            {LANDING_ENGINE_GUIDES.map((engine) => (
-              <div key={engine.label} className="landing-engine-guide-card">
-                <span className="landing-engine-guide-label">{engine.label}</span>
-                <strong>{engine.runtimeSummary}</strong>
-                <span>{engine.iterationSweetSpot}</span>
-              </div>
-            ))}
+
+          <div className="tryit-intro-card">
+            <div>
+              <span className="tryit-intro-badge">Live demo</span>
+              <h3>Build games with AI before you sign up</h3>
+              <p>
+                Use a starter prompt or type your own idea. If your family likes the experience, start the Free 30-Day
+                Trial.
+              </p>
+            </div>
+            <button className="tryit-intro-cta" onClick={() => handleCta('tryit-intro-cta', 'tryit')}>
+              {HERO_CONTENT.ctaLabel}
+            </button>
           </div>
 
           {/* Signup Gate Modal */}
@@ -363,8 +330,9 @@ export default function LandingPageB({ onLoginClick, onSignupClick }: LandingPag
                 <iframe
                   ref={iframeRef}
                   title="Demo Game Preview"
-                  sandbox="allow-scripts allow-same-origin allow-pointer-lock"
+                  sandbox="allow-scripts allow-pointer-lock"
                   className="tryit-preview-iframe"
+                  srcDoc={enhanceSandboxedPreviewHtml(currentCode)}
                 />
 
                 {/* Thumbs feedback overlay */}
@@ -399,122 +367,41 @@ export default function LandingPageB({ onLoginClick, onSignupClick }: LandingPag
           )}
         </section>
 
-        {/* How It Works — reused from Landing A */}
-        <section className="how-it-works" id="how-it-works">
-          <h2 className="section-heading">How It Works</h2>
-          <p className="section-subheading">From idea to playable game in 3 simple steps.</p>
-          <div className="steps-row">
-            <div className="step-card">
-              <div className="step-number">1</div>
-              <h3 className="step-title">Pick It or Describe It</h3>
-              <p className="step-desc">Choose a game type or describe your idea in plain English.</p>
-            </div>
-            <div className="step-connector" />
-            <div className="step-card">
-              <div className="step-number">2</div>
-              <h3 className="step-title">Get the Right Engine</h3>
-              <p className="step-desc">VibeCode Kidz picks the right engine and builds a playable starting point.</p>
-            </div>
-            <div className="step-connector" />
-            <div className="step-card">
-              <div className="step-number">3</div>
-              <h3 className="step-title">Customize and Make It Yours</h3>
-              <p className="step-desc">Keep changing the game until it feels like your own.</p>
-            </div>
-          </div>
-        </section>
-
-        {/* For Parents */}
-        <section className="for-parents" id="parents">
-          <h2 className="section-heading">Screen Time That Helps Kids Create</h2>
-          <p className="section-subheading">A safer, simpler way for kids to use AI.</p>
-          <div className="parent-grid">
-            <div className="parent-card">
-              <span className="parent-card-icon">&#128737;&#65039;</span>
-              <h3>Safe &amp; COPPA Compliant</h3>
-              <p>Parental consent, minimal data collection, and kid-friendly guardrails are built in.</p>
-            </div>
-            <div className="parent-card">
-              <span className="parent-card-icon">&#129504;</span>
-              <h3>Create With AI, Not Just Consume It</h3>
-              <p>Kids use AI to make, test, and improve their own games.</p>
-            </div>
-            <div className="parent-card">
-              <span className="parent-card-icon">&#9989;</span>
-              <h3>Built for Beginners</h3>
-              <p>Kids can make games without dealing with complicated adult tools.</p>
-            </div>
-            <div className="parent-card">
-              <span className="parent-card-icon">&#128104;&#8205;&#128105;&#8205;&#128103;</span>
-              <h3>You Stay in Control</h3>
-              <p>View your child's creations, manage data requests, and set usage limits from your account.</p>
-            </div>
-          </div>
-        </section>
-
-        {/* Pricing */}
         <section className="pricing-section" id="pricing">
-          <h2 className="section-heading">Simple, Affordable Plans</h2>
-          <p className="section-subheading">Start free. Upgrade when you're ready.</p>
+          <h2 className="section-heading">Simple plans after your Free 30-Day Trial</h2>
+          <p className="section-subheading">
+            Start with the free trial first, then keep going only if your family loves it.
+          </p>
           <div className="pricing-grid">
-            <div className="price-card">
-              <h3 className="price-card-name">Free Trial</h3>
-              <div className="price-card-price">$0</div>
-              <div className="price-card-period">for 30 days</div>
-              <ul className="price-card-features">
-                <li>3 games per month</li>
-                <li>10 AI prompts per day</li>
-                <li>Unlimited plays</li>
-                <li>Share to Arcade</li>
-              </ul>
-              <button className="price-card-btn" onClick={() => handleCta('price-free-btn', 'pricing')}>
-                Start Free Trial
-              </button>
-            </div>
-            <div className="price-card featured">
-              <div className="price-card-badge">Most Popular</div>
-              <h3 className="price-card-name">Creator</h3>
-              <div className="price-card-price">$13</div>
-              <div className="price-card-period">per month</div>
-              <ul className="price-card-features">
-                <li>15 games per month</li>
-                <li>50 AI prompts per day</li>
-                <li>Unlimited plays</li>
-                <li>Share to Arcade</li>
-                <li>Priority support</li>
-              </ul>
-              <button className="price-card-btn" onClick={() => handleCta('price-creator-btn', 'pricing')}>
-                Get Started
-              </button>
-            </div>
-            <div className="price-card">
-              <h3 className="price-card-name">Pro</h3>
-              <div className="price-card-price">$21</div>
-              <div className="price-card-period">per month</div>
-              <ul className="price-card-features">
-                <li>40 games per month</li>
-                <li>80 AI prompts per day</li>
-                <li>Unlimited plays</li>
-                <li>Share to Arcade</li>
-                <li>Priority support</li>
-              </ul>
-              <button className="price-card-btn" onClick={() => handleCta('price-pro-btn', 'pricing')}>
-                Get Started
-              </button>
-            </div>
+            {PRICING_PLANS.map((plan) => (
+              <div key={plan.id} className={`price-card${plan.featured ? ' featured' : ''}`}>
+                {plan.badge && <div className="price-card-badge">{plan.badge}</div>}
+                <h3 className="price-card-name">{plan.name}</h3>
+                <div className="price-card-price">{plan.price}</div>
+                <div className="price-card-period">{plan.period}</div>
+                <ul className="price-card-features">
+                  {plan.features.map((feature) => (
+                    <li key={feature}>{feature}</li>
+                  ))}
+                </ul>
+                <button className="price-card-btn" onClick={() => handleCta(`price-${plan.id}-btn`, 'pricing')}>
+                  {plan.id === 'trial' ? HERO_CONTENT.ctaLabel : 'Choose This Plan'}
+                </button>
+              </div>
+            ))}
           </div>
           <p className="pricing-esa-note">
             Arizona ESA family? <a href="/esa">Pay with your scholarship funds</a>
           </p>
         </section>
 
-        {/* Final CTA */}
         <section className="final-cta-section">
-          <h2>Your child can build a game today.</h2>
-          <p>Start free and let them create with AI.</p>
-          <button className="section-cta" onClick={() => handleCta('section-cta', 'final')}>
-            Get Started Free
+          <h2>Start your Free 30-Day Trial today</h2>
+          <p>Help your child turn an idea into a real playable game without needing to code.</p>
+          <button className="section-cta" onClick={() => handleCta('final-cta', 'final')}>
+            {HERO_CONTENT.ctaLabel}
           </button>
+          <p className="hero-cta-subtext final-cta-subtext">{HERO_CONTENT.ctaSubtext}</p>
         </section>
       </div>
 
@@ -535,7 +422,7 @@ export default function LandingPageB({ onLoginClick, onSignupClick }: LandingPag
             <h4>Parents</h4>
             <a href="/parent-portal">Parent Portal</a>
             <a href="/esa">ESA Families</a>
-            <a href="#parents">Safety</a>
+            <a href="#founder-story">Why parents trust it</a>
           </div>
           <div className="footer-col">
             <h4>Community</h4>
