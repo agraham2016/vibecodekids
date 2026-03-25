@@ -58,42 +58,54 @@ export default function LandingHero({ onPrimaryCta }: LandingHeroProps) {
         <h1 id="landing-hero-title" className="hero-headline">
           {HERO_CONTENT.headline}
         </h1>
+        <p className="hero-pattern-line">{HERO_CONTENT.patternInterrupt}</p>
         <p className="hero-subtitle">{HERO_CONTENT.subheadline}</p>
-
-        <div className="hero-proof-points" aria-label="Key product benefits">
-          {HERO_CONTENT.proofPoints.map((point) => (
-            <span key={point} className="hero-proof-chip">
-              {point}
-            </span>
-          ))}
-        </div>
 
         <div className="hero-buttons">
           <button className="btn-signup hero-primary-button" onClick={onPrimaryCta}>
             {HERO_CONTENT.ctaLabel}
           </button>
         </div>
-        <p className="hero-cta-subtext">{HERO_CONTENT.ctaSubtext}</p>
+        <div className="hero-cta-meta">
+          <p className="hero-cta-urgency">{HERO_CONTENT.ctaUrgency}</p>
+          <p className="hero-cta-subtext">{HERO_CONTENT.ctaSubtext}</p>
+        </div>
       </div>
 
       <div className="hero-visual" aria-label="Visual demonstration of how a child builds a game with AI">
-        {HERO_VISUAL_STEPS.map((item, index) => (
-          <article key={item.step} className="hero-visual-card">
-            <div className="hero-visual-card-top">
-              <span className="hero-visual-step">{item.step}</span>
-              <span className="hero-visual-step-dot" />
-            </div>
-            <h3>{item.title}</h3>
-            <p>{item.description}</p>
-            {renderVisualSurface(index)}
-            <div className="hero-visual-chip-row">
-              {item.chips.map((chip) => (
-                <span key={chip} className="hero-visual-chip">
-                  {chip}
-                </span>
-              ))}
-            </div>
-          </article>
+        <div className="hero-visual-shell">
+          <div className="hero-visual-intro">
+            <span className="hero-visual-kicker">See how it works at a glance</span>
+            <p>Type a game idea, watch it build, then play it right away.</p>
+          </div>
+          <div className="hero-visual-track">
+            {HERO_VISUAL_STEPS.map((item, index) => (
+              <article key={item.step} className="hero-visual-card">
+                <div className="hero-visual-card-top">
+                  <span className="hero-visual-step">{item.step}</span>
+                  <span className="hero-visual-step-dot" />
+                </div>
+                {renderVisualSurface(index)}
+                <h3>{item.title}</h3>
+                <p>{item.description}</p>
+                <div className="hero-visual-chip-row">
+                  {item.chips.map((chip) => (
+                    <span key={chip} className="hero-visual-chip">
+                      {chip}
+                    </span>
+                  ))}
+                </div>
+              </article>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="hero-proof-points" aria-label="Key product benefits">
+        {HERO_CONTENT.proofPoints.map((point) => (
+          <span key={point} className="hero-proof-chip">
+            {point}
+          </span>
         ))}
       </div>
     </section>

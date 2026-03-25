@@ -21,11 +21,11 @@ const FAQ_ITEMS = [
   },
   {
     q: 'What ages is this for?',
-    a: 'VibeCode Kidz is built for ages 7 to 18. Younger kids can start with simple ideas, and older kids can build more advanced projects.',
+    a: 'Vibe Code Kidz is built for ages 8 and up. Younger kids can start with simple ideas, and older kids can build more advanced projects.',
   },
   {
     q: 'Do kids actually learn to code?',
-    a: 'Yes. Kids can see and edit the code behind every game, which helps them learn logic, debugging, and how games are built.',
+    a: 'They learn by building real things. Kids can focus on creativity first, then explore how games work as their confidence grows.',
   },
   {
     q: 'Can I cancel anytime?',
@@ -143,7 +143,7 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
         <section className="pricing-section" id="pricing">
           <h2 className="section-heading">Simple plans after your Free 30-Day Trial</h2>
           <p className="section-subheading">
-            Start with the free trial first, then keep going only if your family loves it.
+            Start free, see if your child lights up, and only continue if it feels like a great fit for your family.
           </p>
           <div className="pricing-grid">
             {PRICING_PLANS.map((plan) => (
@@ -196,8 +196,8 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
         </section>
 
         <section className="final-cta-section">
-          <h2>Start your Free 30-Day Trial today</h2>
-          <p>Help your child turn an idea into a real playable game without needing to code.</p>
+          <h2>Let your kid create instead of just consume</h2>
+          <p>Give them a skill that builds creativity, confidence, and something real they can be proud of.</p>
           <button className="section-cta" onClick={() => handleCta('final-cta', 'final')}>
             {HERO_CONTENT.ctaLabel}
           </button>

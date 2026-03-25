@@ -396,8 +396,8 @@ export default function LandingPageB({ onLoginClick, onSignupClick }: LandingPag
         </section>
 
         <section className="final-cta-section">
-          <h2>Start your Free 30-Day Trial today</h2>
-          <p>Help your child turn an idea into a real playable game without needing to code.</p>
+          <h2>Let your kid create instead of just consume</h2>
+          <p>Give them a skill that actually builds something and a screen-time habit you can feel good about.</p>
           <button className="section-cta" onClick={() => handleCta('final-cta', 'final')}>
             {HERO_CONTENT.ctaLabel}
           </button>
