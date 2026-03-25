@@ -92,6 +92,13 @@ export function trackMetaLead(params?: Record<string, unknown>): void {
   window.fbq?.('track', 'Lead', params);
 }
 
+export function trackMetaLandingCta(section?: string, variant?: Variant): void {
+  window.fbq?.('trackCustom', 'LandingCTA', {
+    section: section || undefined,
+    variant: variant || undefined,
+  });
+}
+
 export function trackCheckoutStart(tier: 'creator' | 'pro', url?: string): void {
   sendEvent({
     type: 'checkout_start',

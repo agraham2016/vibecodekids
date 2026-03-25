@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { getVisitorId } from '../lib/abVariant';
-import { trackPageView, trackCtaClick } from '../lib/marketingEvents';
+import { trackPageView, trackCtaClick, trackMetaLandingCta } from '../lib/marketingEvents';
 import LandingHero from './LandingHero';
 import LandingCoreSections from './LandingCoreSections';
 import { HERO_CONTENT, PRICING_PLANS } from './landingContent';
@@ -158,6 +158,7 @@ export default function LandingPageB({ onLoginClick, onSignupClick }: LandingPag
   );
 
   const handleSignupFromGate = useCallback(() => {
+    trackMetaLandingCta('tryit', 'b');
     trackCtaClick('tryit-gate-signup', 'tryit', 'b');
     localStorage.setItem('vck_draft_code', currentCode);
     localStorage.setItem('vck_draft_prompt', generations[generations.length - 1]?.prompt || '');
@@ -167,6 +168,7 @@ export default function LandingPageB({ onLoginClick, onSignupClick }: LandingPag
 
   const handleCta = useCallback(
     (buttonId: string, section?: string) => {
+      trackMetaLandingCta(section, 'b');
       trackCtaClick(buttonId, section, 'b');
       onSignupClick();
     },

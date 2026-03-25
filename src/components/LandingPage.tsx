@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { trackPageView, trackCtaClick } from '../lib/marketingEvents';
+import { trackPageView, trackCtaClick, trackMetaLandingCta } from '../lib/marketingEvents';
 import LandingHero from './LandingHero';
 import LandingCoreSections from './LandingCoreSections';
 import { HERO_CONTENT, PRICING_PLANS } from './landingContent';
@@ -78,6 +78,7 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
   const handleCta = useCallback(
     (buttonId: string, section?: string) => {
       trackCtaClick(buttonId, section, 'a');
+      trackMetaLandingCta(section, 'a');
       onSignupClick();
     },
     [onSignupClick],
