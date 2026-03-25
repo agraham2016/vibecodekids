@@ -34,6 +34,7 @@ router.post('/event', async (req, res) => {
       referrer: rest.referrer || null,
       device: rest.device || null,
       sessionId: rest.sessionId || null,
+      variant: rest.variant || null,
       section: rest.section || null,
       buttonId: rest.buttonId || null,
       utm_source: rest.utm_source || null,
