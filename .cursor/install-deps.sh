@@ -20,7 +20,7 @@ if [ ! -f package.json ]; then
 fi
 
 lockfile="package-lock.json"
-stamp_dir=".cursor/cache"
+stamp_dir="node_modules/.cache/cursor"
 stamp_file="$stamp_dir/package-lock.sha256"
 
 mkdir -p "$stamp_dir"
@@ -46,12 +46,14 @@ fi
 if [ ! -d node_modules ]; then
   echo "[cursor-install] node_modules missing, running npm ci"
   npm ci
+  mkdir -p "$stamp_dir"
   printf '%s' "$current_lock_hash" > "$stamp_file"
   exit 0
 fi
 
 echo "[cursor-install] Lockfile changed, refreshing dependencies with npm ci"
 if npm ci --prefer-offline; then
+  mkdir -p "$stamp_dir"
   printf '%s' "$current_lock_hash" > "$stamp_file"
   exit 0
 fi
@@ -59,4 +61,5 @@ fi
 echo "[cursor-install] npm ci failed, clearing node_modules and retrying"
 rm -rf node_modules
 npm ci
+mkdir -p "$stamp_dir"
 printf '%s' "$current_lock_hash" > "$stamp_file"
