@@ -66,6 +66,7 @@ export default function LandingHero({ onPrimaryCta }: LandingHeroProps) {
           <span>{heroSubtitleLead.trim()}</span>
           {heroSubtitleTail ? <span>{`kids can ${heroSubtitleTail}`}</span> : null}
         </p>
+        <p className="hero-outcome-line">Instead of just playing games... your child will start creating them.</p>
 
         <div className="hero-buttons">
           <button className="btn-signup hero-primary-button" onClick={onPrimaryCta}>
@@ -73,15 +74,15 @@ export default function LandingHero({ onPrimaryCta }: LandingHeroProps) {
           </button>
         </div>
         <div className="hero-cta-meta">
+          <p className="hero-cta-subtext">No credit card required • Takes 60 seconds</p>
           <p className="hero-cta-urgency">{HERO_CONTENT.ctaUrgency}</p>
-          <p className="hero-cta-subtext">{HERO_CONTENT.ctaSubtext}</p>
         </div>
       </div>
 
       <div className="hero-visual" aria-label="Visual demonstration of how a child builds a game with AI">
         <div className="hero-visual-shell">
           <div className="hero-visual-intro">
-            <span className="hero-visual-kicker">See how it works at a glance</span>
+            <span className="hero-visual-kicker">Watch a game get created in seconds</span>
             <p>Type a game idea, watch it build, then play it right away.</p>
           </div>
           <div className="hero-visual-track">

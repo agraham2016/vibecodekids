@@ -113,8 +113,7 @@ export const BENEFIT_ITEMS: LandingBenefit[] = [
 
 export const FOUNDER_STORY = {
   title: 'Built by a teacher who wanted kids creating faster',
-  body:
-    'I created Vibe Code Kidz after teaching students how to use new tools and seeing the same thing over and over: they wanted to make games, but most software felt too technical. This was built so kids could start with imagination, get a quick win, and keep creating.',
+  body: 'I created Vibe Code Kidz after teaching students how to use new tools and seeing the same thing over and over: they wanted to make games, but most software felt too technical. This was built so kids could start with imagination, get a quick win, and keep creating.',
 };
 
 export const TRUST_POINTS: LandingTrustPoint[] = [
@@ -142,24 +141,24 @@ export const MID_PAGE_CTA = {
 
 export const CREATION_HIGHLIGHTS: LandingHighlight[] = [
   {
+    icon: '🕹️',
+    title: 'Mario-style platformers',
+    description: 'Kids build run-and-jump levels with coins, checkpoints, and their own creative twists.',
+  },
+  {
     icon: '🧗',
-    title: 'Obstacle courses',
-    description: 'Jump, dodge, and race through challenges kids invent themselves.',
+    title: 'Obstacle challenges',
+    description: 'Design dodge, jump, and survive courses that feel like the challenge games kids already love.',
   },
   {
     icon: '🏎️',
     title: 'Racing games',
-    description: 'Create fast tracks, power-ups, and wild themes that feel personal.',
+    description: 'Create fast tracks, boost pads, and fun themes that make every lap feel like their own idea.',
   },
   {
     icon: '⚔️',
-    title: 'Battle games',
-    description: 'Build action-packed challenges with custom goals, characters, and arenas.',
-  },
-  {
-    icon: '🕹️',
-    title: 'Platformers',
-    description: 'Design worlds to run, jump, collect, and explore in a game they made.',
+    title: 'Battle arenas',
+    description: 'Build action-packed arenas with custom goals, hazards, and characters they can test right away.',
   },
 ] as const;
 

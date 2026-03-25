@@ -2,12 +2,12 @@
 
 .landing-page {
   --landing-max-width: 1160px;
-  --landing-section-space: clamp(3.75rem, 7vw, 5rem);
-  --landing-section-space-mobile: clamp(2.75rem, 9vw, 3.75rem);
+  --landing-section-space: clamp(3.5rem, 6vw, 4.5rem);
+  --landing-section-space-mobile: clamp(2.15rem, 7vw, 3rem);
   --landing-section-padding-x: clamp(1.25rem, 3vw, 2.25rem);
-  --landing-surface-soft: rgba(255, 255, 255, 0.035);
-  --landing-surface-strong: rgba(255, 255, 255, 0.06);
-  --landing-surface-border: rgba(255, 255, 255, 0.08);
+  --landing-surface-soft: rgba(255, 255, 255, 0.032);
+  --landing-surface-strong: rgba(255, 255, 255, 0.085);
+  --landing-surface-border: rgba(255, 255, 255, 0.1);
   --landing-body-max: 62ch;
   --landing-copy-max: 34ch;
   --landing-cta-gradient: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
@@ -54,11 +54,11 @@
 }
 
 .section-subheading {
-  margin: 0 auto 34px;
+  margin: 0 auto 30px;
   max-width: min(46rem, 92%);
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 1.05rem;
-  line-height: 1.65;
+  color: rgba(255, 255, 255, 0.76);
+  font-size: 1.03rem;
+  line-height: 1.6;
   text-align: center;
   text-wrap: pretty;
 }
@@ -214,16 +214,16 @@
 .landing-hero {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: clamp(24px, 4vw, 48px);
-  align-items: center;
-  padding: clamp(2.75rem, 7vw, 5rem) 0 clamp(3.25rem, 6vw, 4.5rem);
+  gap: clamp(18px, 3vw, 34px);
+  align-items: start;
+  padding: clamp(2.35rem, 5vw, 4rem) 0 clamp(2.6rem, 5vw, 3.6rem);
 }
 
 .hero-copy {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 14px;
+  gap: 10px;
   max-width: 34rem;
 }
 
@@ -244,7 +244,7 @@
 .hero-headline {
   margin: 0;
   font-size: clamp(2.35rem, 4.2vw, 4.2rem);
-  line-height: 1.04;
+  line-height: 1.02;
   font-weight: 900;
   max-width: 11.5ch;
   text-wrap: balance;
@@ -253,8 +253,8 @@
 .hero-pattern-line {
   margin: 0;
   color: #f5d0fe;
-  font-size: 1.05rem;
-  line-height: 1.4;
+  font-size: 1rem;
+  line-height: 1.35;
   font-weight: 800;
   max-width: 24ch;
   text-wrap: pretty;
@@ -263,14 +263,24 @@
 .hero-subtitle {
   margin: 0;
   max-width: var(--landing-copy-max);
-  color: rgba(255, 255, 255, 0.8);
-  font-size: 1.2rem;
-  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.84);
+  font-size: 1.16rem;
+  line-height: 1.5;
   text-wrap: pretty;
 }
 
 .hero-subtitle span {
   display: block;
+}
+
+.hero-outcome-line {
+  margin: 2px 0 0;
+  color: #fdf2f8;
+  font-size: 1rem;
+  line-height: 1.45;
+  font-weight: 700;
+  max-width: 32ch;
+  text-wrap: pretty;
 }
 
 .hero-proof-points {
@@ -299,7 +309,7 @@
 .hero-buttons {
   display: flex;
   width: 100%;
-  margin-top: 8px;
+  margin-top: 6px;
 }
 
 .hero-primary-button,
@@ -311,26 +321,38 @@
   min-height: 60px;
 }
 
+.hero-primary-button {
+  min-width: 360px;
+  min-height: 68px;
+  padding: 18px 34px;
+  font-size: 1.24rem;
+  box-shadow:
+    0 28px 60px rgba(236, 72, 153, 0.28),
+    0 0 0 1px rgba(255, 255, 255, 0.18) inset,
+    0 0 0 3px rgba(255, 255, 255, 0.08);
+}
+
 .hero-cta-meta {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 }
 
 .hero-cta-urgency {
   margin: 0;
-  color: #fdf2f8;
-  font-size: 0.98rem;
-  font-weight: 800;
+  color: rgba(255, 255, 255, 0.76);
+  font-size: 0.93rem;
+  font-weight: 700;
 }
 
 .hero-cta-subtext,
 .mid-cta-subtext,
 .final-cta-subtext {
   margin: 0;
-  color: rgba(255, 255, 255, 0.68);
-  font-size: 0.95rem;
-  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 0.96rem;
+  line-height: 1.45;
+  font-weight: 700;
   text-wrap: pretty;
 }
 
@@ -358,8 +380,8 @@
 .hero-visual-shell {
   display: flex;
   flex-direction: column;
-  gap: 18px;
-  padding: 24px;
+  gap: 14px;
+  padding: 22px;
   border-radius: 28px;
   overflow: hidden;
 }
@@ -367,23 +389,23 @@
 .hero-visual-intro {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   max-width: var(--landing-body-max);
 }
 
 .hero-visual-kicker {
-  color: #d8b4fe;
-  font-size: 0.78rem;
+  color: #f5d0fe;
+  font-size: 0.84rem;
   font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  text-transform: none;
 }
 
 .hero-visual-intro p {
   margin: 0;
-  color: rgba(255, 255, 255, 0.76);
-  font-size: 0.98rem;
-  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.96rem;
+  line-height: 1.5;
   text-wrap: pretty;
 }
 
@@ -402,7 +424,7 @@
 .hero-visual-card {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 9px;
   padding: 16px;
   border-radius: 22px;
   min-height: 100%;
@@ -674,6 +696,12 @@
   text-wrap: balance;
 }
 
+.parent-card h3,
+.price-card-name {
+  font-size: 1.16rem;
+  line-height: 1.3;
+}
+
 .step-title {
   font-size: 1.18rem;
 }
@@ -700,11 +728,14 @@
 .creation-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 20px;
+  gap: 22px;
 }
 
 .creation-card {
   min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .objection-section {
@@ -1031,6 +1062,13 @@
       0 22px 44px rgba(139, 92, 246, 0.34),
       0 0 0 1px rgba(255, 255, 255, 0.1) inset;
   }
+
+  .hero-primary-button:hover {
+    box-shadow:
+      0 30px 66px rgba(236, 72, 153, 0.34),
+      0 0 0 1px rgba(255, 255, 255, 0.22) inset,
+      0 0 0 3px rgba(255, 255, 255, 0.1);
+  }
 }
 
 @media (max-width: 1024px) {
@@ -1044,6 +1082,10 @@
 
   .hero-copy {
     max-width: 100%;
+  }
+
+  .hero-primary-button {
+    min-width: 340px;
   }
 
   .steps-row,
@@ -1067,6 +1109,7 @@
 @media (max-width: 960px) {
   .landing-hero {
     grid-template-columns: 1fr;
+    gap: 16px;
   }
 
   .hero-copy {
@@ -1077,6 +1120,7 @@
 
   .hero-pattern-line,
   .hero-subtitle,
+  .hero-outcome-line,
   .hero-cta-subtext {
     margin-inline: auto;
   }
@@ -1111,14 +1155,14 @@
   }
 
   .landing-hero {
-    gap: 20px;
-    padding: 28px 0 36px;
+    gap: 16px;
+    padding: 18px 0 24px;
   }
 
   .hero-copy {
     width: 100%;
     max-width: 24rem;
-    gap: 12px;
+    gap: 9px;
   }
 
   .hero-headline {
@@ -1132,6 +1176,10 @@
 
   .hero-subtitle {
     font-size: 1.06rem;
+  }
+
+  .hero-outcome-line {
+    font-size: 0.94rem;
   }
 
   .hero-pattern-line,
@@ -1182,7 +1230,13 @@
   .tryit-go-btn,
   .tryit-gate-signup {
     min-width: 0;
-    min-height: 56px;
+    min-height: 58px;
+  }
+
+  .hero-primary-button {
+    min-height: 62px;
+    padding: 16px 26px;
+    font-size: 1.16rem;
   }
 
   .steps-row,
@@ -1233,7 +1287,7 @@
 
   .hero-visual-shell,
   .objection-card {
-    padding: 20px;
+    padding: 18px;
   }
 
   .faq-question {
@@ -1277,8 +1331,13 @@
     font-size: 0.98rem;
   }
 
+  .hero-outcome-line {
+    font-size: 0.9rem;
+    max-width: 26ch;
+  }
+
   .hero-visual-shell {
-    gap: 14px;
+    gap: 12px;
     padding: 16px;
   }
 
