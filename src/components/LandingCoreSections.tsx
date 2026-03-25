@@ -14,6 +14,8 @@ interface LandingCoreSectionsProps {
 }
 
 export default function LandingCoreSections({ onCta }: LandingCoreSectionsProps) {
+  const [founderStoryLead, founderStoryFollowUp] = FOUNDER_STORY.body.split(' This was built so ');
+
   return (
     <>
       <section className="how-it-works" id="how-it-works">
@@ -108,7 +110,8 @@ export default function LandingCoreSections({ onCta }: LandingCoreSectionsProps)
           An authentic story for parents who want AI to feel creative, safe, and easy to understand.
         </p>
         <div className="founder-story-card">
-          <p>{FOUNDER_STORY.body}</p>
+          <p>{founderStoryLead}</p>
+          {founderStoryFollowUp ? <p>{`This was built so ${founderStoryFollowUp}`}</p> : null}
         </div>
         <div className="founder-story-points">
           {TRUST_POINTS.map((point) => (

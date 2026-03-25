@@ -51,6 +51,9 @@ function renderVisualSurface(index: number) {
 }
 
 export default function LandingHero({ onPrimaryCta }: LandingHeroProps) {
+  const [heroSubtitleLead, ...heroSubtitleRest] = HERO_CONTENT.subheadline.split(' kids can ');
+  const heroSubtitleTail = heroSubtitleRest.join(' kids can ');
+
   return (
     <section className="landing-hero" aria-labelledby="landing-hero-title">
       <div className="hero-copy">
@@ -59,7 +62,10 @@ export default function LandingHero({ onPrimaryCta }: LandingHeroProps) {
           {HERO_CONTENT.headline}
         </h1>
         <p className="hero-pattern-line">{HERO_CONTENT.patternInterrupt}</p>
-        <p className="hero-subtitle">{HERO_CONTENT.subheadline}</p>
+        <p className="hero-subtitle">
+          <span>{heroSubtitleLead.trim()}</span>
+          {heroSubtitleTail ? <span>{`kids can ${heroSubtitleTail}`}</span> : null}
+        </p>
 
         <div className="hero-buttons">
           <button className="btn-signup hero-primary-button" onClick={onPrimaryCta}>

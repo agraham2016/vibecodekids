@@ -1,6 +1,19 @@
 /* Landing page — CRO refresh */
 
 .landing-page {
+  --landing-max-width: 1160px;
+  --landing-section-space: clamp(3.75rem, 7vw, 5rem);
+  --landing-section-space-mobile: clamp(2.75rem, 9vw, 3.75rem);
+  --landing-section-padding-x: clamp(1.25rem, 3vw, 2.25rem);
+  --landing-surface-soft: rgba(255, 255, 255, 0.035);
+  --landing-surface-strong: rgba(255, 255, 255, 0.06);
+  --landing-surface-border: rgba(255, 255, 255, 0.08);
+  --landing-body-max: 62ch;
+  --landing-copy-max: 34ch;
+  --landing-cta-gradient: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+  --landing-cta-shadow:
+    0 18px 40px rgba(236, 72, 153, 0.24),
+    0 0 0 1px rgba(255, 255, 255, 0.08) inset;
   min-height: 100vh;
   position: relative;
   color: #fff;
@@ -20,17 +33,18 @@
 .landing-content {
   position: relative;
   z-index: 1;
-  width: min(1160px, calc(100% - 32px));
+  width: min(var(--landing-max-width), calc(100% - 40px));
   margin: 0 auto;
-  padding: 0 0 48px;
+  padding: 0 0 56px;
 }
 
 .section-heading {
-  margin: 0 0 10px;
-  font-size: clamp(2rem, 3vw, 2.6rem);
-  line-height: 1.12;
+  margin: 0 0 14px;
+  font-size: clamp(2rem, 3vw, 2.7rem);
+  line-height: 1.08;
   font-weight: 800;
   text-align: center;
+  text-wrap: balance;
   background: linear-gradient(135deg, #fff 0%, #d8b4fe 55%, #f9a8d4 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -38,12 +52,13 @@
 }
 
 .section-subheading {
-  margin: 0 auto 28px;
-  max-width: 720px;
+  margin: 0 auto 34px;
+  max-width: min(46rem, 92%);
   color: rgba(255, 255, 255, 0.7);
   font-size: 1.05rem;
-  line-height: 1.6;
+  line-height: 1.65;
   text-align: center;
+  text-wrap: pretty;
 }
 
 .section-cta,
@@ -53,30 +68,55 @@
 .tryit-intro-cta,
 .tryit-go-btn,
 .tryit-gate-signup {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   border: none;
   color: #fff;
   font-weight: 800;
   cursor: pointer;
-  background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
-  box-shadow: 0 12px 30px rgba(139, 92, 246, 0.28);
+  min-height: 54px;
+  padding: 14px 28px;
+  border-radius: 18px;
+  font-size: 1rem;
+  letter-spacing: 0.01em;
+  background: var(--landing-cta-gradient);
+  box-shadow: var(--landing-cta-shadow);
   transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
 }
 
-.section-cta:hover,
-.btn-signup:hover,
-.nav-cta:hover,
-.price-card-btn:hover,
-.tryit-intro-cta:hover,
-.tryit-go-btn:hover,
-.tryit-gate-signup:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 16px 36px rgba(139, 92, 246, 0.38);
+.section-cta:active,
+.btn-signup:active,
+.nav-cta:active,
+.price-card-btn:active,
+.tryit-intro-cta:active,
+.tryit-go-btn:active,
+.tryit-gate-signup:active {
+  transform: translateY(0) scale(0.985);
+}
+
+.section-cta:focus-visible,
+.btn-signup:focus-visible,
+.nav-cta:focus-visible,
+.price-card-btn:focus-visible,
+.tryit-intro-cta:focus-visible,
+.tryit-go-btn:focus-visible,
+.tryit-gate-signup:focus-visible,
+.nav-links a:focus-visible,
+.footer-col a:focus-visible,
+.pricing-esa-note a:focus-visible,
+.faq-question:focus-visible,
+.tryit-preset-btn:focus-visible,
+.tryit-thumb-btn:focus-visible,
+.tryit-input:focus-visible {
+  outline: 3px solid rgba(244, 114, 182, 0.95);
+  outline-offset: 3px;
 }
 
 .section-cta {
-  padding: 16px 34px;
-  border-radius: 16px;
-  font-size: 1.02rem;
+  margin-top: 10px;
+  margin-bottom: 10px;
 }
 
 .landing-nav {
@@ -97,7 +137,7 @@
 }
 
 .nav-inner {
-  width: min(1160px, 100%);
+  width: min(var(--landing-max-width), 100%);
   margin: 0 auto;
   display: flex;
   align-items: center;
@@ -136,6 +176,12 @@
   font-weight: 600;
 }
 
+.nav-links a,
+.footer-col a,
+.pricing-esa-note a {
+  border-radius: 12px;
+}
+
 .nav-links a:hover,
 .footer-col a:hover,
 .pricing-esa-note a:hover,
@@ -160,24 +206,23 @@
 }
 
 .nav-cta {
-  padding: 10px 18px;
-  border-radius: 999px;
-  font-size: 0.9rem;
+  white-space: nowrap;
 }
 
 .landing-hero {
   display: grid;
-  grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
-  gap: 28px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: clamp(24px, 4vw, 48px);
   align-items: center;
-  padding: 42px 0 48px;
+  padding: clamp(2.75rem, 7vw, 5rem) 0 clamp(3.25rem, 6vw, 4.5rem);
 }
 
 .hero-copy {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 16px;
+  gap: 14px;
+  max-width: 34rem;
 }
 
 .hero-badge {
@@ -199,23 +244,31 @@
   font-size: clamp(2.35rem, 4.2vw, 4.2rem);
   line-height: 1.04;
   font-weight: 900;
-  max-width: 620px;
+  max-width: 11.5ch;
+  text-wrap: balance;
 }
 
 .hero-pattern-line {
-  margin: -4px 0 0;
+  margin: 0;
   color: #f5d0fe;
   font-size: 1.05rem;
-  line-height: 1.45;
+  line-height: 1.4;
   font-weight: 800;
+  max-width: 24ch;
+  text-wrap: pretty;
 }
 
 .hero-subtitle {
   margin: 0;
-  max-width: 560px;
+  max-width: var(--landing-copy-max);
   color: rgba(255, 255, 255, 0.8);
   font-size: 1.2rem;
   line-height: 1.55;
+  text-wrap: pretty;
+}
+
+.hero-subtitle span {
+  display: block;
 }
 
 .hero-proof-points {
@@ -224,6 +277,7 @@
   gap: 10px;
   justify-content: center;
   grid-column: 1 / -1;
+  margin-top: 8px;
 }
 
 .hero-proof-chip,
@@ -243,6 +297,7 @@
 .hero-buttons {
   display: flex;
   width: 100%;
+  margin-top: 8px;
 }
 
 .hero-primary-button,
@@ -250,18 +305,14 @@
   width: auto;
   min-width: 320px;
   justify-content: center;
-  padding: 20px 32px;
-  border-radius: 18px;
   font-size: 1.14rem;
-  box-shadow:
-    0 18px 40px rgba(236, 72, 153, 0.28),
-    0 0 0 1px rgba(255, 255, 255, 0.08) inset;
+  min-height: 60px;
 }
 
 .hero-cta-meta {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
 
 .hero-cta-urgency {
@@ -277,6 +328,8 @@
   margin: 0;
   color: rgba(255, 255, 255, 0.68);
   font-size: 0.95rem;
+  line-height: 1.55;
+  text-wrap: pretty;
 }
 
 .hero-visual {
@@ -303,7 +356,7 @@
   display: flex;
   flex-direction: column;
   gap: 18px;
-  padding: 20px;
+  padding: 24px;
   border-radius: 28px;
 }
 
@@ -311,6 +364,7 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+  max-width: var(--landing-body-max);
 }
 
 .hero-visual-kicker {
@@ -326,6 +380,7 @@
   color: rgba(255, 255, 255, 0.76);
   font-size: 0.98rem;
   line-height: 1.55;
+  text-wrap: pretty;
 }
 
 .hero-visual-track {
@@ -370,6 +425,7 @@
   margin: 0;
   font-size: 1.02rem;
   line-height: 1.35;
+  text-wrap: balance;
 }
 
 .hero-visual-card p {
@@ -377,6 +433,7 @@
   color: rgba(255, 255, 255, 0.7);
   font-size: 0.92rem;
   line-height: 1.55;
+  text-wrap: pretty;
 }
 
 .hero-demo-surface {
@@ -402,6 +459,7 @@
   color: #fff;
   font-size: 0.88rem;
   line-height: 1.45;
+  text-wrap: pretty;
 }
 
 .hero-demo-note,
@@ -517,9 +575,42 @@
 .objection-section,
 .founder-story-section,
 .pricing-section,
-.faq-section {
+.faq-section,
+.tryit-section,
+.final-cta-section {
   width: 100%;
-  padding: 36px 0 44px;
+  padding: var(--landing-section-space) var(--landing-section-padding-x);
+  border-radius: 32px;
+  border: 1px solid var(--landing-surface-border);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.how-it-works,
+.creation-showcase-section,
+.founder-story-section,
+.faq-section,
+.tryit-section {
+  background: var(--landing-surface-soft);
+}
+
+.benefits-section,
+.objection-section,
+.pricing-section,
+.final-cta-section {
+  background: var(--landing-surface-strong);
+}
+
+.how-it-works,
+.benefits-section,
+.creation-showcase-section,
+.objection-section,
+.founder-story-section,
+.pricing-section,
+.faq-section,
+.tryit-section {
+  content-visibility: auto;
+  contain-intrinsic-size: 1px 760px;
 }
 
 .steps-row,
@@ -527,13 +618,13 @@
 .founder-story-points {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 18px;
+  gap: 20px;
 }
 
 .step-card,
 .parent-card {
   border-radius: 22px;
-  padding: 26px 22px;
+  padding: 28px 24px;
 }
 
 .step-card {
@@ -567,13 +658,14 @@
 .price-card-name,
 .mid-cta-card h2,
 .final-cta-section h2 {
-  margin: 0 0 10px;
+  margin: 0 0 12px;
   color: #fff;
   font-weight: 800;
+  text-wrap: balance;
 }
 
 .step-title {
-  font-size: 1.15rem;
+  font-size: 1.18rem;
 }
 
 .step-desc,
@@ -587,17 +679,18 @@
   margin: 0;
   color: rgba(255, 255, 255, 0.68);
   line-height: 1.6;
+  text-wrap: pretty;
 }
 
 .mid-cta-section {
   width: 100%;
-  padding: 8px 0 38px;
+  padding: clamp(1rem, 2vw, 1.5rem) 0;
 }
 
 .creation-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 18px;
+  gap: 20px;
 }
 
 .creation-card {
@@ -605,7 +698,7 @@
 }
 
 .objection-section {
-  padding-top: 6px;
+  padding-top: var(--landing-section-space);
 }
 
 .objection-card {
@@ -621,17 +714,20 @@
 }
 
 .objection-copy h2 {
-  margin: 0 0 10px;
+  margin: 0 0 12px;
   color: #fff;
   font-size: clamp(1.7rem, 3vw, 2.3rem);
   line-height: 1.15;
   font-weight: 800;
+  text-wrap: balance;
 }
 
 .objection-copy p {
   margin: 0;
   color: rgba(255, 255, 255, 0.7);
   line-height: 1.6;
+  max-width: 32ch;
+  text-wrap: pretty;
 }
 
 .objection-list {
@@ -644,7 +740,7 @@
 
 .objection-list li {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 12px;
   padding: 14px 16px;
   border-radius: 18px;
@@ -652,6 +748,7 @@
   border: 1px solid rgba(255, 255, 255, 0.08);
   color: rgba(255, 255, 255, 0.9);
   font-weight: 700;
+  line-height: 1.5;
 }
 
 .objection-check {
@@ -671,7 +768,7 @@
 .mid-cta-card,
 .final-cta-section {
   border-radius: 28px;
-  padding: 34px 28px;
+  padding: clamp(2rem, 5vw, 3rem) clamp(1.5rem, 4vw, 2.5rem);
   text-align: center;
   background: linear-gradient(135deg, rgba(139, 92, 246, 0.18), rgba(236, 72, 153, 0.14));
 }
@@ -686,6 +783,8 @@
   margin: 0 auto 20px;
   padding: 28px;
   border-radius: 24px;
+  display: grid;
+  gap: 14px;
 }
 
 .benefit-card {
@@ -707,7 +806,7 @@
 .pricing-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 18px;
+  gap: 20px;
 }
 
 .price-card {
@@ -716,7 +815,7 @@
   flex-direction: column;
   align-items: stretch;
   border-radius: 24px;
-  padding: 32px 24px 24px;
+  padding: 34px 24px 24px;
   text-align: left;
 }
 
@@ -757,9 +856,11 @@
 
 .price-card-features li {
   display: flex;
+  align-items: flex-start;
   gap: 8px;
-  padding: 9px 0;
+  padding: 10px 0;
   font-size: 0.92rem;
+  line-height: 1.55;
   color: rgba(255, 255, 255, 0.78);
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
@@ -773,9 +874,6 @@
 .price-card-btn {
   width: 100%;
   margin-top: auto;
-  padding: 14px 16px;
-  border-radius: 14px;
-  font-size: 0.96rem;
 }
 
 .pricing-esa-note {
@@ -787,7 +885,7 @@
 .faq-list {
   max-width: 860px;
   margin: 0 auto;
-  padding: 10px 24px;
+  padding: 12px 24px;
   border-radius: 24px;
 }
 
@@ -802,15 +900,16 @@
 .faq-question {
   all: unset;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   width: 100%;
-  padding: 20px 0;
+  padding: 22px 0;
   cursor: pointer;
   box-sizing: border-box;
   color: #fff;
   font-size: 1.02rem;
   font-weight: 700;
+  line-height: 1.5;
 }
 
 .faq-toggle {
@@ -821,22 +920,30 @@
 
 .faq-answer {
   padding: 0 0 20px;
+  max-width: 62ch;
 }
 
 .final-cta-section {
-  margin-top: 10px;
+  margin-top: 12px;
+}
+
+.final-cta-section p,
+.mid-cta-card p {
+  max-width: 34ch;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .landing-footer-full {
   position: relative;
   z-index: 1;
   width: 100%;
-  padding: 42px 24px 26px;
+  padding: 48px 24px 30px;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .footer-inner {
-  width: min(1160px, 100%);
+  width: min(var(--landing-max-width), 100%);
   margin: 0 auto;
   display: grid;
   grid-template-columns: 1.5fr repeat(4, 1fr);
@@ -880,7 +987,7 @@
 }
 
 .footer-bottom {
-  width: min(1160px, 100%);
+  width: min(var(--landing-max-width), 100%);
   margin: 26px auto 0;
   padding-top: 18px;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
@@ -901,18 +1008,32 @@
   }
 }
 
+@media (hover: hover) and (pointer: fine) {
+  .section-cta:hover,
+  .btn-signup:hover,
+  .nav-cta:hover,
+  .price-card-btn:hover,
+  .tryit-intro-cta:hover,
+  .tryit-go-btn:hover,
+  .tryit-gate-signup:hover {
+    transform: translateY(-2px);
+    box-shadow:
+      0 22px 44px rgba(139, 92, 246, 0.34),
+      0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+  }
+}
+
 @media (max-width: 1024px) {
+  .landing-content {
+    width: min(var(--landing-max-width), calc(100% - 32px));
+  }
+
   .landing-hero {
-    grid-template-columns: 1fr;
+    gap: 24px;
   }
 
   .hero-copy {
-    align-items: center;
-    text-align: center;
-  }
-
-  .hero-buttons {
-    justify-content: center;
+    max-width: 100%;
   }
 
   .steps-row,
@@ -933,13 +1054,37 @@
   }
 }
 
+@media (max-width: 960px) {
+  .landing-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .hero-copy {
+    align-items: center;
+    text-align: center;
+    margin-inline: auto;
+  }
+
+  .hero-pattern-line,
+  .hero-subtitle,
+  .hero-cta-subtext {
+    margin-inline: auto;
+  }
+
+  .hero-buttons,
+  .hero-proof-points {
+    justify-content: center;
+  }
+}
+
 @media (max-width: 768px) {
   .landing-content {
-    width: min(100%, calc(100% - 28px));
+    width: min(90vw, calc(100% - 24px));
+    padding-bottom: 40px;
   }
 
   .landing-nav {
-    padding: 10px 14px;
+    padding: 12px 16px;
     background: rgba(8, 4, 18, 0.94);
   }
 
@@ -956,7 +1101,13 @@
   }
 
   .landing-hero {
-    padding: 26px 0 36px;
+    gap: 20px;
+    padding: 28px 0 36px;
+  }
+
+  .hero-copy {
+    width: min(100%, 90vw);
+    gap: 12px;
   }
 
   .hero-headline {
@@ -971,10 +1122,22 @@
     font-size: 1.06rem;
   }
 
+  .hero-pattern-line,
+  .hero-subtitle,
+  .section-subheading,
+  .objection-copy p,
+  .mid-cta-card p,
+  .final-cta-section p,
+  .founder-story-card p,
+  .faq-answer,
+  .tryit-ai-message {
+    max-width: 30ch;
+  }
+
   .hero-visual-track {
     display: grid;
     grid-auto-flow: column;
-    grid-auto-columns: minmax(220px, 1fr);
+    grid-auto-columns: minmax(240px, 78vw);
     grid-template-columns: none;
     overflow-x: auto;
     padding-bottom: 6px;
@@ -989,13 +1152,22 @@
   .hero-primary-button,
   .btn-signup,
   .section-cta,
-  .price-card-btn {
+  .price-card-btn,
+  .tryit-intro-cta,
+  .tryit-go-btn,
+  .tryit-gate-signup {
     width: 100%;
   }
 
   .hero-primary-button,
-  .btn-signup {
+  .btn-signup,
+  .section-cta,
+  .price-card-btn,
+  .tryit-intro-cta,
+  .tryit-go-btn,
+  .tryit-gate-signup {
     min-width: 0;
+    min-height: 56px;
   }
 
   .steps-row,
@@ -1021,12 +1193,13 @@
   .objection-section,
   .founder-story-section,
   .pricing-section,
-  .faq-section {
-    padding: 26px 0 34px;
+  .faq-section,
+  .tryit-section,
+  .final-cta-section {
+    padding: var(--landing-section-space-mobile) 20px;
   }
 
   .mid-cta-card,
-  .final-cta-section,
   .hero-visual-card,
   .step-card,
   .parent-card,
@@ -1047,11 +1220,15 @@
   .objection-card {
     padding: 20px;
   }
+
+  .faq-question {
+    padding: 18px 0;
+  }
 }
 
 @media (max-width: 480px) {
   .landing-content {
-    width: min(100%, calc(100% - 20px));
+    width: 90vw;
   }
 
   .nav-inner {
@@ -1067,7 +1244,6 @@
   }
 
   .nav-cta {
-    padding: 10px 14px;
     font-size: 0.82rem;
   }
 
@@ -1095,7 +1271,7 @@
   }
 
   .hero-visual-track {
-    grid-auto-columns: minmax(198px, 82%);
+    grid-auto-columns: minmax(198px, 84%);
   }
 
   .hero-demo-surface {
@@ -1108,6 +1284,18 @@
 
   .objection-card {
     padding: 18px;
+  }
+
+  .how-it-works,
+  .benefits-section,
+  .creation-showcase-section,
+  .objection-section,
+  .founder-story-section,
+  .pricing-section,
+  .faq-section,
+  .tryit-section,
+  .final-cta-section {
+    padding-inline: 16px;
   }
 
   .footer-inner {
