@@ -209,7 +209,13 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
       <footer className="landing-footer-full">
         <div className="footer-inner">
           <div className="footer-col">
-            <img src="/images/logo.png?v=3" alt="VibeCode Kidz" className="footer-logo" />
+            <img
+              src="/images/logo.png?v=3"
+              alt="VibeCode Kidz"
+              className="footer-logo"
+              loading="lazy"
+              decoding="async"
+            />
             <p className="footer-tagline">
               AI-powered game creation for kids ages <span className="footer-tagline-nowrap">7-18</span>
             </p>
