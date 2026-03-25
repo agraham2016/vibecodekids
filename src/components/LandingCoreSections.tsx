@@ -1,9 +1,11 @@
 import {
   BENEFIT_ITEMS,
+  CREATION_HIGHLIGHTS,
   FOUNDER_STORY,
   HERO_CONTENT,
   HOW_IT_WORKS_STEPS,
   MID_PAGE_CTA,
+  PARENT_REASSURANCE_POINTS,
   TRUST_POINTS,
 } from './landingContent';
 
@@ -57,6 +59,46 @@ export default function LandingCoreSections({ onCta }: LandingCoreSectionsProps)
             {HERO_CONTENT.ctaLabel}
           </button>
           <p className="mid-cta-subtext">{HERO_CONTENT.ctaSubtext}</p>
+        </div>
+      </section>
+
+      <section className="creation-showcase-section" id="what-kids-create">
+        <h2 className="section-heading">What kids are creating</h2>
+        <p className="section-subheading">
+          Parents do not have to imagine the outcome. Kids can create the kinds of games they already love to play.
+        </p>
+        <div className="creation-grid">
+          {CREATION_HIGHLIGHTS.map((item) => (
+            <div key={item.title} className="parent-card creation-card">
+              <span className="parent-card-icon" aria-hidden="true">
+                {item.icon}
+              </span>
+              <h3>{item.title}</h3>
+              <p>{item.description}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="objection-section" id="designed-for-kids">
+        <div className="objection-card">
+          <div className="objection-copy">
+            <h2>Designed for kids (not developers)</h2>
+            <p>
+              This is built so families can get from curiosity to creation fast, without setup, downloads, or technical
+              friction.
+            </p>
+          </div>
+          <ul className="objection-list" aria-label="Parent reassurance points">
+            {PARENT_REASSURANCE_POINTS.map((item) => (
+              <li key={item.text}>
+                <span className="objection-check" aria-hidden="true">
+                  {item.icon}
+                </span>
+                <span>{item.text}</span>
+              </li>
+            ))}
+          </ul>
         </div>
       </section>
 

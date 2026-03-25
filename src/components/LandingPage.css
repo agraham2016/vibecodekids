@@ -202,6 +202,14 @@
   max-width: 620px;
 }
 
+.hero-pattern-line {
+  margin: -4px 0 0;
+  color: #f5d0fe;
+  font-size: 1.05rem;
+  line-height: 1.45;
+  font-weight: 800;
+}
+
 .hero-subtitle {
   margin: 0;
   max-width: 560px;
@@ -214,6 +222,8 @@
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+  justify-content: center;
+  grid-column: 1 / -1;
 }
 
 .hero-proof-chip,
@@ -238,11 +248,27 @@
 .hero-primary-button,
 .btn-signup {
   width: auto;
-  min-width: 280px;
+  min-width: 320px;
   justify-content: center;
-  padding: 18px 28px;
+  padding: 20px 32px;
   border-radius: 18px;
-  font-size: 1.1rem;
+  font-size: 1.14rem;
+  box-shadow:
+    0 18px 40px rgba(236, 72, 153, 0.28),
+    0 0 0 1px rgba(255, 255, 255, 0.08) inset;
+}
+
+.hero-cta-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hero-cta-urgency {
+  margin: 0;
+  color: #fdf2f8;
+  font-size: 0.98rem;
+  font-weight: 800;
 }
 
 .hero-cta-subtext,
@@ -254,12 +280,10 @@
 }
 
 .hero-visual {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
+  width: 100%;
 }
 
-.hero-visual-card,
+.hero-visual-shell,
 .step-card,
 .parent-card,
 .price-card,
@@ -275,13 +299,50 @@
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.18);
 }
 
+.hero-visual-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 20px;
+  border-radius: 28px;
+}
+
+.hero-visual-intro {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.hero-visual-kicker {
+  color: #d8b4fe;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.hero-visual-intro p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.76);
+  font-size: 0.98rem;
+  line-height: 1.55;
+}
+
+.hero-visual-track {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
 .hero-visual-card {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 18px;
-  border-radius: 24px;
+  gap: 10px;
+  padding: 16px;
+  border-radius: 22px;
   min-height: 100%;
+  background: rgba(8, 4, 18, 0.56);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .hero-visual-card-top {
@@ -319,11 +380,11 @@
 }
 
 .hero-demo-surface {
-  min-height: 150px;
-  border-radius: 18px;
+  min-height: 132px;
+  border-radius: 16px;
   background: rgba(10, 5, 24, 0.88);
   border: 1px solid rgba(167, 139, 250, 0.22);
-  padding: 16px;
+  padding: 14px;
 }
 
 .hero-demo-prompt,
@@ -335,12 +396,12 @@
 }
 
 .hero-demo-bubble {
-  padding: 14px;
+  padding: 12px;
   border-radius: 16px 16px 16px 6px;
   background: linear-gradient(135deg, rgba(139, 92, 246, 0.26), rgba(236, 72, 153, 0.22));
   color: #fff;
-  font-size: 0.92rem;
-  line-height: 1.5;
+  font-size: 0.88rem;
+  line-height: 1.45;
 }
 
 .hero-demo-note,
@@ -452,6 +513,8 @@
 
 .how-it-works,
 .benefits-section,
+.creation-showcase-section,
+.objection-section,
 .founder-story-section,
 .pricing-section,
 .faq-section {
@@ -529,6 +592,80 @@
 .mid-cta-section {
   width: 100%;
   padding: 8px 0 38px;
+}
+
+.creation-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.creation-card {
+  min-height: 100%;
+}
+
+.objection-section {
+  padding-top: 6px;
+}
+
+.objection-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+  gap: 22px;
+  align-items: center;
+  border-radius: 28px;
+  padding: 28px;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.12), rgba(236, 72, 153, 0.1));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.18);
+}
+
+.objection-copy h2 {
+  margin: 0 0 10px;
+  color: #fff;
+  font-size: clamp(1.7rem, 3vw, 2.3rem);
+  line-height: 1.15;
+  font-weight: 800;
+}
+
+.objection-copy p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.6;
+}
+
+.objection-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 12px;
+}
+
+.objection-list li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: rgba(8, 4, 18, 0.52);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 700;
+}
+
+.objection-check {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 900;
+  flex-shrink: 0;
 }
 
 .mid-cta-card,
@@ -778,16 +915,17 @@
     justify-content: center;
   }
 
-  .hero-visual {
-    grid-template-columns: 1fr;
-  }
-
   .steps-row,
   .parent-grid,
+  .creation-grid,
   .founder-story-points,
   .pricing-grid,
   .footer-inner {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .objection-card {
+    grid-template-columns: 1fr;
   }
 
   .footer-inner {
@@ -825,8 +963,26 @@
     font-size: clamp(2rem, 8vw, 2.8rem);
   }
 
+  .hero-pattern-line {
+    font-size: 0.96rem;
+  }
+
   .hero-subtitle {
     font-size: 1.06rem;
+  }
+
+  .hero-visual-track {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(220px, 1fr);
+    grid-template-columns: none;
+    overflow-x: auto;
+    padding-bottom: 6px;
+    scroll-snap-type: x proximity;
+  }
+
+  .hero-visual-card {
+    scroll-snap-align: start;
   }
 
   .hero-buttons,
@@ -837,8 +993,14 @@
     width: 100%;
   }
 
+  .hero-primary-button,
+  .btn-signup {
+    min-width: 0;
+  }
+
   .steps-row,
   .parent-grid,
+  .creation-grid,
   .founder-story-points,
   .pricing-grid,
   .footer-inner {
@@ -855,6 +1017,8 @@
 
   .how-it-works,
   .benefits-section,
+  .creation-showcase-section,
+  .objection-section,
   .founder-story-section,
   .pricing-section,
   .faq-section {
@@ -877,6 +1041,11 @@
     min-height: 44px;
     display: flex;
     align-items: center;
+  }
+
+  .hero-visual-shell,
+  .objection-card {
+    padding: 20px;
   }
 }
 
@@ -914,6 +1083,31 @@
 
   .hero-subtitle {
     font-size: 0.98rem;
+  }
+
+  .hero-visual-shell {
+    gap: 14px;
+    padding: 16px;
+  }
+
+  .hero-visual-card {
+    padding: 14px;
+  }
+
+  .hero-visual-track {
+    grid-auto-columns: minmax(198px, 82%);
+  }
+
+  .hero-demo-surface {
+    min-height: 116px;
+  }
+
+  .hero-demo-game-stage {
+    min-height: 74px;
+  }
+
+  .objection-card {
+    padding: 18px;
   }
 
   .footer-inner {
