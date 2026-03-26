@@ -58,6 +58,7 @@ export default function LandingHero({ onPrimaryCta }: LandingHeroProps) {
     <section className="landing-hero" aria-labelledby="landing-hero-title">
       <div className="hero-copy">
         <div className="hero-badge">{HERO_CONTENT.badge}</div>
+        <p className="hero-trust-line">Built by a real teacher for real kids</p>
         <h1 id="landing-hero-title" className="hero-headline">
           {HERO_CONTENT.headline}
         </h1>
@@ -66,7 +67,7 @@ export default function LandingHero({ onPrimaryCta }: LandingHeroProps) {
           <span>{heroSubtitleLead.trim()}</span>
           {heroSubtitleTail ? <span>{`kids can ${heroSubtitleTail}`}</span> : null}
         </p>
-        <p className="hero-outcome-line">Instead of just playing games... your child will start creating them.</p>
+        <p className="hero-outcome-line">Most kids build their first game in under 10 minutes</p>
 
         <div className="hero-buttons">
           <button className="btn-signup hero-primary-button" onClick={onPrimaryCta}>
@@ -74,7 +75,7 @@ export default function LandingHero({ onPrimaryCta }: LandingHeroProps) {
           </button>
         </div>
         <div className="hero-cta-meta">
-          <p className="hero-cta-subtext">No credit card required • Takes 60 seconds</p>
+          <p className="hero-cta-subtext">{HERO_CONTENT.ctaSubtext}</p>
           <p className="hero-cta-urgency">{HERO_CONTENT.ctaUrgency}</p>
         </div>
       </div>

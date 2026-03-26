@@ -48,6 +48,10 @@ const MAX_FREE_PROMPTS = 5;
 
 type Phase = 'idle' | 'loading' | 'playing' | 'gated';
 
+function PrimaryCtaNote() {
+  return <p className="cta-support-line">No credit card required • Takes less than 60 seconds</p>;
+}
+
 export default function LandingPageB({ onLoginClick, onSignupClick }: LandingPageBProps) {
   const [customPrompt, setCustomPrompt] = useState('');
   const [phase, setPhase] = useState<Phase>('idle');
@@ -245,9 +249,12 @@ export default function LandingPageB({ onLoginClick, onSignupClick }: LandingPag
                 Trial.
               </p>
             </div>
-            <button className="tryit-intro-cta" onClick={() => handleCta('tryit-intro-cta', 'tryit')}>
-              {HERO_CONTENT.ctaLabel}
-            </button>
+            <div className="cta-stack">
+              <button className="tryit-intro-cta" onClick={() => handleCta('tryit-intro-cta', 'tryit')}>
+                {HERO_CONTENT.ctaLabel}
+              </button>
+              <PrimaryCtaNote />
+            </div>
           </div>
 
           {/* Signup Gate Modal */}
@@ -256,9 +263,12 @@ export default function LandingPageB({ onLoginClick, onSignupClick }: LandingPag
               <div className="tryit-gate-modal">
                 <h3>Nice work — you made {promptsUsed} games!</h3>
                 <p>Create a free account to save your games and make more.</p>
-                <button className="tryit-gate-signup" onClick={handleSignupFromGate}>
-                  Create Free Account
-                </button>
+                <div className="cta-stack cta-stack-full">
+                  <button className="tryit-gate-signup" onClick={handleSignupFromGate}>
+                    Create Free Account
+                  </button>
+                  <PrimaryCtaNote />
+                </div>
                 <button className="tryit-gate-plans" onClick={() => handleCta('tryit-gate-plans', 'tryit')}>
                   See Plans
                 </button>
@@ -384,9 +394,12 @@ export default function LandingPageB({ onLoginClick, onSignupClick }: LandingPag
                     <li key={feature}>{feature}</li>
                   ))}
                 </ul>
-                <button className="price-card-btn" onClick={() => handleCta(`price-${plan.id}-btn`, 'pricing')}>
-                  {plan.id === 'trial' ? HERO_CONTENT.ctaLabel : 'Choose This Plan'}
-                </button>
+                <div className="cta-stack cta-stack-full price-card-cta">
+                  <button className="price-card-btn" onClick={() => handleCta(`price-${plan.id}-btn`, 'pricing')}>
+                    {plan.id === 'trial' ? HERO_CONTENT.ctaLabel : 'Choose This Plan'}
+                  </button>
+                  <PrimaryCtaNote />
+                </div>
               </div>
             ))}
           </div>

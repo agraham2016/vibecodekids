@@ -44,8 +44,8 @@ export const HERO_CONTENT = {
   subheadline:
     'Instead of just consuming screen time, kids can create obstacle courses, racing games, platformers, and more right in the browser.',
   ctaLabel: 'Start Free 30-Day Trial',
-  ctaUrgency: 'Takes less than 60 seconds to start',
-  ctaSubtext: 'No credit card required',
+  ctaUrgency: 'Free for 30 days • Cancel anytime',
+  ctaSubtext: 'No credit card required • Takes less than 60 seconds',
   proofPoints: ['Works in your browser', 'Built for ages 8+', 'First game in minutes'],
 };
 

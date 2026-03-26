@@ -37,6 +37,10 @@ const FAQ_ITEMS = [
   },
 ];
 
+function PrimaryCtaNote() {
+  return <p className="cta-support-line">No credit card required • Takes less than 60 seconds</p>;
+}
+
 export default function LandingPage({ onLoginClick, onSignupClick }: LandingPageProps) {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const navRef = useRef<HTMLElement | null>(null);
@@ -157,9 +161,12 @@ export default function LandingPage({ onLoginClick, onSignupClick }: LandingPage
                     <li key={feature}>{feature}</li>
                   ))}
                 </ul>
-                <button className="price-card-btn" onClick={() => handleCta(`price-${plan.id}-btn`, 'pricing')}>
-                  {plan.id === 'trial' ? HERO_CONTENT.ctaLabel : 'Choose This Plan'}
-                </button>
+                <div className="cta-stack cta-stack-full price-card-cta">
+                  <button className="price-card-btn" onClick={() => handleCta(`price-${plan.id}-btn`, 'pricing')}>
+                    {plan.id === 'trial' ? HERO_CONTENT.ctaLabel : 'Choose This Plan'}
+                  </button>
+                  <PrimaryCtaNote />
+                </div>
               </div>
             ))}
           </div>
