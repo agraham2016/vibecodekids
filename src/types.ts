@@ -29,6 +29,7 @@ export type StarterTemplateId =
   | 'endless-runner'
   | 'maze-escape'
   | 'matching-game'
+  | 'chess'
   | 'platformer'
   | 'obby'
   | 'simple-racing'

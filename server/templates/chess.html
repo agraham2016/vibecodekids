@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 45%, #312e81 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Segoe UI', sans-serif;
+      touch-action: none;
+    }
+    #game {
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 20px 48px rgba(15, 23, 42, 0.5);
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.86.0/dist/phaser.min.js" crossorigin="anonymous"></script>
+</head>
+<body>
+<div id="game"></div>
+<script>
+const BOARD_SIZE = 8;
+const TILE = 72;
+const PAD = 20;
+const SIDE = 220;
+const WIDTH = BOARD_SIZE * TILE + PAD * 2 + SIDE;
+const HEIGHT = BOARD_SIZE * TILE + PAD * 2;
+const FILE_LABELS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+const PIECE_LABELS = {
+  king: 'K',
+  queen: 'Q',
+  rook: 'R',
+  bishop: 'B',
+  knight: 'N',
+  pawn: 'P',
+};
+
+function inBounds(row, col) {
+  return row >= 0 && row < BOARD_SIZE && col >= 0 && col < BOARD_SIZE;
+}
+
+function cloneBoard(board) {
+  return board.map((row) =>
+    row.map((piece) => (piece ? { ...piece } : null)),
+  );
+}
+
+function makePiece(type, color) {
+  return { type, color, moved: false };
+}
+
+function createInitialBoard() {
+  return [
+    [
+      makePiece('rook', 'black'),
+      makePiece('knight', 'black'),
+      makePiece('bishop', 'black'),
+      makePiece('queen', 'black'),
+      makePiece('king', 'black'),
+      makePiece('bishop', 'black'),
+      makePiece('knight', 'black'),
+      makePiece('rook', 'black'),
+    ],
+    Array(BOARD_SIZE).fill(null).map(() => makePiece('pawn', 'black')),
+    Array(BOARD_SIZE).fill(null),
+    Array(BOARD_SIZE).fill(null),
+    Array(BOARD_SIZE).fill(null),
+    Array(BOARD_SIZE).fill(null),
+    Array(BOARD_SIZE).fill(null).map(() => makePiece('pawn', 'white')),
+    [
+      makePiece('rook', 'white'),
+      makePiece('knight', 'white'),
+      makePiece('bishop', 'white'),
+      makePiece('queen', 'white'),
+      makePiece('king', 'white'),
+      makePiece('bishop', 'white'),
+      makePiece('knight', 'white'),
+      makePiece('rook', 'white'),
+    ],
+  ];
+}
+
+function findKing(board, color) {
+  for (let row = 0; row < BOARD_SIZE; row++) {
+    for (let col = 0; col < BOARD_SIZE; col++) {
+      const piece = board[row][col];
+      if (piece && piece.type === 'king' && piece.color === color) {
+        return { row, col };
+      }
+    }
+  }
+  return null;
+}
+
+function collectRayMoves(board, row, col, color, deltas) {
+  const moves = [];
+  deltas.forEach(([dr, dc]) => {
+    let nextRow = row + dr;
+    let nextCol = col + dc;
+    while (inBounds(nextRow, nextCol)) {
+      const target = board[nextRow][nextCol];
+      if (!target) {
+        moves.push({ row: nextRow, col: nextCol });
+      } else {
+        if (target.color !== color) {
+          moves.push({ row: nextRow, col: nextCol });
+        }
+        break;
+      }
+      nextRow += dr;
+      nextCol += dc;
+    }
+  });
+  return moves;
+}
+
+function getPseudoMoves(board, row, col) {
+  const piece = board[row][col];
+  if (!piece) return [];
+
+  if (piece.type === 'pawn') {
+    const moves = [];
+    const forward = piece.color === 'white' ? -1 : 1;
+    const startRow = piece.color === 'white' ? 6 : 1;
+    const nextRow = row + forward;
+    if (inBounds(nextRow, col) && !board[nextRow][col]) {
+      moves.push({ row: nextRow, col });
+      const jumpRow = row + forward * 2;
+      if (row === startRow && inBounds(jumpRow, col) && !board[jumpRow][col]) {
+        moves.push({ row: jumpRow, col });
+      }
+    }
+    [-1, 1].forEach((dc) => {
+      const captureCol = col + dc;
+      if (!inBounds(nextRow, captureCol)) return;
+      const target = board[nextRow][captureCol];
+      if (target && target.color !== piece.color) {
+        moves.push({ row: nextRow, col: captureCol });
+      }
+    });
+    return moves;
+  }
+
+  if (piece.type === 'rook') {
+    return collectRayMoves(board, row, col, piece.color, [
+      [-1, 0],
+      [1, 0],
+      [0, -1],
+      [0, 1],
+    ]);
+  }
+
+  if (piece.type === 'bishop') {
+    return collectRayMoves(board, row, col, piece.color, [
+      [-1, -1],
+      [-1, 1],
+      [1, -1],
+      [1, 1],
+    ]);
+  }
+
+  if (piece.type === 'queen') {
+    return collectRayMoves(board, row, col, piece.color, [
+      [-1, 0],
+      [1, 0],
+      [0, -1],
+      [0, 1],
+      [-1, -1],
+      [-1, 1],
+      [1, -1],
+      [1, 1],
+    ]);
+  }
+
+  if (piece.type === 'knight') {
+    const moves = [];
+    [
+      [-2, -1],
+      [-2, 1],
+      [-1, -2],
+      [-1, 2],
+      [1, -2],
+      [1, 2],
+      [2, -1],
+      [2, 1],
+    ].forEach(([dr, dc]) => {
+      const nextRow = row + dr;
+      const nextCol = col + dc;
+      if (!inBounds(nextRow, nextCol)) return;
+      const target = board[nextRow][nextCol];
+      if (!target || target.color !== piece.color) {
+        moves.push({ row: nextRow, col: nextCol });
+      }
+    });
+    return moves;
+  }
+
+  if (piece.type === 'king') {
+    const moves = [];
+    for (let dr = -1; dr <= 1; dr++) {
+      for (let dc = -1; dc <= 1; dc++) {
+        if (dr === 0 && dc === 0) continue;
+        const nextRow = row + dr;
+        const nextCol = col + dc;
+        if (!inBounds(nextRow, nextCol)) continue;
+        const target = board[nextRow][nextCol];
+        if (!target || target.color !== piece.color) {
+          moves.push({ row: nextRow, col: nextCol });
+        }
+      }
+    }
+    return moves;
+  }
+
+  return [];
+}
+
+function isSquareUnderAttack(board, row, col, attackerColor) {
+  for (let scanRow = 0; scanRow < BOARD_SIZE; scanRow++) {
+    for (let scanCol = 0; scanCol < BOARD_SIZE; scanCol++) {
+      const piece = board[scanRow][scanCol];
+      if (!piece || piece.color !== attackerColor) continue;
+
+      if (piece.type === 'pawn') {
+        const forward = piece.color === 'white' ? -1 : 1;
+        if (scanRow + forward === row && Math.abs(scanCol - col) === 1) {
+          return true;
+        }
+        continue;
+      }
+
+      const moves = getPseudoMoves(board, scanRow, scanCol);
+      if (moves.some((move) => move.row === row && move.col === col)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+function applyMoveToBoard(board, fromRow, fromCol, toRow, toCol) {
+  const nextBoard = cloneBoard(board);
+  const piece = { ...nextBoard[fromRow][fromCol], moved: true };
+  nextBoard[toRow][toCol] = piece;
+  nextBoard[fromRow][fromCol] = null;
+  if (piece.type === 'pawn' && (toRow === 0 || toRow === BOARD_SIZE - 1)) {
+    nextBoard[toRow][toCol] = { ...piece, type: 'queen', moved: true };
+  }
+  return nextBoard;
+}
+
+function getLegalMoves(board, row, col) {
+  const piece = board[row][col];
+  if (!piece) return [];
+
+  const candidateMoves = getPseudoMoves(board, row, col);
+  return candidateMoves.filter((move) => {
+    const simulated = applyMoveToBoard(board, row, col, move.row, move.col);
+    const king = findKing(simulated, piece.color);
+    if (!king) return true;
+    const enemyColor = piece.color === 'white' ? 'black' : 'white';
+    return !isSquareUnderAttack(simulated, king.row, king.col, enemyColor);
+  });
+}
+
+function hasAnyLegalMove(board, color) {
+  for (let row = 0; row < BOARD_SIZE; row++) {
+    for (let col = 0; col < BOARD_SIZE; col++) {
+      const piece = board[row][col];
+      if (piece && piece.color === color && getLegalMoves(board, row, col).length > 0) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+class ChessScene extends Phaser.Scene {
+  constructor() {
+    super('ChessScene');
+  }
+
+  create() {
+    this.board = createInitialBoard();
+    this.currentTurn = 'white';
+    this.selected = null;
+    this.legalMoves = [];
+    this.captured = { white: [], black: [] };
+    this.statusMessage = 'White moves first.';
+    this.gameOver = false;
+    this.moveCount = 0;
+
+    this.drawBackground();
+    this.createBoardSquares();
+    this.createHud();
+    this.renderBoard();
+    this.refreshHud();
+  }
+
+  drawBackground() {
+    this.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH, HEIGHT, 0x0f172a);
+    this.add.rectangle(PAD + BOARD_SIZE * TILE / 2, HEIGHT / 2, BOARD_SIZE * TILE, BOARD_SIZE * TILE, 0x0b1120)
+      .setStrokeStyle(4, 0xffffff, 0.15);
+    this.add.rectangle(WIDTH - SIDE / 2, HEIGHT / 2, SIDE - PAD, HEIGHT - PAD * 2, 0x1e293b, 0.95)
+      .setStrokeStyle(2, 0xffffff, 0.12);
+  }
+
+  createBoardSquares() {
+    this.squareRects = [];
+    this.highlightRects = [];
+
+    for (let row = 0; row < BOARD_SIZE; row++) {
+      this.squareRects[row] = [];
+      this.highlightRects[row] = [];
+      for (let col = 0; col < BOARD_SIZE; col++) {
+        const x = PAD + col * TILE + TILE / 2;
+        const y = PAD + row * TILE + TILE / 2;
+        const isLight = (row + col) % 2 === 0;
+        const square = this.add.rectangle(x, y, TILE, TILE, isLight ? 0xe2e8f0 : 0x7c3aed)
+          .setInteractive({ useHandCursor: true });
+        square.on('pointerdown', () => this.handleSquareClick(row, col));
+        this.squareRects[row][col] = square;
+
+        const highlight = this.add.rectangle(x, y, TILE - 12, TILE - 12, 0x38bdf8, 0.25)
+          .setVisible(false);
+        this.highlightRects[row][col] = highlight;
+      }
+    }
+
+    for (let index = 0; index < BOARD_SIZE; index++) {
+      this.add.text(PAD + index * TILE + TILE / 2, HEIGHT - 12, FILE_LABELS[index], {
+        fontSize: '16px',
+        color: '#cbd5f5',
+      }).setOrigin(0.5, 1);
+
+      this.add.text(12, PAD + index * TILE + TILE / 2, String(BOARD_SIZE - index), {
+        fontSize: '16px',
+        color: '#cbd5f5',
+      }).setOrigin(0.5);
+    }
+  }
+
+  createHud() {
+    const panelX = PAD + BOARD_SIZE * TILE + 22;
+    this.titleText = this.add.text(panelX, 26, 'Chess Starter', {
+      fontSize: '26px',
+      color: '#f8fafc',
+      fontStyle: 'bold',
+    });
+
+    this.turnText = this.add.text(panelX, 72, '', {
+      fontSize: '20px',
+      color: '#facc15',
+      fontStyle: 'bold',
+      wordWrap: { width: SIDE - 40 },
+    });
+
+    this.statusText = this.add.text(panelX, 116, '', {
+      fontSize: '16px',
+      color: '#cbd5e1',
+      wordWrap: { width: SIDE - 40 },
+    });
+
+    this.movesText = this.add.text(panelX, 206, '', {
+      fontSize: '16px',
+      color: '#f8fafc',
+    });
+
+    this.capturedWhiteText = this.add.text(panelX, 250, '', {
+      fontSize: '15px',
+      color: '#e2e8f0',
+      wordWrap: { width: SIDE - 40 },
+    });
+
+    this.capturedBlackText = this.add.text(panelX, 332, '', {
+      fontSize: '15px',
+      color: '#e2e8f0',
+      wordWrap: { width: SIDE - 40 },
+    });
+
+    this.tipText = this.add.text(panelX, 430, 'Tap a piece, then tap a glowing square. Capture the king or force checkmate to win.', {
+      fontSize: '14px',
+      color: '#cbd5e1',
+      wordWrap: { width: SIDE - 40 },
+    });
+
+    this.restartButton = this.add.rectangle(panelX + 78, 520, 156, 44, 0x22c55e)
+      .setInteractive({ useHandCursor: true });
+    this.restartButton.on('pointerdown', () => this.scene.restart());
+    this.add.text(panelX + 78, 520, 'Restart Match', {
+      fontSize: '18px',
+      color: '#08130d',
+      fontStyle: 'bold',
+    }).setOrigin(0.5);
+  }
+
+  renderBoard() {
+    if (this.pieceTexts) {
+      this.pieceTexts.forEach((pieceText) => pieceText.destroy());
+    }
+    this.pieceTexts = [];
+
+    for (let row = 0; row < BOARD_SIZE; row++) {
+      for (let col = 0; col < BOARD_SIZE; col++) {
+        const piece = this.board[row][col];
+        if (!piece) continue;
+        const label = piece.color === 'white'
+          ? PIECE_LABELS[piece.type]
+          : PIECE_LABELS[piece.type].toLowerCase();
+        const x = PAD + col * TILE + TILE / 2;
+        const y = PAD + row * TILE + TILE / 2;
+        const pieceText = this.add.text(x, y, label, {
+          fontSize: '34px',
+          fontStyle: 'bold',
+          color: piece.color === 'white' ? '#f8fafc' : '#111827',
+          stroke: piece.color === 'white' ? '#0f172a' : '#ffffff',
+          strokeThickness: 5,
+        }).setOrigin(0.5);
+        this.pieceTexts.push(pieceText);
+      }
+    }
+
+    this.refreshHighlights();
+  }
+
+  refreshHighlights() {
+    for (let row = 0; row < BOARD_SIZE; row++) {
+      for (let col = 0; col < BOARD_SIZE; col++) {
+        const isLight = (row + col) % 2 === 0;
+        this.squareRects[row][col].setFillStyle(isLight ? 0xe2e8f0 : 0x7c3aed);
+        this.highlightRects[row][col].setVisible(false);
+      }
+    }
+
+    if (this.selected) {
+      this.squareRects[this.selected.row][this.selected.col].setFillStyle(0xf59e0b);
+    }
+
+    this.legalMoves.forEach((move) => {
+      this.highlightRects[move.row][move.col].setVisible(true);
+    });
+  }
+
+  refreshHud() {
+    const turnLabel = this.currentTurn === 'white' ? 'White' : 'Black';
+    this.turnText.setText(this.gameOver ? 'Game Over' : `${turnLabel}'s turn`);
+    this.statusText.setText(this.statusMessage);
+    this.movesText.setText(`Moves played: ${this.moveCount}`);
+    this.capturedWhiteText.setText(`White captured:\n${this.captured.white.join(' ') || '-'}`);
+    this.capturedBlackText.setText(`Black captured:\n${this.captured.black.join(' ') || '-'}`);
+  }
+
+  handleSquareClick(row, col) {
+    if (this.gameOver) return;
+
+    const piece = this.board[row][col];
+    if (this.selected) {
+      const chosenMove = this.legalMoves.find((move) => move.row === row && move.col === col);
+      if (chosenMove) {
+        this.commitMove(this.selected.row, this.selected.col, row, col);
+        return;
+      }
+    }
+
+    if (piece && piece.color === this.currentTurn) {
+      this.selected = { row, col };
+      this.legalMoves = getLegalMoves(this.board, row, col);
+      this.statusMessage = `${piece.color === 'white' ? 'White' : 'Black'} selected ${piece.type}.`;
+    } else {
+      this.selected = null;
+      this.legalMoves = [];
+      this.statusMessage = 'Pick one of your own pieces to move.';
+    }
+
+    this.refreshHighlights();
+    this.refreshHud();
+  }
+
+  commitMove(fromRow, fromCol, toRow, toCol) {
+    const movingPiece = this.board[fromRow][fromCol];
+    const targetPiece = this.board[toRow][toCol];
+    if (!movingPiece) return;
+
+    if (targetPiece) {
+      const captureLabel = targetPiece.color === 'white'
+        ? PIECE_LABELS[targetPiece.type]
+        : PIECE_LABELS[targetPiece.type].toLowerCase();
+      this.captured[movingPiece.color].push(captureLabel);
+    }
+
+    this.board = applyMoveToBoard(this.board, fromRow, fromCol, toRow, toCol);
+    this.moveCount += 1;
+    this.selected = null;
+    this.legalMoves = [];
+
+    const opponent = movingPiece.color === 'white' ? 'black' : 'white';
+    const opponentKing = findKing(this.board, opponent);
+    if (!opponentKing) {
+      this.gameOver = true;
+      this.statusMessage = `${movingPiece.color === 'white' ? 'White' : 'Black'} captured the king and wins!`;
+      this.renderBoard();
+      this.refreshHud();
+      return;
+    }
+
+    const opponentInCheck = isSquareUnderAttack(this.board, opponentKing.row, opponentKing.col, movingPiece.color);
+    const opponentHasMove = hasAnyLegalMove(this.board, opponent);
+
+    if (!opponentHasMove) {
+      this.gameOver = true;
+      this.statusMessage = opponentInCheck
+        ? `Checkmate! ${movingPiece.color === 'white' ? 'White' : 'Black'} wins!`
+        : 'Stalemate! The match is a draw.';
+    } else if (opponentInCheck) {
+      this.statusMessage = `${opponent === 'white' ? 'White' : 'Black'} is in check!`;
+    } else {
+      this.statusMessage = `${opponent === 'white' ? 'White' : 'Black'} to move.`;
+    }
+
+    this.currentTurn = opponent;
+    this.renderBoard();
+    this.refreshHud();
+  }
+}
+
+new Phaser.Game({
+  type: Phaser.AUTO,
+  width: WIDTH,
+  height: HEIGHT,
+  parent: 'game',
+  backgroundColor: '#0f172a',
+  scale: {
+    mode: Phaser.Scale.FIT,
+    autoCenter: Phaser.Scale.CENTER_BOTH,
+  },
+  scene: ChessScene,
+});
+</script>
+</body>
+</html>

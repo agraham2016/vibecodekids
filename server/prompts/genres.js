@@ -73,6 +73,7 @@ export const GENRE_KEYWORDS = {
     'wordle',
     'sudoku',
   ],
+  chess: ['chess', 'chess game', 'play chess', 'chess board'],
   clicker: ['clicker', 'clicking', 'idle', 'tapper', 'cookie clicker', 'idle game', 'tap game', 'incremental'],
   rpg: [
     'rpg',

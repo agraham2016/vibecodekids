@@ -113,6 +113,29 @@ const DEBUG_TRIGGERS = [
   'somethings wrong',
 ];
 
+const FRESH_GAME_SIGNAL_PATTERNS = [
+  /\b(start over|from scratch|new game|different game|another game)\b/i,
+  /\b(make|build|create)\b.*\b(chess|checkers|tic(?:-|\s)?tac(?:-|\s)?toe|connect(?:-|\s)?4|board game|platformer|racing|maze|puzzle|obby|tower defense|survival|builder|3d|2d)\b/i,
+];
+
+const ITERATION_SIGNAL_PATTERN =
+  /\b(add|change|fix|update|edit|improve|more|less|faster|slower|harder|easier|keep|same|also|remove|replace|tweak|tune|polish)\b/i;
+
+function shouldTreatAsFreshGameRequest(prompt = '', currentCode = null, gameConfig = null) {
+  if (!currentCode || currentCode.length < 400) return false;
+  if (gameConfig?.starterTemplateId || gameConfig?.gameType) return true;
+
+  const text = String(prompt || '').toLowerCase();
+  if (!text) return false;
+
+  const explicitReset = /\b(start over|from scratch|new game|different game|another game|instead make)\b/i.test(text);
+  if (!explicitReset && ITERATION_SIGNAL_PATTERN.test(text)) {
+    return false;
+  }
+
+  return FRESH_GAME_SIGNAL_PATTERNS.some((pattern) => pattern.test(text));
+}
+
 /**
  * Detect the best mode based on the kid's prompt text.
  * Returns the auto-detected mode, or null if no special detection.
@@ -181,18 +204,11 @@ export async function generateOrIterateGame({
   debugAttempt = 0,
   onStatus = null,
 }) {
-  const shouldRebuildFromStarter = (() => {
-    if (!currentCode || currentCode.length < 400) return false;
-    const text = String(prompt || '').toLowerCase();
-    const looksLikeFresh3DRequest =
-      /\b(make|build|create)\b/.test(text) &&
-      /\b3d\b/.test(text) &&
-      !/\b(add|change|fix|update|edit|improve|more|less|faster|slower|harder|easier)\b/.test(text);
-    return looksLikeFresh3DRequest;
-  })();
-  const effectiveCurrentCode = shouldRebuildFromStarter ? null : currentCode;
-  if (shouldRebuildFromStarter) {
-    console.log('🧱 Explicit 3D rebuild detected — ignoring current draft and rebuilding from starter.');
+  const shouldResetToFreshGame = shouldTreatAsFreshGameRequest(prompt, currentCode, gameConfig);
+  const effectiveCurrentCode = shouldResetToFreshGame ? null : currentCode;
+  const effectiveConversationHistory = shouldResetToFreshGame ? [] : conversationHistory;
+  if (shouldResetToFreshGame) {
+    console.log('🧱 Fresh game request detected — clearing current draft context before generating.');
   }
   const emitStatus = (stage, message) => {
     if (typeof onStatus === 'function') onStatus(stage, message);
@@ -232,7 +248,7 @@ export async function generateOrIterateGame({
     currentCode: effectiveCurrentCode,
   });
   console.log(
-    `🎯 Mode: "${effectiveMode}" → Model: ${targetModel} | hasCode: ${!!effectiveCurrentCode} | history: ${conversationHistory.length}`,
+    `🎯 Mode: "${effectiveMode}" → Model: ${targetModel} | hasCode: ${!!effectiveCurrentCode} | history: ${effectiveConversationHistory.length}`,
   );
 
   // ===== CACHE CHECK =====
@@ -301,7 +317,7 @@ export async function generateOrIterateGame({
       result = await handleCriticMode({
         prompt,
         currentCode: effectiveCurrentCode,
-        conversationHistory,
+        conversationHistory: effectiveConversationHistory,
         gameConfig,
         image,
         userId,
@@ -312,7 +328,7 @@ export async function generateOrIterateGame({
       result = await handleDebugMode({
         prompt,
         currentCode: effectiveCurrentCode,
-        conversationHistory,
+        conversationHistory: effectiveConversationHistory,
         gameConfig,
         image,
         userId,
@@ -324,7 +340,7 @@ export async function generateOrIterateGame({
       result = await handleAskOtherBuddy({
         prompt,
         currentCode: effectiveCurrentCode,
-        conversationHistory,
+        conversationHistory: effectiveConversationHistory,
         gameConfig,
         image,
         userId,
@@ -337,7 +353,7 @@ export async function generateOrIterateGame({
       result = await handleSingleModel({
         prompt,
         currentCode: effectiveCurrentCode,
-        conversationHistory,
+        conversationHistory: effectiveConversationHistory,
         gameConfig,
         image,
         userId,

@@ -34,6 +34,15 @@ import type {
 import { getStarterTemplateById } from './config/gameCatalog';
 import './App.css';
 
+const FRESH_GAME_PROMPT_PATTERN =
+  /\b(start over|from scratch|new game|different game|another game|make .*?(chess|checkers|tic(?:-|\s)?tac(?:-|\s)?toe|connect(?:-|\s)?4|board game|platformer|racing|maze|puzzle|obby|tower defense|survival|builder|3d|2d)|build .*?(chess|checkers|tic(?:-|\s)?tac(?:-|\s)?toe|connect(?:-|\s)?4|board game|platformer|racing|maze|puzzle|obby|tower defense|survival|builder|3d|2d)|create .*?(chess|checkers|tic(?:-|\s)?tac(?:-|\s)?toe|connect(?:-|\s)?4|board game|platformer|racing|maze|puzzle|obby|tower defense|survival|builder|3d|2d))\b/i;
+
+function shouldResetProjectGameConfig(content: string, currentCode: string, gameConfig?: GameConfig | null) {
+  if (gameConfig) return false;
+  if (!currentCode || currentCode.length < 400) return false;
+  return FRESH_GAME_PROMPT_PATTERN.test(content);
+}
+
 function App() {
   // Auth from context (no more prop drilling)
   const { user, token, membership, tiers, isCheckingAuth, login, logout, setMembership } = useAuth();
@@ -233,6 +242,8 @@ function App() {
     async (content: string, image?: string, modeOverride?: AIMode, gameConfig?: GameConfig | null) => {
       if (gameConfig) {
         setProjectGameConfig(gameConfig);
+      } else if (shouldResetProjectGameConfig(content, code, gameConfig)) {
+        setProjectGameConfig(null);
       }
       await sendMessage(content, image, code, gameConfig ?? null, modeOverride);
     },
