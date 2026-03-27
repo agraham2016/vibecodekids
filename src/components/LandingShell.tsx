@@ -14,7 +14,7 @@ interface LandingShellProps {
 const NAV_LINKS = [
   { href: '#how-it-works', label: 'How It Works' },
   { href: '#creation-time', label: 'For Parents' },
-  { href: '#social-proof', label: 'Proof' },
+  { href: '#questions', label: 'Q&A' },
 ] as const;
 
 export default function LandingShell({ variant, onLoginClick, onSignupClick }: LandingShellProps) {
@@ -107,6 +107,7 @@ export default function LandingShell({ variant, onLoginClick, onSignupClick }: L
 
           <div className="footer-links">
             <a href="#how-it-works">How It Works</a>
+            <a href="/gallery">Arcade</a>
             <a href="/gallery">Student Creations</a>
             <a href="/esa">ESA</a>
             <a href="/privacy">Privacy</a>

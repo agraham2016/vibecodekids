@@ -10,6 +10,11 @@ export interface LandingCard {
   description: string;
 }
 
+export interface LandingQuestion {
+  question: string;
+  answer: string;
+}
+
 export const HERO_CONTENT = {
   headline: 'Build Your First Game in Minutes',
   subheadline: 'Just describe your idea. AI builds it. You play it.',
@@ -43,21 +48,23 @@ export const REFRAME_CONTENT = {
   bullets: ['Builds creativity', 'Encourages problem-solving', 'Teaches real-world tech thinking'],
 };
 
-export const SOCIAL_PROOF_CARDS: LandingCard[] = [
+export const LANDING_QUESTIONS: LandingQuestion[] = [
   {
-    icon: '★',
-    title: 'Testimonials',
-    description: 'Add short parent quotes here about how quickly kids understood the product and built a first game.',
+    question: 'What does my child actually do?',
+    answer: 'They type a game idea in plain English, watch AI build it, then play and improve the game right away.',
   },
   {
-    icon: '▶',
-    title: 'Student creations',
-    description: 'Show real playable games from the Arcade here so families can see the quality immediately.',
+    question: 'Do they need coding experience?',
+    answer: 'No. Kids can start by describing what they want to make, and the platform handles the heavy lifting.',
   },
   {
-    icon: '#',
-    title: 'Usage stats',
-    description: 'Reserve this spot for future proof like games built, repeat creators, or weekly family activity.',
+    question: 'How fast can they get started?',
+    answer:
+      'Most families can get from landing page to first game in just a few minutes, with less than 60 seconds to begin.',
+  },
+  {
+    question: 'Does it work in the browser?',
+    answer: 'Yes. It runs instantly in the browser, so there is nothing extra to install before trying it.',
   },
 ] as const;
 
