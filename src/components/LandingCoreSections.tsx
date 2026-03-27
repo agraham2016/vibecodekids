@@ -1,129 +1,73 @@
-import {
-  BENEFIT_ITEMS,
-  CREATION_HIGHLIGHTS,
-  FOUNDER_STORY,
-  HERO_CONTENT,
-  HOW_IT_WORKS_STEPS,
-  MID_PAGE_CTA,
-  PARENT_REASSURANCE_POINTS,
-  TRUST_POINTS,
-} from './landingContent';
+import { FINAL_CTA_CONTENT, HOW_IT_WORKS_STEPS, REFRAME_CONTENT, SOCIAL_PROOF_CARDS } from './landingContent';
 
 interface LandingCoreSectionsProps {
   onCta: (buttonId: string, section?: string) => void;
 }
 
 export default function LandingCoreSections({ onCta }: LandingCoreSectionsProps) {
-  const [founderStoryLead, founderStoryFollowUp] = FOUNDER_STORY.body.split(' This was built so ');
-
   return (
     <>
-      <section className="how-it-works" id="how-it-works">
+      <section className="landing-section how-it-works" id="how-it-works">
         <h2 className="section-heading">How It Works</h2>
-        <p className="section-subheading">A simple way for kids to go from idea to playable game.</p>
-        <div className="steps-row">
-          {HOW_IT_WORKS_STEPS.map((step, index) => (
-            <div key={step.title} className="step-card">
-              <div className="step-number" aria-hidden="true">
+        <div className="steps-grid">
+          {HOW_IT_WORKS_STEPS.map((step) => (
+            <article key={step.title} className="step-card">
+              <div className="step-icon" aria-hidden="true">
                 {step.icon}
               </div>
-              <span className="step-label">Step {index + 1}</span>
               <h3 className="step-title">{step.title}</h3>
               <p className="step-desc">{step.description}</p>
-            </div>
+            </article>
           ))}
         </div>
       </section>
 
-      <section className="benefits-section" id="benefits">
-        <h2 className="section-heading">Why parents start the Free 30-Day Trial</h2>
-        <p className="section-subheading">
-          Clear value fast: creativity, learning, fun, and a product built for families.
-        </p>
-        <div className="parent-grid">
-          {BENEFIT_ITEMS.map((item) => (
-            <div key={item.title} className="parent-card benefit-card">
-              <span className="parent-card-icon" aria-hidden="true">
-                {item.icon}
-              </span>
-              <h3>{item.title}</h3>
-              <p>{item.description}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="mid-cta-section">
-        <div className="mid-cta-card">
-          <h2>{MID_PAGE_CTA.title}</h2>
-          <p>{MID_PAGE_CTA.description}</p>
-          <button className="section-cta" onClick={() => onCta('mid-page-cta', 'middle')}>
-            {HERO_CONTENT.ctaLabel}
-          </button>
-          <p className="mid-cta-subtext">{HERO_CONTENT.ctaSubtext}</p>
-        </div>
-      </section>
-
-      <section className="creation-showcase-section" id="what-kids-create">
-        <h2 className="section-heading">What kids are creating</h2>
-        <p className="section-subheading">
-          Parents do not have to imagine the outcome. Kids can create the kinds of games they already love to play.
-        </p>
-        <div className="creation-grid">
-          {CREATION_HIGHLIGHTS.map((item) => (
-            <div key={item.title} className="parent-card creation-card">
-              <span className="parent-card-icon" aria-hidden="true">
-                {item.icon}
-              </span>
-              <h3>{item.title}</h3>
-              <p>{item.description}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="objection-section" id="designed-for-kids">
-        <div className="objection-card">
-          <div className="objection-copy">
-            <h2>Designed for kids (not developers)</h2>
-            <p>
-              This is built so families can get from curiosity to creation fast, without setup, downloads, or technical
-              friction.
+      <section className="landing-section reframe-section" id="creation-time">
+        <div className="reframe-panel">
+          <div className="reframe-copy">
+            <h2 className="section-heading section-heading-left">{REFRAME_CONTENT.headline}</h2>
+            <p className="section-subheading section-subheading-left">
+              Parents can immediately see that this is about making, thinking, and creating something real.
             </p>
           </div>
-          <ul className="objection-list" aria-label="Parent reassurance points">
-            {PARENT_REASSURANCE_POINTS.map((item) => (
-              <li key={item.text}>
-                <span className="objection-check" aria-hidden="true">
-                  {item.icon}
+          <ul className="reframe-list" aria-label="Parent benefits">
+            {REFRAME_CONTENT.bullets.map((bullet) => (
+              <li key={bullet} className="reframe-item">
+                <span className="reframe-check" aria-hidden="true">
+                  +
                 </span>
-                <span>{item.text}</span>
+                <span>{bullet}</span>
               </li>
             ))}
           </ul>
         </div>
       </section>
 
-      <section className="founder-story-section" id="founder-story">
-        <h2 className="section-heading">{FOUNDER_STORY.title}</h2>
+      <section className="landing-section social-proof-section" id="social-proof">
+        <h2 className="section-heading">Social proof space for real family wins</h2>
         <p className="section-subheading">
-          An authentic story for parents who want AI to feel creative, safe, and easy to understand.
+          This section is ready for testimonials, student creations, and usage stats as soon as those assets are
+          finalized.
         </p>
-        <div className="founder-story-card">
-          <p>{founderStoryLead}</p>
-          {founderStoryFollowUp ? <p>{`This was built so ${founderStoryFollowUp}`}</p> : null}
-        </div>
-        <div className="founder-story-points">
-          {TRUST_POINTS.map((point) => (
-            <div key={point.title} className="parent-card">
-              <span className="parent-card-icon" aria-hidden="true">
-                {point.icon}
-              </span>
-              <h3>{point.title}</h3>
-              <p>{point.description}</p>
-            </div>
+        <div className="proof-grid">
+          {SOCIAL_PROOF_CARDS.map((card) => (
+            <article key={card.title} className="proof-card">
+              <div className="proof-icon" aria-hidden="true">
+                {card.icon}
+              </div>
+              <h3 className="proof-title">{card.title}</h3>
+              <p className="proof-desc">{card.description}</p>
+            </article>
           ))}
         </div>
+      </section>
+
+      <section className="landing-section final-cta-section">
+        <h2 className="section-heading">{FINAL_CTA_CONTENT.headline}</h2>
+        <button type="button" className="section-cta" onClick={() => onCta('final-cta', 'final')}>
+          {FINAL_CTA_CONTENT.ctaLabel}
+        </button>
+        <p className="final-cta-subtext">{FINAL_CTA_CONTENT.subtext}</p>
       </section>
     </>
   );
