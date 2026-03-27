@@ -66,6 +66,14 @@ export const LANDING_QUESTIONS: LandingQuestion[] = [
     question: 'Does it work in the browser?',
     answer: 'Yes. It runs instantly in the browser, so there is nothing extra to install before trying it.',
   },
+  {
+    question: 'What kinds of games can they make?',
+    answer: 'Kids can create platformers, racers, obstacle games, adventures, and other ideas they come up with.',
+  },
+  {
+    question: 'Can they share what they build?',
+    answer: 'Yes. Once they make a game they like, they can play it instantly and share it with family and friends.',
+  },
 ] as const;
 
 export const FINAL_CTA_CONTENT = {
