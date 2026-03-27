@@ -14,6 +14,7 @@ export const HERO_CONTENT = {
   headline: 'Build Your First Game in Minutes',
   subheadline: 'Just describe your idea. AI builds it. You play it.',
   ctaLabel: 'Start Free',
+  ctaSupport: 'Takes less than 60 seconds to start',
   trustLine: 'No coding required. No experience needed.',
   videoLabel: 'Watch a real game get built in under 3 minutes',
   videoSrc: '/videos/how-it-works.mp4',

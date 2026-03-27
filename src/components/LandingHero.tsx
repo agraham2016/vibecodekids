@@ -18,7 +18,7 @@ export default function LandingHero({ onPrimaryCta }: LandingHeroProps) {
             <button type="button" className="hero-primary-button" onClick={onPrimaryCta}>
               {HERO_CONTENT.ctaLabel}
             </button>
-            <p className="hero-microcopy">{HERO_CONTENT.trustLine}</p>
+            <p className="hero-support-copy">{HERO_CONTENT.ctaSupport}</p>
           </div>
         </div>
 
@@ -36,6 +36,13 @@ export default function LandingHero({ onPrimaryCta }: LandingHeroProps) {
             >
               <source src={HERO_CONTENT.videoSrc} type="video/mp4" />
             </video>
+          </div>
+
+          <div className="hero-video-cta-group">
+            <button type="button" className="hero-primary-button hero-secondary-button" onClick={onPrimaryCta}>
+              {HERO_CONTENT.ctaLabel}
+            </button>
+            <p className="hero-microcopy">{HERO_CONTENT.trustLine}</p>
           </div>
         </div>
       </div>

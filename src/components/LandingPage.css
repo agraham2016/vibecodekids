@@ -124,7 +124,7 @@
 .landing-content {
   display: grid;
   gap: 26px;
-  padding: 24px 0 48px;
+  padding: 18px 0 48px;
 }
 
 .landing-hero,
@@ -142,19 +142,19 @@
 }
 
 .landing-hero {
-  padding: clamp(1.5rem, 3vw, 2.5rem);
+  padding: clamp(1.25rem, 2.6vw, 2.25rem);
 }
 
 .hero-shell {
   max-width: 920px;
   margin: 0 auto;
   display: grid;
-  gap: 20px;
+  gap: 16px;
 }
 
 .hero-copy {
   display: grid;
-  gap: 14px;
+  gap: 12px;
   text-align: center;
 }
 
@@ -179,7 +179,7 @@
 .hero-cta-group {
   display: grid;
   justify-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 .hero-primary-button,
@@ -193,6 +193,11 @@
   min-width: min(100%, 240px);
 }
 
+.hero-secondary-button {
+  min-width: min(100%, 280px);
+}
+
+.hero-support-copy,
 .hero-microcopy,
 .final-cta-subtext,
 .footer-tagline {
@@ -201,6 +206,7 @@
   line-height: 1.5;
 }
 
+.hero-support-copy,
 .hero-microcopy {
   font-size: 0.98rem;
   font-weight: 600;
@@ -208,7 +214,7 @@
 
 .hero-video-block {
   display: grid;
-  gap: 12px;
+  gap: 10px;
 }
 
 .hero-video-label {
@@ -222,6 +228,8 @@
 
 .hero-video-frame {
   overflow: hidden;
+  width: min(100%, 780px);
+  margin: 0 auto;
   border-radius: 24px;
   border: 1px solid rgba(255, 255, 255, 0.14);
   background: rgba(5, 3, 14, 0.92);
@@ -234,6 +242,12 @@
   height: auto;
   aspect-ratio: 16 / 9;
   background: #000;
+}
+
+.hero-video-cta-group {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
 }
 
 .landing-section {
@@ -490,18 +504,18 @@
 
   .landing-content {
     gap: 18px;
-    padding-top: 16px;
+    padding-top: 12px;
   }
 
   .landing-hero,
   .landing-section {
     border-radius: 24px;
-    padding: 20px;
+    padding: 18px;
   }
 
   .hero-shell,
   .hero-copy {
-    gap: 16px;
+    gap: 14px;
   }
 
   .hero-headline {
@@ -515,6 +529,11 @@
   .hero-primary-button,
   .section-cta {
     width: 100%;
+  }
+
+  .hero-support-copy,
+  .hero-microcopy {
+    font-size: 0.92rem;
   }
 
   .steps-grid,
@@ -568,6 +587,12 @@
 
   .hero-video-frame {
     border-radius: 18px;
+  }
+
+  .hero-shell,
+  .hero-copy,
+  .hero-video-block {
+    gap: 12px;
   }
 
   .footer-links {
