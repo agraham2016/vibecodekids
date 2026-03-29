@@ -18,6 +18,7 @@ import {
   detectMultiplayerIntent,
 } from './genres.js';
 import { MODIFICATION_SAFETY_RULES } from './safety.js';
+import { ENABLE_3D_STUDIO } from '../config/index.js';
 
 // Re-export detectGameGenre for use in routes
 export { detectGameGenre };
@@ -293,10 +294,11 @@ export function getSystemPrompt(
 
   // Add game config context if available (from survey)
   if (gameConfig) {
+    const effectiveDimension = ENABLE_3D_STUDIO ? gameConfig.dimension || '2d' : '2d';
     dynamicParts.push(`
 GAME CONFIG (from the kid's survey answers - use these to personalize the game):
 - Game Type: ${gameConfig.gameType}
-- Dimension: ${gameConfig.dimension || '2d'} (2d = Phaser.js 2D game, 3d = Three.js 3D game)
+- Dimension: ${effectiveDimension} (2d = Phaser.js 2D game)
 - Theme/Setting: ${gameConfig.theme}
 - Player Character: ${gameConfig.character}
 - Obstacles/Enemies: ${gameConfig.obstacles}
@@ -310,7 +312,7 @@ USE THIS CONFIG to make the game feel personal:
 - Make the player look/feel like "${gameConfig.character}"
 - Use "${gameConfig.obstacles}" as the main challenge
 - The game type is "${gameConfig.gameType}" - use the right mechanics for that genre
-- Dimension is "${gameConfig.dimension || '2d'}": if "3d", build with Three.js (3D scene, camera, renderer). If "2d", use Phaser.js with arcade physics.
+- Build with Phaser.js using arcade physics.
 `);
   }
 
@@ -383,7 +385,7 @@ ENGINE INTENT:
     dynamicParts.push(PLATFORMER_SAFETY_RULES);
   }
 
-  // Detect 3D code/request
+  // Detect 3D code/request — gated behind ENABLE_3D_STUDIO flag
   const is3DCode =
     currentCode &&
     (currentCode.includes('THREE.Scene') ||
@@ -397,7 +399,17 @@ ENGINE INTENT:
     (gameConfig &&
       ((gameConfig.gameType || '').toLowerCase().includes('3d') ||
         (gameConfig.customNotes || '').toLowerCase().includes('3d')));
-  const is3D = is3DCode || is3DRequest;
+  const is3D = ENABLE_3D_STUDIO && (is3DCode || is3DRequest);
+
+  if (!ENABLE_3D_STUDIO) {
+    dynamicParts.push(`
+IMPORTANT — 2D ONLY MODE:
+This studio is currently a 2D game builder. ALL games MUST be built with Phaser.js (2D).
+Do NOT generate Three.js or any 3D code. If the user asks for a 3D game, politely redirect:
+"This studio specializes in awesome 2D games! Let me build you an amazing 2D version instead! 🎮"
+Then build the best 2D Phaser version of their idea.
+`);
+  }
 
   if (is3D) {
     dynamicParts.push(THREE_D_GAME_RULES);

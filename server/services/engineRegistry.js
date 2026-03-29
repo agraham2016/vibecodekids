@@ -5,6 +5,7 @@ import {
   getEngineOverrideEffect,
   getEngineOverrideState,
 } from './engineOutcomes.js';
+import { ENABLE_3D_STUDIO } from '../config/index.js';
 
 export const ENGINE_IDS = {
   VIBE_2D: 'vibe-2d',
@@ -1350,7 +1351,7 @@ export function resolveEngineProfile({
     resolvedBlueprint?.sourceTemplateGenre || normalizedRequestedType || familyProfile.defaultTemplateGenre || null;
   const templateFile = resolvedBlueprint?.templateFile || (templateGenre ? `${templateGenre}.html` : null);
 
-  return {
+  const result = {
     engineId,
     dimension,
     genreFamily: familyProfile === ENGINE_FAMILY_PROFILES[inferredFamily] ? inferredFamily : 'platformAction',
@@ -1367,4 +1368,25 @@ export function resolveEngineProfile({
     safeEditSurfaces: familyProfile.safeEditSurfaces || [],
     architecture: familyProfile.architecture || null,
   };
+
+  // 2D-pivot guard: force everything to 2D when 3D studio is disabled
+  if (!ENABLE_3D_STUDIO && result.dimension === '3d') {
+    const fallback2D = ENGINE_FAMILY_PROFILES.platformAction;
+    result.engineId = ENGINE_IDS.VIBE_2D;
+    result.dimension = '2d';
+    result.genreFamily = 'platformAction';
+    result.validationProfile = fallback2D.validationProfile;
+    result.label = fallback2D.label;
+    result.heroTemplateIds = fallback2D.heroTemplateIds;
+    result.modelPackHint = null;
+    result.coreSystems = fallback2D.coreSystems;
+    result.safeEditSurfaces = fallback2D.safeEditSurfaces;
+    result.architecture = fallback2D.architecture;
+    result.starterTemplateId = 'platformer';
+    result.templateId = 'platformer';
+    result.templateGenre = 'platformer';
+    result.templateFile = 'platformer.html';
+  }
+
+  return result;
 }
