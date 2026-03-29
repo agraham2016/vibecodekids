@@ -67,6 +67,7 @@ import demoRouter from './routes/demo.js';
 import demoAnalyticsRouter from './routes/demoAnalytics.js';
 import marketingAnalyticsRouter from './routes/marketingAnalytics.js';
 import reportRouter from './routes/report.js';
+import createAssetCatalogRouter from './routes/assetCatalog.js';
 import { initMultiplayer, getRoomInfo, getActiveRooms, getAllowedChatPhrases } from './multiplayer.js';
 import { startRetentionSchedule } from './services/dataRetention.js';
 
@@ -583,6 +584,9 @@ app.use('/api/marketing', marketingAnalyticsRouter);
 
 // Public report route (any visitor)
 app.use('/api/report', reportRouter);
+
+// Asset catalog (paid plan required)
+app.use('/api/assets', createAssetCatalogRouter(sessions));
 
 // Admin auth routes (login, 2FA) — before requireAdmin
 app.use('/api/admin', adminAuthRouter);

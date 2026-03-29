@@ -19,6 +19,8 @@ import GameSurvey from './components/GameSurvey';
 import StudioTutorial from './components/StudioTutorial';
 import { getTutorialStatus, welcomedKey } from './components/tutorialUtils';
 import TipsModal from './components/TipsModal';
+import AssetCatalog from './components/AssetCatalog';
+import AssetCatalogGate from './components/AssetCatalogGate';
 import { getVariant } from './lib/abVariant';
 import { api } from './lib/api';
 import type {
@@ -87,6 +89,7 @@ function App() {
   const [tutorialActive, setTutorialActive] = useState(false);
   const [tutorialStartStep, setTutorialStartStep] = useState(1);
   const [showLearnModal, setShowLearnModal] = useState(false);
+  const [showAssetCatalog, setShowAssetCatalog] = useState(false);
   const activeGameConfig: GameConfig | null = currentProject.gameConfig ?? null;
 
   // Mobile/tablet navigation
@@ -323,6 +326,15 @@ function App() {
     setIsWelcomeUpgrade(false);
     setShowUpgradeModal(true);
   }, []);
+
+  const handleAssetSelected = useCallback(
+    (assetUrl: string, assetName: string) => {
+      const prompt = `Use this sprite asset in my game: ${assetName} (path: ${assetUrl}). Load it with this.load.image('${assetName}', '${assetUrl}') in preload() and use it in the game.`;
+      handleSendMessage(prompt);
+      setShowAssetCatalog(false);
+    },
+    [handleSendMessage],
+  );
 
   const handleOpenBugReport = useCallback(() => {
     setBugReportError('');
@@ -577,6 +589,13 @@ function App() {
         </div>
       )}
 
+      {/* Asset catalog modal (paid users only) */}
+      <AssetCatalog
+        isOpen={showAssetCatalog}
+        onClose={() => setShowAssetCatalog(false)}
+        onSelectAsset={handleAssetSelected}
+      />
+
       {/* Learn modal (opened from sidebar Learn button) */}
       {showLearnModal && (
         <TipsModal
@@ -630,6 +649,13 @@ function App() {
             lastAutoSavedAt={lastAutoSavedAt}
             username={user?.username}
             onOpenLearn={() => setShowLearnModal(true)}
+            assetCatalogSlot={
+              <AssetCatalogGate
+                membership={membership}
+                onUpgradeClick={handleUpgradeClick}
+                onOpenCatalog={() => setShowAssetCatalog(true)}
+              />
+            }
           />
         </div>
 

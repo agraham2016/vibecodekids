@@ -396,3 +396,54 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* Asset Catalog Trigger */
+.asset-catalog-trigger {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  border: 1px solid rgba(124, 58, 237, 0.3);
+  border-radius: var(--radius-sm, 6px);
+  background: rgba(124, 58, 237, 0.12);
+  color: #c084fc;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+
+.asset-catalog-trigger:hover {
+  background: rgba(124, 58, 237, 0.22);
+  border-color: rgba(124, 58, 237, 0.5);
+}
+
+.asset-catalog-trigger.locked {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.asset-catalog-trigger.locked:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.asset-catalog-trigger-icon {
+  font-size: 0.9rem;
+}
+
+.asset-catalog-trigger-text {
+  display: inline;
+}
+
+.asset-catalog-upgrade-badge {
+  font-size: 0.6rem;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: rgba(124, 58, 237, 0.3);
+  color: #c084fc;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}

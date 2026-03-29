@@ -22,6 +22,7 @@ interface ProjectsPanelProps {
   lastAutoSavedAt: Date | null;
   username?: string;
   onOpenLearn?: () => void;
+  assetCatalogSlot?: React.ReactNode;
 }
 
 function formatAutoSaveTime(date: Date): string {
@@ -70,6 +71,7 @@ export default function ProjectsPanel({
   lastAutoSavedAt,
   username,
   onOpenLearn,
+  assetCatalogSlot,
 }: ProjectsPanelProps) {
   const currentFamilyLabel = currentProjectGameConfig?.genreFamily
     ? getStarterFamilyGuide(currentProjectGameConfig.genreFamily).label
@@ -203,6 +205,7 @@ export default function ProjectsPanel({
           <span>🎉</span>
           <span>Share</span>
         </button>
+        {assetCatalogSlot}
         <div className="pp-actions-menu" ref={moreActionsRef}>
           <button
             className={`pp-action-btn pp-action-btn-more ${showMoreActions ? 'open' : ''}`}
