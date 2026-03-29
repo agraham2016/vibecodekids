@@ -47,8 +47,8 @@ const CATEGORY_ICONS: Record<string, string> = {
 };
 
 const ENGINE_TAGS: Record<string, { label: string; className: string }> = {
-  'vibe-2d': { label: 'Vibe 2D', className: 'engine-2d' },
-  'vibe-3d': { label: 'Vibe 3D', className: 'engine-3d' },
+  'vibe-2d': { label: '2D', className: 'engine-2d' },
+  'vibe-3d': { label: '3D (Legacy)', className: 'engine-3d' },
 };
 
 export default function ProjectsPanel({

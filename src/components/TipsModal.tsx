@@ -82,7 +82,7 @@ const SCENARIOS = [
 const GAME_TEMPLATES = STARTER_TEMPLATES.map((template) => ({
   emoji: template.icon,
   name: template.label,
-  desc: `${template.engineId === 'vibe-3d' ? 'Vibe 3D' : 'Vibe 2D'} - ${template.description}`,
+  desc: template.description,
   bestFor: getStarterFamilyGuide(template.genreFamily).bestFor,
 }));
 
@@ -254,9 +254,7 @@ export default function TipsModal({ isOpen, userId, onClose, onReplayTutorial }:
           {/* Tab 3: What Can I Make */}
           {activeTab === 'create' && (
             <div className="tips-tab-content">
-              <p className="tab-intro">
-                Pick from shared Vibe 2D and Vibe 3D starters, then remix them into your own game idea.
-              </p>
+              <p className="tab-intro">Pick from our 2D game starters, then remix them into your own game idea.</p>
               <div className="engine-guide-grid">
                 {ENGINE_GUIDE.map((engine) => (
                   <div key={engine.label} className="engine-guide-card">

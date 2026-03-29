@@ -12,6 +12,7 @@ import {
   getStarterRecommendationReason,
   getStarterFamilyGuide,
 } from '../config/gameCatalog';
+import { ENABLE_3D_STUDIO } from '../config/featureFlags';
 import './GameSurvey.css';
 
 interface GameSurveyProps {
@@ -103,9 +104,9 @@ export default function GameSurvey({ onComplete }: GameSurveyProps) {
           lower.includes(template.shortLabel.toLowerCase())
         );
       }) ||
-      (/\b3d\b|\broblox\b|\bobby\b/.test(lower)
+      (ENABLE_3D_STUDIO && /\b3d\b|\broblox\b|\bobby\b/.test(lower)
         ? getStarterTemplateById('obby')
-        : /\bsurvival\b|\bcraft\b|\bbuild\b/.test(lower)
+        : ENABLE_3D_STUDIO && /\bsurvival\b|\bcraft\b|\bbuild\b/.test(lower)
           ? getStarterTemplateById('survival-crafting-game')
           : /\bpet\b|\banimal\b/.test(lower)
             ? getStarterTemplateById('pet-care-simulator')
@@ -288,64 +289,41 @@ export default function GameSurvey({ onComplete }: GameSurveyProps) {
           <div className="survey-option-grid">
             {step === 'gameType' ? (
               <>
-                <div className="survey-engine-group">
-                  <div className="survey-engine-heading">Vibe 2D Starters</div>
-                  <div className="survey-engine-subheading">{ENGINE_SELECTION_GUIDE['vibe-2d'].runtimeSummary}</div>
-                  <div className="survey-engine-guide-card">
-                    <strong>{ENGINE_SELECTION_GUIDE['vibe-2d'].architectureReason}</strong>
-                    <span>{ENGINE_SELECTION_GUIDE['vibe-2d'].iterationSweetSpot}</span>
-                  </div>
-                  <div className="survey-engine-grid">
-                    {STARTERS_BY_ENGINE['vibe-2d'].map((template) => (
-                      <button
-                        key={template.id}
-                        className="survey-option-btn survey-option-btn-engine"
-                        onClick={() =>
-                          handleOptionClick({ icon: template.icon, label: template.label, value: template.id })
-                        }
-                        disabled={isAnimating}
-                      >
-                        <span className="survey-option-icon">{template.icon}</span>
-                        <span className="survey-option-text">
-                          <span className="survey-option-label">{template.label}</span>
-                          <span className="survey-option-copy">
-                            {getStarterFamilyGuide(template.genreFamily).bestFor}
-                          </span>
-                        </span>
-                        <span className="survey-option-meta">Vibe 2D</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div className="survey-engine-group">
-                  <div className="survey-engine-heading">Vibe 3D Starters</div>
-                  <div className="survey-engine-subheading">{ENGINE_SELECTION_GUIDE['vibe-3d'].runtimeSummary}</div>
-                  <div className="survey-engine-guide-card">
-                    <strong>{ENGINE_SELECTION_GUIDE['vibe-3d'].architectureReason}</strong>
-                    <span>{ENGINE_SELECTION_GUIDE['vibe-3d'].iterationSweetSpot}</span>
-                  </div>
-                  <div className="survey-engine-grid">
-                    {STARTERS_BY_ENGINE['vibe-3d'].map((template) => (
-                      <button
-                        key={template.id}
-                        className="survey-option-btn survey-option-btn-engine"
-                        onClick={() =>
-                          handleOptionClick({ icon: template.icon, label: template.label, value: template.id })
-                        }
-                        disabled={isAnimating}
-                      >
-                        <span className="survey-option-icon">{template.icon}</span>
-                        <span className="survey-option-text">
-                          <span className="survey-option-label">{template.label}</span>
-                          <span className="survey-option-copy">
-                            {getStarterFamilyGuide(template.genreFamily).bestFor}
-                          </span>
-                        </span>
-                        <span className="survey-option-meta">Vibe 3D</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                {Object.entries(STARTERS_BY_ENGINE).map(([engineId, starters]) => {
+                  const guide = ENGINE_SELECTION_GUIDE[engineId];
+                  if (!guide || starters.length === 0) return null;
+                  return (
+                    <div className="survey-engine-group" key={engineId}>
+                      <div className="survey-engine-heading">{guide.label} Starters</div>
+                      <div className="survey-engine-subheading">{guide.runtimeSummary}</div>
+                      <div className="survey-engine-guide-card">
+                        <strong>{guide.architectureReason}</strong>
+                        <span>{guide.iterationSweetSpot}</span>
+                      </div>
+                      <div className="survey-engine-grid">
+                        {starters.map((template) => (
+                          <button
+                            key={template.id}
+                            className="survey-option-btn survey-option-btn-engine"
+                            onClick={() =>
+                              handleOptionClick({ icon: template.icon, label: template.label, value: template.id })
+                            }
+                            disabled={isAnimating}
+                          >
+                            <span className="survey-option-icon">{template.icon}</span>
+                            <span className="survey-option-text">
+                              <span className="survey-option-label">{template.label}</span>
+                              <span className="survey-option-copy">
+                                {getStarterFamilyGuide(template.genreFamily).bestFor}
+                              </span>
+                            </span>
+                            <span className="survey-option-meta">{guide.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
               </>
             ) : (
               getCurrentOptions().map((opt) => (
@@ -388,8 +366,7 @@ export default function GameSurvey({ onComplete }: GameSurveyProps) {
         <div className="survey-building">
           <div className="building-spinner" />
           <p>
-            Building your {answers.theme} {selectedStarter.shortLabel} with{' '}
-            {selectedStarter.engineId === 'vibe-3d' ? 'Vibe 3D' : 'Vibe 2D'}...
+            Building your {answers.theme} {selectedStarter.shortLabel} game...
           </p>
         </div>
       )}

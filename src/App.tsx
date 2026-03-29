@@ -35,7 +35,7 @@ import { getStarterTemplateById } from './config/gameCatalog';
 import './App.css';
 
 const FRESH_GAME_PROMPT_PATTERN =
-  /\b(start over|from scratch|new game|different game|another game|make .*?(chess|checkers|tic(?:-|\s)?tac(?:-|\s)?toe|connect(?:-|\s)?4|board game|platformer|racing|maze|puzzle|obby|tower defense|survival|builder|3d|2d)|build .*?(chess|checkers|tic(?:-|\s)?tac(?:-|\s)?toe|connect(?:-|\s)?4|board game|platformer|racing|maze|puzzle|obby|tower defense|survival|builder|3d|2d)|create .*?(chess|checkers|tic(?:-|\s)?tac(?:-|\s)?toe|connect(?:-|\s)?4|board game|platformer|racing|maze|puzzle|obby|tower defense|survival|builder|3d|2d))\b/i;
+  /\b(start over|from scratch|new game|different game|another game|make .*?(chess|checkers|tic(?:-|\s)?tac(?:-|\s)?toe|connect(?:-|\s)?4|board game|platformer|racing|maze|puzzle|tower defense|builder|2d)|build .*?(chess|checkers|tic(?:-|\s)?tac(?:-|\s)?toe|connect(?:-|\s)?4|board game|platformer|racing|maze|puzzle|tower defense|builder|2d)|create .*?(chess|checkers|tic(?:-|\s)?tac(?:-|\s)?toe|connect(?:-|\s)?4|board game|platformer|racing|maze|puzzle|tower defense|builder|2d))\b/i;
 
 function shouldResetProjectGameConfig(content: string, currentCode: string, gameConfig?: GameConfig | null) {
   if (gameConfig) return false;
@@ -279,12 +279,10 @@ function App() {
   const handleGameSurveyComplete = useCallback(
     (config: GameConfig) => {
       const starter = getStarterTemplateById(config.starterTemplateId || config.gameType);
-      const dimensionLabel = config.dimension === '3d' ? '3D' : '2D';
-      const engineLabel = config.engineId === 'vibe-3d' ? 'Vibe 3D' : 'Vibe 2D';
       const starterLabel = starter?.label || config.gameType;
       const selectionReason = config.selectionReason ? ` Match reason: ${config.selectionReason}` : '';
       const notes = config.customNotes ? ` Extra idea: ${config.customNotes}.` : '';
-      const prompt = `Make me a ${dimensionLabel} ${config.theme} ${starterLabel} game with the ${engineLabel} engine style. I control a ${config.character}. The main challenge is ${config.obstacles}. Use a ${config.visualStyle} visual style.${selectionReason}${notes}`;
+      const prompt = `Make me a 2D ${config.theme} ${starterLabel} game. I control a ${config.character}. The main challenge is ${config.obstacles}. Use a ${config.visualStyle} visual style.${selectionReason}${notes}`;
       setShowGameSurvey(false);
       localStorage.setItem(welcomedKey(user?.id), '1');
       handleSendMessage(prompt, undefined, undefined, config);
