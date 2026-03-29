@@ -102,7 +102,7 @@ export default function LandingShell({ variant, onLoginClick, onSignupClick }: L
               loading="lazy"
               decoding="async"
             />
-            <p className="footer-tagline">Kids describe a game idea, AI builds it, and they play it right away.</p>
+            <p className="footer-tagline">Kids describe a 2D game idea, AI builds it, and they play it right away.</p>
           </div>
 
           <div className="footer-links">

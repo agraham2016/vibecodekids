@@ -1,10 +1,10 @@
-import './PlanSelector.css'
+import './PlanSelector.css';
 
 interface PlanSelectorProps {
-  selectedPlan: 'free' | 'creator' | 'pro'
-  onSelectPlan: (plan: 'free' | 'creator' | 'pro') => void
-  onContinue: () => void
-  onBack: () => void
+  selectedPlan: 'free' | 'creator' | 'pro';
+  onSelectPlan: (plan: 'free' | 'creator' | 'pro') => void;
+  onContinue: () => void;
+  onBack: () => void;
 }
 
 const PLANS = [
@@ -14,13 +14,8 @@ const PLANS = [
     price: 0,
     icon: '⭐',
     description: '30 days to try it out',
-    features: [
-      '3 games per month',
-      '10 prompts per day',
-      'Share to Arcade',
-      '30-day access'
-    ],
-    notIncluded: []
+    features: ['3 games per month', '10 prompts per day', 'Share to Arcade', '30-day access'],
+    notIncluded: [],
   },
   {
     id: 'creator' as const,
@@ -29,13 +24,8 @@ const PLANS = [
     icon: '🚀',
     popular: true,
     description: 'For aspiring game makers',
-    features: [
-      '15 games per month',
-      '50 prompts per day',
-      'Premium Assets',
-      'Priority support'
-    ],
-    notIncluded: []
+    features: ['15 games per month', '50 prompts per day', '2D Asset Catalog', 'Priority support'],
+    notIncluded: [],
   },
   {
     id: 'pro' as const,
@@ -43,15 +33,10 @@ const PLANS = [
     price: 21,
     icon: '👑',
     description: 'For serious creators',
-    features: [
-      '40 games per month',
-      '80 prompts per day',
-      'Premium Assets',
-      'Priority support'
-    ],
-    notIncluded: []
-  }
-]
+    features: ['40 games per month', '80 prompts per day', '2D Asset Catalog', 'Priority support'],
+    notIncluded: [],
+  },
+];
 
 export default function PlanSelector({ selectedPlan, onSelectPlan, onContinue, onBack }: PlanSelectorProps) {
   return (
@@ -62,20 +47,25 @@ export default function PlanSelector({ selectedPlan, onSelectPlan, onContinue, o
       </div>
 
       <div className="plans-grid">
-        {PLANS.map(plan => (
-          <div 
+        {PLANS.map((plan) => (
+          <div
             key={plan.id}
             className={`plan-card ${selectedPlan === plan.id ? 'selected' : ''} ${plan.popular ? 'popular' : ''}`}
             onClick={() => onSelectPlan(plan.id)}
             role="button"
             tabIndex={0}
-            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelectPlan(plan.id); } }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onSelectPlan(plan.id);
+              }
+            }}
           >
             {plan.popular && <span className="popular-badge">MOST POPULAR</span>}
-            
+
             <div className="plan-icon">{plan.icon}</div>
             <h3 className="plan-name">{plan.name}</h3>
-            
+
             <div className="plan-price">
               {plan.price === 0 ? (
                 <span className="price-free">Free</span>
@@ -86,9 +76,9 @@ export default function PlanSelector({ selectedPlan, onSelectPlan, onContinue, o
                 </>
               )}
             </div>
-            
+
             <p className="plan-description">{plan.description}</p>
-            
+
             <ul className="plan-features">
               {plan.features.map((feature, i) => (
                 <li key={i} className="feature-included">
@@ -103,10 +93,8 @@ export default function PlanSelector({ selectedPlan, onSelectPlan, onContinue, o
                 </li>
               ))}
             </ul>
-            
-            <div className="plan-select-indicator">
-              {selectedPlan === plan.id ? '✓ Selected' : 'Select'}
-            </div>
+
+            <div className="plan-select-indicator">{selectedPlan === plan.id ? '✓ Selected' : 'Select'}</div>
           </div>
         ))}
       </div>
@@ -116,15 +104,13 @@ export default function PlanSelector({ selectedPlan, onSelectPlan, onContinue, o
           ← Back
         </button>
         <button className="btn-continue" onClick={onContinue}>
-          Continue with {PLANS.find(p => p.id === selectedPlan)?.name} →
+          Continue with {PLANS.find((p) => p.id === selectedPlan)?.name} →
         </button>
       </div>
 
       <p className="plan-note">
-        {selectedPlan === 'free' 
-          ? 'No credit card required — 30-day free trial'
-          : 'Secure payment powered by Stripe'}
+        {selectedPlan === 'free' ? 'No credit card required — 30-day free trial' : 'Secure payment powered by Stripe'}
       </p>
     </div>
-  )
+  );
 }
