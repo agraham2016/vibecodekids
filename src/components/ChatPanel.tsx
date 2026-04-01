@@ -9,6 +9,7 @@ import {
   getStarterFamilyGuide,
   getStarterRecommendationReason,
 } from '../config/gameCatalog';
+import { ENABLE_3D_STUDIO } from '../config/featureFlags';
 import TipsModal from './TipsModal';
 import './ChatPanel.css';
 
@@ -96,10 +97,8 @@ function getModelInfo(model: AIModel | null | undefined) {
 const GAME_STARTERS = STARTER_TEMPLATES.map((template) => ({
   genre: template.id,
   emoji: template.icon,
-  label: `${template.shortLabel}${template.dimension === '3d' ? ' 3D' : ''}`,
-  prompt: `Make me a ${template.dimension.toUpperCase()} ${template.label} game with the ${
-    template.engineId === 'vibe-3d' ? 'Vibe 3D' : 'Vibe 2D'
-  } engine style. The theme is ${template.defaultTheme}. I control a ${template.defaultCharacter}. The main challenge is ${
+  label: ENABLE_3D_STUDIO && template.dimension === '3d' ? `${template.shortLabel} 3D` : template.shortLabel,
+  prompt: `Make me a 2D ${template.label} game. The theme is ${template.defaultTheme}. I control a ${template.defaultCharacter}. The main challenge is ${
     template.defaultObstacle
   }.`,
 }));
@@ -120,22 +119,15 @@ function toStarterGameConfig(template: (typeof STARTER_TEMPLATES)[number]): Game
   };
 }
 
-const GAME_STARTER_GROUPS = [
-  {
-    engineId: 'vibe-2d',
-    label: 'Vibe 2D',
-    description: ENGINE_SELECTION_GUIDE['vibe-2d'].runtimeSummary,
-    architectureReason: ENGINE_SELECTION_GUIDE['vibe-2d'].architectureReason,
-    starters: STARTERS_BY_ENGINE['vibe-2d'],
-  },
-  {
-    engineId: 'vibe-3d',
-    label: 'Vibe 3D',
-    description: ENGINE_SELECTION_GUIDE['vibe-3d'].runtimeSummary,
-    architectureReason: ENGINE_SELECTION_GUIDE['vibe-3d'].architectureReason,
-    starters: STARTERS_BY_ENGINE['vibe-3d'],
-  },
-];
+const GAME_STARTER_GROUPS = Object.entries(STARTERS_BY_ENGINE)
+  .filter(([engineId]) => ENGINE_SELECTION_GUIDE[engineId])
+  .map(([engineId, starters]) => ({
+    engineId,
+    label: ENGINE_SELECTION_GUIDE[engineId].label,
+    description: ENGINE_SELECTION_GUIDE[engineId].runtimeSummary,
+    architectureReason: ENGINE_SELECTION_GUIDE[engineId].architectureReason,
+    starters,
+  }));
 
 const GENERATION_STAGES = ['engine', 'references', 'generating', 'polishing', 'repairing'] as const;
 
@@ -465,8 +457,8 @@ export default function ChatPanel({
             </div>
             <h3>Let's build something awesome!</h3>
             <p>
-              Tell me what kind of game you want to make! For example: "Make me a 3D space blaster" or "Build a racing
-              game with dinosaurs" — anything you can imagine!
+              Tell me what kind of 2D game you want to build! For example: "Build a racing game with dinosaurs" or "Make
+              a dungeon crawler with dragons" — anything you can imagine!
             </p>
 
             {/* Model intro cards */}

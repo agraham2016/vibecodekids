@@ -19,6 +19,8 @@ import GameSurvey from './components/GameSurvey';
 import StudioTutorial from './components/StudioTutorial';
 import { getTutorialStatus, welcomedKey } from './components/tutorialUtils';
 import TipsModal from './components/TipsModal';
+import AssetCatalog from './components/AssetCatalog';
+import AssetCatalogGate from './components/AssetCatalogGate';
 import { getVariant } from './lib/abVariant';
 import { api } from './lib/api';
 import type {
@@ -35,7 +37,7 @@ import { getStarterTemplateById } from './config/gameCatalog';
 import './App.css';
 
 const FRESH_GAME_PROMPT_PATTERN =
-  /\b(start over|from scratch|new game|different game|another game|make .*?(chess|checkers|tic(?:-|\s)?tac(?:-|\s)?toe|connect(?:-|\s)?4|board game|platformer|racing|maze|puzzle|obby|tower defense|survival|builder|3d|2d)|build .*?(chess|checkers|tic(?:-|\s)?tac(?:-|\s)?toe|connect(?:-|\s)?4|board game|platformer|racing|maze|puzzle|obby|tower defense|survival|builder|3d|2d)|create .*?(chess|checkers|tic(?:-|\s)?tac(?:-|\s)?toe|connect(?:-|\s)?4|board game|platformer|racing|maze|puzzle|obby|tower defense|survival|builder|3d|2d))\b/i;
+  /\b(start over|from scratch|new game|different game|another game|make .*?(chess|checkers|tic(?:-|\s)?tac(?:-|\s)?toe|connect(?:-|\s)?4|board game|platformer|racing|maze|puzzle|tower defense|builder|2d)|build .*?(chess|checkers|tic(?:-|\s)?tac(?:-|\s)?toe|connect(?:-|\s)?4|board game|platformer|racing|maze|puzzle|tower defense|builder|2d)|create .*?(chess|checkers|tic(?:-|\s)?tac(?:-|\s)?toe|connect(?:-|\s)?4|board game|platformer|racing|maze|puzzle|tower defense|builder|2d))\b/i;
 
 function shouldResetProjectGameConfig(content: string, currentCode: string, gameConfig?: GameConfig | null) {
   if (gameConfig) return false;
@@ -87,6 +89,7 @@ function App() {
   const [tutorialActive, setTutorialActive] = useState(false);
   const [tutorialStartStep, setTutorialStartStep] = useState(1);
   const [showLearnModal, setShowLearnModal] = useState(false);
+  const [showAssetCatalog, setShowAssetCatalog] = useState(false);
   const activeGameConfig: GameConfig | null = currentProject.gameConfig ?? null;
 
   // Mobile/tablet navigation
@@ -279,12 +282,10 @@ function App() {
   const handleGameSurveyComplete = useCallback(
     (config: GameConfig) => {
       const starter = getStarterTemplateById(config.starterTemplateId || config.gameType);
-      const dimensionLabel = config.dimension === '3d' ? '3D' : '2D';
-      const engineLabel = config.engineId === 'vibe-3d' ? 'Vibe 3D' : 'Vibe 2D';
       const starterLabel = starter?.label || config.gameType;
       const selectionReason = config.selectionReason ? ` Match reason: ${config.selectionReason}` : '';
       const notes = config.customNotes ? ` Extra idea: ${config.customNotes}.` : '';
-      const prompt = `Make me a ${dimensionLabel} ${config.theme} ${starterLabel} game with the ${engineLabel} engine style. I control a ${config.character}. The main challenge is ${config.obstacles}. Use a ${config.visualStyle} visual style.${selectionReason}${notes}`;
+      const prompt = `Make me a 2D ${config.theme} ${starterLabel} game. I control a ${config.character}. The main challenge is ${config.obstacles}. Use a ${config.visualStyle} visual style.${selectionReason}${notes}`;
       setShowGameSurvey(false);
       localStorage.setItem(welcomedKey(user?.id), '1');
       handleSendMessage(prompt, undefined, undefined, config);
@@ -325,6 +326,15 @@ function App() {
     setIsWelcomeUpgrade(false);
     setShowUpgradeModal(true);
   }, []);
+
+  const handleAssetSelected = useCallback(
+    (assetUrl: string, assetName: string) => {
+      const prompt = `Use this sprite asset in my game: ${assetName} (path: ${assetUrl}). Load it with this.load.image('${assetName}', '${assetUrl}') in preload() and use it in the game.`;
+      handleSendMessage(prompt);
+      setShowAssetCatalog(false);
+    },
+    [handleSendMessage],
+  );
 
   const handleOpenBugReport = useCallback(() => {
     setBugReportError('');
@@ -579,6 +589,13 @@ function App() {
         </div>
       )}
 
+      {/* Asset catalog modal (paid users only) */}
+      <AssetCatalog
+        isOpen={showAssetCatalog}
+        onClose={() => setShowAssetCatalog(false)}
+        onSelectAsset={handleAssetSelected}
+      />
+
       {/* Learn modal (opened from sidebar Learn button) */}
       {showLearnModal && (
         <TipsModal
@@ -632,6 +649,13 @@ function App() {
             lastAutoSavedAt={lastAutoSavedAt}
             username={user?.username}
             onOpenLearn={() => setShowLearnModal(true)}
+            assetCatalogSlot={
+              <AssetCatalogGate
+                membership={membership}
+                onUpgradeClick={handleUpgradeClick}
+                onOpenCatalog={() => setShowAssetCatalog(true)}
+              />
+            }
           />
         </div>
 

@@ -200,3 +200,12 @@ export const RATE_LIMITS = {
   promptsPerHour: 30,
   cooldownMinutes: 5,
 };
+
+// ========== FEATURE FLAGS ==========
+
+/**
+ * 2D Pivot: when false, the engine registry forces all generation to 2D/Phaser.
+ * Three.js templates and 3D family profiles are not served to users.
+ * Set ENABLE_3D_STUDIO=true in env to re-enable for internal testing.
+ */
+export const ENABLE_3D_STUDIO = process.env.ENABLE_3D_STUDIO === 'true';

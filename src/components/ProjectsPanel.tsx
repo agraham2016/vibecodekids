@@ -22,6 +22,7 @@ interface ProjectsPanelProps {
   lastAutoSavedAt: Date | null;
   username?: string;
   onOpenLearn?: () => void;
+  assetCatalogSlot?: React.ReactNode;
 }
 
 function formatAutoSaveTime(date: Date): string {
@@ -47,8 +48,8 @@ const CATEGORY_ICONS: Record<string, string> = {
 };
 
 const ENGINE_TAGS: Record<string, { label: string; className: string }> = {
-  'vibe-2d': { label: 'Vibe 2D', className: 'engine-2d' },
-  'vibe-3d': { label: 'Vibe 3D', className: 'engine-3d' },
+  'vibe-2d': { label: '2D', className: 'engine-2d' },
+  'vibe-3d': { label: '3D (Legacy)', className: 'engine-3d' },
 };
 
 export default function ProjectsPanel({
@@ -70,6 +71,7 @@ export default function ProjectsPanel({
   lastAutoSavedAt,
   username,
   onOpenLearn,
+  assetCatalogSlot,
 }: ProjectsPanelProps) {
   const currentFamilyLabel = currentProjectGameConfig?.genreFamily
     ? getStarterFamilyGuide(currentProjectGameConfig.genreFamily).label
@@ -203,6 +205,7 @@ export default function ProjectsPanel({
           <span>🎉</span>
           <span>Share</span>
         </button>
+        {assetCatalogSlot}
         <div className="pp-actions-menu" ref={moreActionsRef}>
           <button
             className={`pp-action-btn pp-action-btn-more ${showMoreActions ? 'open' : ''}`}

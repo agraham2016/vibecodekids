@@ -104,7 +104,7 @@ export default function UpgradeModal({
           ) : (
             <>
               <h2>✨ Upgrade Your Experience</h2>
-              <p>Create more, do more, unlock AI features</p>
+              <p>Create more games, unlock the 2D Asset Catalog, and get more AI prompts</p>
             </>
           )}
         </div>
@@ -146,7 +146,7 @@ export default function UpgradeModal({
               <li>✅ 15 games per month</li>
               <li>✅ 50 prompts per day</li>
               <li>✅ Share to Arcade</li>
-              <li>✅ Premium Assets</li>
+              <li>✅ 2D Asset Catalog</li>
             </ul>
             {currentTier === 'free' && (
               <button className="tier-btn primary" onClick={() => handleUpgrade('creator')} disabled={loading !== null}>
@@ -173,7 +173,7 @@ export default function UpgradeModal({
               <li>✅ 40 games per month</li>
               <li>✅ 80 prompts per day</li>
               <li>✅ Share to Arcade</li>
-              <li>✅ Premium Assets</li>
+              <li>✅ 2D Asset Catalog</li>
             </ul>
             {currentTier !== 'pro' && (
               <button className="tier-btn secondary" onClick={() => handleUpgrade('pro')} disabled={loading !== null}>

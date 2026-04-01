@@ -16,7 +16,7 @@ export interface LandingQuestion {
 }
 
 export const HERO_CONTENT = {
-  headline: 'Build Your First Game in Minutes',
+  headline: 'Build Your First 2D Game in Minutes',
   subheadline: 'Just describe your idea. AI builds it. You play it.',
   ctaLabel: 'Start Free',
   ctaSupport: 'Takes less than 60 seconds to start',
@@ -68,7 +68,8 @@ export const LANDING_QUESTIONS: LandingQuestion[] = [
   },
   {
     question: 'What kinds of games can they make?',
-    answer: 'Kids can create platformers, racers, obstacle games, adventures, and other ideas they come up with.',
+    answer:
+      'Kids can create 2D platformers, racers, puzzles, RPGs, tycoon games, and many other ideas they come up with.',
   },
   {
     question: 'Can they share what they build?',

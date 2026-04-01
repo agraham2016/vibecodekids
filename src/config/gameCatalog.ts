@@ -1,4 +1,5 @@
 import type { EngineId, GenreFamily, StarterTemplateId } from '../types';
+import { ENABLE_3D_STUDIO } from './featureFlags';
 
 export interface StarterTemplateCard {
   id: StarterTemplateId;
@@ -30,7 +31,7 @@ export interface StarterFamilyGuide {
   remixFocus: string;
 }
 
-export const ENGINE_SELECTION_GUIDE: Record<EngineId, EngineSelectionGuide> = {
+const _FULL_ENGINE_SELECTION_GUIDE: Record<EngineId, EngineSelectionGuide> = {
   'vibe-2d': {
     label: 'Vibe 2D',
     runtimeSummary: 'Fast 2D starters for simple, arcade-style games.',
@@ -47,6 +48,10 @@ export const ENGINE_SELECTION_GUIDE: Record<EngineId, EngineSelectionGuide> = {
     architectureReason: 'Best when the idea needs a world to explore, build in, or move through.',
   },
 };
+
+export const ENGINE_SELECTION_GUIDE: Record<string, EngineSelectionGuide> = ENABLE_3D_STUDIO
+  ? _FULL_ENGINE_SELECTION_GUIDE
+  : { 'vibe-2d': _FULL_ENGINE_SELECTION_GUIDE['vibe-2d'] };
 
 export const STARTER_FAMILY_GUIDE: Record<GenreFamily, StarterFamilyGuide> = {
   platformAction: {
@@ -141,7 +146,7 @@ export function getStarterRecommendationReason(template: StarterTemplateCard, wa
   return `${template.label} uses the ${familyGuide.label} path in ${engineGuide.label}. ${familyGuide.bestFor}`;
 }
 
-export const STARTER_TEMPLATES: StarterTemplateCard[] = [
+const _ALL_STARTER_TEMPLATES: StarterTemplateCard[] = [
   {
     id: 'endless-runner',
     label: 'Endless Runner',
@@ -489,12 +494,20 @@ export const STARTER_TEMPLATES: StarterTemplateCard[] = [
   },
 ];
 
-export const STARTERS_BY_ENGINE: Record<EngineId, StarterTemplateCard[]> = {
-  'vibe-2d': STARTER_TEMPLATES.filter((template) => template.engineId === 'vibe-2d'),
-  'vibe-3d': STARTER_TEMPLATES.filter((template) => template.engineId === 'vibe-3d'),
-};
+export const STARTER_TEMPLATES: StarterTemplateCard[] = ENABLE_3D_STUDIO
+  ? _ALL_STARTER_TEMPLATES
+  : _ALL_STARTER_TEMPLATES.filter((t) => t.dimension === '2d');
 
-export const LONG_TERM_FAMILY_SHOWCASE: Array<{
+export const STARTERS_BY_ENGINE: Record<string, StarterTemplateCard[]> = ENABLE_3D_STUDIO
+  ? {
+      'vibe-2d': STARTER_TEMPLATES.filter((template) => template.engineId === 'vibe-2d'),
+      'vibe-3d': STARTER_TEMPLATES.filter((template) => template.engineId === 'vibe-3d'),
+    }
+  : {
+      'vibe-2d': STARTER_TEMPLATES.filter((template) => template.engineId === 'vibe-2d'),
+    };
+
+const _ALL_FAMILY_SHOWCASE: Array<{
   family: GenreFamily;
   label: string;
   engineId: EngineId;
@@ -549,6 +562,10 @@ export const LONG_TERM_FAMILY_SHOWCASE: Array<{
     examples: ['House builder', 'Island builder', 'World creator', 'Defense base'],
   },
 ];
+
+export const LONG_TERM_FAMILY_SHOWCASE = ENABLE_3D_STUDIO
+  ? _ALL_FAMILY_SHOWCASE
+  : _ALL_FAMILY_SHOWCASE.filter((entry) => entry.engineId !== 'vibe-3d');
 
 export const THEMES_BY_FAMILY: Record<GenreFamily, Array<{ icon: string; label: string; value: string }>> = {
   platformAction: [
