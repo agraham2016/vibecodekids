@@ -7,8 +7,8 @@
   <style>
     * { box-sizing: border-box; }
     html, body { margin: 0; height: 100%; overflow: hidden; font-family: Arial, sans-serif; }
-    body { background: radial-gradient(circle at top, #10203f, #050814 72%); color: white; }
-    canvas { display: block; width: 100vw; height: 100vh; }
+    body { background: radial-gradient(circle at top, #10203f, #050814 72%); color: white; touch-action: none; }
+    canvas { display: block; width: 100vw; height: 100vh; touch-action: none; }
     .hud {
       position: fixed;
       top: 12px;
@@ -36,7 +36,7 @@
     <div id="score">Score: 0</div>
     <div id="lives">Lives: 3</div>
   </div>
-  <div class="tip">Move with mouse or arrow keys. Break every block.</div>
+  <div class="tip">Move with touch, mouse, or arrow keys. Break every block.</div>
   <canvas id="game"></canvas>
   <script>
     const canvas = document.getElementById('game');
@@ -93,6 +93,9 @@
       makeBricks();
       paddle.x = (w - paddle.w) / 2;
       resetBall();
+    }
+    function movePaddle(clientX) {
+      paddle.x = Math.max(12, Math.min(w - paddle.w - 12, clientX - paddle.w / 2));
     }
     function drawRoundedRect(x, y, bw, bh, r, fill) {
       ctx.fillStyle = fill;
@@ -171,7 +174,20 @@
     }
 
     window.addEventListener('resize', () => { resize(); makeBricks(); resetBall(); });
-    window.addEventListener('mousemove', (e) => { paddle.x = e.clientX - paddle.w / 2; });
+    window.addEventListener('mousemove', (e) => { movePaddle(e.clientX); });
+    window.addEventListener('touchstart', (e) => {
+      const touch = e.touches[0];
+      if (!touch) return;
+      movePaddle(touch.clientX);
+      if (won || lives <= 0) resetGame();
+      e.preventDefault();
+    }, { passive: false });
+    window.addEventListener('touchmove', (e) => {
+      const touch = e.touches[0];
+      if (!touch) return;
+      movePaddle(touch.clientX);
+      e.preventDefault();
+    }, { passive: false });
     window.addEventListener('keydown', (e) => {
       if (e.key === 'ArrowLeft') keys.left = true;
       if (e.key === 'ArrowRight') keys.right = true;

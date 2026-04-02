@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { enhanceSandboxedPreviewHtml } from '../utils/previewHtml';
 import './DemoBuilder.css';
 
@@ -11,7 +11,6 @@ interface ArcadeGame {
   id: string;
   title: string;
   creatorName: string;
-  category: string;
   previewUrl: string;
 }
 
@@ -68,41 +67,12 @@ const LOADING_MESSAGES = [
   'Almost ready...',
 ];
 
-const CATEGORY_EMOJIS: Record<string, string> = {
-  arcade: '👾',
-  puzzle: '🧩',
-  adventure: '🗺️',
-  rpg: '⚔️',
-  strategy: '🧠',
-  racing: '🏎️',
-  sports: '⚽',
-  classic: '🕹️',
-  other: '🎮',
+const WAITING_ARCADE_GAME: ArcadeGame = {
+  id: 'demo-neon-paddle',
+  title: 'Neon Paddle',
+  creatorName: 'another VibeCode kid',
+  previewUrl: '/demo-neon-paddle.html',
 };
-
-const BUILT_IN_ARCADE_GAMES: ArcadeGame[] = [
-  {
-    id: 'demo-rocket-dodge',
-    title: 'Rocket Dodge',
-    creatorName: 'a VibeCode kid',
-    category: 'arcade',
-    previewUrl: '/demo-rocket-dodge.html',
-  },
-  {
-    id: 'demo-neon-paddle',
-    title: 'Neon Paddle',
-    creatorName: 'another VibeCode kid',
-    category: 'classic',
-    previewUrl: '/demo-neon-paddle.html',
-  },
-  {
-    id: 'demo-gem-runner',
-    title: 'Gem Runner',
-    creatorName: 'a young creator',
-    category: 'adventure',
-    previewUrl: '/demo-gem-runner.html',
-  },
-];
 
 type DemoState = 'idle' | 'loading' | 'success' | 'error' | 'rate-limited';
 
@@ -112,8 +82,6 @@ export default function DemoBuilder({ onSignupClick, variant = 'section' }: Demo
   const [generatedCode, setGeneratedCode] = useState('');
   const [loadingMsg, setLoadingMsg] = useState(LOADING_MESSAGES[0]);
   const [promptsRemaining, setPromptsRemaining] = useState<number | null>(null);
-  const [arcadeGames, setArcadeGames] = useState<ArcadeGame[]>([]);
-  const [playingGameId, setPlayingGameId] = useState<string | null>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const loadingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -133,43 +101,8 @@ export default function DemoBuilder({ onSignupClick, variant = 'section' }: Demo
     }
   }, []);
 
-  useEffect(() => {
-    if (state !== 'loading') return;
-    let cancelled = false;
-    fetch(`/api/gallery?limit=30&_=${Date.now()}`, { cache: 'no-store' })
-      .then(async (r) => {
-        if (!r.ok) {
-          throw new Error(`Gallery request failed: ${r.status}`);
-        }
-        return r.json();
-      })
-      .then((data) => {
-        if (cancelled) return;
-        const galleryGames: ArcadeGame[] = (data.games || [])
-          .filter((g: ArcadeGame) => g.id && g.title)
-          .map((g: ArcadeGame) => ({
-            ...g,
-            previewUrl: `/play/${g.id}?preview`,
-          }));
-        const combined = [...galleryGames, ...BUILT_IN_ARCADE_GAMES];
-        const shuffled = [...combined].sort(() => Math.random() - 0.5).slice(0, 6);
-        setArcadeGames(shuffled);
-        setPlayingGameId((current) => current ?? shuffled[0]?.id ?? null);
-      })
-      .catch(() => {
-        if (cancelled) return;
-        setArcadeGames(BUILT_IN_ARCADE_GAMES);
-        setPlayingGameId(BUILT_IN_ARCADE_GAMES[0]?.id ?? null);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [state]);
-
   const generate = useCallback(
     async (prompt: string) => {
-      setArcadeGames(BUILT_IN_ARCADE_GAMES);
-      setPlayingGameId(BUILT_IN_ARCADE_GAMES[0]?.id ?? null);
       setState('loading');
       startLoadingMessages();
 
@@ -213,7 +146,6 @@ export default function DemoBuilder({ onSignupClick, variant = 'section' }: Demo
 
         setGeneratedCode(data.code);
         setPromptsRemaining(data.promptsRemaining ?? null);
-        setPlayingGameId(null);
 
         localStorage.setItem('vck_draft_code', data.code);
         localStorage.setItem('vck_draft_prompt', prompt);
@@ -223,7 +155,6 @@ export default function DemoBuilder({ onSignupClick, variant = 'section' }: Demo
       } catch {
         clearTimeout(timeout);
         stopLoadingMessages();
-        setPlayingGameId(null);
         setState('error');
       }
     },
@@ -255,10 +186,7 @@ export default function DemoBuilder({ onSignupClick, variant = 'section' }: Demo
   };
 
   const enhancedCode = generatedCode ? enhanceSandboxedPreviewHtml(generatedCode) : '';
-  const activeArcadeGame = arcadeGames.find((game) => game.id === playingGameId) ?? null;
-  const arcadeProofText = activeArcadeGame
-    ? `${activeArcadeGame.creatorName} made this in under 10 minutes`
-    : 'Kids are building these fast';
+  const arcadeProofText = `${WAITING_ARCADE_GAME.creatorName} made this in under 10 minutes`;
   const isHeroVariant = variant === 'hero';
 
   const content = (
@@ -306,43 +234,22 @@ export default function DemoBuilder({ onSignupClick, variant = 'section' }: Demo
             <p className="demo-loading-msg">{loadingMsg}</p>
           </div>
           <p className="demo-loading-note">
-            Your game may take up to 3 minutes. Play a game from the Arcade or keep reading the page while it finishes.
+            Your game may take up to 3 minutes. Try this Arcade favorite or keep reading the page while it finishes.
           </p>
-
-          {playingGameId ? (
-            <div className="demo-arcade-player">
-              <p className="demo-arcade-proof">{arcadeProofText}</p>
-              <div className="demo-arcade-player-bar">
-                <span className="demo-arcade-now-playing">Playing: {activeArcadeGame?.title ?? 'Arcade demo'}</span>
-                <button type="button" className="demo-arcade-back-btn" onClick={() => setPlayingGameId(null)}>
-                  Back to games
-                </button>
-              </div>
-              <div className="demo-arcade-iframe-wrap">
-                <iframe
-                  src={activeArcadeGame?.previewUrl}
-                  title="Arcade game"
-                  sandbox="allow-scripts allow-same-origin allow-pointer-lock"
-                  className="demo-arcade-iframe"
-                />
-              </div>
+          <div className="demo-arcade-player demo-arcade-player-single">
+            <p className="demo-arcade-proof">{arcadeProofText}</p>
+            <div className="demo-arcade-player-bar">
+              <span className="demo-arcade-now-playing">Try this while you wait: {WAITING_ARCADE_GAME.title}</span>
             </div>
-          ) : arcadeGames.length > 0 ? (
-            <div className="demo-arcade-section">
-              <p className="demo-arcade-heading">Pick another Arcade game while yours finishes building</p>
-              <div className="demo-arcade-grid">
-                {arcadeGames.map((g) => (
-                  <button key={g.id} type="button" className="demo-arcade-card" onClick={() => setPlayingGameId(g.id)}>
-                    <span className="demo-arcade-card-emoji">{CATEGORY_EMOJIS[g.category] || '🎮'}</span>
-                    <span className="demo-arcade-card-title">{g.title}</span>
-                    <span className="demo-arcade-card-creator">by {g.creatorName}</span>
-                  </button>
-                ))}
-              </div>
+            <div className="demo-arcade-iframe-wrap">
+              <iframe
+                src={WAITING_ARCADE_GAME.previewUrl}
+                title={WAITING_ARCADE_GAME.title}
+                sandbox="allow-scripts allow-same-origin allow-pointer-lock"
+                className="demo-arcade-iframe"
+              />
             </div>
-          ) : (
-            <p className="demo-arcade-loading-note">Loading Arcade games...</p>
-          )}
+          </div>
         </div>
       )}
 
