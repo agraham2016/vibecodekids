@@ -74,7 +74,9 @@ const WAITING_ARCADE_GAME: ArcadeGame = {
   previewUrl: '/demo-neon-paddle.html',
 };
 
-type DemoState = 'idle' | 'loading' | 'success' | 'error' | 'rate-limited';
+const DEMO_REQUEST_TIMEOUT_MS = 180_000;
+
+type DemoState = 'idle' | 'loading' | 'success' | 'error' | 'timeout' | 'rate-limited';
 
 export default function DemoBuilder({ onSignupClick, variant = 'section' }: DemoBuilderProps) {
   const [state, setState] = useState<DemoState>('idle');
@@ -84,6 +86,7 @@ export default function DemoBuilder({ onSignupClick, variant = 'section' }: Demo
   const [promptsRemaining, setPromptsRemaining] = useState<number | null>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const loadingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const lastSubmittedPromptRef = useRef('');
 
   const startLoadingMessages = useCallback(() => {
     let idx = 0;
@@ -103,11 +106,12 @@ export default function DemoBuilder({ onSignupClick, variant = 'section' }: Demo
 
   const generate = useCallback(
     async (prompt: string) => {
+      lastSubmittedPromptRef.current = prompt;
       setState('loading');
       startLoadingMessages();
 
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 90_000);
+      const timeout = setTimeout(() => controller.abort(), DEMO_REQUEST_TIMEOUT_MS);
 
       try {
         const visitorId =
@@ -152,10 +156,14 @@ export default function DemoBuilder({ onSignupClick, variant = 'section' }: Demo
         localStorage.setItem('vck_draft_ts', String(Date.now()));
 
         setState('success');
-      } catch {
+      } catch (error) {
         clearTimeout(timeout);
         stopLoadingMessages();
-        setState('error');
+        const didTimeout =
+          controller.signal.aborted ||
+          (error instanceof DOMException && error.name === 'AbortError') ||
+          (error instanceof Error && error.name === 'AbortError');
+        setState(didTimeout ? 'timeout' : 'error');
       }
     },
     [startLoadingMessages, stopLoadingMessages],
@@ -183,6 +191,14 @@ export default function DemoBuilder({ onSignupClick, variant = 'section' }: Demo
     setGeneratedCode('');
     setInput('');
     setState('idle');
+  };
+
+  const handleRetryLastPrompt = () => {
+    if (!lastSubmittedPromptRef.current) {
+      handleTryAnother();
+      return;
+    }
+    void generate(lastSubmittedPromptRef.current);
   };
 
   const enhancedCode = generatedCode ? enhanceSandboxedPreviewHtml(generatedCode) : '';
@@ -289,10 +305,14 @@ export default function DemoBuilder({ onSignupClick, variant = 'section' }: Demo
         </div>
       )}
 
-      {state === 'error' && (
+      {(state === 'error' || state === 'timeout') && (
         <div className="demo-builder-error">
-          <p className="demo-error-msg">Something went wrong -- let's try again!</p>
-          <button type="button" className="demo-retry-btn" onClick={handleTryAnother}>
+          <p className="demo-error-msg">
+            {state === 'timeout'
+              ? 'That build took longer than expected. Try again, or start with a simpler game idea.'
+              : "Something went wrong -- let's try again!"}
+          </p>
+          <button type="button" className="demo-retry-btn" onClick={handleRetryLastPrompt}>
             Try again
           </button>
         </div>
