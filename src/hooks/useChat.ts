@@ -8,7 +8,7 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { api, ApiError } from '../lib/api';
-import type { Message, MembershipUsage, GenerateResponse, AIModel, AIMode, GameConfig } from '../types';
+import type { Message, MembershipUsage, GenerateResponse, AIModel, AIMode, GameConfig, StudioAsset } from '../types';
 
 /** Extended message with model info for UI rendering. */
 export interface ChatMessage extends Message {
@@ -41,6 +41,10 @@ function pickRandomStartingModel(openaiAvailable: boolean): AIModel {
 export interface GenerationStatus {
   stage: string;
   message: string;
+}
+
+interface SendMessageContext {
+  selectedAssets?: StudioAsset[];
 }
 
 export function useChat({ onCodeGenerated, onUsageUpdate, onUpgradeNeeded }: UseChatOptions) {
@@ -90,6 +94,7 @@ export function useChat({ onCodeGenerated, onUsageUpdate, onUpgradeNeeded }: Use
       currentCode: string,
       gameConfig: GameConfig | null = null,
       modeOverride?: AIMode,
+      context?: SendMessageContext,
     ) => {
       const userMessage: ChatMessage = {
         id: Date.now().toString(),
@@ -104,6 +109,7 @@ export function useChat({ onCodeGenerated, onUsageUpdate, onUpgradeNeeded }: Use
       // Determine the mode to send.
       // Grok is hidden from the frontend for now, so only Claude/OpenAI are selectable.
       const mode: AIMode = modeOverride || (activeModel === 'openai' ? 'openai' : 'default');
+      const selectedAssetIds = (context?.selectedAssets || []).map((a) => a.id);
 
       try {
         setGenerationStatus(null);
@@ -118,6 +124,7 @@ export function useChat({ onCodeGenerated, onUsageUpdate, onUpgradeNeeded }: Use
             image: m.image,
           })),
           gameConfig,
+          selectedAssetIds,
           mode,
           lastModelUsed,
           debugAttempt: mode === 'debug' ? debugAttemptRef.current : 0,

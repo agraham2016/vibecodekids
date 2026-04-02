@@ -71,6 +71,8 @@ CREATE TABLE IF NOT EXISTS projects (
     multiplayer     BOOLEAN NOT NULL DEFAULT false,
     views           INT NOT NULL DEFAULT 0,
     likes           INT NOT NULL DEFAULT 0,
+    game_config     JSONB,
+    editor_scene    JSONB,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -78,6 +80,8 @@ CREATE TABLE IF NOT EXISTS projects (
 CREATE INDEX IF NOT EXISTS idx_projects_user ON projects(user_id);
 CREATE INDEX IF NOT EXISTS idx_projects_public ON projects(is_public, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_projects_category ON projects(category) WHERE is_public = true;
+ALTER TABLE projects ADD COLUMN IF NOT EXISTS game_config JSONB;
+ALTER TABLE projects ADD COLUMN IF NOT EXISTS editor_scene JSONB;
 
 -- ========== PROJECT VERSIONS ==========
 
@@ -88,10 +92,12 @@ CREATE TABLE IF NOT EXISTS project_versions (
     code            TEXT NOT NULL,
     title           TEXT,
     auto_save       BOOLEAN NOT NULL DEFAULT false,
+    editor_scene    JSONB,
     saved_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS idx_versions_project ON project_versions(project_id, saved_at DESC);
+ALTER TABLE project_versions ADD COLUMN IF NOT EXISTS editor_scene JSONB;
 
 -- ========== RATE LIMITING ==========
 -- Stores recent request timestamps for per-user rate limiting.

@@ -25,6 +25,14 @@ function generateProjectId() {
 
 const PROJECT_ID_REGEX = /^[a-z0-9]{6}$/;
 
+function serializeEditorScene(scene) {
+  try {
+    return JSON.stringify(scene || null);
+  } catch {
+    return 'null';
+  }
+}
+
 export default function createProjectsRouter(sessions) {
   const router = Router();
 
@@ -47,6 +55,7 @@ export default function createProjectsRouter(sessions) {
         multiplayer = false,
         thumbnail,
         gameConfig = null,
+        editorScene = null,
       } = req.body;
 
       if (!code || !title) {
@@ -137,6 +146,7 @@ export default function createProjectsRouter(sessions) {
         multiplayer: allowMultiplayer,
         category: category || 'other',
         gameConfig,
+        editorScene,
         thumbnail: validThumb,
         createdAt: new Date().toISOString(),
         views: 0,
@@ -178,6 +188,7 @@ export default function createProjectsRouter(sessions) {
       if (!session) return res.status(401).json({ error: 'Session expired. Please log in again.' });
 
       const { projectId, title, code, category = 'other', autoSave = false, gameConfig } = req.body;
+      const editorScene = req.body.editorScene ?? null;
       if (!code) return res.status(400).json({ error: 'No code to save' });
 
       const projectTitle = title || 'My Project';
@@ -194,7 +205,8 @@ export default function createProjectsRouter(sessions) {
 
           if (!existing.versions) existing.versions = [];
 
-          if (existing.code !== code) {
+          const sceneChanged = serializeEditorScene(existing.editorScene) !== serializeEditorScene(editorScene);
+          if (existing.code !== code || sceneChanged) {
             if (autoSave) {
               // For auto-saves, replace the last version entry if it was also an auto-save
               // to avoid flooding history with incremental auto-save snapshots
@@ -204,6 +216,7 @@ export default function createProjectsRouter(sessions) {
                   versionId: Date.now().toString(),
                   code: existing.code,
                   title: existing.title,
+                  editorScene: existing.editorScene ?? null,
                   savedAt: now,
                   autoSave: true,
                 };
@@ -212,6 +225,7 @@ export default function createProjectsRouter(sessions) {
                   versionId: Date.now().toString(),
                   code: existing.code,
                   title: existing.title,
+                  editorScene: existing.editorScene ?? null,
                   savedAt: now,
                   autoSave: true,
                 });
@@ -221,6 +235,7 @@ export default function createProjectsRouter(sessions) {
                 versionId: Date.now().toString(),
                 code: existing.code,
                 title: existing.title,
+                editorScene: existing.editorScene ?? null,
                 savedAt: existing.updatedAt || existing.createdAt,
                 autoSave: false,
               });
@@ -235,6 +250,9 @@ export default function createProjectsRouter(sessions) {
           existing.category = category;
           if (gameConfig !== undefined) {
             existing.gameConfig = gameConfig;
+          }
+          if (editorScene !== undefined) {
+            existing.editorScene = editorScene;
           }
           existing.updatedAt = now;
 
@@ -272,6 +290,7 @@ export default function createProjectsRouter(sessions) {
         code,
         category,
         gameConfig: gameConfig ?? null,
+        editorScene,
         creatorName: resolveSessionCreatorAlias(session),
         userId: session.userId,
         isPublic: false,
@@ -314,7 +333,14 @@ export default function createProjectsRouter(sessions) {
         if (!project.isPublic) {
           return res.status(404).json({ error: 'Project not found' });
         }
-        const { userId: _uid, ageMode: _am, parentEmail: _pe, gameConfig: _gc, ...safeProject } = project;
+        const {
+          userId: _uid,
+          ageMode: _am,
+          parentEmail: _pe,
+          gameConfig: _gc,
+          editorScene: _es,
+          ...safeProject
+        } = project;
         safeProject.creatorName = await resolvePublicCreatorAlias(project);
         return res.json(safeProject);
       }
@@ -471,6 +497,7 @@ export default function createProjectsRouter(sessions) {
           versionId: 'current',
           title: project.title,
           code: project.code,
+          editorScene: project.editorScene ?? null,
           savedAt: project.updatedAt || project.createdAt,
           isCurrent: true,
         });
@@ -479,7 +506,13 @@ export default function createProjectsRouter(sessions) {
       const version = (project.versions || []).find((v) => v.versionId === versionId);
       if (!version) return res.status(404).json({ error: 'Version not found' });
 
-      res.json({ versionId: version.versionId, title: version.title, code: version.code, savedAt: version.savedAt });
+      res.json({
+        versionId: version.versionId,
+        title: version.title,
+        code: version.code,
+        editorScene: version.editorScene ?? null,
+        savedAt: version.savedAt,
+      });
     } catch (error) {
       if (error.code === 'ENOENT') return res.status(404).json({ error: 'Project not found' });
       console.error('Get version error:', error?.stack || error);
@@ -515,17 +548,24 @@ export default function createProjectsRouter(sessions) {
         versionId: Date.now().toString(),
         code: project.code,
         title: project.title,
+        editorScene: project.editorScene ?? null,
         savedAt: project.updatedAt || project.createdAt,
         autoSave: false,
       });
       if (project.versions.length > 20) project.versions = project.versions.slice(-20);
 
       project.code = version.code;
+      project.editorScene = version.editorScene ?? project.editorScene ?? null;
       project.updatedAt = new Date().toISOString();
 
       await writeProject(id, project);
 
-      res.json({ success: true, message: 'Version restored!', code: project.code });
+      res.json({
+        success: true,
+        message: 'Version restored!',
+        code: project.code,
+        editorScene: project.editorScene ?? null,
+      });
     } catch (error) {
       if (error.code === 'ENOENT') return res.status(404).json({ error: 'Project not found' });
       console.error('Restore version error:', error?.stack || error);

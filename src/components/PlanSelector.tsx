@@ -14,7 +14,7 @@ const PLANS = [
     price: 0,
     icon: '⭐',
     description: '30 days to try it out',
-    features: ['3 games per month', '10 prompts per day', 'Share to Arcade', '30-day access'],
+    features: ['3 creations per month', '10 prompts per day', 'Share to Arcade', '30-day access'],
     notIncluded: [],
   },
   {
@@ -23,8 +23,8 @@ const PLANS = [
     price: 13,
     icon: '🚀',
     popular: true,
-    description: 'For aspiring game makers',
-    features: ['15 games per month', '50 prompts per day', '2D Asset Catalog', 'Priority support'],
+    description: 'For aspiring creators',
+    features: ['15 creations per month', '50 prompts per day', 'Premium Assets', 'Priority support'],
     notIncluded: [],
   },
   {
@@ -33,7 +33,7 @@ const PLANS = [
     price: 21,
     icon: '👑',
     description: 'For serious creators',
-    features: ['40 games per month', '80 prompts per day', '2D Asset Catalog', 'Priority support'],
+    features: ['40 creations per month', '80 prompts per day', 'Premium Assets', 'Priority support'],
     notIncluded: [],
   },
 ];

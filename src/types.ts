@@ -95,11 +95,148 @@ export interface SurveyOption {
   value: string;
 }
 
+export type EditorLayerKind = 'background' | 'gameplay' | 'foreground' | 'ui';
+
+export interface EditorLayer {
+  id: string;
+  name: string;
+  kind: EditorLayerKind;
+  visible: boolean;
+  locked: boolean;
+  opacity: number;
+  parallax: number;
+  zIndex: number;
+}
+
+export type EditorObjectType =
+  | 'sprite'
+  | 'text'
+  | 'collision-region'
+  | 'spawn-point'
+  | 'background-image'
+  | 'gameplay-trigger';
+
+export interface EditorObjectBehavior {
+  speed?: number;
+  health?: number;
+  damage?: number;
+  points?: number;
+  spawnType?: string;
+  triggerAction?: string;
+  metadata?: Record<string, string | number | boolean>;
+}
+
+export interface EditorObject {
+  id: string;
+  type: EditorObjectType;
+  name: string;
+  layerId: string;
+  assetId?: string | null;
+  assetPath?: string | null;
+  text?: string;
+  fontSize?: number;
+  color?: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  rotation: number;
+  scaleX: number;
+  scaleY: number;
+  opacity: number;
+  zIndex: number;
+  locked: boolean;
+  hidden: boolean;
+  behavior?: EditorObjectBehavior;
+}
+
+export interface GameplaySettings {
+  playerSpeed: number;
+  jumpPower: number;
+  gravity: number;
+  enemyCount: number;
+  timerSeconds: number;
+  scoreGoal: number;
+  spawnRate: number;
+  difficulty: 'easy' | 'medium' | 'hard';
+  notes: string;
+}
+
+export interface EditorSelection {
+  activeObjectId: string | null;
+  objectIds: string[];
+  layerId: string | null;
+}
+
+export interface EditorScene {
+  viewportWidth: number;
+  viewportHeight: number;
+  gridSize: number;
+  gridEnabled: boolean;
+  snapEnabled: boolean;
+  zoom: number;
+  panX: number;
+  panY: number;
+  layers: EditorLayer[];
+  objects: EditorObject[];
+  gameplay: GameplaySettings;
+  selection: EditorSelection;
+}
+
+export type EditorCommandType =
+  | 'select-object'
+  | 'add-object'
+  | 'update-object'
+  | 'move-object'
+  | 'rotate-object'
+  | 'resize-object'
+  | 'duplicate-object'
+  | 'delete-object'
+  | 'reorder-object'
+  | 'toggle-lock-object'
+  | 'toggle-hide-object'
+  | 'set-text-object'
+  | 'set-gameplay-setting';
+
+export interface EditorCommand {
+  type: EditorCommandType;
+  targetId?: string;
+  targetIds?: string[];
+  object?: Partial<EditorObject> & Pick<EditorObject, 'type' | 'name' | 'layerId'>;
+  patch?: Partial<EditorObject>;
+  delta?: {
+    x?: number;
+    y?: number;
+  };
+  rotation?: number;
+  size?: {
+    width?: number;
+    height?: number;
+    scaleX?: number;
+    scaleY?: number;
+  };
+  zIndex?: number;
+  direction?: 'forward' | 'backward' | 'front' | 'back';
+  text?: string;
+  gameplayPatch?: Partial<GameplaySettings>;
+}
+
+export interface ProjectVersion {
+  versionId: string;
+  code: string;
+  title: string;
+  savedAt: string;
+  autoSave: boolean;
+  editorScene?: EditorScene | null;
+}
+
 export interface Project {
   id: string;
   name: string;
   code: string;
   gameConfig?: GameConfig | null;
+  editorScene?: EditorScene | null;
+  versions?: ProjectVersion[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -117,13 +254,43 @@ export interface UserProject {
   likes: number;
 }
 
+export interface StudioAssetCategory {
+  id: string;
+  label: string;
+  assetCount: number;
+}
+
+export interface StudioAsset {
+  id: string;
+  label: string;
+  key: string;
+  genre: string;
+  genreLabel: string;
+  pack: string;
+  packLabel: string;
+  path: string;
+  width: number | null;
+  height: number | null;
+  note: string;
+}
+
+export interface StudioAssetCatalogResponse {
+  ok: boolean;
+  categories: StudioAssetCategory[];
+  assets: StudioAsset[];
+  selectedAssets: StudioAsset[];
+  totalAssets: number;
+  hasMore: boolean;
+  selectionLimit: number;
+}
+
 export type MembershipTier = 'free' | 'creator' | 'pro';
 
 export interface MembershipUsage {
   tier: MembershipTier;
   tierName: string;
-  gamesRemaining: number;
-  gamesLimit: number;
+  creationsRemaining: number;
+  creationsLimit: number;
   promptsRemaining: number;
   promptsLimit: number;
   aiCoversRemaining: number;
@@ -134,7 +301,7 @@ export interface MembershipUsage {
 export interface TierInfo {
   name: string;
   price: number;
-  gamesPerMonth: number;
+  creationsPerMonth: number;
   promptsPerDay: number;
   playsPerDay: number;
   aiCoversPerMonth: number;
@@ -209,6 +376,8 @@ export interface GenerateResponse {
   generationId?: string;
   message: string;
   code: string | null;
+  editorCommand?: EditorCommand | null;
+  editorScene?: EditorScene | null;
   usage?: MembershipUsage;
   modelUsed: AIModel | null;
   isCacheHit: boolean;
@@ -230,6 +399,7 @@ export interface GenerateRequest {
   currentCode?: string;
   conversationHistory?: Message[];
   gameConfig?: GameConfig;
+  selectedAssetIds?: string[];
   mode?: AIMode;
   lastModelUsed?: AIModel;
   debugAttempt?: number;

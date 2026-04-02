@@ -71,7 +71,7 @@ function _isDefaultCode(code) {
 
 router.post('/generate', async (req, res) => {
   try {
-    const { message, visitorId, variant } = req.body;
+    const { message, visitorId, variant, gameConfig } = req.body;
 
     if (!message || typeof message !== 'string' || message.trim().length < 3) {
       return res.status(400).json({ error: 'Describe the game you want to make!' });
@@ -100,8 +100,10 @@ router.post('/generate', async (req, res) => {
     const _gameGenre = detectGameGenre(cleanMessage);
     const generationId = `demo_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
 
+    const safeGameConfig = gameConfig && typeof gameConfig === 'object' ? gameConfig : null;
+
     // Template cache check
-    const cacheKey = getTemplateCacheKey(cleanMessage, null);
+    const cacheKey = getTemplateCacheKey(cleanMessage, safeGameConfig);
     const cached = getCachedTemplate(cacheKey);
     if (cached) {
       cached.hits++;
@@ -135,7 +137,7 @@ router.post('/generate', async (req, res) => {
           currentCode: null,
           mode: 'default',
           conversationHistory: [],
-          gameConfig: null,
+          gameConfig: safeGameConfig,
           image: null,
           userId: null,
           lastModelUsed: null,
@@ -144,12 +146,11 @@ router.post('/generate', async (req, res) => {
       : await buildStarterFallback({
           prompt: cleanMessage,
           currentCode: null,
-          gameConfig: null,
+          gameConfig: safeGameConfig,
           genre: _gameGenre,
           isNewGame: true,
         });
 
-    // Cache for future hits
     if (result.code && !result.wasTruncated && cacheKey) {
       cacheTemplate(cacheKey, result.code, result.response);
     }

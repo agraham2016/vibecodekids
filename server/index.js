@@ -63,6 +63,7 @@ import parentVerifyChargeRouter from './routes/parentVerifyCharge.js';
 import createEsaRouter from './routes/esa.js';
 import createFeedbackRouter from './routes/feedback.js';
 import createBugReportsRouter from './routes/bugReports.js';
+import createStudioAssetsRouter from './routes/studioAssets.js';
 import demoRouter from './routes/demo.js';
 import demoAnalyticsRouter from './routes/demoAnalytics.js';
 import marketingAnalyticsRouter from './routes/marketingAnalytics.js';
@@ -567,6 +568,7 @@ app.use('/api/generate', express.json({ limit: '6mb' }), createGenerateRouter(se
 app.use('/api/feedback', createFeedbackRouter(sessions));
 app.use('/api/bug-reports', createBugReportsRouter(sessions));
 app.use('/api/gallery', galleryRouter);
+app.use('/api/studio/assets', createStudioAssetsRouter(sessions));
 
 // Billing routes (Stripe checkout at /api/stripe/*, membership at /api/membership/*)
 const billingRouter = createBillingRouter(sessions);

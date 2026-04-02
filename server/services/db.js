@@ -177,6 +177,8 @@ function rowToProject(row) {
     isPublic: row.is_public,
     isDraft: row.is_draft,
     multiplayer: row.multiplayer,
+    gameConfig: row.game_config || null,
+    editorScene: row.editor_scene || null,
     views: row.views,
     likes: row.likes,
     createdAt: row.created_at?.toISOString(),
@@ -372,13 +374,14 @@ export async function readProject(projectId) {
 
   // Load versions
   const versionsResult = await db.query(
-    'SELECT version_id, code, title, auto_save, saved_at FROM project_versions WHERE project_id = $1 ORDER BY saved_at ASC',
+    'SELECT version_id, code, title, auto_save, saved_at, editor_scene FROM project_versions WHERE project_id = $1 ORDER BY saved_at ASC',
     [projectId],
   );
   project.versions = versionsResult.rows.map((v) => ({
     versionId: v.version_id,
     code: v.code,
     title: v.title,
+    editorScene: v.editor_scene || null,
     autoSave: v.auto_save,
     savedAt: v.saved_at?.toISOString(),
   }));
@@ -394,8 +397,8 @@ export async function writeProject(projectId, projectData) {
     INSERT INTO projects (
       id, user_id, title, code, creator_name, category,
       is_public, is_draft, multiplayer, views, likes,
-      created_at, updated_at
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+      game_config, editor_scene, created_at, updated_at
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
     ON CONFLICT (id) DO UPDATE SET
       title = EXCLUDED.title,
       code = EXCLUDED.code,
@@ -406,6 +409,8 @@ export async function writeProject(projectId, projectData) {
       multiplayer = EXCLUDED.multiplayer,
       views = EXCLUDED.views,
       likes = EXCLUDED.likes,
+      game_config = EXCLUDED.game_config,
+      editor_scene = EXCLUDED.editor_scene,
       updated_at = EXCLUDED.updated_at
   `,
     [
@@ -420,6 +425,8 @@ export async function writeProject(projectId, projectData) {
       projectData.multiplayer || false,
       projectData.views || 0,
       projectData.likes || 0,
+      projectData.gameConfig || null,
+      projectData.editorScene || null,
       projectData.createdAt || new Date().toISOString(),
       projectData.updatedAt || new Date().toISOString(),
     ],
@@ -432,8 +439,16 @@ export async function writeProject(projectId, projectData) {
 
     for (const v of projectData.versions) {
       await db.query(
-        'INSERT INTO project_versions (project_id, version_id, code, title, auto_save, saved_at) VALUES ($1, $2, $3, $4, $5, $6)',
-        [projectId, v.versionId, v.code, v.title || null, v.autoSave || false, v.savedAt || new Date().toISOString()],
+        'INSERT INTO project_versions (project_id, version_id, code, title, auto_save, saved_at, editor_scene) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+        [
+          projectId,
+          v.versionId,
+          v.code,
+          v.title || null,
+          v.autoSave || false,
+          v.savedAt || new Date().toISOString(),
+          v.editorScene || null,
+        ],
       );
     }
   }

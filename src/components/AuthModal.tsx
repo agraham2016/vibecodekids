@@ -96,11 +96,11 @@ function generateNameSuggestions(): string[] {
 export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: AuthModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
   const [mode, setMode] = useState<AuthMode>(initialMode);
-  const [signupStep, setSignupStep] = useState<SignupStep>('plan');
+  const [signupStep, setSignupStep] = useState<SignupStep>('details');
   const [selectedPlan, setSelectedPlan] = useState<'free' | 'creator' | 'pro'>('free');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [displayName, setDisplayName] = useState('');
+  const [displayName, setDisplayName] = useState(() => generateNameSuggestions()[0]);
   const [birthMonth, setBirthMonth] = useState('');
   const [birthDay, setBirthDay] = useState('');
   const [birthYear, setBirthYear] = useState('');
@@ -360,7 +360,7 @@ export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: A
 
   const handleModeSwitch = (newMode: AuthMode) => {
     setMode(newMode);
-    setSignupStep('plan');
+    setSignupStep('details');
     setForgotStep(null);
     setError('');
     setSuccess('');
@@ -530,80 +530,6 @@ export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: A
                 </div>
               )}
 
-              {mode === 'signup' && (
-                <div className="form-group">
-                  <label>When is your birthday?</label>
-                  <div className="birthday-selects">
-                    <select
-                      value={birthMonth}
-                      onChange={(e) => setBirthMonth(e.target.value)}
-                      required
-                      aria-label="Month"
-                    >
-                      <option value="">Month</option>
-                      {Array.from({ length: 12 }, (_, i) => (
-                        <option key={i + 1} value={String(i + 1)}>
-                          {new Date(2000, i).toLocaleString('en-US', { month: 'long' })}
-                        </option>
-                      ))}
-                    </select>
-                    <select value={birthDay} onChange={(e) => setBirthDay(e.target.value)} required aria-label="Day">
-                      <option value="">Day</option>
-                      {Array.from({ length: 31 }, (_, i) => (
-                        <option key={i + 1} value={String(i + 1)}>
-                          {i + 1}
-                        </option>
-                      ))}
-                    </select>
-                    <select value={birthYear} onChange={(e) => setBirthYear(e.target.value)} required aria-label="Year">
-                      <option value="">Year</option>
-                      {Array.from({ length: 100 }, (_, i) => {
-                        const y = new Date().getFullYear() - i;
-                        return (
-                          <option key={y} value={String(y)}>
-                            {y}
-                          </option>
-                        );
-                      })}
-                    </select>
-                  </div>
-                  <span className="input-hint">We use this to keep everyone safe</span>
-                </div>
-              )}
-
-              {mode === 'signup' && isUnder18 && (
-                <div className="form-group coppa-parent-field">
-                  <label>Parent or guardian's email</label>
-                  <input
-                    type="email"
-                    value={parentEmail}
-                    onChange={(e) => setParentEmail(e.target.value)}
-                    placeholder="your.parent@email.com"
-                    required
-                  />
-                  <span className="input-hint">
-                    {isUnder13
-                      ? "We'll send one email to ask their permission. That's the only time we use it."
-                      : "We'll give your parent access to their Parent Portal to manage your account."}
-                  </span>
-                </div>
-              )}
-
-              {mode === 'signup' && isAdult && (
-                <div className="form-group">
-                  <label>Recovery Email (optional)</label>
-                  <input
-                    type="email"
-                    value={recoveryEmail}
-                    onChange={(e) => setRecoveryEmail(e.target.value)}
-                    placeholder="you@example.com"
-                  />
-                  <span className="input-hint">
-                    Add an email to recover your password if you forget it. We never use it for anything else.
-                  </span>
-                </div>
-              )}
-
               <div className="form-group">
                 <label>Username</label>
                 <input
@@ -634,26 +560,109 @@ export default function AuthModal({ onClose, onLogin, initialMode = 'login' }: A
               </div>
 
               {mode === 'signup' && (
-                <div className="form-group privacy-checkbox">
-                  <label className="checkbox-label">
-                    <input
-                      type="checkbox"
-                      checked={privacyAccepted}
-                      onChange={(e) => setPrivacyAccepted(e.target.checked)}
-                      required
-                    />
-                    <span>
-                      I agree to the{' '}
-                      <a href="/privacy" target="_blank" rel="noopener noreferrer">
-                        Privacy Policy
-                      </a>{' '}
-                      and{' '}
-                      <a href="/terms" target="_blank" rel="noopener noreferrer">
-                        Terms of Service
-                      </a>
-                    </span>
-                  </label>
-                </div>
+                <>
+                  <div className="auth-safety-separator">
+                    <span>To keep your account safe</span>
+                  </div>
+
+                  <div className="form-group">
+                    <label>When is your birthday?</label>
+                    <div className="birthday-selects">
+                      <select
+                        value={birthMonth}
+                        onChange={(e) => setBirthMonth(e.target.value)}
+                        required
+                        aria-label="Month"
+                      >
+                        <option value="">Month</option>
+                        {Array.from({ length: 12 }, (_, i) => (
+                          <option key={i + 1} value={String(i + 1)}>
+                            {new Date(2000, i).toLocaleString('en-US', { month: 'long' })}
+                          </option>
+                        ))}
+                      </select>
+                      <select value={birthDay} onChange={(e) => setBirthDay(e.target.value)} required aria-label="Day">
+                        <option value="">Day</option>
+                        {Array.from({ length: 31 }, (_, i) => (
+                          <option key={i + 1} value={String(i + 1)}>
+                            {i + 1}
+                          </option>
+                        ))}
+                      </select>
+                      <select
+                        value={birthYear}
+                        onChange={(e) => setBirthYear(e.target.value)}
+                        required
+                        aria-label="Year"
+                      >
+                        <option value="">Year</option>
+                        {Array.from({ length: 100 }, (_, i) => {
+                          const y = new Date().getFullYear() - i;
+                          return (
+                            <option key={y} value={String(y)}>
+                              {y}
+                            </option>
+                          );
+                        })}
+                      </select>
+                    </div>
+                    <span className="input-hint">We use this to keep everyone safe</span>
+                  </div>
+
+                  {isUnder18 && (
+                    <div className="form-group coppa-parent-field">
+                      <label>Parent or guardian's email</label>
+                      <input
+                        type="email"
+                        value={parentEmail}
+                        onChange={(e) => setParentEmail(e.target.value)}
+                        placeholder="your.parent@email.com"
+                        required
+                      />
+                      <span className="input-hint">
+                        {isUnder13
+                          ? "We'll send one email to ask their permission. That's the only time we use it."
+                          : "We'll give your parent access to their Parent Portal to manage your account."}
+                      </span>
+                    </div>
+                  )}
+
+                  {isAdult && (
+                    <div className="form-group">
+                      <label>Recovery Email (optional)</label>
+                      <input
+                        type="email"
+                        value={recoveryEmail}
+                        onChange={(e) => setRecoveryEmail(e.target.value)}
+                        placeholder="you@example.com"
+                      />
+                      <span className="input-hint">
+                        Add an email to recover your password if you forget it. We never use it for anything else.
+                      </span>
+                    </div>
+                  )}
+
+                  <div className="form-group privacy-checkbox">
+                    <label className="checkbox-label">
+                      <input
+                        type="checkbox"
+                        checked={privacyAccepted}
+                        onChange={(e) => setPrivacyAccepted(e.target.checked)}
+                        required
+                      />
+                      <span>
+                        I agree to the{' '}
+                        <a href="/privacy" target="_blank" rel="noopener noreferrer">
+                          Privacy Policy
+                        </a>{' '}
+                        and{' '}
+                        <a href="/terms" target="_blank" rel="noopener noreferrer">
+                          Terms of Service
+                        </a>
+                      </span>
+                    </label>
+                  </div>
+                </>
               )}
 
               {error && (

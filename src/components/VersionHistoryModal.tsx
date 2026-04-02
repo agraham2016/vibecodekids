@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { enhanceSandboxedPreviewHtml } from '../utils/previewHtml';
+import type { EditorScene } from '../types';
 import './VersionHistoryModal.css';
 
 interface Version {
@@ -8,6 +9,7 @@ interface Version {
   savedAt: string;
   versionNumber: number;
   isCurrent?: boolean;
+  editorScene?: EditorScene | null;
 }
 
 interface VersionHistoryModalProps {
@@ -15,7 +17,7 @@ interface VersionHistoryModalProps {
   onClose: () => void;
   projectId: string;
   authToken: string | null;
-  onRestoreVersion: (code: string) => void;
+  onRestoreVersion: (code: string, editorScene?: EditorScene | null) => void;
 }
 
 export default function VersionHistoryModal({
@@ -108,7 +110,7 @@ export default function VersionHistoryModal({
 
       if (response.ok) {
         const data = await response.json();
-        onRestoreVersion(data.code || previewCode);
+        onRestoreVersion(data.code || previewCode, data.editorScene ?? null);
         onClose();
       } else {
         const data = await response.json();

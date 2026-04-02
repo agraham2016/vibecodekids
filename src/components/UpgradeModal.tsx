@@ -121,7 +121,7 @@ export default function UpgradeModal({
               <span className="period">/ 30 days</span>
             </div>
             <ul className="tier-features">
-              <li>✅ 3 games per month</li>
+              <li>✅ 3 creations per month</li>
               <li>✅ 10 prompts per day</li>
               <li>✅ Share to Arcade</li>
             </ul>
@@ -143,7 +143,7 @@ export default function UpgradeModal({
               <span className="period">/month</span>
             </div>
             <ul className="tier-features">
-              <li>✅ 15 games per month</li>
+              <li>✅ 15 creations per month</li>
               <li>✅ 50 prompts per day</li>
               <li>✅ Share to Arcade</li>
               <li>✅ 2D Asset Catalog</li>
@@ -170,7 +170,7 @@ export default function UpgradeModal({
               <span className="period">/month</span>
             </div>
             <ul className="tier-features">
-              <li>✅ 40 games per month</li>
+              <li>✅ 40 creations per month</li>
               <li>✅ 80 prompts per day</li>
               <li>✅ Share to Arcade</li>
               <li>✅ 2D Asset Catalog</li>

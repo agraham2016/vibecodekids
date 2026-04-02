@@ -8,7 +8,13 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { api, ApiError, getAuthToken } from '../lib/api';
-import type { GameConfig, Project, UserProject } from '../types';
+import {
+  applyEditorCommand,
+  cloneEditorScene,
+  createDefaultEditorScene,
+  normalizeEditorScene,
+} from '../lib/editorScene';
+import type { EditorCommand, EditorScene, GameConfig, Project, UserProject } from '../types';
 
 const AUTO_SAVE_DELAY_MS = 30_000; // 30 seconds after last edit
 
@@ -55,12 +61,18 @@ const DEFAULT_HTML = `<!DOCTYPE html>
   <div class="welcome">
     <img src="/images/logo.png?v=3" alt="VibeCode Kidz" class="welcome-logo" />
     <h1>Vibe Code Studio</h1>
-    <p>Your game will appear here! Tell the AI what to make.</p>
+    <p>Your creation will appear here! Tell the AI what to make.</p>
   </div>
 </body>
 </html>`;
 
 export { DEFAULT_HTML };
+
+const DEFAULT_EDITOR_SCENE = createDefaultEditorScene();
+
+function serializeEditorScene(scene: EditorScene | null | undefined) {
+  return JSON.stringify(normalizeEditorScene(scene));
+}
 
 export function useProjects(isLoggedIn = false, userId: string | null = null, onSessionMismatch?: () => void) {
   const [code, setCode] = useState(DEFAULT_HTML);
@@ -69,6 +81,7 @@ export function useProjects(isLoggedIn = false, userId: string | null = null, on
     name: 'My Awesome Project',
     code: DEFAULT_HTML,
     gameConfig: null,
+    editorScene: cloneEditorScene(DEFAULT_EDITOR_SCENE),
     createdAt: new Date(),
     updatedAt: new Date(),
   });
@@ -78,9 +91,12 @@ export function useProjects(isLoggedIn = false, userId: string | null = null, on
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [lastAutoSavedAt, setLastAutoSavedAt] = useState<Date | null>(null);
   const lastSavedCode = useRef<string>(DEFAULT_HTML);
+  const lastSavedEditorScene = useRef<string>(serializeEditorScene(DEFAULT_EDITOR_SCENE));
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isAutoSaving = useRef(false);
   const lastUserIdRef = useRef<string | null>(null);
+  const [editorUndoStack, setEditorUndoStack] = useState<EditorScene[]>([]);
+  const [editorRedoStack, setEditorRedoStack] = useState<EditorScene[]>([]);
 
   // Clear projects, editor, and pending auto-save when user logs out or switches accounts
   useEffect(() => {
@@ -96,11 +112,15 @@ export function useProjects(isLoggedIn = false, userId: string | null = null, on
         name: 'My Awesome Project',
         code: DEFAULT_HTML,
         gameConfig: null,
+        editorScene: cloneEditorScene(DEFAULT_EDITOR_SCENE),
         createdAt: new Date(),
         updatedAt: new Date(),
       });
       lastSavedCode.current = DEFAULT_HTML;
+      lastSavedEditorScene.current = serializeEditorScene(DEFAULT_EDITOR_SCENE);
       setHasUnsavedChanges(false);
+      setEditorUndoStack([]);
+      setEditorRedoStack([]);
       lastUserIdRef.current = null;
     } else if (userId !== lastUserIdRef.current) {
       if (autoSaveTimer.current) {
@@ -113,12 +133,16 @@ export function useProjects(isLoggedIn = false, userId: string | null = null, on
         name: 'My Awesome Project',
         code: DEFAULT_HTML,
         gameConfig: null,
+        editorScene: cloneEditorScene(DEFAULT_EDITOR_SCENE),
         createdAt: new Date(),
         updatedAt: new Date(),
       });
       setCode(DEFAULT_HTML);
       lastSavedCode.current = DEFAULT_HTML;
+      lastSavedEditorScene.current = serializeEditorScene(DEFAULT_EDITOR_SCENE);
       setHasUnsavedChanges(false);
+      setEditorUndoStack([]);
+      setEditorRedoStack([]);
       lastUserIdRef.current = userId;
     }
   }, [isLoggedIn, userId]);
@@ -163,18 +187,24 @@ export function useProjects(isLoggedIn = false, userId: string | null = null, on
         code: string;
         createdAt: string;
         gameConfig?: GameConfig | null;
+        editorScene?: EditorScene | null;
       }>(`/api/projects/${projectId}`);
+      const normalizedEditorScene = normalizeEditorScene(project.editorScene);
       setCode(project.code);
       setCurrentProject({
         id: project.id,
         name: project.title,
         code: project.code,
         gameConfig: project.gameConfig || null,
+        editorScene: normalizedEditorScene,
         createdAt: new Date(project.createdAt),
         updatedAt: new Date(),
       });
       lastSavedCode.current = project.code;
+      lastSavedEditorScene.current = serializeEditorScene(normalizedEditorScene);
       setHasUnsavedChanges(false);
+      setEditorUndoStack([]);
+      setEditorRedoStack([]);
       return project;
     } catch (error) {
       console.error('Failed to load project:', error);
@@ -189,11 +219,15 @@ export function useProjects(isLoggedIn = false, userId: string | null = null, on
       name: 'My Awesome Project',
       code: DEFAULT_HTML,
       gameConfig: null,
+      editorScene: cloneEditorScene(DEFAULT_EDITOR_SCENE),
       createdAt: new Date(),
       updatedAt: new Date(),
     });
     lastSavedCode.current = DEFAULT_HTML;
+    lastSavedEditorScene.current = serializeEditorScene(DEFAULT_EDITOR_SCENE);
     setHasUnsavedChanges(false);
+    setEditorUndoStack([]);
+    setEditorRedoStack([]);
   }, []);
 
   const deleteProject = useCallback(
@@ -238,6 +272,7 @@ export function useProjects(isLoggedIn = false, userId: string | null = null, on
             title: currentProject.name,
             code,
             gameConfig: currentProject.gameConfig ?? null,
+            editorScene: normalizeEditorScene(currentProject.editorScene),
             category: 'other',
             autoSave: isAuto,
           },
@@ -249,6 +284,7 @@ export function useProjects(isLoggedIn = false, userId: string | null = null, on
             setCurrentProject((prev) => ({ ...prev, id: newId }));
           }
           lastSavedCode.current = code;
+          lastSavedEditorScene.current = serializeEditorScene(currentProject.editorScene);
           setHasUnsavedChanges(false);
           if (isAuto) {
             setLastAutoSavedAt(new Date());
@@ -275,13 +311,13 @@ export function useProjects(isLoggedIn = false, userId: string | null = null, on
     },
     [
       code,
+      currentProject.editorScene,
       currentProject.gameConfig,
       currentProject.id,
       currentProject.name,
       isLoggedIn,
       isSaving,
       fetchUserProjects,
-      userId,
     ],
   );
 
@@ -301,23 +337,155 @@ export function useProjects(isLoggedIn = false, userId: string | null = null, on
     }, AUTO_SAVE_DELAY_MS);
   }, [isLoggedIn, userId, saveProject]);
 
+  const setProjectEditorScene = useCallback(
+    (nextScene: EditorScene, options?: { trackHistory?: boolean }) => {
+      const normalizedNextScene = normalizeEditorScene(nextScene);
+      const nextSceneSerialized = serializeEditorScene(normalizedNextScene);
+      let previousSceneSnapshot: EditorScene | null = null;
+
+      setCurrentProject((prev) => {
+        const previousScene = normalizeEditorScene(prev.editorScene);
+        if (options?.trackHistory !== false && serializeEditorScene(previousScene) !== nextSceneSerialized) {
+          previousSceneSnapshot = cloneEditorScene(previousScene);
+        }
+        return {
+          ...prev,
+          editorScene: normalizedNextScene,
+          updatedAt: new Date(),
+        };
+      });
+
+      if (previousSceneSnapshot) {
+        setEditorUndoStack((current) => [...current.slice(-49), previousSceneSnapshot!]);
+        setEditorRedoStack([]);
+      }
+
+      const dirty = code !== lastSavedCode.current || nextSceneSerialized !== lastSavedEditorScene.current;
+      setHasUnsavedChanges(dirty);
+      if (dirty) {
+        scheduleAutoSave();
+      }
+    },
+    [code, scheduleAutoSave],
+  );
+
+  const applyEditorSceneCommand = useCallback(
+    (command: EditorCommand, options?: { trackHistory?: boolean }) => {
+      let nextSceneSerialized = '';
+      let previousSceneSnapshot: EditorScene | null = null;
+
+      setCurrentProject((prev) => {
+        const previousScene = normalizeEditorScene(prev.editorScene);
+        const nextScene = applyEditorCommand(previousScene, command);
+        nextSceneSerialized = serializeEditorScene(nextScene);
+        if (options?.trackHistory !== false && serializeEditorScene(previousScene) !== nextSceneSerialized) {
+          previousSceneSnapshot = cloneEditorScene(previousScene);
+        }
+        return {
+          ...prev,
+          editorScene: nextScene,
+          updatedAt: new Date(),
+        };
+      });
+
+      if (previousSceneSnapshot) {
+        setEditorUndoStack((current) => [...current.slice(-49), previousSceneSnapshot!]);
+        setEditorRedoStack([]);
+      }
+
+      if (nextSceneSerialized) {
+        const dirty = code !== lastSavedCode.current || nextSceneSerialized !== lastSavedEditorScene.current;
+        setHasUnsavedChanges(dirty);
+        if (dirty) {
+          scheduleAutoSave();
+        }
+      }
+    },
+    [code, scheduleAutoSave],
+  );
+
+  const undoEditorScene = useCallback(() => {
+    const previousScene = editorUndoStack[editorUndoStack.length - 1];
+    if (!previousScene) return;
+
+    let currentSceneSnapshot: EditorScene | null = null;
+    setCurrentProject((prev) => {
+      currentSceneSnapshot = cloneEditorScene(prev.editorScene);
+      return {
+        ...prev,
+        editorScene: cloneEditorScene(previousScene),
+        updatedAt: new Date(),
+      };
+    });
+
+    setEditorUndoStack((current) => current.slice(0, -1));
+    if (currentSceneSnapshot) {
+      setEditorRedoStack((current) => [...current.slice(-49), currentSceneSnapshot!]);
+    }
+
+    const dirty =
+      code !== lastSavedCode.current || serializeEditorScene(previousScene) !== lastSavedEditorScene.current;
+    setHasUnsavedChanges(dirty);
+    if (dirty) {
+      scheduleAutoSave();
+    }
+  }, [code, editorUndoStack, scheduleAutoSave]);
+
+  const redoEditorScene = useCallback(() => {
+    const nextScene = editorRedoStack[editorRedoStack.length - 1];
+    if (!nextScene) return;
+
+    let currentSceneSnapshot: EditorScene | null = null;
+    setCurrentProject((prev) => {
+      currentSceneSnapshot = cloneEditorScene(prev.editorScene);
+      return {
+        ...prev,
+        editorScene: cloneEditorScene(nextScene),
+        updatedAt: new Date(),
+      };
+    });
+
+    setEditorRedoStack((current) => current.slice(0, -1));
+    if (currentSceneSnapshot) {
+      setEditorUndoStack((current) => [...current.slice(-49), currentSceneSnapshot!]);
+    }
+
+    const dirty = code !== lastSavedCode.current || serializeEditorScene(nextScene) !== lastSavedEditorScene.current;
+    setHasUnsavedChanges(dirty);
+    if (dirty) {
+      scheduleAutoSave();
+    }
+  }, [code, editorRedoStack, scheduleAutoSave]);
+
   const updateCode = useCallback(
     (newCode: string) => {
       setCode(newCode);
       setCurrentProject((prev) => ({ ...prev, code: newCode, updatedAt: new Date() }));
-      if (newCode !== lastSavedCode.current) {
-        setHasUnsavedChanges(true);
+      const dirty =
+        newCode !== lastSavedCode.current ||
+        serializeEditorScene(currentProject.editorScene) !== lastSavedEditorScene.current;
+      setHasUnsavedChanges(dirty);
+      if (dirty) {
         scheduleAutoSave();
       }
     },
-    [scheduleAutoSave],
+    [currentProject.editorScene, scheduleAutoSave],
   );
 
-  const restoreVersion = useCallback((restoredCode: string) => {
+  const restoreVersion = useCallback((restoredCode: string, restoredEditorScene?: EditorScene | null) => {
+    const normalizedEditorScene = normalizeEditorScene(restoredEditorScene);
     setCode(restoredCode);
-    setCurrentProject((prev) => ({ ...prev, code: restoredCode, updatedAt: new Date() }));
+    setCurrentProject((prev) => ({
+      ...prev,
+      code: restoredCode,
+      editorScene: normalizedEditorScene,
+      updatedAt: new Date(),
+    }));
     lastSavedCode.current = restoredCode;
+    lastSavedEditorScene.current = serializeEditorScene(normalizedEditorScene);
     setHasUnsavedChanges(false);
+    setEditorUndoStack([]);
+    setEditorRedoStack([]);
     if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
   }, []);
 
@@ -326,12 +494,15 @@ export function useProjects(isLoggedIn = false, userId: string | null = null, on
     (newCode: string) => {
       setCode(newCode);
       setCurrentProject((prev) => ({ ...prev, code: newCode, updatedAt: new Date() }));
-      if (newCode !== lastSavedCode.current) {
-        setHasUnsavedChanges(true);
+      const dirty =
+        newCode !== lastSavedCode.current ||
+        serializeEditorScene(currentProject.editorScene) !== lastSavedEditorScene.current;
+      setHasUnsavedChanges(dirty);
+      if (dirty) {
         scheduleAutoSave();
       }
     },
-    [scheduleAutoSave],
+    [currentProject.editorScene, scheduleAutoSave],
   );
 
   // Auto-save when the user switches away from the tab
@@ -339,7 +510,8 @@ export function useProjects(isLoggedIn = false, userId: string | null = null, on
     if (!isLoggedIn) return;
 
     const handleVisibilityChange = () => {
-      if (document.hidden && lastSavedCode.current !== code) {
+      const sceneDirty = serializeEditorScene(currentProject.editorScene) !== lastSavedEditorScene.current;
+      if (document.hidden && (lastSavedCode.current !== code || sceneDirty)) {
         if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
         saveProject({ autoSave: true });
       }
@@ -347,7 +519,7 @@ export function useProjects(isLoggedIn = false, userId: string | null = null, on
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [isLoggedIn, code, saveProject]);
+  }, [isLoggedIn, code, currentProject.editorScene, saveProject]);
 
   // Warn before closing the tab with unsaved changes
   useEffect(() => {
@@ -385,5 +557,11 @@ export function useProjects(isLoggedIn = false, userId: string | null = null, on
     restoreVersion,
     setGeneratedCode,
     setProjectGameConfig,
+    setProjectEditorScene,
+    applyEditorSceneCommand,
+    undoEditorScene,
+    redoEditorScene,
+    canUndoEditorScene: editorUndoStack.length > 0,
+    canRedoEditorScene: editorRedoStack.length > 0,
   };
 }

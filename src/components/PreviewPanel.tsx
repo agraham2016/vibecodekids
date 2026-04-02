@@ -84,7 +84,7 @@ export default function PreviewPanel({ code }: PreviewPanelProps) {
               Now Playing Your Creation!
             </div>
             <button className="exit-play-btn" onClick={handleExitPlay}>
-              ✕ Back to Building
+              ✕ Back to Studio
             </button>
           </div>
           <div className="play-mode-content">

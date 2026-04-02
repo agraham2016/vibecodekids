@@ -1,6 +1,6 @@
 /**
  * Rate Limiting Middleware
- * 
+ *
  * Per-user rate limiting and tier-based usage tracking.
  */
 
@@ -43,13 +43,13 @@ export function calculateUsageRemaining(user) {
   return {
     tier: user.membershipTier || 'free',
     tierName: limits.name,
-    gamesRemaining: Math.max(0, limits.gamesPerMonth - (user.gamesCreatedThisMonth || 0)),
-    gamesLimit: limits.gamesPerMonth,
+    creationsRemaining: Math.max(0, limits.creationsPerMonth - (user.gamesCreatedThisMonth || 0)),
+    creationsLimit: limits.creationsPerMonth,
     promptsRemaining: Math.max(0, limits.promptsPerDay - (user.promptsToday || 0)),
     promptsLimit: limits.promptsPerDay,
     aiCoversRemaining: Math.max(0, limits.aiCoversPerMonth - (user.aiCoversUsedThisMonth || 0)),
     aiCoversLimit: limits.aiCoversPerMonth,
-    canAccessPremiumAssets: limits.canAccessPremiumAssets
+    canAccessPremiumAssets: limits.canAccessPremiumAssets,
   };
 }
 
@@ -70,33 +70,32 @@ export async function checkRateLimits(userId) {
         allowed: false,
         reason: 'cooldown',
         waitSeconds,
-        message: `Slow down! Take a ${Math.ceil(waitSeconds / 60)}-minute break and try again.`
+        message: `Slow down! Take a ${Math.ceil(waitSeconds / 60)}-minute break and try again.`,
       };
     }
 
     // Clean old requests
-    user.recentRequests = (user.recentRequests || [])
-      .filter(ts => now - ts < 60 * 60 * 1000);
+    user.recentRequests = (user.recentRequests || []).filter((ts) => now - ts < 60 * 60 * 1000);
 
     // Per-minute limit
-    const lastMinuteRequests = user.recentRequests.filter(ts => now - ts < 60 * 1000);
+    const lastMinuteRequests = user.recentRequests.filter((ts) => now - ts < 60 * 1000);
     if (lastMinuteRequests.length >= RATE_LIMITS.promptsPerMinute) {
       user.rateLimitedUntil = new Date(now + RATE_LIMITS.cooldownMinutes * 60 * 1000).toISOString();
       await writeUser(userId, user);
       return {
         allowed: false,
         reason: 'rate_limit',
-        message: 'Whoa, slow down! 🐢 Take a 5-minute break and come back with fresh ideas!'
+        message: 'Whoa, slow down! 🐢 Take a 5-minute break and come back with fresh ideas!',
       };
     }
 
     // Per-hour limit
-    const lastHourRequests = user.recentRequests.filter(ts => now - ts < 60 * 60 * 1000);
+    const lastHourRequests = user.recentRequests.filter((ts) => now - ts < 60 * 60 * 1000);
     if (lastHourRequests.length >= RATE_LIMITS.promptsPerHour) {
       return {
         allowed: false,
         reason: 'hourly_limit',
-        message: "You've been super creative this hour! 🌟 Take a short break and come back soon."
+        message: "You've been super creative this hour! 🌟 Take a short break and come back soon.",
       };
     }
 
@@ -115,7 +114,7 @@ export async function checkTierLimits(userId, action) {
     return {
       allowed: false,
       reason: 'login_required',
-      message: 'Please log in to create games! It only takes a minute. 🚀'
+      message: 'Please log in to start creating! It only takes a minute. 🚀',
     };
   }
 
@@ -131,20 +130,25 @@ export async function checkTierLimits(userId, action) {
           allowed: false,
           reason: 'daily_limit',
           message: `You've used all ${limits.promptsPerDay} prompts for today! 🌙 Come back tomorrow for more creating.`,
-          upgradeRequired: true
+          upgradeRequired: true,
         };
       }
-      const gamesRemaining = limits.gamesPerMonth - (user.gamesCreatedThisMonth || 0);
-      return { allowed: true, user, gamesRemaining, promptsRemaining: limits.promptsPerDay - (user.promptsToday || 0) };
+      const creationsRemaining = limits.creationsPerMonth - (user.gamesCreatedThisMonth || 0);
+      return {
+        allowed: true,
+        user,
+        creationsRemaining,
+        promptsRemaining: limits.promptsPerDay - (user.promptsToday || 0),
+      };
     }
 
     if (action === 'save_game') {
-      if ((user.gamesCreatedThisMonth || 0) >= limits.gamesPerMonth) {
+      if ((user.gamesCreatedThisMonth || 0) >= limits.creationsPerMonth) {
         return {
           allowed: false,
           reason: 'monthly_limit',
-          message: `You've created ${limits.gamesPerMonth} games this month! 🎮 Upgrade to create more.`,
-          upgradeRequired: true
+          message: `You've made ${limits.creationsPerMonth} creations this month! ✨ Upgrade to create more.`,
+          upgradeRequired: true,
         };
       }
       return { allowed: true, user };
@@ -156,7 +160,7 @@ export async function checkTierLimits(userId, action) {
           allowed: false,
           reason: 'tier_required',
           message: 'AI Cover Art is a Creator feature! ✨ Upgrade to unlock.',
-          upgradeRequired: true
+          upgradeRequired: true,
         };
       }
       if ((user.aiCoversUsedThisMonth || 0) >= limits.aiCoversPerMonth) {
@@ -164,7 +168,7 @@ export async function checkTierLimits(userId, action) {
           allowed: false,
           reason: 'monthly_limit',
           message: `You've used all ${limits.aiCoversPerMonth} AI covers this month.`,
-          upgradeRequired: true
+          upgradeRequired: true,
         };
       }
       return { allowed: true, user };

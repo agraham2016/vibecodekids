@@ -134,7 +134,7 @@ export const MEMBERSHIP_TIERS = {
     name: 'Free Trial',
     price: 0,
     trialDays: 30,
-    gamesPerMonth: 3,
+    creationsPerMonth: 3,
     promptsPerDay: 10,
     playsPerDay: 50,
     aiCoversPerMonth: 0,
@@ -144,7 +144,7 @@ export const MEMBERSHIP_TIERS = {
   creator: {
     name: 'Creator',
     price: 13,
-    gamesPerMonth: 15,
+    creationsPerMonth: 15,
     promptsPerDay: 50,
     playsPerDay: Infinity,
     aiCoversPerMonth: 5,
@@ -155,7 +155,7 @@ export const MEMBERSHIP_TIERS = {
   pro: {
     name: 'Pro',
     price: 21,
-    gamesPerMonth: 40,
+    creationsPerMonth: 40,
     promptsPerDay: 80,
     playsPerDay: Infinity,
     aiCoversPerMonth: 20,
@@ -166,7 +166,7 @@ export const MEMBERSHIP_TIERS = {
   tester: {
     name: 'Tester',
     price: 0,
-    gamesPerMonth: Infinity,
+    creationsPerMonth: Infinity,
     promptsPerDay: Infinity,
     playsPerDay: Infinity,
     aiCoversPerMonth: Infinity,

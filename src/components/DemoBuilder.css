@@ -337,7 +337,7 @@
 
 .demo-builder-success {
   display: grid;
-  gap: 20px;
+  gap: 16px;
   max-width: 780px;
   margin: 0 auto;
 }
@@ -457,8 +457,37 @@
     font-size: 0.82rem;
   }
 
+  .demo-builder-success {
+    gap: 12px;
+  }
+
+  .demo-celebration {
+    font-size: 1.15rem;
+  }
+
   .demo-preview-frame {
-    aspect-ratio: 4 / 3;
+    aspect-ratio: auto;
+    height: min(52svh, 340px);
+    border-radius: 14px;
+  }
+
+  .demo-success-actions {
+    position: sticky;
+    bottom: 0;
+    z-index: 10;
+    padding: 14px 0 4px;
+    background: linear-gradient(to top, rgba(7, 3, 19, 0.95) 60%, transparent);
+  }
+
+  .demo-signup-btn {
+    width: 100%;
+    padding: 18px 24px;
+    font-size: 1.12rem;
+    border-radius: 18px;
+  }
+
+  .demo-try-another-btn {
+    padding: 12px 20px;
   }
 
   .demo-arcade-grid {

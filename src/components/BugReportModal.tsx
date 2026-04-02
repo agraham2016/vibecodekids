@@ -36,7 +36,7 @@ export default function BugReportModal({ onClose, onSubmit, isSubmitting, error 
             className="bug-report-textarea"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="Example: The game stopped moving after I asked for enemies."
+            placeholder="Example: My creation stopped working after I asked for a change."
             maxLength={500}
             autoFocus
           />
@@ -46,7 +46,7 @@ export default function BugReportModal({ onClose, onSubmit, isSubmitting, error 
             <ul>
               <li>Your bug note</li>
               <li>A small snapshot of your recent AI chat</li>
-              <li>A snapshot of your current game code</li>
+              <li>A snapshot of your current project code</li>
             </ul>
             <p className="bug-report-note">Please do not type personal information here.</p>
           </div>

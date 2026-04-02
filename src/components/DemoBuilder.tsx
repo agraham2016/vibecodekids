@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { enhanceSandboxedPreviewHtml } from '../utils/previewHtml';
 import './DemoBuilder.css';
 
@@ -14,49 +14,132 @@ interface ArcadeGame {
   previewUrl: string;
 }
 
-const DEMO_STARTERS = [
+interface DemoGameConfig {
+  gameType: string;
+  dimension: string;
+  theme: string;
+  character: string;
+  obstacles: string;
+  visualStyle: string;
+}
+
+const DEMO_STARTERS: {
+  emoji: string;
+  label: string;
+  prompt: string;
+  gameConfig: DemoGameConfig;
+}[] = [
   {
     emoji: '🥷🐱',
     label: 'Ninja cat adventure',
     prompt:
-      'Make me a 2D platformer adventure game where I play as a ninja cat, jump across rooftops, collect fish, and dodge traps.',
+      'Build a polished 2D platformer. The player is a ninja cat jumping across rooftops at night. Include: smooth left/right movement with jump, coin collection with a +10 score popup that floats up and fades, 3 lives shown as hearts in the HUD, enemy slimes that patrol platforms, spike traps, particle burst when collecting coins, camera that follows the player, and a game over screen with score and press-SPACE-to-restart. Use a dark purple/blue sky, neon-lit building platforms, and glowing gold collectibles.',
+    gameConfig: {
+      gameType: 'platformer',
+      dimension: '2d',
+      theme: 'Ninja rooftops at night',
+      character: 'Ninja cat',
+      obstacles: 'Patrol slimes, spike traps, gaps',
+      visualStyle: 'Dark neon city',
+    },
   },
   {
     emoji: '🤖🌮',
     label: 'Robot taco runner',
-    prompt: 'Make me a 2D endless runner game where a robot taco runs forward, jumps over obstacles, and grabs coins.',
+    prompt:
+      'Build a polished 2D endless runner. A robot taco auto-runs to the right. The player presses UP to jump over obstacles and DOWN to duck under barriers. Include: score based on distance traveled, coin pickups for bonus points, speed gradually increases over time, 3 lives, obstacles spawn with fair gaps, a particle trail behind the runner, screen shake when hit, and a game over screen showing final distance with press-SPACE-to-restart. Use bright futuristic neon colors with a scrolling cityscape background.',
+    gameConfig: {
+      gameType: 'endless runner',
+      dimension: '2d',
+      theme: 'Futuristic neon city',
+      character: 'Robot taco',
+      obstacles: 'Barriers, pits, laser gates',
+      visualStyle: 'Bright neon/futuristic',
+    },
   },
   {
     emoji: '🐉💎',
     label: 'Dragon treasure quest',
     prompt:
-      'Make me a 2D platformer adventure game where a dragon collects treasure, avoids traps, and reaches the exit.',
-  },
-  {
-    emoji: '👽🟢',
-    label: 'Alien slime escape',
-    prompt:
-      'Make me a 2D puzzle platformer where a little alien slime escapes a lab by jumping past hazards and opening the exit.',
+      'Build a polished 2D platformer. The player is a small dragon collecting treasure in a dungeon. Include: left/right movement with a flap-jump, fire breath attack with spacebar that defeats enemies, gold coins and gem collectibles, 3 hearts health system, enemy bats that fly in patterns, lava pit hazards, particle effects when collecting coins and using fire breath, camera follow, and a game over/restart screen. Use warm dungeon colors — stone grey platforms, orange lava, gold UI text.',
+    gameConfig: {
+      gameType: 'platformer',
+      dimension: '2d',
+      theme: 'Fantasy dungeon with lava',
+      character: 'Small dragon',
+      obstacles: 'Bats, lava pits, spike traps',
+      visualStyle: 'Warm dungeon/fantasy',
+    },
   },
   {
     emoji: '🧟',
-    label: 'Zombie survival game',
-    prompt: 'Make me a 2D top-down zombie survival shooter with waves of zombies, health pickups, and a score counter.',
+    label: 'Zombie survival',
+    prompt:
+      'Build a polished 2D top-down survival shooter. The player moves in all 4 directions with arrow keys and shoots toward the nearest zombie automatically. Include: wave system starting with 5 zombies and increasing each wave, a player health bar, health pickups that spawn between waves, score counter, zombies get faster each wave, enemies flash white and fade on death (no blood), screen shake when the player is hit, particle explosions on zombie defeat, a "Wave Complete" banner between waves, and a game over screen showing final wave and score with press-SPACE-to-restart. Use a dark green/grey palette with bright projectiles.',
+    gameConfig: {
+      gameType: 'top down shooter',
+      dimension: '2d',
+      theme: 'Zombie apocalypse',
+      character: 'Survivor',
+      obstacles: 'Zombie waves, increasing speed',
+      visualStyle: 'Dark green/grey with glowing projectiles',
+    },
   },
   {
     emoji: '🚀',
     label: 'Space shooter',
-    prompt: 'Make me a 2D space shooter with enemy waves, laser blasts, power-ups, and a score counter.',
+    prompt:
+      'Build a polished 2D vertical space shooter. The player ship moves left/right at the bottom and presses SPACE to fire lasers upward. Include: 3 enemy types that move in different patterns (straight, zigzag, fast dive), enemies spawn in waves from the top, power-up drops (rapid fire, shield), score counter, 3 lives, explosion particles when enemies are destroyed, a scrolling starfield background, and a game over/restart screen showing final score. Use a dark space background with a neon-colored ship and colorful enemies.',
+    gameConfig: {
+      gameType: 'shooter',
+      dimension: '2d',
+      theme: 'Outer space battle',
+      character: 'Spaceship',
+      obstacles: 'Alien ships, asteroids',
+      visualStyle: 'Dark space with neon accents',
+    },
   },
   {
     emoji: '🏎️',
     label: 'Racing game',
-    prompt: 'Make me a 2D racing game with laps, speed boosts, and other cars to dodge.',
+    prompt:
+      'Build a polished 2D top-down racing game. The road scrolls downward and the player car steers left/right to avoid traffic. Include: other cars as obstacles in multiple lanes, speed boost pickups, coin collectibles, distance-based score display, speed increases over time, 3 lives with brief invincibility flash after a crash, road scenery (trees, barriers) scrolling past on the sides, particle sparks on near-misses, and a game over screen showing distance and score with press-SPACE-to-restart. Use bright highway colors — grey road, white lane markings, green roadside, colorful cars.',
+    gameConfig: {
+      gameType: 'racing',
+      dimension: '2d',
+      theme: 'Highway racing',
+      character: 'Race car',
+      obstacles: 'Traffic cars, barriers',
+      visualStyle: 'Bright highway colors',
+    },
+  },
+  {
+    emoji: '🐸',
+    label: 'Frogger crossing',
+    prompt:
+      'Build a polished 2D frogger-style road crossing game. The player frog hops one grid step per arrow key press. Include: rows of cars and trucks scrolling left/right at different speeds, a river section with floating logs the frog can ride, 3 lives, a score counter that increases for each row crossed, a safe home row at the top that completes one round, level counter that increases speed, tween-based hop animation, particle splash if the frog falls in water, and a game over/restart screen. Use bright green grass, grey roads, blue water, and colorful vehicles.',
+    gameConfig: {
+      gameType: 'frogger',
+      dimension: '2d',
+      theme: 'Road and river crossing',
+      character: 'Frog',
+      obstacles: 'Cars, trucks, river gaps',
+      visualStyle: 'Bright and colorful classic',
+    },
   },
   {
     emoji: '🧩',
     label: 'Puzzle adventure',
-    prompt: 'Make me a 2D puzzle adventure where I solve rooms, collect keys, and unlock the next area.',
+    prompt:
+      'Build a polished 2D top-down adventure game. An explorer navigates rooms in an ancient temple. Include: 4-directional grid-based movement, colored keys that open matching colored doors, gem collectibles with a counter, simple push-block puzzles, enemy statues that shoot projectiles in a pattern, 3 hearts health, room transitions when walking to an edge, a treasure chest goal at the end, and a win/restart screen. Use earthy adventure colors — sand-colored floors, stone walls, gold keys, green gems.',
+    gameConfig: {
+      gameType: 'adventure',
+      dimension: '2d',
+      theme: 'Ancient temple exploration',
+      character: 'Explorer',
+      obstacles: 'Locked doors, push blocks, statue traps',
+      visualStyle: 'Earthy adventure/temple',
+    },
   },
 ];
 
@@ -104,9 +187,12 @@ export default function DemoBuilder({ onSignupClick, variant = 'section' }: Demo
     }
   }, []);
 
+  const lastGameConfigRef = useRef<DemoGameConfig | null>(null);
+
   const generate = useCallback(
-    async (prompt: string) => {
+    async (prompt: string, gameConfig?: DemoGameConfig) => {
       lastSubmittedPromptRef.current = prompt;
+      lastGameConfigRef.current = gameConfig ?? null;
       setState('loading');
       startLoadingMessages();
 
@@ -120,7 +206,7 @@ export default function DemoBuilder({ onSignupClick, variant = 'section' }: Demo
         const res = await fetch('/api/demo/generate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: prompt, visitorId }),
+          body: JSON.stringify({ message: prompt, visitorId, gameConfig: gameConfig ?? null }),
           signal: controller.signal,
         });
 
@@ -171,7 +257,7 @@ export default function DemoBuilder({ onSignupClick, variant = 'section' }: Demo
 
   const handleChipClick = (starter: (typeof DEMO_STARTERS)[number]) => {
     setInput(starter.label);
-    generate(starter.prompt);
+    generate(starter.prompt, starter.gameConfig);
   };
 
   const handleSubmit = () => {
@@ -198,8 +284,16 @@ export default function DemoBuilder({ onSignupClick, variant = 'section' }: Demo
       handleTryAnother();
       return;
     }
-    void generate(lastSubmittedPromptRef.current);
+    void generate(lastSubmittedPromptRef.current, lastGameConfigRef.current ?? undefined);
   };
+
+  const successRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (state === 'success' && successRef.current) {
+      successRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [state]);
 
   const enhancedCode = generatedCode ? enhanceSandboxedPreviewHtml(generatedCode) : '';
   const arcadeProofText = `${WAITING_ARCADE_GAME.creatorName} made this in under 10 minutes`;
@@ -270,7 +364,7 @@ export default function DemoBuilder({ onSignupClick, variant = 'section' }: Demo
       )}
 
       {state === 'success' && (
-        <div className="demo-builder-success">
+        <div className="demo-builder-success" ref={successRef}>
           <p className="demo-celebration">You just built a real game!</p>
 
           <div className="demo-preview-frame">

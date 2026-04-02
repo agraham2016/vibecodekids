@@ -19,67 +19,96 @@ interface GameSurveyProps {
   onComplete: (config: GameConfig) => void;
 }
 
-// ========== SURVEY DATA ==========
+// ========== CREATION CATEGORIES ==========
+
+type CreationCategory = 'game' | 'story' | 'app' | 'art' | 'music' | 'other';
+
+const CREATION_CATEGORIES: { id: CreationCategory; icon: string; label: string; description: string }[] = [
+  { id: 'game', icon: '🎮', label: 'A Game', description: 'Platformers, racers, puzzles & more' },
+  { id: 'story', icon: '📖', label: 'A Story', description: 'Interactive stories & choose-your-adventure' },
+  { id: 'app', icon: '📱', label: 'An App', description: 'Quizzes, tools, calculators & more' },
+  { id: 'art', icon: '🎨', label: 'Art & Animation', description: 'Drawings, animations & visual art' },
+  { id: 'music', icon: '🎵', label: 'Music & Sound', description: 'Beat makers, pianos & soundboards' },
+  { id: 'other', icon: '✨', label: 'Something Else', description: 'Describe anything you can imagine!' },
+];
 
 // ========== SURVEY STEPS ==========
 
-type SurveyStep = 'gameType' | 'theme' | 'character' | 'obstacles' | 'visualStyle' | 'done';
+type SurveyStep = 'category' | 'gameType' | 'theme' | 'character' | 'obstacles' | 'visualStyle' | 'done';
 
-const STEP_ORDER: SurveyStep[] = ['gameType', 'theme', 'character', 'obstacles', 'visualStyle', 'done'];
+const GAME_STEP_ORDER: SurveyStep[] = [
+  'category',
+  'gameType',
+  'theme',
+  'character',
+  'obstacles',
+  'visualStyle',
+  'done',
+];
+const SIMPLE_STEP_ORDER: SurveyStep[] = ['category', 'theme', 'visualStyle', 'done'];
+
+const STUDIO_SURVEY_TEMPLATES = STARTER_TEMPLATES.filter((template) => template.engineId === 'vibe-2d');
 
 const BOT_MESSAGES: Record<string, string> = {
-  gameType:
-    'Hey there! Pick a starter game and I will build around it, or type your own idea and I will choose a great engine path!',
-  theme: 'Awesome choice! Where does your game take place?',
-  character: 'Cool! Who or what do you control in the game?',
-  obstacles: 'Nice! What do you have to dodge or fight?',
-  visualStyle: 'Last one! What style should your game look like?',
-  done: 'Got it! Let me build your game now!',
+  category: 'What do you want to create?',
+  gameType: "Pick a starter — I'll build it for you!",
+  theme: 'What theme?',
+  character: 'Who is the main character?',
+  obstacles: 'What are the challenges?',
+  visualStyle: 'Last one — what style?',
+  done: 'Building it now!',
 };
+
+const NON_GAME_THEMES: { icon: string; label: string; value: string }[] = [
+  { icon: '🚀', label: 'Space', value: 'space' },
+  { icon: '🌊', label: 'Ocean', value: 'ocean' },
+  { icon: '🌲', label: 'Nature', value: 'nature' },
+  { icon: '🏰', label: 'Fantasy', value: 'fantasy' },
+  { icon: '🤖', label: 'Sci-Fi', value: 'sci-fi' },
+  { icon: '🎪', label: 'Fun & Silly', value: 'fun' },
+  { icon: '🌈', label: 'Colorful', value: 'colorful' },
+  { icon: '🐾', label: 'Animals', value: 'animals' },
+];
 
 // ========== COMPONENT ==========
 
 export default function GameSurvey({ onComplete }: GameSurveyProps) {
-  const [step, setStep] = useState<SurveyStep>('gameType');
+  const [creationCategory, setCreationCategory] = useState<CreationCategory | null>(null);
+  const [step, setStep] = useState<SurveyStep>('category');
   const [answers, setAnswers] = useState<Partial<GameConfig>>({});
   const [freeText, setFreeText] = useState('');
   const [chatHistory, setChatHistory] = useState<{ role: 'bot' | 'user'; text: string }[]>([
-    { role: 'bot', text: BOT_MESSAGES.gameType },
+    { role: 'bot', text: BOT_MESSAGES.category },
   ]);
   const [isAnimating, setIsAnimating] = useState(false);
   const [speakingIndex, setSpeakingIndex] = useState<number | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll to bottom
+  const stepOrder = creationCategory === 'game' ? GAME_STEP_ORDER : SIMPLE_STEP_ORDER;
+
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatHistory]);
 
-  // Text-to-speech for bot messages
   const speakMessage = useCallback(
     (index: number, text: string) => {
       window.speechSynthesis.cancel();
-
       if (speakingIndex === index) {
         setSpeakingIndex(null);
         return;
       }
-
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.rate = 0.9;
       utterance.pitch = 1.0;
       utterance.lang = 'en-US';
-
       utterance.onend = () => setSpeakingIndex(null);
       utterance.onerror = () => setSpeakingIndex(null);
-
       setSpeakingIndex(index);
       window.speechSynthesis.speak(utterance);
     },
     [speakingIndex],
   );
 
-  // Cancel speech on unmount
   useEffect(() => {
     return () => {
       window.speechSynthesis.cancel();
@@ -88,14 +117,15 @@ export default function GameSurvey({ onComplete }: GameSurveyProps) {
 
   const selectedStarter = useMemo(
     () =>
-      getStarterTemplateById((answers.starterTemplateId || 'platformer') as StarterTemplateId) || STARTER_TEMPLATES[0],
+      getStarterTemplateById((answers.starterTemplateId || 'platformer') as StarterTemplateId) ||
+      STUDIO_SURVEY_TEMPLATES[0],
     [answers.starterTemplateId],
   );
 
   const pickStarterFromText = useCallback((value: string) => {
     const lower = value.toLowerCase();
     return (
-      STARTER_TEMPLATES.find((template) => {
+      STUDIO_SURVEY_TEMPLATES.find((template) => {
         const haystack =
           `${template.label} ${template.shortLabel} ${template.description} ${template.promptHint}`.toLowerCase();
         return (
@@ -114,17 +144,47 @@ export default function GameSurvey({ onComplete }: GameSurveyProps) {
               ? getStarterTemplateById('simple-racing')
               : /\bmaze\b|\bescape\b|\bdetective\b|\bmystery\b/.test(lower)
                 ? getStarterTemplateById('maze-escape')
-                : STARTER_TEMPLATES[0])
+                : /\bmatch\b|\bmemory\b|\bpuzzle\b|\bchess\b/.test(lower)
+                  ? getStarterTemplateById('matching-game')
+                  : STUDIO_SURVEY_TEMPLATES[0])
     );
   }, []);
 
-  const fallbackStarter = STARTER_TEMPLATES[0]!;
+  const fallbackStarter = STUDIO_SURVEY_TEMPLATES[0]!;
+
+  const handleCategoryPick = (cat: CreationCategory, label: string) => {
+    if (isAnimating) return;
+    setCreationCategory(cat);
+    setIsAnimating(true);
+
+    const newHistory = [...chatHistory, { role: 'user' as const, text: label }];
+
+    setTimeout(() => {
+      const nextStep = cat === 'game' ? 'gameType' : 'theme';
+      newHistory.push({ role: 'bot', text: BOT_MESSAGES[nextStep] });
+      setChatHistory(newHistory);
+      setStep(nextStep);
+      setIsAnimating(false);
+
+      if (cat !== 'game') {
+        setAnswers((prev) => ({
+          ...prev,
+          gameType: 'platformer',
+          engineId: 'vibe-2d',
+          genreFamily: 'platformAction',
+          starterTemplateId: 'platformer',
+          dimension: '2d',
+          customNotes: `[Creation type: ${cat}] `,
+        }));
+      }
+    }, 250);
+
+    setChatHistory(newHistory);
+  };
 
   const advanceStep = (userAnswer: string, configKey: keyof GameConfig, configValue: string) => {
-    // Add user answer to chat
     const newHistory = [...chatHistory, { role: 'user' as const, text: userAnswer }];
 
-    // Update answers
     let newAnswers: Partial<GameConfig> = { ...answers, [configKey]: configValue };
     if (configKey === 'gameType') {
       const starter =
@@ -148,11 +208,9 @@ export default function GameSurvey({ onComplete }: GameSurveyProps) {
     setFreeText('');
     setIsAnimating(true);
 
-    // Find next step
-    const currentIndex = STEP_ORDER.indexOf(step);
-    const nextStep = STEP_ORDER[currentIndex + 1];
+    const currentIndex = stepOrder.indexOf(step);
+    const nextStep = stepOrder[currentIndex + 1];
 
-    // Add bot response after a brief delay
     setTimeout(() => {
       if (configKey === 'gameType') {
         newHistory.push({ role: 'bot', text: newAnswers.selectionReason || '' });
@@ -162,12 +220,14 @@ export default function GameSurvey({ onComplete }: GameSurveyProps) {
       setStep(nextStep);
       setIsAnimating(false);
 
-      // If we reached 'done', complete the survey
       if (nextStep === 'done') {
-        const starter =
-          getStarterTemplateById(
-            (newAnswers.starterTemplateId || newAnswers.gameType || 'platformer') as StarterTemplateId,
-          ) || fallbackStarter;
+        const isGame = creationCategory === 'game';
+        const starter = isGame
+          ? getStarterTemplateById(
+              (newAnswers.starterTemplateId || newAnswers.gameType || 'platformer') as StarterTemplateId,
+            ) || fallbackStarter
+          : fallbackStarter;
+
         const finalConfig: GameConfig = {
           gameType: (newAnswers.gameType || starter.id) as GameConfig['gameType'],
           engineId: newAnswers.engineId || starter.engineId,
@@ -181,12 +241,10 @@ export default function GameSurvey({ onComplete }: GameSurveyProps) {
           visualStyle: newAnswers.visualStyle || 'neon',
           customNotes: newAnswers.customNotes || '',
         };
-        // Small delay so the kid sees the "building" message
-        setTimeout(() => onComplete(finalConfig), 1000);
+        setTimeout(() => onComplete(finalConfig), 400);
       }
-    }, 600);
+    }, 250);
 
-    // Update chat immediately with user message
     setChatHistory(newHistory);
   };
 
@@ -207,6 +265,12 @@ export default function GameSurvey({ onComplete }: GameSurveyProps) {
   const handleFreeTextSubmit = () => {
     if (!freeText.trim() || isAnimating) return;
 
+    if (step === 'category') {
+      handleCategoryPick('other', freeText.trim());
+      setFreeText('');
+      return;
+    }
+
     const configKeys: Record<string, keyof GameConfig> = {
       gameType: 'gameType',
       theme: 'theme',
@@ -225,12 +289,17 @@ export default function GameSurvey({ onComplete }: GameSurveyProps) {
     }
   };
 
-  // Get options for current step
   const getCurrentOptions = () => {
+    if (step === 'category') return [];
+
+    if (step === 'theme' && creationCategory !== 'game') {
+      return NON_GAME_THEMES;
+    }
+
     const family = selectedStarter.genreFamily;
     switch (step) {
       case 'gameType':
-        return STARTER_TEMPLATES.map((template) => ({
+        return STUDIO_SURVEY_TEMPLATES.map((template) => ({
           icon: template.icon,
           label: `${template.label} (${template.dimension.toUpperCase()})`,
           value: template.id,
@@ -248,8 +317,13 @@ export default function GameSurvey({ onComplete }: GameSurveyProps) {
     }
   };
 
-  const stepNumber = STEP_ORDER.indexOf(step) + 1;
-  const totalSteps = STEP_ORDER.length - 1; // Exclude 'done'
+  const stepNumber = stepOrder.indexOf(step) + 1;
+  const totalSteps = stepOrder.length - 1;
+
+  const buildingLabel =
+    creationCategory === 'game'
+      ? `Building your ${answers.theme} ${selectedStarter.shortLabel} game...`
+      : `Building your ${answers.theme || ''} ${creationCategory || 'creation'}...`;
 
   return (
     <div className="game-survey">
@@ -287,43 +361,57 @@ export default function GameSurvey({ onComplete }: GameSurveyProps) {
       {step !== 'done' && (
         <div className="survey-options-area">
           <div className="survey-option-grid">
-            {step === 'gameType' ? (
+            {step === 'category' ? (
+              <div className="survey-engine-group">
+                <div className="survey-engine-heading">What do you want to create?</div>
+                <div className="survey-engine-grid">
+                  {CREATION_CATEGORIES.map((cat) => (
+                    <button
+                      key={cat.id}
+                      className="survey-option-btn survey-option-btn-engine"
+                      onClick={() => handleCategoryPick(cat.id, `${cat.icon} ${cat.label}`)}
+                      disabled={isAnimating}
+                    >
+                      <span className="survey-option-icon">{cat.icon}</span>
+                      <span className="survey-option-text">
+                        <span className="survey-option-label">{cat.label}</span>
+                        <span className="survey-option-copy">{cat.description}</span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : step === 'gameType' ? (
               <>
-                {Object.entries(STARTERS_BY_ENGINE).map(([engineId, starters]) => {
-                  const guide = ENGINE_SELECTION_GUIDE[engineId];
-                  if (!guide || starters.length === 0) return null;
-                  return (
-                    <div className="survey-engine-group" key={engineId}>
-                      <div className="survey-engine-heading">{guide.label} Starters</div>
-                      <div className="survey-engine-subheading">{guide.runtimeSummary}</div>
-                      <div className="survey-engine-guide-card">
-                        <strong>{guide.architectureReason}</strong>
-                        <span>{guide.iterationSweetSpot}</span>
-                      </div>
-                      <div className="survey-engine-grid">
-                        {starters.map((template) => (
-                          <button
-                            key={template.id}
-                            className="survey-option-btn survey-option-btn-engine"
-                            onClick={() =>
-                              handleOptionClick({ icon: template.icon, label: template.label, value: template.id })
-                            }
-                            disabled={isAnimating}
-                          >
-                            <span className="survey-option-icon">{template.icon}</span>
-                            <span className="survey-option-text">
-                              <span className="survey-option-label">{template.label}</span>
-                              <span className="survey-option-copy">
-                                {getStarterFamilyGuide(template.genreFamily).bestFor}
-                              </span>
-                            </span>
-                            <span className="survey-option-meta">{guide.label}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
+                <div className="survey-engine-group">
+                  <div className="survey-engine-heading">Vibe 2D Starters</div>
+                  <div className="survey-engine-subheading">{ENGINE_SELECTION_GUIDE['vibe-2d'].runtimeSummary}</div>
+                  <div className="survey-engine-guide-card">
+                    <strong>{ENGINE_SELECTION_GUIDE['vibe-2d'].architectureReason}</strong>
+                    <span>{ENGINE_SELECTION_GUIDE['vibe-2d'].iterationSweetSpot}</span>
+                  </div>
+                  <div className="survey-engine-grid">
+                    {STARTERS_BY_ENGINE['vibe-2d'].map((template) => (
+                      <button
+                        key={template.id}
+                        className="survey-option-btn survey-option-btn-engine"
+                        onClick={() =>
+                          handleOptionClick({ icon: template.icon, label: template.label, value: template.id })
+                        }
+                        disabled={isAnimating}
+                      >
+                        <span className="survey-option-icon">{template.icon}</span>
+                        <span className="survey-option-text">
+                          <span className="survey-option-label">{template.label}</span>
+                          <span className="survey-option-copy">
+                            {getStarterFamilyGuide(template.genreFamily).bestFor}
+                          </span>
+                        </span>
+                        <span className="survey-option-meta">Vibe 2D</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </>
             ) : (
               getCurrentOptions().map((opt) => (
@@ -365,9 +453,7 @@ export default function GameSurvey({ onComplete }: GameSurveyProps) {
       {step === 'done' && (
         <div className="survey-building">
           <div className="building-spinner" />
-          <p>
-            Building your {answers.theme} {selectedStarter.shortLabel} game...
-          </p>
+          <p>{buildingLabel}</p>
         </div>
       )}
     </div>

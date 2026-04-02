@@ -86,6 +86,7 @@ const MODEL_INFO: Record<AIModel, { name: string; icon: string; color: string }>
 };
 
 const NEXT_BUDDY_MAP: Record<string, AIModel> = { claude: 'openai', openai: 'claude', grok: 'claude' };
+const STUDIO_STARTER_TEMPLATES = STARTER_TEMPLATES.filter((template) => template.engineId === 'vibe-2d');
 
 /** Safe lookup — handles null/undefined or invalid model names. */
 function getModelInfo(model: AIModel | null | undefined) {
@@ -94,13 +95,11 @@ function getModelInfo(model: AIModel | null | undefined) {
   return info || null;
 }
 
-const GAME_STARTERS = STARTER_TEMPLATES.map((template) => ({
+const GAME_STARTERS = STUDIO_STARTER_TEMPLATES.map((template) => ({
   genre: template.id,
   emoji: template.icon,
   label: ENABLE_3D_STUDIO && template.dimension === '3d' ? `${template.shortLabel} 3D` : template.shortLabel,
-  prompt: `Make me a 2D ${template.label} game. The theme is ${template.defaultTheme}. I control a ${template.defaultCharacter}. The main challenge is ${
-    template.defaultObstacle
-  }.`,
+  prompt: `Make me a ${template.dimension.toUpperCase()} ${template.label} game with the ${template.engineId === 'vibe-3d' ? 'Vibe 3D' : 'Vibe 2D'} engine style. The theme is ${template.defaultTheme}. I control a ${template.defaultCharacter}. The main challenge is ${template.defaultObstacle}.`,
 }));
 
 function toStarterGameConfig(template: (typeof STARTER_TEMPLATES)[number]): GameConfig {
@@ -119,15 +118,15 @@ function toStarterGameConfig(template: (typeof STARTER_TEMPLATES)[number]): Game
   };
 }
 
-const GAME_STARTER_GROUPS = Object.entries(STARTERS_BY_ENGINE)
-  .filter(([engineId]) => ENGINE_SELECTION_GUIDE[engineId])
-  .map(([engineId, starters]) => ({
-    engineId,
-    label: ENGINE_SELECTION_GUIDE[engineId].label,
-    description: ENGINE_SELECTION_GUIDE[engineId].runtimeSummary,
-    architectureReason: ENGINE_SELECTION_GUIDE[engineId].architectureReason,
-    starters,
-  }));
+const GAME_STARTER_GROUPS = [
+  {
+    engineId: 'vibe-2d',
+    label: 'Vibe 2D',
+    description: ENGINE_SELECTION_GUIDE['vibe-2d'].runtimeSummary,
+    architectureReason: ENGINE_SELECTION_GUIDE['vibe-2d'].architectureReason,
+    starters: STARTERS_BY_ENGINE['vibe-2d'],
+  },
+];
 
 const GENERATION_STAGES = ['engine', 'references', 'generating', 'polishing', 'repairing'] as const;
 
@@ -380,7 +379,7 @@ export default function ChatPanel({
     let next = NEXT_BUDDY_MAP[lastModelUsed || 'claude'] || 'openai';
     if (next === 'openai' && !openaiAvailable) next = 'claude';
     const buddyName = MODEL_INFO[next].name;
-    onSendMessage(input.trim() || `Hey ${buddyName}, can you take a look at my game?`, undefined, 'ask-other-buddy');
+    onSendMessage(input.trim() || `Hey ${buddyName}, can you take a look at my project?`, undefined, 'ask-other-buddy');
     setInput('');
   };
 
@@ -416,7 +415,7 @@ export default function ChatPanel({
             title={
               openaiAvailable
                 ? 'Coach GPT — Competitive coach, levels up your game'
-                : 'Coach GPT not available (no API key)'
+                : 'Coach GPT — not available (no API key)'
             }
             disabled={isLoading || !openaiAvailable}
           >
@@ -472,14 +471,14 @@ export default function ChatPanel({
                 <div className="buddy-card buddy-card-openai">
                   <span className="buddy-card-icon">🏆</span>
                   <span className="buddy-card-name">Coach GPT</span>
-                  <span className="buddy-card-desc">Game coach. Levels up your gameplay!</span>
+                  <span className="buddy-card-desc">Creative coach. Levels up your project!</span>
                 </div>
               )}
             </div>
 
-            {/* Game template starters */}
+            {/* Starter templates */}
             <div className="game-starters">
-              <p className="game-starters-label">Or pick a starter engine path:</p>
+              <p className="game-starters-label">Or pick a game starter:</p>
               {GAME_STARTER_GROUPS.map((group) => (
                 <div key={group.engineId} className="game-starter-group">
                   <p className="game-starter-group-title">{group.label}</p>
@@ -497,7 +496,7 @@ export default function ChatPanel({
                             onSendMessage(gameStarter.prompt, undefined, undefined, toStarterGameConfig(starter))
                           }
                           disabled={isLoading}
-                          aria-label={`Build a ${starter.label} game`}
+                          aria-label={`Build a ${starter.label} project`}
                         >
                           <span className="game-starter-emoji" aria-hidden="true">
                             {starter.icon}
@@ -665,7 +664,7 @@ export default function ChatPanel({
                       : 'Professor Claude is thinking... 🧠'}
                   </div>
                   <div className="loading-sublabel">
-                    {generationStatus?.message || 'Finding the best references and building your game...'}
+                    {generationStatus?.message || 'Finding the best references and building your creation...'}
                   </div>
                   {generationStatus && (
                     <ul className="generation-steps">

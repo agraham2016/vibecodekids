@@ -18,9 +18,11 @@ const CATEGORIES = [
   { id: 'rpg', label: '⚔️ RPG', emoji: '⚔️' },
   { id: 'strategy', label: '🧠 Strategy', emoji: '🧠' },
   { id: 'racing', label: '🏎️ Racing', emoji: '🏎️' },
-  { id: 'sports', label: '⚽ Sports', emoji: '⚽' },
-  { id: 'classic', label: '🕹️ Classic', emoji: '🕹️' },
-  { id: 'other', label: '🎮 Other', emoji: '🎮' },
+  { id: 'story', label: '📖 Story', emoji: '📖' },
+  { id: 'app', label: '📱 App / Tool', emoji: '📱' },
+  { id: 'art', label: '🎨 Art', emoji: '🎨' },
+  { id: 'music', label: '🎵 Music', emoji: '🎵' },
+  { id: 'other', label: '✨ Other', emoji: '✨' },
 ];
 
 export default function ShareModal({
@@ -43,7 +45,7 @@ export default function ShareModal({
 
   const handleShare = async () => {
     if (!title.trim()) {
-      setError('Your game needs a name! What should we call it?');
+      setError('Your creation needs a name! What should we call it?');
       return;
     }
 
@@ -107,7 +109,7 @@ export default function ShareModal({
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose} role="dialog" aria-modal="true" aria-label="Share your game">
+    <div className="modal-overlay" onClick={onClose} role="dialog" aria-modal="true" aria-label="Share your creation">
       <div className="share-modal" onClick={(e) => e.stopPropagation()}>
         <button className="close-btn" onClick={onClose} aria-label="Close dialog">
           ✕
@@ -116,18 +118,18 @@ export default function ShareModal({
         {!shareResult ? (
           <>
             <div className="share-header">
-              <h2>🎉 Share Your Game!</h2>
+              <h2>🎉 Share Your Creation!</h2>
               <p>Show everyone what you made!</p>
             </div>
 
             <div className="share-form">
               <div className="form-group">
-                <label>Name your game:</label>
+                <label>Name your creation:</label>
                 <input
                   type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder="My Awesome Game"
+                  placeholder="My Awesome Creation"
                   maxLength={50}
                   autoFocus
                 />
@@ -137,7 +139,7 @@ export default function ShareModal({
                 <label>Arcade screen name:</label>
                 <input type="text" value={creatorName} readOnly />
                 <small style={{ color: '#888', fontSize: '0.75rem' }}>
-                  Your game will be shared with your screen name, not your real name.
+                  Your creation will be shared with your screen name, not your real name.
                 </small>
               </div>
 
@@ -161,20 +163,20 @@ export default function ShareModal({
               <div className="form-group checkbox-group">
                 <label className="checkbox-label">
                   <input type="checkbox" checked={isPublic} onChange={(e) => setIsPublic(e.target.checked)} />
-                  <span className="checkbox-text">⭐ Add to the Arcade so others can play too!</span>
+                  <span className="checkbox-text">⭐ Add to the Arcade so others can see it too!</span>
                 </label>
                 <p className="checkbox-hint">
-                  Other kids can find and play your game. A grown-up checks it first to keep things safe.
+                  Other kids can find and try your creation. A grown-up checks it first to keep things safe.
                 </p>
               </div>
 
               <div className="form-group checkbox-group multiplayer-option">
                 <label className="checkbox-label">
                   <input type="checkbox" checked={multiplayer} onChange={(e) => setMultiplayer(e.target.checked)} />
-                  <span className="checkbox-text">🎮 Enable Multiplayer - Let friends play together!</span>
+                  <span className="checkbox-text">🎮 Enable Multiplayer - Let friends join in!</span>
                 </label>
                 <p className="checkbox-hint">
-                  Players can create rooms with codes and play your game with friends online!
+                  Friends can create rooms with codes and experience your creation together online!
                 </p>
               </div>
 
@@ -189,7 +191,7 @@ export default function ShareModal({
           <div className="share-success">
             <div className="success-animation">🎉</div>
             <h2>🎊 Woohoo! You did it!</h2>
-            <p>Here's your game's link! Share it with friends.</p>
+            <p>Here's the link to your creation! Share it with friends.</p>
 
             <div className="share-link-box">
               <input type="text" value={shareResult.url} readOnly className="share-link-input" />
@@ -207,7 +209,9 @@ export default function ShareModal({
               </button>
             </div>
 
-            {isPublic && <p className="gallery-note">Your game is being checked — it'll show up in the Arcade soon!</p>}
+            {isPublic && (
+              <p className="gallery-note">Your creation is being checked — it'll show up in the Arcade soon!</p>
+            )}
           </div>
         )}
       </div>

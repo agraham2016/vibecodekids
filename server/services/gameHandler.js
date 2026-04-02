@@ -57,6 +57,7 @@ import { injectSprites } from './spriteInjector.js';
 import { injectModels } from './modelInjector.js';
 import { resolveEngineProfile } from './engineRegistry.js';
 import { validateEngineOutput } from './engineValidators.js';
+import { matchAssets, formatMatchedAssetsForPrompt } from './assetMatcher.js';
 
 // ========== MODE DETECTION HELPERS ==========
 
@@ -198,11 +199,13 @@ export async function generateOrIterateGame({
   mode = 'default',
   conversationHistory = [],
   gameConfig = null,
+  editorContext = null,
   image = null,
   userId = null,
   lastModelUsed = null,
   debugAttempt = 0,
   onStatus = null,
+  selectedAssetIds = [],
 }) {
   const shouldResetToFreshGame = shouldTreatAsFreshGameRequest(prompt, currentCode, gameConfig);
   const effectiveCurrentCode = shouldResetToFreshGame ? null : currentCode;
@@ -319,8 +322,10 @@ export async function generateOrIterateGame({
         currentCode: effectiveCurrentCode,
         conversationHistory: effectiveConversationHistory,
         gameConfig,
+        editorContext,
         image,
         userId,
+        selectedAssetIds,
       });
       break;
 
@@ -330,9 +335,11 @@ export async function generateOrIterateGame({
         currentCode: effectiveCurrentCode,
         conversationHistory: effectiveConversationHistory,
         gameConfig,
+        editorContext,
         image,
         userId,
         debugAttempt,
+        selectedAssetIds,
       });
       break;
 
@@ -342,9 +349,11 @@ export async function generateOrIterateGame({
         currentCode: effectiveCurrentCode,
         conversationHistory: effectiveConversationHistory,
         gameConfig,
+        editorContext,
         image,
         userId,
         lastModelUsed,
+        selectedAssetIds,
       });
       break;
 
@@ -355,10 +364,12 @@ export async function generateOrIterateGame({
         currentCode: effectiveCurrentCode,
         conversationHistory: effectiveConversationHistory,
         gameConfig,
+        editorContext,
         image,
         userId,
         targetModel,
         emitStatus,
+        selectedAssetIds,
       });
       break;
   }
@@ -426,10 +437,12 @@ async function handleSingleModel({
   currentCode,
   conversationHistory,
   gameConfig,
+  editorContext,
   image,
   userId,
   targetModel,
   emitStatus = () => {},
+  selectedAssetIds = [],
 }) {
   // Detect genre for reference resolution
   const genre = gameConfig?.gameType || detectGameGenre(prompt || '') || null;
@@ -475,6 +488,24 @@ async function handleSingleModel({
   // Combine reference code with pattern hint
   const fullReferenceCode = referenceCode + patternHintText;
 
+  // Auto-match assets from catalog based on kid's prompt + genre + manual picks
+  let selectedAssetsBlock = '';
+  try {
+    const { assets: matchedAssets } = matchAssets({
+      prompt,
+      genre,
+      kidPickedIds: selectedAssetIds,
+    });
+    if (matchedAssets.length > 0) {
+      selectedAssetsBlock = formatMatchedAssetsForPrompt(matchedAssets, selectedAssetIds);
+      console.log(
+        `🎨 Asset matcher: ${matchedAssets.length} assets (${selectedAssetIds.length} kid-picked, ${matchedAssets.length - selectedAssetIds.length} auto)`,
+      );
+    }
+  } catch (err) {
+    console.warn('⚠️ Asset matcher failed (continuing without):', err.message);
+  }
+
   const { staticPrompt, dynamicContext } = getSystemPrompt(
     currentCode,
     gameConfig,
@@ -482,6 +513,8 @@ async function handleSingleModel({
     fullReferenceCode,
     prompt,
     requestedEngineProfile,
+    editorContext,
+    selectedAssetsBlock,
   );
   const personalityWrapper = getPersonalityWrapper(targetModel);
   const maxTokens = calculateMaxTokens(currentCode);
@@ -739,7 +772,17 @@ function summarizeCodeChange(prompt, category) {
  * Debug mode: Try Claude first. If it doesn't fix the issue after
  * DEBUG_MAX_CLAUDE_ATTEMPTS, auto-route to OpenAI for a second pass.
  */
-async function handleDebugMode({ prompt, currentCode, conversationHistory, gameConfig, image, userId, debugAttempt }) {
+async function handleDebugMode({
+  prompt,
+  currentCode,
+  conversationHistory,
+  gameConfig,
+  editorContext,
+  image,
+  userId,
+  debugAttempt,
+  selectedAssetIds = [],
+}) {
   const attempt = debugAttempt + 1;
   console.log(`🔧 Debug mode — attempt ${attempt}/${DEBUG_MAX_CLAUDE_ATTEMPTS}`);
 
@@ -752,9 +795,11 @@ async function handleDebugMode({ prompt, currentCode, conversationHistory, gameC
       currentCode,
       conversationHistory,
       gameConfig,
+      editorContext,
       image,
       userId,
       targetModel: 'claude',
+      selectedAssetIds,
     });
 
     return {
@@ -772,9 +817,11 @@ async function handleDebugMode({ prompt, currentCode, conversationHistory, gameC
       currentCode,
       conversationHistory,
       gameConfig,
+      editorContext,
       image,
       userId,
       targetModel: 'openai',
+      selectedAssetIds,
     });
 
     return {
@@ -804,9 +851,11 @@ async function handleAskOtherBuddy({
   currentCode,
   conversationHistory,
   gameConfig,
+  editorContext,
   image,
   userId,
   lastModelUsed,
+  selectedAssetIds = [],
 }) {
   const otherModel = NEXT_BUDDY[lastModelUsed] || 'openai';
   const finalModel = otherModel === 'openai' && !isOpenAIAvailable() ? 'claude' : otherModel;
@@ -819,9 +868,11 @@ async function handleAskOtherBuddy({
     currentCode,
     conversationHistory,
     gameConfig,
+    editorContext,
     image,
     userId,
     targetModel: finalModel,
+    selectedAssetIds,
   });
 
   return result;
@@ -835,7 +886,16 @@ async function handleAskOtherBuddy({
  *
  * Returns both the polished result AND the intermediate critique.
  */
-async function handleCriticMode({ prompt, currentCode, conversationHistory, gameConfig, image, userId }) {
+async function handleCriticMode({
+  prompt,
+  currentCode,
+  conversationHistory,
+  gameConfig,
+  editorContext,
+  image,
+  userId,
+  selectedAssetIds = [],
+}) {
   console.log('🔄 Critic mode: Claude → Grok review → Claude polish');
 
   // Step 1: Claude generates initial version
@@ -845,9 +905,11 @@ async function handleCriticMode({ prompt, currentCode, conversationHistory, game
     currentCode,
     conversationHistory,
     gameConfig,
+    editorContext,
     image,
     userId,
     targetModel: 'claude',
+    selectedAssetIds,
   });
 
   if (!claudeResult.code) {

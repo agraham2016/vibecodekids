@@ -19,6 +19,7 @@ import {
 } from './genres.js';
 import { MODIFICATION_SAFETY_RULES } from './safety.js';
 import { ENABLE_3D_STUDIO } from '../config/index.js';
+import { CANVAS_DRAWING_SKILLS } from './canvasSkills.js';
 
 // Re-export detectGameGenre for use in routes
 export { detectGameGenre };
@@ -276,6 +277,7 @@ export function sanitizeOutput(message) {
  * @param {string} referenceCode - Reference code from templates/snippets/GitHub
  * @param {string} userPrompt - The user's current message (for multiplayer detection)
  * @param {object|null} engineProfile - Resolved Vibe engine profile
+ * @param {object|null} editorContext - Structured paid editor state summary
  * @returns {{ staticPrompt: string, dynamicContext: string }}
  */
 export function getSystemPrompt(
@@ -285,6 +287,8 @@ export function getSystemPrompt(
   referenceCode = '',
   userPrompt = '',
   engineProfile = null,
+  editorContext = null,
+  selectedAssetsBlock = '',
 ) {
   // ===== STATIC PART (cacheable - same for every request) =====
   const staticPrompt = SYSTEM_PROMPT + '\n\n' + GAME_KNOWLEDGE_BASE;
@@ -344,6 +348,8 @@ ENGINE INTENT:
 `);
   }
 
+  // Editor context block removed — builder feature was retired
+
   // Detect multiplayer intent (from code, user prompt, game config, or genre)
   const hasMultiplayerCode =
     currentCode &&
@@ -371,6 +377,7 @@ ENGINE INTENT:
   const is2DEngineRequest = engineProfile?.engineId === 'vibe-2d' || gameConfig?.dimension === '2d';
   if (isPhaserCode || is2DEngineRequest) {
     dynamicParts.push(PHASER_GAME_RULES);
+    dynamicParts.push(CANVAS_DRAWING_SKILLS);
   }
 
   // Detect platformer code
@@ -433,6 +440,11 @@ Then build the best 2D Phaser version of their idea.
     dynamicParts.push(THREE_D_SHOOTER_RULES);
   }
 
+  // Add selected/auto-matched asset instructions (before reference code so AI sees assets first)
+  if (selectedAssetsBlock) {
+    dynamicParts.push(selectedAssetsBlock);
+  }
+
   // Add reference code (templates, snippets, GitHub code)
   if (referenceCode) {
     dynamicParts.push(referenceCode);
@@ -469,7 +481,15 @@ When they ask for changes, update this existing project. Keep what they already 
  * Legacy-compatible wrapper that returns a single string.
  * Used by any code that hasn't been updated to the new split format.
  */
-export function getSystemPromptString(currentCode, gameConfig = null, gameGenre = null) {
-  const { staticPrompt, dynamicContext } = getSystemPrompt(currentCode, gameConfig, gameGenre);
+export function getSystemPromptString(currentCode, gameConfig = null, gameGenre = null, editorContext = null) {
+  const { staticPrompt, dynamicContext } = getSystemPrompt(
+    currentCode,
+    gameConfig,
+    gameGenre,
+    '',
+    '',
+    null,
+    editorContext,
+  );
   return staticPrompt + '\n' + dynamicContext;
 }

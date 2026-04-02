@@ -52,7 +52,9 @@ export default function createGenerateRouter(sessions) {
     if (!code) return true;
     return (
       code.includes('Vibe Code Studio') &&
-      (code.includes('Tell me what you want to create') || code.includes('Your game will appear here'))
+      (code.includes('Tell me what you want to create') ||
+        code.includes('Your game will appear here') ||
+        code.includes('Your creation will appear here'))
     );
   }
 
@@ -64,6 +66,8 @@ export default function createGenerateRouter(sessions) {
         currentCode,
         conversationHistory = [],
         gameConfig = null,
+        editorContext = null,
+        selectedAssetIds = [],
         // ---- DUAL-MODEL FIELDS ----
         mode: requestedMode = 'default',
         lastModelUsed = null,
@@ -297,11 +301,13 @@ export default function createGenerateRouter(sessions) {
             mode,
             conversationHistory: cleanedHistory,
             gameConfig,
+            editorContext,
             image,
             userId,
             lastModelUsed,
             debugAttempt,
             onStatus,
+            selectedAssetIds: Array.isArray(selectedAssetIds) ? selectedAssetIds : [],
           })
         : await buildStarterFallback({
             prompt: message,
@@ -333,7 +339,7 @@ export default function createGenerateRouter(sessions) {
         log.error({ userId, prompt: message?.slice(0, 80) }, 'BLOCKED AI output');
         return res.json({
           message:
-            "Hmm, that didn't come out right! Let me try a different approach. Can you describe your game again?",
+            "Hmm, that didn't come out right! Let me try a different approach. Can you describe your idea again?",
           code: null,
           usage: userId ? calculateUsageRemaining(tierCheck.user) : null,
           modelUsed: result.modelUsed,

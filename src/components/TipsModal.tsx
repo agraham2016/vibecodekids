@@ -15,27 +15,27 @@ type Tab = 'how' | 'prompts' | 'create' | 'tools';
 const TUTORIAL_STEPS = [
   {
     num: 1,
-    icon: '🎮',
-    title: 'Pick Your Game',
-    desc: 'Choose a game type from the starter grid. Each one gives the AI a head start so you get a working game fast.',
+    icon: '✨',
+    title: 'Pick What to Create',
+    desc: 'Choose what you want to build — a game, story, app, art, music, or anything else! Then pick a starter or describe your idea.',
   },
   {
     num: 2,
     icon: '💬',
     title: 'Tell the AI What You Want',
-    desc: "The AI already knows your game type — just tell it the vibe! Try 'make it a jungle theme' or 'set it in space'. Then tweak one thing at a time.",
+    desc: "Describe your vision! Try 'make it a jungle theme' or 'set it in space'. Tweak one thing at a time for best results.",
   },
   {
     num: 3,
-    icon: '✨',
+    icon: '🪄',
     title: 'Watch the Magic',
-    desc: "The AI writes your game code in real-time. When it's done, your game appears in the preview panel.",
+    desc: "The AI builds your creation in real-time. When it's done, it appears in the preview panel.",
   },
   {
     num: 4,
     icon: '🎨',
     title: 'Make It Yours',
-    desc: "Ask for changes one at a time: 'change the player to a dragon', 'make it faster', 'add a score counter'.",
+    desc: "Ask for changes one at a time: 'change the colors', 'make it faster', 'add more pages', 'add a new feature'.",
   },
   {
     num: 5,
@@ -53,7 +53,7 @@ const PROMPT_TIPS = [
   },
   {
     bad: 'Make it look better',
-    good: 'Make the background dark blue with stars, and make the player red',
+    good: 'Make the background dark blue with stars, and make the text bigger',
     why: 'Tell the AI exactly what you see in your head',
   },
   {
@@ -63,30 +63,32 @@ const PROMPT_TIPS = [
   },
   {
     bad: "It's broken",
-    good: 'When I press the jump button nothing happens, the player just stays on the ground',
+    good: 'When I click the button nothing happens, the page just stays the same',
     why: 'Describe exactly what you see so the AI can fix it',
   },
 ];
 
 const SCENARIOS = [
   { when: 'Something breaks', say: '"Undo that last change" or "Go back to before"' },
-  { when: 'You want to change colors', say: '"Make the background dark blue" or "Change the player to green"' },
+  { when: 'You want to change colors', say: '"Make the background dark blue" or "Change the text to green"' },
   {
     when: 'You want a new feature',
-    say: '"Add a score counter in the top right" or "Add enemies that move left and right"',
+    say: '"Add a score counter" or "Add a new page" or "Add a sound effect"',
   },
-  { when: 'The game is too easy', say: '"Make it harder — faster enemies and less time"' },
-  { when: 'You want to start over', say: 'Click the Reset button in the sidebar, then describe your new game' },
+  { when: "It's too simple", say: '"Make it more interesting" or "Add more details and effects"' },
+  { when: 'You want to start over', say: 'Click the Reset button in the sidebar, then describe your new idea' },
 ];
 
-const GAME_TEMPLATES = STARTER_TEMPLATES.map((template) => ({
+const STUDIO_TIP_TEMPLATES = STARTER_TEMPLATES.filter((template) => template.engineId === 'vibe-2d');
+
+const GAME_TEMPLATES = STUDIO_TIP_TEMPLATES.map((template) => ({
   emoji: template.icon,
   name: template.label,
-  desc: template.description,
+  desc: `Vibe 2D - ${template.description}`,
   bestFor: getStarterFamilyGuide(template.genreFamily).bestFor,
 }));
 
-const ENGINE_GUIDE = Object.values(ENGINE_SELECTION_GUIDE);
+const ENGINE_GUIDE = [ENGINE_SELECTION_GUIDE['vibe-2d']];
 
 const STUDIO_TOOLS = [
   {
@@ -107,12 +109,12 @@ const STUDIO_TOOLS = [
   {
     icon: '🔧',
     name: 'Peek at the Code',
-    desc: 'See the actual code behind your game. Great for learning how games are built!',
+    desc: 'See the actual code behind your creation. Great for learning how things are built!',
   },
   {
     icon: '🎉',
     name: 'Share',
-    desc: 'Publish your game to the Arcade so friends and other kids can play it.',
+    desc: 'Publish your creation to the Arcade so friends and other kids can try it.',
   },
   {
     icon: '📜',
@@ -132,7 +134,7 @@ const STUDIO_TOOLS = [
   {
     icon: '📷',
     name: 'Upload Image',
-    desc: 'Upload a drawing or screenshot and the AI will try to build a game inspired by it.',
+    desc: 'Upload a drawing or screenshot and the AI will try to build something inspired by it.',
   },
 ];
 

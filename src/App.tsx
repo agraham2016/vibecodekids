@@ -32,18 +32,39 @@ import type {
   BugReportResponse,
   BugReportResolutionNotification,
   BugReportResolutionNotificationsResponse,
+  StudioAsset,
+  StudioAssetCategory,
+  StudioAssetCatalogResponse,
 } from './types';
 import { getStarterTemplateById } from './config/gameCatalog';
 import './App.css';
 
 const FRESH_GAME_PROMPT_PATTERN =
-  /\b(start over|from scratch|new game|different game|another game|make .*?(chess|checkers|tic(?:-|\s)?tac(?:-|\s)?toe|connect(?:-|\s)?4|board game|platformer|racing|maze|puzzle|tower defense|builder|2d)|build .*?(chess|checkers|tic(?:-|\s)?tac(?:-|\s)?toe|connect(?:-|\s)?4|board game|platformer|racing|maze|puzzle|tower defense|builder|2d)|create .*?(chess|checkers|tic(?:-|\s)?tac(?:-|\s)?toe|connect(?:-|\s)?4|board game|platformer|racing|maze|puzzle|tower defense|builder|2d))\b/i;
-
+  /\b(start over|from scratch|new game|different game|another game|make .*?(chess|checkers|tic(?:-|\s)?tac(?:-|\s)?toe|connect(?:-|\s)?4|board game|platformer|racing|maze|puzzle|obby|tower defense|survival|builder|3d|2d)|build .*?(chess|checkers|tic(?:-|\s)?tac(?:-|\s)?toe|connect(?:-|\s)?4|board game|platformer|racing|maze|puzzle|obby|tower defense|survival|builder|3d|2d)|create .*?(chess|checkers|tic(?:-|\s)?tac(?:-|\s)?toe|connect(?:-|\s)?4|board game|platformer|racing|maze|puzzle|obby|tower defense|survival|builder|3d|2d))\b/i;
 function shouldResetProjectGameConfig(content: string, currentCode: string, gameConfig?: GameConfig | null) {
   if (gameConfig) return false;
   if (!currentCode || currentCode.length < 400) return false;
   return FRESH_GAME_PROMPT_PATTERN.test(content);
 }
+
+function getSelectedAssetsStorageKey(userId?: string | null) {
+  return userId ? `vck_selected_assets_${userId}` : '';
+}
+
+function readStoredSelectedAssetIds(userId?: string | null) {
+  const storageKey = getSelectedAssetsStorageKey(userId);
+  if (!storageKey) return [];
+
+  try {
+    const raw = localStorage.getItem(storageKey);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed.filter((value): value is string => typeof value === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
+const STUDIO_ASSET_PAGE_SIZE = 60;
 
 function App() {
   // Auth from context (no more prop drilling)
@@ -72,7 +93,7 @@ function App() {
   // UI state
   const [showShareModal, setShowShareModal] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const [showCode, setShowCode] = useState(false);
+  const [workspaceView, setWorkspaceView] = useState<'play' | 'code'>('play');
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [isWelcomeUpgrade, setIsWelcomeUpgrade] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
@@ -91,11 +112,29 @@ function App() {
   const [showLearnModal, setShowLearnModal] = useState(false);
   const [showAssetCatalog, setShowAssetCatalog] = useState(false);
   const activeGameConfig: GameConfig | null = currentProject.gameConfig ?? null;
+  const [studioAssets, setStudioAssets] = useState<StudioAsset[]>([]);
+  const [studioAssetCategories, setStudioAssetCategories] = useState<StudioAssetCategory[]>([]);
+  const [selectedStudioAssets, setSelectedStudioAssets] = useState<StudioAsset[]>([]);
+  const [selectedStudioAssetIds, setSelectedStudioAssetIds] = useState<string[]>([]);
+  const [isLoadingStudioAssets, setIsLoadingStudioAssets] = useState(false);
+  const [isLoadingMoreStudioAssets, setIsLoadingMoreStudioAssets] = useState(false);
+  const [studioAssetError, setStudioAssetError] = useState('');
+  const [studioAssetSelectionLimit, setStudioAssetSelectionLimit] = useState(6);
+  const [hasLoadedStudioAssets, setHasLoadedStudioAssets] = useState(false);
+  const [studioAssetSearch, setStudioAssetSearch] = useState('');
+  const [debouncedStudioAssetSearch, setDebouncedStudioAssetSearch] = useState('');
+  const [studioAssetGenreFilter, setStudioAssetGenreFilter] = useState('all');
+  const [studioAssetPage, setStudioAssetPage] = useState(0);
+  const [studioAssetTotalCount, setStudioAssetTotalCount] = useState(0);
+  const [studioAssetHasMore, setStudioAssetHasMore] = useState(false);
 
   // Mobile/tablet navigation
   const [mobileTab, setMobileTab] = useState<'chat' | 'game' | 'projects'>('chat');
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [shareThumbnail, setShareThumbnail] = useState<string | null>(null);
+  const canAccessPremiumDashboard = Boolean(
+    membership?.canAccessPremiumAssets || user?.membershipTier === 'creator' || user?.membershipTier === 'pro',
+  );
 
   // Resizable panel split (desktop only)
   const [chatWidth, setChatWidth] = useState(() => {
@@ -150,6 +189,7 @@ function App() {
   } = useChat({
     onCodeGenerated: (newCode) => {
       setGeneratedCode(newCode);
+      setWorkspaceView('play');
       setMobileTab('game'); // Switch to game tab so user sees the preview
     },
     onUsageUpdate: setMembership,
@@ -201,6 +241,141 @@ function App() {
     };
   }, [token, user?.id]);
 
+  useEffect(() => {
+    if (!user?.id) {
+      setSelectedStudioAssetIds([]);
+      setSelectedStudioAssets([]);
+      return;
+    }
+
+    setSelectedStudioAssetIds(readStoredSelectedAssetIds(user.id));
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    localStorage.setItem(getSelectedAssetsStorageKey(user.id), JSON.stringify(selectedStudioAssetIds));
+  }, [user?.id, selectedStudioAssetIds]);
+
+  useEffect(() => {
+    const handle = window.setTimeout(() => {
+      setDebouncedStudioAssetSearch(studioAssetSearch.trim());
+    }, 250);
+
+    return () => window.clearTimeout(handle);
+  }, [studioAssetSearch]);
+
+  useEffect(() => {
+    setStudioAssetPage(0);
+  }, [debouncedStudioAssetSearch, studioAssetGenreFilter]);
+
+  useEffect(() => {
+    if (!canAccessPremiumDashboard || !token || !user?.id) {
+      setStudioAssets([]);
+      setStudioAssetCategories([]);
+      setSelectedStudioAssets([]);
+      setStudioAssetError('');
+      setIsLoadingStudioAssets(false);
+      setIsLoadingMoreStudioAssets(false);
+      setStudioAssetTotalCount(0);
+      setStudioAssetHasMore(false);
+      setHasLoadedStudioAssets(false);
+      return;
+    }
+
+    let isCancelled = false;
+
+    async function loadStudioAssets() {
+      const params = new URLSearchParams();
+      params.set('limit', String(STUDIO_ASSET_PAGE_SIZE));
+      params.set('offset', String(studioAssetPage * STUDIO_ASSET_PAGE_SIZE));
+      if (studioAssetGenreFilter !== 'all') {
+        params.set('genre', studioAssetGenreFilter);
+      }
+      if (debouncedStudioAssetSearch) {
+        params.set('search', debouncedStudioAssetSearch);
+      }
+      if (selectedStudioAssetIds.length > 0) {
+        params.set('selected', selectedStudioAssetIds.join(','));
+      }
+
+      if (studioAssetPage === 0) {
+        setIsLoadingStudioAssets(true);
+      } else {
+        setIsLoadingMoreStudioAssets(true);
+      }
+      setStudioAssetError('');
+      try {
+        const data = await api.get<StudioAssetCatalogResponse>(`/api/studio/assets?${params.toString()}`);
+        if (isCancelled) return;
+        const nextAssets = Array.isArray(data.assets) ? data.assets : [];
+        const nextSelectedAssets = Array.isArray(data.selectedAssets) ? data.selectedAssets : [];
+        setStudioAssetCategories(Array.isArray(data.categories) ? data.categories : []);
+        setSelectedStudioAssets(
+          selectedStudioAssetIds
+            .map((assetId) => nextSelectedAssets.find((asset) => asset.id === assetId))
+            .filter((asset): asset is StudioAsset => !!asset),
+        );
+        setStudioAssets((current) => {
+          if (studioAssetPage === 0) {
+            return nextAssets;
+          }
+
+          const seenIds = new Set(current.map((asset) => asset.id));
+          return [...current, ...nextAssets.filter((asset) => !seenIds.has(asset.id))];
+        });
+        setStudioAssetSelectionLimit(typeof data.selectionLimit === 'number' ? data.selectionLimit : 6);
+        setStudioAssetTotalCount(typeof data.totalAssets === 'number' ? data.totalAssets : nextAssets.length);
+        setStudioAssetHasMore(Boolean(data.hasMore));
+        setHasLoadedStudioAssets(true);
+      } catch (error) {
+        if (isCancelled) return;
+        if (studioAssetPage === 0) {
+          setStudioAssets([]);
+          setStudioAssetCategories([]);
+          setStudioAssetTotalCount(0);
+          setStudioAssetHasMore(false);
+        }
+        setStudioAssetError(error instanceof Error ? error.message : 'Could not load premium assets.');
+      } finally {
+        if (!isCancelled) {
+          if (studioAssetPage === 0) {
+            setIsLoadingStudioAssets(false);
+          } else {
+            setIsLoadingMoreStudioAssets(false);
+          }
+        }
+      }
+    }
+
+    loadStudioAssets();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [
+    canAccessPremiumDashboard,
+    token,
+    user?.id,
+    studioAssetPage,
+    studioAssetGenreFilter,
+    debouncedStudioAssetSearch,
+    selectedStudioAssetIds,
+  ]);
+
+  useEffect(() => {
+    if (!canAccessPremiumDashboard || !hasLoadedStudioAssets || selectedStudioAssetIds.length === 0) return;
+    const validAssetIds = new Set(selectedStudioAssets.map((asset) => asset.id));
+    setSelectedStudioAssetIds((current) =>
+      current.filter((assetId) => validAssetIds.has(assetId)).slice(0, studioAssetSelectionLimit),
+    );
+  }, [
+    canAccessPremiumDashboard,
+    hasLoadedStudioAssets,
+    selectedStudioAssets,
+    selectedStudioAssetIds.length,
+    studioAssetSelectionLimit,
+  ]);
+
   // Login handler
   const handleLogin = useCallback(
     (
@@ -248,15 +423,18 @@ function App() {
       } else if (shouldResetProjectGameConfig(content, code, gameConfig)) {
         setProjectGameConfig(null);
       }
-      await sendMessage(content, image, code, gameConfig ?? null, modeOverride);
+      await sendMessage(content, image, code, gameConfig ?? null, modeOverride, {
+        selectedAssets: canAccessPremiumDashboard ? selectedStudioAssets : [],
+      });
     },
-    [sendMessage, code, setProjectGameConfig],
+    [sendMessage, code, setProjectGameConfig, canAccessPremiumDashboard, selectedStudioAssets],
   );
 
   // Handle using alternate code from critic/side-by-side view
   const handleUseAlternateCode = useCallback(
     (altCode: string) => {
       setGeneratedCode(altCode);
+      setWorkspaceView('play');
     },
     [setGeneratedCode],
   );
@@ -264,7 +442,10 @@ function App() {
   const handleLoadProject = useCallback(
     async (projectId: string) => {
       const project = await loadProject(projectId);
-      if (project) clearMessages();
+      if (project) {
+        clearMessages();
+        setWorkspaceView('play');
+      }
     },
     [loadProject, clearMessages],
   );
@@ -272,20 +453,36 @@ function App() {
   const handleNewProject = useCallback(() => {
     newProject();
     clearMessages();
+    setWorkspaceView('play');
   }, [newProject, clearMessages]);
 
   const handleStartOver = useCallback(() => {
     newProject();
     clearMessages();
+    setWorkspaceView('play');
   }, [newProject, clearMessages]);
 
   const handleGameSurveyComplete = useCallback(
     (config: GameConfig) => {
-      const starter = getStarterTemplateById(config.starterTemplateId || config.gameType);
-      const starterLabel = starter?.label || config.gameType;
-      const selectionReason = config.selectionReason ? ` Match reason: ${config.selectionReason}` : '';
-      const notes = config.customNotes ? ` Extra idea: ${config.customNotes}.` : '';
-      const prompt = `Make me a 2D ${config.theme} ${starterLabel} game. I control a ${config.character}. The main challenge is ${config.obstacles}. Use a ${config.visualStyle} visual style.${selectionReason}${notes}`;
+      const isNonGame = config.customNotes?.startsWith('[Creation type:');
+      let prompt: string;
+
+      if (isNonGame) {
+        const creationType = config.customNotes?.match(/\[Creation type: (\w+)\]/)?.[1] || 'creation';
+        const themeNote = config.theme ? ` with a ${config.theme} theme` : '';
+        const styleNote = config.visualStyle ? ` in a ${config.visualStyle} style` : '';
+        const extraNotes = config.customNotes?.replace(/\[Creation type: \w+\]\s*/, '').trim();
+        const extra = extraNotes ? ` ${extraNotes}` : '';
+        prompt = `Create an interactive ${creationType}${themeNote}${styleNote}.${extra} Make it fun and engaging for kids!`;
+      } else {
+        const starter = getStarterTemplateById(config.starterTemplateId || config.gameType);
+        const dimensionLabel = config.dimension === '3d' ? '3D' : '2D';
+        const engineLabel = config.engineId === 'vibe-3d' ? 'Vibe 3D' : 'Vibe 2D';
+        const starterLabel = starter?.label || config.gameType;
+        const selectionReason = config.selectionReason ? ` Match reason: ${config.selectionReason}` : '';
+        const notes = config.customNotes ? ` Extra idea: ${config.customNotes}.` : '';
+        prompt = `Make me a ${dimensionLabel} ${config.theme} ${starterLabel} game with the ${engineLabel} engine style. I control a ${config.character}. The main challenge is ${config.obstacles}. Use a ${config.visualStyle} visual style.${selectionReason}${notes}`;
+      }
       setShowGameSurvey(false);
       localStorage.setItem(welcomedKey(user?.id), '1');
       handleSendMessage(prompt, undefined, undefined, config);
@@ -432,6 +629,55 @@ function App() {
     setShowShareModal(true);
   }, [capturePreviewThumbnail]);
 
+  const handleToggleStudioAsset = useCallback(
+    (assetId: string) => {
+      const assetToToggle = studioAssets.find((asset) => asset.id === assetId);
+      setSelectedStudioAssetIds((current) => {
+        if (current.includes(assetId)) {
+          return current.filter((id) => id !== assetId);
+        }
+
+        if (current.length >= studioAssetSelectionLimit) {
+          return current;
+        }
+
+        return [...current, assetId];
+      });
+      setSelectedStudioAssets((current) => {
+        if (current.some((asset) => asset.id === assetId)) {
+          return current.filter((asset) => asset.id !== assetId);
+        }
+
+        if (!assetToToggle || current.length >= studioAssetSelectionLimit) {
+          return current;
+        }
+
+        return [...current, assetToToggle];
+      });
+    },
+    [studioAssets, studioAssetSelectionLimit],
+  );
+
+  const handleClearSelectedStudioAssets = useCallback(() => {
+    setSelectedStudioAssetIds([]);
+    setSelectedStudioAssets([]);
+  }, []);
+
+  const handleStudioAssetSearchChange = useCallback((value: string) => {
+    setStudioAssetSearch(value);
+    setStudioAssetPage(0);
+  }, []);
+
+  const handleStudioAssetGenreFilterChange = useCallback((value: string) => {
+    setStudioAssetGenreFilter(value);
+    setStudioAssetPage(0);
+  }, []);
+
+  const handleLoadMoreStudioAssets = useCallback(() => {
+    if (isLoadingStudioAssets || isLoadingMoreStudioAssets || !studioAssetHasMore) return;
+    setStudioAssetPage((current) => current + 1);
+  }, [isLoadingStudioAssets, isLoadingMoreStudioAssets, studioAssetHasMore]);
+
   // Loading screen
   if (isCheckingAuth) {
     return (
@@ -547,8 +793,8 @@ function App() {
                 >
                   ✕
                 </button>
-                <h2>🎮 {isReturning ? `Welcome back, ${user.displayName}!` : `Welcome, ${user.displayName}!`}</h2>
-                <p>{isReturning ? 'What do you want to build today?' : 'Ready to make your first game?'}</p>
+                <h2>✨ {isReturning ? `Welcome back, ${user.displayName}!` : `Welcome, ${user.displayName}!`}</h2>
+                <p>{isReturning ? 'What do you want to create today?' : 'Ready to build your first creation?'}</p>
                 <div className="welcome-actions">
                   <button className="welcome-btn guided" onClick={handleWelcomeGuided} type="button">
                     🧙 Help Me Pick!
@@ -577,9 +823,9 @@ function App() {
         onSwitchMobileTab={setMobileTab}
       />
 
-      {/* Guided game builder survey */}
+      {/* Guided creation wizard */}
       {showGameSurvey && (
-        <div className="modal-overlay" role="dialog" aria-modal="true" aria-label="Game builder wizard">
+        <div className="modal-overlay" role="dialog" aria-modal="true" aria-label="Creation wizard">
           <div className="game-survey-modal">
             <button className="close-btn" onClick={handleWelcomeFreeChat} aria-label="Close wizard">
               ✕
@@ -656,6 +902,24 @@ function App() {
                 onOpenCatalog={() => setShowAssetCatalog(true)}
               />
             }
+            dashboardMode={canAccessPremiumDashboard ? 'premium' : 'free'}
+            assetCatalog={studioAssets}
+            assetCategories={studioAssetCategories}
+            selectedAssets={selectedStudioAssets}
+            selectedAssetIds={selectedStudioAssetIds}
+            onToggleAssetSelection={handleToggleStudioAsset}
+            onClearSelectedAssets={handleClearSelectedStudioAssets}
+            isLoadingAssetCatalog={isLoadingStudioAssets}
+            isLoadingMoreAssets={isLoadingMoreStudioAssets}
+            assetCatalogError={studioAssetError}
+            assetSelectionLimit={studioAssetSelectionLimit}
+            assetSearch={studioAssetSearch}
+            onAssetSearchChange={handleStudioAssetSearchChange}
+            assetGenreFilter={studioAssetGenreFilter}
+            onAssetGenreFilterChange={handleStudioAssetGenreFilterChange}
+            assetTotalCount={studioAssetTotalCount}
+            assetHasMore={studioAssetHasMore}
+            onLoadMoreAssets={handleLoadMoreStudioAssets}
           />
         </div>
 
@@ -686,15 +950,21 @@ function App() {
 
         <div className={`preview-code-container mobile-panel ${mobileTab === 'game' ? 'mobile-active' : ''}`}>
           <div className="view-toggle-bar">
-            <button className={`view-toggle-btn ${!showCode ? 'active' : ''}`} onClick={() => setShowCode(false)}>
-              <span>🎮</span> Play Your Game
+            <button
+              className={`view-toggle-btn ${workspaceView === 'play' ? 'active' : ''}`}
+              onClick={() => setWorkspaceView('play')}
+            >
+              <span>🎮</span> Play
             </button>
-            <button className={`view-toggle-btn ${showCode ? 'active' : ''}`} onClick={() => setShowCode(true)}>
-              <span>🔧</span> Peek at the Code
+            <button
+              className={`view-toggle-btn view-toggle-btn-secondary ${workspaceView === 'code' ? 'active' : ''}`}
+              onClick={() => setWorkspaceView('code')}
+            >
+              <span>🔧</span> Code
             </button>
           </div>
           <div className="view-content">
-            {showCode ? <CodeEditor code={code} onChange={updateCode} /> : <PreviewPanel code={code} />}
+            {workspaceView === 'code' ? <CodeEditor code={code} onChange={updateCode} /> : <PreviewPanel code={code} />}
           </div>
         </div>
       </main>
@@ -719,7 +989,7 @@ function App() {
           <span className="mobile-tab-icon" aria-hidden="true">
             🎮
           </span>
-          <span className="mobile-tab-label">Game</span>
+          <span className="mobile-tab-label">Preview</span>
         </button>
         <button
           className={`mobile-tab ${mobileTab === 'projects' ? 'active' : ''}`}
