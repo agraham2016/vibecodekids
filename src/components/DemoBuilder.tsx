@@ -4,6 +4,7 @@ import './DemoBuilder.css';
 
 interface DemoBuilderProps {
   onSignupClick: () => void;
+  variant?: 'section' | 'hero';
 }
 
 interface ArcadeGame {
@@ -67,7 +68,7 @@ const BUILT_IN_ARCADE_GAMES: ArcadeGame[] = [
 
 type DemoState = 'idle' | 'loading' | 'success' | 'error' | 'rate-limited';
 
-export default function DemoBuilder({ onSignupClick }: DemoBuilderProps) {
+export default function DemoBuilder({ onSignupClick, variant = 'section' }: DemoBuilderProps) {
   const [state, setState] = useState<DemoState>('idle');
   const [input, setInput] = useState('');
   const [generatedCode, setGeneratedCode] = useState('');
@@ -220,11 +221,16 @@ export default function DemoBuilder({ onSignupClick }: DemoBuilderProps) {
   const arcadeProofText = activeArcadeGame
     ? `${activeArcadeGame.creatorName} made this in under 10 minutes`
     : 'Kids are building these fast';
+  const isHeroVariant = variant === 'hero';
 
-  return (
-    <section className="landing-section demo-builder-section" id="try-now">
-      <h2 className="section-heading">Build your first game right now</h2>
-      <p className="demo-builder-subtext">No account needed. Pick a game or describe your own idea.</p>
+  const content = (
+    <>
+      {!isHeroVariant && <h2 className="section-heading">Build your first game right now</h2>}
+      <p className="demo-builder-subtext">
+        {isHeroVariant
+          ? 'Pick a quick starter or describe your own idea.'
+          : 'No account needed. Pick a game or describe your own idea.'}
+      </p>
 
       {state === 'idle' && (
         <div className="demo-builder-idle">
@@ -260,6 +266,9 @@ export default function DemoBuilder({ onSignupClick }: DemoBuilderProps) {
             <div className="demo-spinner" />
             <p className="demo-loading-msg">{loadingMsg}</p>
           </div>
+          <p className="demo-loading-note">
+            Your game may take up to 3 minutes. Play something from the Arcade or keep reading below while it finishes.
+          </p>
 
           {playingGameId ? (
             <div className="demo-arcade-player">
@@ -342,6 +351,20 @@ export default function DemoBuilder({ onSignupClick }: DemoBuilderProps) {
           </button>
         </div>
       )}
+    </>
+  );
+
+  if (isHeroVariant) {
+    return (
+      <div className="demo-builder-section demo-builder-section-hero" id="try-now">
+        {content}
+      </div>
+    );
+  }
+
+  return (
+    <section className="landing-section demo-builder-section" id="try-now">
+      {content}
     </section>
   );
 }

@@ -92,8 +92,8 @@ export default function LandingShell({ variant, onLoginClick, onSignupClick }: L
       </nav>
 
       <main className="landing-content">
-        <LandingHero onPrimaryCta={() => handleCta('hero-primary-cta', 'hero')} />
-        <LandingCoreSections onCta={handleCta} onSignupClick={onSignupClick} />
+        <LandingHero onPrimaryCta={() => handleCta('hero-primary-cta', 'hero')} onSignupClick={onSignupClick} />
+        <LandingCoreSections onCta={handleCta} />
       </main>
 
       <footer className="landing-footer" aria-label="Footer">

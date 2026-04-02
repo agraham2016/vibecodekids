@@ -21,8 +21,7 @@ export const HERO_CONTENT = {
   ctaLabel: 'Try It Now',
   ctaSupport: 'No account needed to try. Build and play your first game in minutes.',
   trustLine: 'Built for kids. Simple for families. No coding required.',
-  videoLabel: 'Play a real example game, then build your own',
-  videoSrc: '/demo-rocket-dodge.html',
+  videoLabel: 'Pick a quick starter or type your own game idea',
 };
 
 export const HOW_IT_WORKS_STEPS: LandingStep[] = [

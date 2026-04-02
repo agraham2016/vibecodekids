@@ -1,12 +1,10 @@
 import { FINAL_CTA_CONTENT, HOW_IT_WORKS_STEPS, LANDING_QUESTIONS, REFRAME_CONTENT } from './landingContent';
-import DemoBuilder from './DemoBuilder';
 
 interface LandingCoreSectionsProps {
   onCta: (buttonId: string, section?: string) => void;
-  onSignupClick: () => void;
 }
 
-export default function LandingCoreSections({ onCta, onSignupClick }: LandingCoreSectionsProps) {
+export default function LandingCoreSections({ onCta }: LandingCoreSectionsProps) {
   return (
     <>
       <section className="landing-section how-it-works" id="how-it-works">
@@ -23,8 +21,6 @@ export default function LandingCoreSections({ onCta, onSignupClick }: LandingCor
           ))}
         </div>
       </section>
-
-      <DemoBuilder onSignupClick={onSignupClick} />
 
       <section className="landing-section reframe-section" id="creation-time">
         <div className="reframe-panel">
