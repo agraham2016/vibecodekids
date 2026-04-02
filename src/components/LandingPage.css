@@ -384,29 +384,81 @@
   text-align: center;
 }
 
-.coming-soon-grid {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 12px;
-  margin-top: 20px;
-}
-
-.coming-soon-chip {
+.coming-soon-badge {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 12px 22px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px dashed rgba(255, 255, 255, 0.18);
+  justify-content: center;
+  min-height: 36px;
+  padding: 8px 14px;
+  margin-bottom: 14px;
   border-radius: 999px;
-  color: rgba(255, 255, 255, 0.65);
-  font-size: 0.92rem;
-  font-weight: 600;
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.24);
+  color: #bae6fd;
+  font-size: 0.88rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
 }
 
-.coming-soon-emoji {
-  font-size: 1.15rem;
+.coming-soon-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.coming-soon-card {
+  display: grid;
+  gap: 10px;
+  justify-items: start;
+  text-align: left;
+  padding: 20px;
+  border-radius: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.coming-soon-card-status {
+  color: rgba(255, 255, 255, 0.52);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.coming-soon-card-icon {
+  min-width: 48px;
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 10px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.24), rgba(236, 72, 153, 0.2));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.coming-soon-card-title {
+  margin: 0;
+  color: #fff;
+  font-size: 1.02rem;
+  line-height: 1.25;
+}
+
+.coming-soon-card-copy,
+.coming-soon-closing {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.72);
+  line-height: 1.6;
+}
+
+.coming-soon-closing {
+  width: min(100%, 44rem);
+  margin: 20px auto 0;
+  font-weight: 600;
 }
 
 /* Final CTA */
@@ -581,6 +633,15 @@
     align-items: flex-start;
   }
 
+  .coming-soon-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .coming-soon-card {
+    text-align: center;
+    justify-items: center;
+  }
+
   .landing-footer {
     padding: 20px 0;
   }
@@ -644,6 +705,10 @@
   .footer-links {
     grid-template-columns: 1fr;
     gap: 8px;
+  }
+
+  .coming-soon-grid {
+    grid-template-columns: 1fr;
   }
 
   .footer-links a {

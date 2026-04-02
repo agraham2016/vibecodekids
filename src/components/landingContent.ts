@@ -17,9 +17,9 @@ export interface LandingQuestion {
 
 export const HERO_CONTENT = {
   headline: 'Build Your First 2D Game in Minutes',
-  subheadline: 'Describe a 2D game idea. AI builds it. They play it instantly in the browser. No coding needed.',
-  ctaLabel: 'Try It Now',
-  ctaSupport: 'No account needed to try. Build and play your first game in minutes.',
+  subheadline: 'Type a game idea. AI builds it. Play it in your browser. No coding needed.',
+  ctaLabel: 'Make a Game Now',
+  ctaSupport: 'No account needed to start. Build and play your first game in minutes.',
   trustLine: 'Built for kids. Simple for families. No coding required.',
   videoLabel: 'Pick a quick starter or type your own game idea',
 };
@@ -28,17 +28,17 @@ export const HOW_IT_WORKS_STEPS: LandingStep[] = [
   {
     icon: '01',
     title: 'Describe your game',
-    description: 'Tell the AI what kind of game you want — zombie survival, space shooter, racing, puzzles & more',
+    description: 'Pick a starter or type your own 2D game idea in plain English',
   },
   {
     icon: '02',
     title: 'AI builds it',
-    description: 'Your game is generated with real graphics, controls, and gameplay — ready to play',
+    description: 'AI turns the idea into a playable game in the browser',
   },
   {
     icon: '03',
     title: 'Play & share',
-    description: 'Play it instantly in your browser, then share it with friends and family',
+    description: 'Play it right away, then save it and share it with friends and family',
   },
 ] as const;
 
@@ -63,7 +63,7 @@ export const LANDING_QUESTIONS: LandingQuestion[] = [
   },
   {
     question: 'How fast can they get started?',
-    answer: 'They can try it right now on this page — no account needed. First game built in minutes.',
+    answer: 'They can start right on this page with no account needed. First game built in minutes.',
   },
   {
     question: 'Does it work in the browser?',
@@ -79,12 +79,31 @@ export const LANDING_QUESTIONS: LandingQuestion[] = [
   },
   {
     question: 'Is it safe for kids?',
-    answer: 'Yes. Built for kids and families with content safety, COPPA compliance, and parental controls.',
+    answer:
+      'Yes. Designed for kids and families with safety filters, parent-aware signup, and age-appropriate experiences.',
   },
 ] as const;
 
 export const FINAL_CTA_CONTENT = {
-  headline: 'Ready to build your first game?',
-  ctaLabel: 'Try It Now',
-  subtext: 'No signup required to try',
+  headline: 'Ready to make your first game?',
+  ctaLabel: 'Make a Game Now',
+  subtext: 'No account needed to start',
+};
+
+export const COMING_SOON_CONTENT = {
+  badge: 'Available now: 2D games',
+  headline: 'Start with games. Create even more soon.',
+  subheadline:
+    "Today, kids can build 2D games in minutes. Coming soon, they'll be able to create even more with Vibe Code Kidz.",
+  closingLine: 'Start creating with 2D games today — and grow with new creative modes as Vibe Code Kidz expands.',
+  items: [
+    { icon: '3D', title: '3D Games', description: 'Bigger worlds, new views, and more ways to play' },
+    { icon: 'APP', title: 'Apps', description: 'Simple tools, quizzes, and kid-friendly app ideas' },
+    { icon: 'MUSIC', title: 'Music', description: 'Make beats, soundboards, and musical creations' },
+    { icon: 'BOT', title: 'Robotics', description: 'Creative build modes inspired by robotics experiences' },
+    { icon: 'FX', title: 'Animations', description: 'Bring stories and characters to life with motion' },
+    { icon: 'STORY', title: 'Interactive Stories', description: 'Create stories kids can click through and explore' },
+    { icon: 'WORLD', title: 'Digital Worlds', description: 'Build places, scenes, and playful worlds to explore' },
+    { icon: 'AI', title: 'Smart Characters', description: 'Give creations personalities, voices, and more reactions' },
+  ],
 };

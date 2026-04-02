@@ -16,11 +16,14 @@ interface ArcadeGame {
 }
 
 const DEMO_STARTERS = [
-  { emoji: '🧟', label: 'Zombie survival game' },
-  { emoji: '🚀', label: 'Space shooter' },
-  { emoji: '🏎️', label: 'Racing game' },
-  { emoji: '🗡️', label: 'Dungeon adventure' },
-  { emoji: '🧩', label: 'Puzzle game' },
+  { emoji: '🥷🐱', label: 'Ninja cat adventure', prompt: 'Make me a 2D ninja cat adventure game' },
+  { emoji: '🤖🌮', label: 'Robot taco runner', prompt: 'Make me a 2D robot taco runner game' },
+  { emoji: '🐉💎', label: 'Dragon treasure quest', prompt: 'Make me a 2D dragon treasure quest game' },
+  { emoji: '👽🟢', label: 'Alien slime escape', prompt: 'Make me a 2D alien slime escape game' },
+  { emoji: '🧟', label: 'Zombie survival game', prompt: 'Make me a 2D zombie survival game' },
+  { emoji: '🚀', label: 'Space shooter', prompt: 'Make me a 2D space shooter game' },
+  { emoji: '🏎️', label: 'Racing game', prompt: 'Make me a 2D racing game' },
+  { emoji: '🧩', label: 'Puzzle adventure', prompt: 'Make me a 2D puzzle adventure game' },
 ];
 
 const LOADING_MESSAGES = [
@@ -192,9 +195,9 @@ export default function DemoBuilder({ onSignupClick, variant = 'section' }: Demo
     [startLoadingMessages, stopLoadingMessages],
   );
 
-  const handleChipClick = (label: string) => {
-    setInput(label);
-    generate(`Make me a 2D ${label.toLowerCase()} with the Vibe 2D engine`);
+  const handleChipClick = (starter: (typeof DEMO_STARTERS)[number]) => {
+    setInput(starter.label);
+    generate(starter.prompt);
   };
 
   const handleSubmit = () => {
@@ -228,7 +231,7 @@ export default function DemoBuilder({ onSignupClick, variant = 'section' }: Demo
       {!isHeroVariant && <h2 className="section-heading">Build your first game right now</h2>}
       <p className="demo-builder-subtext">
         {isHeroVariant
-          ? 'Pick a quick starter or describe your own idea.'
+          ? 'No account needed to start. Pick a quick starter or type your own idea.'
           : 'No account needed. Pick a game or describe your own idea.'}
       </p>
 
@@ -236,7 +239,7 @@ export default function DemoBuilder({ onSignupClick, variant = 'section' }: Demo
         <div className="demo-builder-idle">
           <div className="demo-starter-chips">
             {DEMO_STARTERS.map((s) => (
-              <button key={s.label} type="button" className="demo-chip" onClick={() => handleChipClick(s.label)}>
+              <button key={s.label} type="button" className="demo-chip" onClick={() => handleChipClick(s)}>
                 <span className="demo-chip-emoji">{s.emoji}</span>
                 {s.label}
               </button>
@@ -245,6 +248,7 @@ export default function DemoBuilder({ onSignupClick, variant = 'section' }: Demo
 
           <div className="demo-input-row">
             <input
+              id="demo-builder-input"
               type="text"
               className="demo-input"
               value={input}
@@ -267,7 +271,7 @@ export default function DemoBuilder({ onSignupClick, variant = 'section' }: Demo
             <p className="demo-loading-msg">{loadingMsg}</p>
           </div>
           <p className="demo-loading-note">
-            Your game may take up to 3 minutes. Play something from the Arcade or keep reading below while it finishes.
+            Your game may take up to 3 minutes. Play a game from the Arcade or keep reading the page while it finishes.
           </p>
 
           {playingGameId ? (

@@ -54,7 +54,13 @@ export default function LandingShell({ variant, onLoginClick, onSignupClick }: L
       trackCtaClick(buttonId, section, variant);
       trackMetaLandingCta(section, variant);
       const el = document.getElementById('try-now');
-      if (el) el.scrollIntoView({ behavior: 'smooth' });
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        window.setTimeout(() => {
+          const input = document.getElementById('demo-builder-input') as HTMLInputElement | null;
+          input?.focus();
+        }, 300);
+      }
     },
     [variant],
   );
