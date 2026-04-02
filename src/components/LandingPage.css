@@ -257,6 +257,7 @@
 .how-it-works,
 .reframe-section,
 .qa-section,
+.coming-soon-section,
 .final-cta-section {
   content-visibility: auto;
   contain-intrinsic-size: 1px 520px;
@@ -398,6 +399,39 @@
 .qa-card {
   min-height: 100%;
 }
+
+/* Coming Soon */
+
+.coming-soon-section {
+  text-align: center;
+}
+
+.coming-soon-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.coming-soon-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 22px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px dashed rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.coming-soon-emoji {
+  font-size: 1.15rem;
+}
+
+/* Final CTA */
 
 .final-cta-section {
   display: grid;

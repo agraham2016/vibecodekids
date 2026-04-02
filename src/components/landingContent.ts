@@ -17,10 +17,10 @@ export interface LandingQuestion {
 
 export const HERO_CONTENT = {
   headline: 'Build Your First 2D Game in Minutes',
-  subheadline: 'Just describe your idea. AI builds it. You play it.',
-  ctaLabel: 'Start Free',
-  ctaSupport: 'Takes less than 60 seconds to start',
-  trustLine: 'No coding required. No experience needed.',
+  subheadline: 'Describe a 2D game idea. AI builds it. They play it instantly. No coding needed.',
+  ctaLabel: 'Try It Now',
+  ctaSupport: 'No account needed — build your first game in minutes',
+  trustLine: 'Safe for kids. Simple for families. No coding required.',
   videoLabel: 'Watch a real game get built in under 3 minutes',
   videoSrc: '/videos/how-it-works.mp4',
 };
@@ -28,57 +28,78 @@ export const HERO_CONTENT = {
 export const HOW_IT_WORKS_STEPS: LandingStep[] = [
   {
     icon: '01',
-    title: 'Type an idea',
-    description: 'Describe the game in plain English',
+    title: 'Describe your game',
+    description: 'Tell the AI what kind of game you want — zombie survival, space shooter, racing, puzzles & more',
   },
   {
     icon: '02',
     title: 'AI builds it',
-    description: 'Characters, rules, and gameplay are generated instantly',
+    description: 'Your game is generated with real graphics, controls, and gameplay — ready to play',
   },
   {
     icon: '03',
-    title: 'Play instantly',
-    description: 'Launch and play your game right away',
+    title: 'Play & share',
+    description: 'Play it instantly in your browser, then share it with friends and family',
   },
 ] as const;
 
 export const REFRAME_CONTENT = {
   headline: 'Not just screen time… creation time',
-  bullets: ['Builds creativity', 'Encourages problem-solving', 'Teaches real-world tech thinking'],
+  bullets: [
+    'Builds creativity and game design thinking',
+    'Encourages problem-solving',
+    'Teaches real-world tech skills',
+  ],
 };
 
 export const LANDING_QUESTIONS: LandingQuestion[] = [
   {
     question: 'What does my child actually do?',
-    answer: 'They type a game idea in plain English, watch AI build it, then play and improve the game right away.',
+    answer:
+      'They describe a game idea in plain English — like "make a zombie survival game" — watch AI build it, then play and improve it right away.',
   },
   {
     question: 'Do they need coding experience?',
-    answer: 'No. Kids can start by describing what they want to make, and the platform handles the heavy lifting.',
+    answer: 'No. Kids just describe what they want and the AI handles all the code. They play, tweak, and iterate.',
   },
   {
     question: 'How fast can they get started?',
-    answer:
-      'Most families can get from landing page to first game in just a few minutes, with less than 60 seconds to begin.',
+    answer: 'They can try it right now on this page — no account needed. First game built in minutes.',
   },
   {
     question: 'Does it work in the browser?',
-    answer: 'Yes. It runs instantly in the browser, so there is nothing extra to install before trying it.',
+    answer: 'Yes. Games run instantly in the browser with real graphics and controls. Nothing to install.',
   },
   {
     question: 'What kinds of games can they make?',
     answer:
-      'Kids can create 2D platformers, racers, puzzles, RPGs, tycoon games, and many other ideas they come up with.',
+      'Kids can create 2D platformers, shooters, racing games, puzzles, RPGs, tycoon games, and more. More creation types are coming soon.',
   },
   {
     question: 'Can they share what they build?',
-    answer: 'Yes. Once they make a game they like, they can play it instantly and share it with family and friends.',
+    answer: 'Yes. Games go to the Arcade where friends and family can play them.',
+  },
+  {
+    question: 'Is it safe for kids?',
+    answer: 'Yes. Built for kids and families with content safety, COPPA compliance, and parental controls.',
   },
 ] as const;
 
 export const FINAL_CTA_CONTENT = {
-  headline: 'Start building your first game today',
-  ctaLabel: 'Try it Free',
-  subtext: 'Takes less than 60 seconds to get started',
+  headline: 'Ready to build your first game?',
+  ctaLabel: 'Try It Now',
+  subtext: 'No signup required',
+};
+
+export const COMING_SOON_CONTENT = {
+  headline: 'Coming Soon: Create Anything',
+  subheadline:
+    "Games are just the beginning. Soon you'll be able to build stories, apps, art, music, and more — all with AI.",
+  items: [
+    { emoji: '📖', label: 'Interactive stories' },
+    { emoji: '📱', label: 'Apps & tools' },
+    { emoji: '🎨', label: 'Art & animations' },
+    { emoji: '🎵', label: 'Music & soundboards' },
+    { emoji: '🧠', label: 'Quizzes & learning games' },
+  ],
 };

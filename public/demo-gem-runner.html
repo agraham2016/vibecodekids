@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gem Runner</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; overflow: hidden; font-family: Arial, sans-serif; }
+    body { background: linear-gradient(180deg, #0a1022, #06101a 60%, #07160d); color: white; }
+    canvas { display: block; width: 100vw; height: 100vh; }
+    .hud {
+      position: fixed;
+      top: 12px;
+      left: 12px;
+      right: 12px;
+      display: flex;
+      justify-content: space-between;
+      font-weight: 700;
+      pointer-events: none;
+      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
+    }
+    .tip {
+      position: fixed;
+      bottom: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 14px;
+      opacity: 0.8;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="hud">
+    <div id="score">Gems: 0</div>
+    <div id="speed">Speed: 1x</div>
+  </div>
+  <div class="tip">Use left/right or A/D to change lanes. Grab gems, avoid crates.</div>
+  <canvas id="game"></canvas>
+  <script>
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+    const scoreEl = document.getElementById('score');
+    const speedEl = document.getElementById('speed');
+    const lanes = [-1, 0, 1];
+    let w = 0, h = 0, laneX = [], targetLane = 1, score = 0, running = true, tick = 0;
+    const player = { lane: 1, y: 0, size: 30 };
+    const items = [];
+
+    function resize() {
+      canvas.width = innerWidth * devicePixelRatio;
+      canvas.height = innerHeight * devicePixelRatio;
+      ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+      w = innerWidth;
+      h = innerHeight;
+      laneX = [w * 0.32, w * 0.5, w * 0.68];
+      player.y = h - 90;
+    }
+    function reset() {
+      items.length = 0;
+      targetLane = 1;
+      player.lane = 1;
+      score = 0;
+      tick = 0;
+      running = true;
+    }
+    function spawn() {
+      items.push({
+        lane: Math.floor(Math.random() * 3),
+        y: -30,
+        type: Math.random() < 0.72 ? 'gem' : 'crate',
+      });
+    }
+    function laneChange(dir) {
+      targetLane = Math.max(0, Math.min(2, targetLane + dir));
+    }
+    function loop() {
+      tick += 1;
+      ctx.clearRect(0, 0, w, h);
+      const road = ctx.createLinearGradient(0, 0, 0, h);
+      road.addColorStop(0, '#0c1731');
+      road.addColorStop(1, '#082013');
+      ctx.fillStyle = road;
+      ctx.fillRect(0, 0, w, h);
+
+      ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+      ctx.lineWidth = 4;
+      for (let i = 0; i < laneX.length; i++) {
+        ctx.beginPath();
+        ctx.moveTo(laneX[i], 0);
+        ctx.lineTo(laneX[i], h);
+        ctx.stroke();
+      }
+
+      if (running) {
+        if (Math.random() < 0.045) spawn();
+        player.lane += (targetLane - player.lane) * 0.18;
+      }
+
+      const speed = 5 + Math.min(score * 0.04, 6);
+      items.forEach((item) => {
+        if (running) item.y += speed;
+        const x = laneX[item.lane];
+        if (item.type === 'gem') {
+          ctx.fillStyle = '#22d3ee';
+          ctx.beginPath();
+          ctx.moveTo(x, item.y - 14);
+          ctx.lineTo(x + 12, item.y);
+          ctx.lineTo(x, item.y + 14);
+          ctx.lineTo(x - 12, item.y);
+          ctx.closePath();
+          ctx.fill();
+        } else {
+          ctx.fillStyle = '#b45309';
+          ctx.fillRect(x - 18, item.y - 18, 36, 36);
+          ctx.strokeStyle = '#fbbf24';
+          ctx.strokeRect(x - 18, item.y - 18, 36, 36);
+        }
+      });
+
+      const px = laneX[0] + (laneX[2] - laneX[0]) * (player.lane / 2);
+      ctx.fillStyle = '#86efac';
+      ctx.beginPath();
+      ctx.arc(px, player.y - 6, 16, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#4ade80';
+      ctx.fillRect(px - 16, player.y + 8, 32, 22);
+
+      for (let i = items.length - 1; i >= 0; i--) {
+        const item = items[i];
+        const x = laneX[item.lane];
+        if (item.y > h + 40) {
+          items.splice(i, 1);
+          continue;
+        }
+        const nearLane = Math.abs(x - px) < 26;
+        const nearY = Math.abs(item.y - player.y) < 26;
+        if (running && nearLane && nearY) {
+          if (item.type === 'gem') {
+            score += 1;
+            items.splice(i, 1);
+          } else {
+            running = false;
+          }
+        }
+      }
+
+      scoreEl.textContent = 'Gems: ' + score;
+      speedEl.textContent = 'Speed: ' + (speed / 5).toFixed(1) + 'x';
+
+      if (!running) {
+        ctx.fillStyle = 'rgba(3,8,18,0.72)';
+        ctx.fillRect(0, 0, w, h);
+        ctx.fillStyle = '#fff';
+        ctx.textAlign = 'center';
+        ctx.font = '700 34px Arial';
+        ctx.fillText('Oof! Crashed into a crate.', w / 2, h / 2 - 10);
+        ctx.font = '600 18px Arial';
+        ctx.fillText('Click to restart', w / 2, h / 2 + 28);
+      }
+      requestAnimationFrame(loop);
+    }
+
+    addEventListener('resize', resize);
+    addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowLeft' || e.key.toLowerCase() === 'a') laneChange(-1);
+      if (e.key === 'ArrowRight' || e.key.toLowerCase() === 'd') laneChange(1);
+    });
+    addEventListener('click', () => {
+      if (!running) reset();
+    });
+
+    resize();
+    reset();
+    loop();
+  </script>
+</body>
+</html>

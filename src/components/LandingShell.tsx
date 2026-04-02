@@ -53,9 +53,10 @@ export default function LandingShell({ variant, onLoginClick, onSignupClick }: L
     (buttonId: string, section?: string) => {
       trackCtaClick(buttonId, section, variant);
       trackMetaLandingCta(section, variant);
-      onSignupClick();
+      const el = document.getElementById('try-now');
+      if (el) el.scrollIntoView({ behavior: 'smooth' });
     },
-    [onSignupClick, variant],
+    [variant],
   );
 
   return (
@@ -80,6 +81,9 @@ export default function LandingShell({ variant, onLoginClick, onSignupClick }: L
             <button type="button" className="nav-login" onClick={onLoginClick}>
               Log In
             </button>
+            <button type="button" className="nav-login" onClick={onSignupClick}>
+              Sign Up
+            </button>
             <button type="button" className="nav-cta" onClick={() => handleCta('nav-cta', 'nav')}>
               {HERO_CONTENT.ctaLabel}
             </button>
@@ -89,7 +93,7 @@ export default function LandingShell({ variant, onLoginClick, onSignupClick }: L
 
       <main className="landing-content">
         <LandingHero onPrimaryCta={() => handleCta('hero-primary-cta', 'hero')} />
-        <LandingCoreSections onCta={handleCta} />
+        <LandingCoreSections onCta={handleCta} onSignupClick={onSignupClick} />
       </main>
 
       <footer className="landing-footer" aria-label="Footer">

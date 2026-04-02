@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Neon Paddle</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; overflow: hidden; font-family: Arial, sans-serif; }
+    body { background: radial-gradient(circle at top, #10203f, #050814 72%); color: white; }
+    canvas { display: block; width: 100vw; height: 100vh; }
+    .hud {
+      position: fixed;
+      top: 12px;
+      left: 12px;
+      right: 12px;
+      display: flex;
+      justify-content: space-between;
+      font-weight: 700;
+      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
+      pointer-events: none;
+    }
+    .tip {
+      position: fixed;
+      bottom: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 14px;
+      opacity: 0.8;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="hud">
+    <div id="score">Score: 0</div>
+    <div id="lives">Lives: 3</div>
+  </div>
+  <div class="tip">Move with mouse or arrow keys. Break every block.</div>
+  <canvas id="game"></canvas>
+  <script>
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+    const scoreEl = document.getElementById('score');
+    const livesEl = document.getElementById('lives');
+    let scale = 1, w = 0, h = 0;
+    const paddle = { x: 0, y: 0, w: 120, h: 14, speed: 9 };
+    const ball = { x: 0, y: 0, vx: 4, vy: -4, r: 8 };
+    const keys = { left: false, right: false };
+    let score = 0, lives = 3, won = false;
+    let bricks = [];
+
+    function resize() {
+      scale = window.devicePixelRatio || 1;
+      canvas.width = window.innerWidth * scale;
+      canvas.height = window.innerHeight * scale;
+      ctx.setTransform(scale, 0, 0, scale, 0, 0);
+      w = window.innerWidth;
+      h = window.innerHeight;
+      paddle.y = h - 42;
+      if (!paddle.x) paddle.x = (w - paddle.w) / 2;
+    }
+    function makeBricks() {
+      bricks = [];
+      const cols = 7, rows = 5, gap = 10, top = 70;
+      const brickW = Math.min(110, (w - 40 - gap * (cols - 1)) / cols);
+      const totalW = cols * brickW + (cols - 1) * gap;
+      const startX = (w - totalW) / 2;
+      const colors = ['#60a5fa', '#22d3ee', '#818cf8', '#c084fc', '#f472b6'];
+      for (let row = 0; row < rows; row++) {
+        for (let col = 0; col < cols; col++) {
+          bricks.push({
+            x: startX + col * (brickW + gap),
+            y: top + row * 34,
+            w: brickW,
+            h: 22,
+            color: colors[row % colors.length],
+            alive: true,
+          });
+        }
+      }
+    }
+    function resetBall() {
+      ball.x = w / 2;
+      ball.y = h - 64;
+      ball.vx = Math.random() > 0.5 ? 4 : -4;
+      ball.vy = -4;
+    }
+    function resetGame() {
+      score = 0;
+      lives = 3;
+      won = false;
+      makeBricks();
+      paddle.x = (w - paddle.w) / 2;
+      resetBall();
+    }
+    function drawRoundedRect(x, y, bw, bh, r, fill) {
+      ctx.fillStyle = fill;
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + bw, y, x + bw, y + bh, r);
+      ctx.arcTo(x + bw, y + bh, x, y + bh, r);
+      ctx.arcTo(x, y + bh, x, y, r);
+      ctx.arcTo(x, y, x + bw, y, r);
+      ctx.closePath();
+      ctx.fill();
+    }
+    function loop() {
+      ctx.clearRect(0, 0, w, h);
+      const bg = ctx.createLinearGradient(0, 0, 0, h);
+      bg.addColorStop(0, '#10203f');
+      bg.addColorStop(1, '#050814');
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, w, h);
+
+      if (!won && lives > 0) {
+        if (keys.left) paddle.x -= paddle.speed;
+        if (keys.right) paddle.x += paddle.speed;
+        paddle.x = Math.max(12, Math.min(w - paddle.w - 12, paddle.x));
+        ball.x += ball.vx;
+        ball.y += ball.vy;
+        if (ball.x < ball.r || ball.x > w - ball.r) ball.vx *= -1;
+        if (ball.y < ball.r) ball.vy *= -1;
+        if (ball.y > h + 20) {
+          lives -= 1;
+          if (lives > 0) resetBall();
+        }
+        if (ball.x > paddle.x && ball.x < paddle.x + paddle.w && ball.y + ball.r > paddle.y && ball.y - ball.r < paddle.y + paddle.h && ball.vy > 0) {
+          const hit = (ball.x - (paddle.x + paddle.w / 2)) / (paddle.w / 2);
+          ball.vx = hit * 6;
+          ball.vy = -Math.abs(ball.vy);
+        }
+        bricks.forEach((b) => {
+          if (!b.alive) return;
+          if (ball.x + ball.r > b.x && ball.x - ball.r < b.x + b.w && ball.y + ball.r > b.y && ball.y - ball.r < b.y + b.h) {
+            b.alive = false;
+            ball.vy *= -1;
+            score += 10;
+          }
+        });
+        if (bricks.every((b) => !b.alive)) won = true;
+      }
+
+      bricks.forEach((b) => {
+        if (!b.alive) return;
+        drawRoundedRect(b.x, b.y, b.w, b.h, 8, b.color);
+      });
+      drawRoundedRect(paddle.x, paddle.y, paddle.w, paddle.h, 8, '#f8fafc');
+      ctx.shadowColor = '#38bdf8';
+      ctx.shadowBlur = 16;
+      ctx.fillStyle = '#fde68a';
+      ctx.beginPath();
+      ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+
+      scoreEl.textContent = 'Score: ' + score;
+      livesEl.textContent = 'Lives: ' + lives;
+
+      if (won || lives <= 0) {
+        ctx.fillStyle = 'rgba(5,8,20,0.72)';
+        ctx.fillRect(0, 0, w, h);
+        ctx.fillStyle = '#fff';
+        ctx.textAlign = 'center';
+        ctx.font = '700 34px Arial';
+        ctx.fillText(won ? 'Level Cleared!' : 'Try Again!', w / 2, h / 2 - 10);
+        ctx.font = '600 18px Arial';
+        ctx.fillText('Click to restart', w / 2, h / 2 + 28);
+      }
+      requestAnimationFrame(loop);
+    }
+
+    window.addEventListener('resize', () => { resize(); makeBricks(); resetBall(); });
+    window.addEventListener('mousemove', (e) => { paddle.x = e.clientX - paddle.w / 2; });
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowLeft') keys.left = true;
+      if (e.key === 'ArrowRight') keys.right = true;
+    });
+    window.addEventListener('keyup', (e) => {
+      if (e.key === 'ArrowLeft') keys.left = false;
+      if (e.key === 'ArrowRight') keys.right = false;
+    });
+    window.addEventListener('click', () => {
+      if (won || lives <= 0) resetGame();
+    });
+
+    resize();
+    resetGame();
+    loop();
+  </script>
+</body>
+</html>

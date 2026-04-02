@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rocket Dodge</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; overflow: hidden; font-family: Arial, sans-serif; }
+    body {
+      background: radial-gradient(circle at top, #2f1b59, #090712 70%);
+      color: #fff;
+    }
+    canvas { display: block; width: 100vw; height: 100vh; }
+    .hud {
+      position: fixed;
+      top: 12px;
+      left: 12px;
+      right: 12px;
+      display: flex;
+      justify-content: space-between;
+      font-weight: 700;
+      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
+      pointer-events: none;
+    }
+    .tip {
+      position: fixed;
+      bottom: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 14px;
+      opacity: 0.8;
+      text-align: center;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="hud">
+    <div id="score">Score: 0</div>
+    <div id="best">Best: 0</div>
+  </div>
+  <div class="tip">Move with arrow keys or mouse. Avoid meteors. Click to restart.</div>
+  <canvas id="game"></canvas>
+  <script>
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+    const scoreEl = document.getElementById('score');
+    const bestEl = document.getElementById('best');
+    let w = 0, h = 0, running = true, score = 0;
+    let best = Number(localStorage.getItem('rocket-dodge-best') || 0);
+    bestEl.textContent = 'Best: ' + best;
+    const player = { x: 0, y: 0, w: 42, h: 54, speed: 8 };
+    const meteors = [];
+    const stars = Array.from({ length: 90 }, () => ({ x: Math.random(), y: Math.random(), s: Math.random() * 2 + 1 }));
+    const keys = { left: false, right: false };
+
+    function resize() {
+      w = canvas.width = window.innerWidth * devicePixelRatio;
+      h = canvas.height = window.innerHeight * devicePixelRatio;
+      ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+      player.x = Math.min(Math.max(player.x || window.innerWidth / 2, 30), window.innerWidth - 30);
+      player.y = window.innerHeight - 80;
+    }
+    function reset() {
+      meteors.length = 0;
+      running = true;
+      score = 0;
+      player.x = window.innerWidth / 2;
+      player.y = window.innerHeight - 80;
+    }
+    function spawnMeteor() {
+      meteors.push({
+        x: Math.random() * (window.innerWidth - 40) + 20,
+        y: -40,
+        r: Math.random() * 12 + 14,
+        vy: Math.random() * 3 + 3 + score * 0.01,
+        vx: (Math.random() - 0.5) * 2,
+      });
+    }
+    function drawShip() {
+      ctx.save();
+      ctx.translate(player.x, player.y);
+      ctx.fillStyle = '#7dd3fc';
+      ctx.beginPath();
+      ctx.moveTo(0, -26);
+      ctx.lineTo(18, 18);
+      ctx.lineTo(0, 8);
+      ctx.lineTo(-18, 18);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#f472b6';
+      ctx.fillRect(-7, 8, 14, 18);
+      ctx.fillStyle = '#fde68a';
+      ctx.fillRect(-5, 26, 4, 10);
+      ctx.fillRect(1, 26, 4, 10);
+      ctx.restore();
+    }
+    function drawMeteor(m) {
+      ctx.save();
+      ctx.translate(m.x, m.y);
+      ctx.fillStyle = '#c084fc';
+      ctx.beginPath();
+      ctx.arc(0, 0, m.r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,0.18)';
+      ctx.beginPath();
+      ctx.arc(-m.r * 0.25, -m.r * 0.2, m.r * 0.35, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+    function hit(a, b) {
+      return Math.abs(a.x - b.x) < a.w * 0.45 + b.r && Math.abs(a.y - b.y) < a.h * 0.45 + b.r;
+    }
+    function loop() {
+      ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+      stars.forEach((s) => {
+        ctx.fillStyle = 'rgba(255,255,255,' + (0.35 + s.s * 0.2) + ')';
+        ctx.fillRect(s.x * window.innerWidth, s.y * window.innerHeight, s.s, s.s);
+        s.y += 0.0015 * s.s;
+        if (s.y > 1) s.y = 0;
+      });
+
+      if (running) {
+        score += 1;
+        if (Math.random() < 0.03 + Math.min(score / 4000, 0.04)) spawnMeteor();
+        if (keys.left) player.x -= player.speed;
+        if (keys.right) player.x += player.speed;
+        player.x = Math.max(24, Math.min(window.innerWidth - 24, player.x));
+      }
+
+      meteors.forEach((m) => {
+        if (running) {
+          m.y += m.vy;
+          m.x += m.vx;
+        }
+        drawMeteor(m);
+      });
+      for (let i = meteors.length - 1; i >= 0; i--) {
+        if (meteors[i].y > window.innerHeight + 50) meteors.splice(i, 1);
+        else if (running && hit(player, meteors[i])) {
+          running = false;
+          best = Math.max(best, score);
+          localStorage.setItem('rocket-dodge-best', String(best));
+          bestEl.textContent = 'Best: ' + best;
+        }
+      }
+
+      drawShip();
+      scoreEl.textContent = 'Score: ' + score;
+
+      if (!running) {
+        ctx.fillStyle = 'rgba(9,7,18,0.7)';
+        ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
+        ctx.fillStyle = '#fff';
+        ctx.textAlign = 'center';
+        ctx.font = '700 34px Arial';
+        ctx.fillText('Crash!', window.innerWidth / 2, window.innerHeight / 2 - 10);
+        ctx.font = '600 18px Arial';
+        ctx.fillText('Click or press space to play again', window.innerWidth / 2, window.innerHeight / 2 + 28);
+      }
+      requestAnimationFrame(loop);
+    }
+
+    window.addEventListener('resize', resize);
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowLeft') keys.left = true;
+      if (e.key === 'ArrowRight') keys.right = true;
+      if (e.key === ' ' && !running) reset();
+    });
+    window.addEventListener('keyup', (e) => {
+      if (e.key === 'ArrowLeft') keys.left = false;
+      if (e.key === 'ArrowRight') keys.right = false;
+    });
+    window.addEventListener('mousemove', (e) => {
+      player.x = e.clientX;
+    });
+    window.addEventListener('click', () => { if (!running) reset(); });
+
+    resize();
+    reset();
+    loop();
+  </script>
+</body>
+</html>
