@@ -16,14 +16,49 @@ interface ArcadeGame {
 }
 
 const DEMO_STARTERS = [
-  { emoji: '🥷🐱', label: 'Ninja cat adventure', prompt: 'Make me a 2D ninja cat adventure game' },
-  { emoji: '🤖🌮', label: 'Robot taco runner', prompt: 'Make me a 2D robot taco runner game' },
-  { emoji: '🐉💎', label: 'Dragon treasure quest', prompt: 'Make me a 2D dragon treasure quest game' },
-  { emoji: '👽🟢', label: 'Alien slime escape', prompt: 'Make me a 2D alien slime escape game' },
-  { emoji: '🧟', label: 'Zombie survival game', prompt: 'Make me a 2D zombie survival game' },
-  { emoji: '🚀', label: 'Space shooter', prompt: 'Make me a 2D space shooter game' },
-  { emoji: '🏎️', label: 'Racing game', prompt: 'Make me a 2D racing game' },
-  { emoji: '🧩', label: 'Puzzle adventure', prompt: 'Make me a 2D puzzle adventure game' },
+  {
+    emoji: '🥷🐱',
+    label: 'Ninja cat adventure',
+    prompt:
+      'Make me a 2D platformer adventure game where I play as a ninja cat, jump across rooftops, collect fish, and dodge traps.',
+  },
+  {
+    emoji: '🤖🌮',
+    label: 'Robot taco runner',
+    prompt: 'Make me a 2D endless runner game where a robot taco runs forward, jumps over obstacles, and grabs coins.',
+  },
+  {
+    emoji: '🐉💎',
+    label: 'Dragon treasure quest',
+    prompt:
+      'Make me a 2D platformer adventure game where a dragon collects treasure, avoids traps, and reaches the exit.',
+  },
+  {
+    emoji: '👽🟢',
+    label: 'Alien slime escape',
+    prompt:
+      'Make me a 2D puzzle platformer where a little alien slime escapes a lab by jumping past hazards and opening the exit.',
+  },
+  {
+    emoji: '🧟',
+    label: 'Zombie survival game',
+    prompt: 'Make me a 2D top-down zombie survival shooter with waves of zombies, health pickups, and a score counter.',
+  },
+  {
+    emoji: '🚀',
+    label: 'Space shooter',
+    prompt: 'Make me a 2D space shooter with enemy waves, laser blasts, power-ups, and a score counter.',
+  },
+  {
+    emoji: '🏎️',
+    label: 'Racing game',
+    prompt: 'Make me a 2D racing game with laps, speed boosts, and other cars to dodge.',
+  },
+  {
+    emoji: '🧩',
+    label: 'Puzzle adventure',
+    prompt: 'Make me a 2D puzzle adventure where I solve rooms, collect keys, and unlock the next area.',
+  },
 ];
 
 const LOADING_MESSAGES = [
