@@ -4,14 +4,7 @@ interface LandingHeroProps {
   onPrimaryCta: () => void;
 }
 
-function scrollToTryNow() {
-  const el = document.getElementById('try-now');
-  if (el) el.scrollIntoView({ behavior: 'smooth' });
-}
-
 export default function LandingHero({ onPrimaryCta }: LandingHeroProps) {
-  void onPrimaryCta;
-
   return (
     <section className="landing-hero" aria-labelledby="landing-hero-title">
       <div className="hero-shell">
@@ -22,7 +15,7 @@ export default function LandingHero({ onPrimaryCta }: LandingHeroProps) {
           <p className="hero-subheadline">{HERO_CONTENT.subheadline}</p>
 
           <div className="hero-cta-group">
-            <button type="button" className="hero-primary-button" onClick={scrollToTryNow}>
+            <button type="button" className="hero-primary-button" onClick={onPrimaryCta}>
               {HERO_CONTENT.ctaLabel}
             </button>
             <p className="hero-support-copy">{HERO_CONTENT.ctaSupport}</p>
@@ -32,21 +25,16 @@ export default function LandingHero({ onPrimaryCta }: LandingHeroProps) {
         <div className="hero-video-block">
           <p className="hero-video-label">{HERO_CONTENT.videoLabel}</p>
           <div className="hero-video-frame">
-            <video
+            <iframe
               className="hero-video"
-              autoPlay
-              muted
-              playsInline
-              controls
-              preload="metadata"
-              aria-label="How Vibe Code Kidz turns an idea into a real creation"
-            >
-              <source src={HERO_CONTENT.videoSrc} type="video/mp4" />
-            </video>
+              src={HERO_CONTENT.videoSrc}
+              title="Playable example game built with Vibe Code Kidz"
+              sandbox="allow-scripts allow-same-origin allow-pointer-lock"
+            />
           </div>
 
           <div className="hero-video-cta-group">
-            <button type="button" className="hero-primary-button hero-secondary-button" onClick={scrollToTryNow}>
+            <button type="button" className="hero-primary-button hero-secondary-button" onClick={onPrimaryCta}>
               {HERO_CONTENT.ctaLabel}
             </button>
             <p className="hero-microcopy">{HERO_CONTENT.trustLine}</p>

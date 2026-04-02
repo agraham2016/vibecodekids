@@ -17,12 +17,12 @@ export interface LandingQuestion {
 
 export const HERO_CONTENT = {
   headline: 'Build Your First 2D Game in Minutes',
-  subheadline: 'Describe a 2D game idea. AI builds it. They play it instantly. No coding needed.',
+  subheadline: 'Describe a 2D game idea. AI builds it. They play it instantly in the browser. No coding needed.',
   ctaLabel: 'Try It Now',
-  ctaSupport: 'No account needed — build your first game in minutes',
-  trustLine: 'Safe for kids. Simple for families. No coding required.',
-  videoLabel: 'Watch a real game get built in under 3 minutes',
-  videoSrc: '/videos/how-it-works.mp4',
+  ctaSupport: 'No account needed to try. Build and play your first game in minutes.',
+  trustLine: 'Built for kids. Simple for families. No coding required.',
+  videoLabel: 'Play a real example game, then build your own',
+  videoSrc: '/demo-rocket-dodge.html',
 };
 
 export const HOW_IT_WORKS_STEPS: LandingStep[] = [
@@ -72,8 +72,7 @@ export const LANDING_QUESTIONS: LandingQuestion[] = [
   },
   {
     question: 'What kinds of games can they make?',
-    answer:
-      'Kids can create 2D platformers, shooters, racing games, puzzles, RPGs, tycoon games, and more. More creation types are coming soon.',
+    answer: 'Kids can create 2D platformers, shooters, racing games, puzzles, RPGs, tycoon games, and more right now.',
   },
   {
     question: 'Can they share what they build?',
@@ -88,18 +87,5 @@ export const LANDING_QUESTIONS: LandingQuestion[] = [
 export const FINAL_CTA_CONTENT = {
   headline: 'Ready to build your first game?',
   ctaLabel: 'Try It Now',
-  subtext: 'No signup required',
-};
-
-export const COMING_SOON_CONTENT = {
-  headline: 'Coming Soon: Create Anything',
-  subheadline:
-    "Games are just the beginning. Soon you'll be able to build stories, apps, art, music, and more — all with AI.",
-  items: [
-    { emoji: '📖', label: 'Interactive stories' },
-    { emoji: '📱', label: 'Apps & tools' },
-    { emoji: '🎨', label: 'Art & animations' },
-    { emoji: '🎵', label: 'Music & soundboards' },
-    { emoji: '🧠', label: 'Quizzes & learning games' },
-  ],
+  subtext: 'No signup required to try',
 };

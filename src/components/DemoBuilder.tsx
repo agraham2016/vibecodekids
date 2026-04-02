@@ -314,7 +314,7 @@ export default function DemoBuilder({ onSignupClick }: DemoBuilderProps) {
 
           <div className="demo-success-actions">
             <button type="button" className="demo-signup-btn" onClick={onSignupClick}>
-              Sign up free to save your game, build more, or customize this one
+              Save this game and keep building it
             </button>
             {promptsRemaining !== null && promptsRemaining > 0 && (
               <button type="button" className="demo-try-another-btn" onClick={handleTryAnother}>
@@ -327,9 +327,9 @@ export default function DemoBuilder({ onSignupClick }: DemoBuilderProps) {
 
       {state === 'rate-limited' && (
         <div className="demo-builder-gated">
-          <p className="demo-gated-msg">You have used all 5 free tries today.</p>
+          <p className="demo-gated-msg">You have used all 5 free tries today. Want to keep building?</p>
           <button type="button" className="demo-signup-btn" onClick={onSignupClick}>
-            Sign up free to keep building
+            Create a free account to keep going
           </button>
         </div>
       )}
